@@ -1,0 +1,65 @@
+version: '3'
+services:
+  neo4j:
+    image: neo4j:3.4.0
+    container_name: pfi-neo4j
+    environment:
+      NEO4J_AUTH: neo4j/bob
+      NEO4J_dbms_connector_bolt_advertised__address: bolt.neo4j.pfi.local.dev-gutools.co.uk:443
+    volumes:
+      - neo4j:/var/lib/neo4j/data
+    ports:
+      - 7474:7474
+      - 7687:7687
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.9.2
+    container_name: pfi-elasticsearch
+    environment:
+      - discovery.type=single-node
+      - network.publish_host=127.0.0.1
+      - bootstrap.memory_lock=true
+      - "ES_JAVA_OPTS=-Xms4g -Xmx4g"
+      - xpack.security.enabled=false
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      - elasticsearch:/usr/share/elasticsearch/data
+    ports:
+      - 9200:9200
+
+  cerebro:
+    image: lmenezes/cerebro:0.9.3
+    container_name: pfi-cerebro
+    ports:
+      - 9091:9000
+    command: '-Dconfig.file=/opt/cerebro/conf/cerebro.conf'
+    volumes:
+      - ${PWD}/util/local-cerebro.conf:/opt/cerebro/conf/cerebro.conf
+
+  minio:
+    image: minio/minio
+    container_name: pfi-minio
+    environment:
+      MINIO_ACCESS_KEY: minio-user
+      MINIO_SECRET_KEY: reallyverysecret
+    volumes:
+      - minio:/export
+    ports:
+      - 9090:9000
+    entrypoint:
+      sh
+    command:
+      -c 'mkdir -p /export/ingest-data && mkdir -p /export/data && mkdir -p /export/preview && /usr/bin/minio server /export'
+
+volumes:
+  neo4j:
+    driver: local
+
+  elasticsearch:
+    driver: local
+
+  minio:
+    driver: local

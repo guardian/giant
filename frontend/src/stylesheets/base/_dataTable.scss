@@ -1,0 +1,51 @@
+.data-table {
+    width: 100%;
+    flex-shrink: 0;
+    color: $primaryDark;
+    border-collapse: collapse;
+    margin-bottom: $baseSpacing;
+
+    &__row {
+        align-items: center;
+        overflow: hidden;
+        word-wrap: break-word;
+
+        &:not(:last-child) {
+            border-bottom: 1px solid $borderColour;
+        }
+
+        &--hover:hover {
+            background-color: $secondary;
+            cursor: pointer;
+        }
+    }
+
+    &__item {
+        padding: $baseSpacing / 2 $baseSpacing;
+        text-align: left;
+
+        &--icon {
+            text-align: 0;
+            // Doesn't actually make it width: 0
+            width: 0;
+            text-align: center;
+            font-size: 24px;
+        }
+
+        &--key {
+            width: 150px;
+            background: $secondary;
+            white-space: nowrap;
+        }
+
+        &--title {
+            background: $primary;
+            color: white;
+        }
+
+        &--title, &--key {
+            text-transform: uppercase;
+            font-weight: bold;
+        }
+    }
+}

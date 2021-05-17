@@ -1,0 +1,99 @@
+# API
+GET           /api/events/uploads                                           controllers.api.Events.listAllUploads(showAdminUploads: Option[Boolean])
+
+GET           /api/collections                                              controllers.api.Collections.listCollections
+GET           /api/collections/:collection                                  controllers.api.Collections.getCollection(collection: model.Uri)
+
+POST          /api/collections                                              controllers.api.Collections.newCollection
+POST          /api/collections/:collection                                  controllers.api.Collections.newIngestion(collection: model.Uri)
+POST          /api/collections/:collection/:ingestion                       controllers.api.Collections.uploadIngestionFile(collection, ingestion)
+DELETE        /api/collections/:collection/:ingestion                       controllers.api.Collections.deleteIngestion(collection, ingestion)
+POST          /api/collections/:collection/:ingestion/verifyFiles           controllers.api.Collections.verifyFiles(collection, ingestion)
+
+GET           /api/blobs                                                    controllers.api.Blobs.getBlobs
+DELETE        /api/blobs/:id                                                controllers.api.Blobs.delete(id)
+
+GET           /api/filters                                                  controllers.api.Filters.getFilters
+
+GET           /api/search                                                   controllers.api.Search.search
+GET           /api/search/fields                                            controllers.api.Search.chips
+
+GET           /api/download/auth/:uri                                       controllers.api.Documents.authoriseDownload(uri: model.Uri)
+GET           /api/download/get/:uri                                        controllers.api.Documents.actualDownload(uri: model.Uri)
+
+POST          /api/resources/*uri/comments                                  controllers.api.Comments.postComment(uri: model.Uri)
+GET           /api/resources/*uri/comments                                  controllers.api.Comments.getCommentsForBlob(uri: model.Uri)
+
+GET           /api/resources/*uri                                           controllers.api.Resource.getResource(uri: model.Uri, basic: Boolean, q: Option[String])
+
+DELETE        /api/comments/:commentId                                      controllers.api.Comments.deleteComment(commentId: String)
+
+GET           /api/pages/text/:uri                                          controllers.api.Resource.getTextPages(uri: model.Uri, top: Double, bottom: Double, q: Option[String], language: Option[model.Language])
+GET           /api/pages/preview/:language/:uri/:pageNumber                 controllers.api.Resource.getPagePreview(uri: model.Uri, language: model.Language, pageNumber: Int, q: Option[String])
+
+GET           /api/extractions/failures                                     controllers.api.Resource.getExtractionFailures
+POST          /api/extractions/failures/resources                           controllers.api.Resource.getResourcesForExtractionFailure(page: Int ?= 1, pageSize: Int ?= 20)
+
+GET           /api/emails/thread/:uri                                       controllers.api.Emails.getThread(uri: model.Uri)
+
+GET           /api/mimetypes/details                                        controllers.api.MimeTypes.getDetails
+GET           /api/mimetypes/coverage                                       controllers.api.MimeTypes.getCoverage
+
+POST          /api/workspaces                                               controllers.api.Workspaces.create
+GET           /api/workspaces                                               controllers.api.Workspaces.getAll
+PUT           /api/workspaces/:workspaceId/followers                        controllers.api.Workspaces.updateWorkspaceFollowers(workspaceId: String)
+PUT           /api/workspaces/:workspaceId/isPublic                         controllers.api.Workspaces.updateWorkspaceIsPublic(workspaceId: String)
+PUT           /api/workspaces/:workspaceId/name                             controllers.api.Workspaces.updateWorkspaceName(workspaceId: String)
+GET           /api/workspaces/:workspaceId                                  controllers.api.Workspaces.get(workspaceId: String)
+GET           /api/workspaces/:workspaceId/nodes                            controllers.api.Workspaces.getContents(workspaceId: String)
+POST          /api/workspaces/:workspaceId/reprocess                        controllers.api.Workspaces.reprocess(workspaceId: String)
+POST          /api/workspaces/:workspaceId/nodes                            controllers.api.Workspaces.addItemToWorkspace(workspaceId: String)
+PUT           /api/workspaces/:workspaceId/nodes/:itemId/name               controllers.api.Workspaces.renameItem(workspaceId: String, itemId: String)
+PUT           /api/workspaces/:workspaceId/nodes/:itemId/parent             controllers.api.Workspaces.moveItem(workspaceId: String, itemId: String)
+DELETE        /api/workspaces/:workspaceId/nodes/:itemId                    controllers.api.Workspaces.deleteItem(workspaceId: String, itemId: String)
+DELETE        /api/workspaces/:workspaceId                                  controllers.api.Workspaces.deleteWorkspace(workspaceId: String)
+
+HEAD          /api/preview/download/:uri                                    controllers.api.Previews.getPreviewMetadata(uri: model.Uri)
+POST          /api/preview/generate/:uri                                    controllers.api.Previews.generatePreview(uri: model.Uri)
+GET           /api/preview/download/:uri                                    controllers.api.Previews.getPreview(uri: model.Uri)
+GET           /api/preview/auth/:uri                                        controllers.api.Previews.authoriseDownload(uri: model.Uri)
+GET           /api/preview/get/:uri                                         controllers.api.Previews.preAuthorizedDownload(uri: model.Uri)
+
+# === User actions ===
+GET           /api/users                                                    controllers.api.Users.listUsers
+POST          /api/users/:username/collections                              controllers.api.Collections.setUserCollections(username)
+PUT           /api/users/:username                                          controllers.api.Users.createUser(username: String)
+POST          /api/users/:username/displayName                              controllers.api.Users.updateUserFullname(username: String)
+POST          /api/users/:username/password                                 controllers.api.Users.updateUserPassword(username: String)
+POST          /api/users/:username/permissions                              controllers.api.Users.setPermissions(username: String)
+POST          /api/users/:username/2fa                                      controllers.api.Users.enrollUser2FA(username: String)
+DELETE        /api/users/:username/2fa                                      controllers.api.Users.removeUser2FA(username: String)
+DELETE        /api/users/:username                                          controllers.api.Users.removeUser(username: String)
+
++ NOCSRF
+PUT           /api/users/:username/register                                 controllers.api.Users.registerUser(username: String)
+
+GET           /api/currentUser/permissions                                  controllers.api.Users.getMyPermissions
+
++ NOCSRF
+POST          /api/auth/token                                               controllers.api.Authentication.token
+DELETE        /api/auth/token                                               controllers.api.Authentication.invalidateExistingTokens
+GET           /api/auth/generate2faToken/:username                          controllers.api.Authentication.generate2faToken(username: String)
+GET           /api/keepalive                                                controllers.api.Authentication.keepalive
+
+GET           /api/config                                                   controllers.frontend.App.configuration
+
++ NOCSRF
+GET           /healthcheck                                                  controllers.api.Authentication.healthcheck
+
+GET           /manifest                                                     controllers.frontend.App.manifest
+
+# === Setup ====
+GET           /setup                                                        controllers.genesis.Genesis.checkSetup
++ NOCSRF
+PUT           /setup                                                        controllers.genesis.Genesis.doSetup
+
+# === Web Client ===
+GET           /                                                             controllers.frontend.App.index
+GET           /third-party/*path                                            controllers.frontend.App.thirdPartyAssets(path)
+GET           /*path                                                        controllers.frontend.App.assetOrBundle(path)

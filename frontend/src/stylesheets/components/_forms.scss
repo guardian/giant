@@ -1,0 +1,76 @@
+.form {
+    background-color: $secondary;
+    border: 1px solid $borderColour;
+    color: $primaryDark;
+    padding: $baseSpacing * 2;
+    width: 60%;
+    max-width: 600px;
+    height: fit-content;
+    border-radius: $borderRadius;
+    box-shadow: $boxShadow;
+
+    &__title {
+        border-bottom: 1px solid $borderColour;
+        margin-bottom: $baseSpacing;
+        padding-bottom: $baseSpacing / 4;
+    }
+
+    &__section:not(:last-child) {
+        border-bottom: 1px solid $borderColour;
+        margin-bottom: $baseSpacing;
+    }
+
+    &__row {
+        margin-bottom: $baseSpacing;
+    }
+
+    &__label {
+        display: block;
+        font-size: 12px;
+        font-weight: bold;
+        margin-bottom: $baseSpacing / 2;
+        line-height: 1.2;
+    }
+
+    &__select {
+        margin: 5px 0 5px 0
+    }
+
+    &__field {
+        background-color: white;
+        border: 1px solid $borderColour;
+        border-radius: $borderRadius;
+        padding: $baseSpacing / 2;
+        color: $primaryDark;
+        display: block;
+        width: 100%;
+
+        &:focus {
+            outline: none;
+            box-shadow: 0px 0px 5px $primaryLight;
+            box-shadow: 0px 0px 5px -webkit-focus-ring-color;
+            border-color: $primaryDark;
+        }
+
+        &:invalid {
+            border-color: $errorColour;
+            box-shadow: none;
+        }
+    }
+
+    &__actions {
+        width: 100%;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding-top: $baseSpacing;
+    }
+
+    &__error {
+        margin: 0;
+    }
+
+    &__radio-label {
+      padding-left: 3px;
+    }
+}

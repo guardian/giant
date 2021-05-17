@@ -1,0 +1,66 @@
+# We implement deploying to multiple stages by doing multiple builds in `teamcity.sh`
+# updating all references to `pfi-playground` in this file between each.
+stacks: [pfi-playground]
+regions: [eu-west-1]
+
+deployments:
+  pfi-ami-update:
+    type: ami-cloudformation-parameter
+    app: pfi
+    parameters:
+      amiEncrypted: true
+      amiTags:
+        Recipe: investigations-app
+        AmigoStage: PROD
+        Encrypted: pfi-playground
+  
+  pfi-neo4j-ami-update:
+    type: ami-cloudformation-parameter
+    app: neo4j
+    parameters:
+      amiEncrypted: true
+      amiTags:
+        Recipe: investigations-neo4j
+        AmigoStage: PROD
+        Encrypted: pfi-playground
+  
+  pfi-elasticsearch-ami-update:
+    type: ami-cloudformation-parameter
+    app: elasticsearch
+    parameters:
+      amiEncrypted: true
+      amiTags:
+        Recipe: investigations-elasticsearch-7
+        AmigoStage: PROD
+        Encrypted: pfi-playground
+  
+  pfi:
+    type: autoscaling
+    parameters:
+      bucket: pfi-playground-dist
+    dependencies:
+      - pfi-ami-update
+
+  pfi-worker:
+    type: autoscaling
+    parameters:
+      bucket: pfi-playground-dist
+    actions:
+      - deploy
+    dependencies:
+      - pfi
+
+  pfi-cli:
+    type: aws-s3
+    parameters:
+      bucket: pfi-playground-dist
+      cacheControl: private
+      publicReadAcl: false
+
+  pfi-public-downloads:
+    type: aws-s3
+    parameters:
+      bucket: investigations-public-dist
+      cacheControl: private
+      # This is the default but if you specify it explictly Riff-Raff issues a warning
+      # publicReadAcl: true

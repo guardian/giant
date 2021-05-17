@@ -1,0 +1,13 @@
+target/
+*.histogram
+fingerprint.cache
+.idea
+neo4j-transaction-*.log
+timing-*.csv
+node_modules/
+minio-data/
+logs/
+backend/public/build
+npm-debug.log
+.DS_Store
+backend/conf/site.conf

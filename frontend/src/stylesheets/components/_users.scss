@@ -1,0 +1,47 @@
+.users__setup2fa-qr-container {
+    display: flex;
+    justify-content: center;
+    padding-top: 20px;
+    padding-bottom: 20px;
+    flex-direction: column;
+    align-items: center;
+}
+
+.users__setup2fa-waiting {
+    width: 256px;
+    height: 256px;
+    border: 1px solid $borderColour;
+    display: flex;
+    justify-content: space-evenly;
+    flex-direction: column;
+    align-items: center;
+}
+
+.users__qr-code {
+    background-color: white;
+    border: 5px solid white;
+    display: flex;
+    width: fit-content;
+}
+
+.users__skip-2fa {
+    color: inherit;
+    text-decoration: none;
+    font-weight: bold;
+    padding: 0;
+    margin-top: 5px;
+    background: none;
+    border: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+
+   &:hover {
+       text-decoration: underline;
+   }
+
+   &:focus {
+       text-decoration: underline;
+       outline: none;
+       box-shadow: none;
+   }
+}

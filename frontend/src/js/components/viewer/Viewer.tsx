@@ -1,0 +1,438 @@
+import React from 'react';
+
+import history from '../../util/history';
+import buildLink from '../../util/buildLink';
+
+import { HighlightableText, Resource } from '../../types/Resource';
+import { Match } from '../../types/Match';
+
+import { TablePreview } from './TablePreview';
+import StatusBar from './StatusBar';
+import { Preview } from './Preview';
+import { EmailDetails } from './EmailDetails';
+import { TextPreview } from './TextPreview';
+import PageViewer from './PageViewer/PageViewer';
+import { calculateResourceTitle } from '../UtilComponents/documentTitle';
+
+import { keyboardShortcuts } from '../../util/keyboardShortcuts';
+import { KeyboardShortcut } from '../UtilComponents/KeyboardShortcut';
+import _ from 'lodash';
+
+import { connect } from 'react-redux';
+import { bindActionCreators } from 'redux';
+
+import { getChildResource, getResource, resetResource } from '../../actions/resources/getResource';
+import { setDetailsView, setResourceView } from '../../actions/urlParams/setViews';
+import { setCurrentHighlight } from '../../actions/highlights';
+import { setCurrentHighlightInUrl } from '../../actions/urlParams/setCurrentHighlight';
+import { getComments } from '../../actions/resources/getComments';
+import { setSelection } from '../../actions/resources/setSelection';
+import { DescendantResources, GiantState, UrlParamsState } from '../../types/redux/GiantState';
+import { Auth } from '../../types/Auth';
+import { GiantDispatch } from '../../types/redux/GiantDispatch';
+import LazyTreeBrowser from './LazyTreeBrowser';
+import { SearchResults } from '../../types/SearchResults';
+import { getDefaultView } from '../../util/resourceUtils';
+import DownloadButton from './DownloadButton';
+import PageViewerStatusBar from './PageViewer/PageViewerStatusBar';
+
+type Props = {
+    match: Match,
+    auth: Auth,
+    preferences: any,
+    urlParams: UrlParamsState,
+    resource: Resource | null,
+    isLoadingResource: boolean,
+    descendantResources: DescendantResources,
+    currentResults?: SearchResults,
+    currentHighlight?: number,
+    totalHighlights?: number,
+    getResource: typeof getResource,
+    getChildResource: typeof getChildResource,
+    resetResource: typeof resetResource,
+    getComments: typeof getComments,
+    setResourceView: typeof setResourceView,
+    setDetailsView: typeof setDetailsView,
+    setCurrentHighlight: typeof setCurrentHighlight,
+    setCurrentHighlightInUrl: typeof setCurrentHighlightInUrl,
+    setSelection: typeof setSelection
+}
+
+type State = {
+    resultIdx: number
+}
+
+// A viewport for the current search result
+class Viewer extends React.Component<Props, State> {
+    state = {
+        // Default to negative number to prevent next-previous when you're outside the context of a search set
+        resultIdx: -10,
+    };
+
+    setupSearchContext(props: Props) {
+        if (!props.currentResults) {
+            return;
+        }
+
+        const currentSearchIndex = props.currentResults.results.findIndex(result =>
+            result.uri === props.match.params.uri
+        );
+
+        if (currentSearchIndex !== -1) {
+            this.setState({
+                resultIdx: currentSearchIndex
+            });
+        }
+    }
+
+    UNSAFE_componentWillReceiveProps(props: Props) {
+        if (!this.props.isLoadingResource && props.match.params.uri !== this.props.match.params.uri) {
+            this.props.getResource(props.match.params.uri, props.urlParams.q);
+        }
+
+        const currentUri = this.props.resource ? this.props.resource.uri : undefined;
+
+        if (props.resource && props.currentResults && props.resource.uri !== currentUri) {
+            this.setupSearchContext(props);
+        }
+    }
+
+    componentDidMount() {
+        this.setupSearchContext(this.props);
+
+        // This has to happen early, because otherwise state changes will get synced to the URL
+        // (and the URL state thus lost) before we have a chance to do it the other way round
+
+        if (this.props.urlParams.highlight && this.props.urlParams.view) {
+            const highlightFromUrl = parseInt(this.props.urlParams.highlight);
+
+            if(!isNaN(highlightFromUrl)) {
+                // If there's something in the URL, it should override the state.
+                this.props.setCurrentHighlight(
+                    this.props.match.params.uri,
+                    this.props.urlParams.q,
+                    this.props.urlParams.view,
+                    highlightFromUrl
+                );
+            }
+        } else if (this.props.currentHighlight !== undefined) {
+            // Otherwise, add the state to the URL.
+            this.props.setCurrentHighlightInUrl(this.props.currentHighlight.toString(10));
+        }
+
+        // <ViewerSidebar> may have fetched the resource first, so avoid duplicate requests which race each other.
+        // Ultimately we'd like the resource fetch to be triggered from a common parent of this and <ViewerSidebar>
+        if (!this.props.isLoadingResource && !this.props.resource) {
+            this.props.getResource(this.props.match.params.uri, this.props.urlParams.q);
+        }
+
+        document.title = calculateResourceTitle(this.props.resource);
+    }
+
+    componentDidUpdate(prevProps: Props) {
+        if (
+            this.props.currentHighlight !== prevProps.currentHighlight ||
+            this.props.totalHighlights !== prevProps.totalHighlights
+        ) {
+            if (this.props.currentHighlight === undefined) {
+                // We must have just changed view to a view with no highlight in the state yet.
+                // So start at first search result.
+                if(this.props.match.params.uri && this.props.urlParams.q && this.props.urlParams.view) {
+                    this.props.setCurrentHighlight(
+                        this.props.match.params.uri,
+                        this.props.urlParams.q,
+                        this.props.urlParams.view,
+                        0
+                    );
+                }
+            } else {
+                // The highlights might have changed because the user has clicked next/previous,
+                // or because they've changed view between text & ocr. Either way, we need
+                // to get the scroll position and the URL in sync with the highlights.
+                this.scrollToCurrentHighlight();
+                this.props.setCurrentHighlightInUrl(this.props.currentHighlight.toString(10));
+            }
+        }
+
+        if(!this.props.urlParams.view && this.props.resource) {
+            const maybeDefaultView = getDefaultView(this.props.resource);
+
+            if(maybeDefaultView) {
+                this.props.setResourceView(maybeDefaultView);
+            }
+        }
+
+        document.title = calculateResourceTitle(this.props.resource);
+    }
+
+    scrollToCurrentHighlight() {
+        if (this.props.totalHighlights !== undefined && this.props.totalHighlights > 0 && this.props.currentHighlight !== undefined) {
+            const highlights = document.querySelectorAll('result-highlight');
+
+            if (highlights.length > 0) {
+                const currentHighlightElement = document.querySelector('.result-highlight--focused');
+                if (currentHighlightElement) {
+                    currentHighlightElement.classList.remove('result-highlight--focused');
+                }
+
+                if (highlights[this.props.currentHighlight]) {
+                    highlights[this.props.currentHighlight].classList.add('result-highlight--focused');
+                    highlights[this.props.currentHighlight].scrollIntoView({
+                        inline: 'center',
+                        block: 'center'
+                    });
+                } else {
+                    console.error(`Could not find element number ${this.props.currentHighlight} in highlights of length ${highlights.length}`);
+                }
+            } else {
+                console.error("Actual count of highlights does not match expected number of highlights")
+            }
+        }
+
+        return null;
+    }
+
+    componentWillUnmount() {
+        document.title = "Giant";
+        this.props.resetResource();
+    }
+
+    previousResult = () => {
+        const currentHits = this.props.currentResults ? this.props.currentResults.results : undefined;
+        if (currentHits) {
+            const idx = this.state.resultIdx - 1;
+            if (idx >= 0) {
+                const to = `${currentHits[idx].uri}`;
+                history.push(buildLink(to, this.props.urlParams, {}));
+            }
+        }
+    }
+
+    nextResult = () => {
+        const currentHits = this.props.currentResults ? this.props.currentResults.results : undefined;
+        if (currentHits) {
+            const idx = this.state.resultIdx + 1;
+            if (idx < currentHits.length) {
+                const to = `${currentHits[idx].uri}`;
+                history.push(buildLink(to, this.props.urlParams, {}));
+            }
+        }
+    }
+
+    hasPreviousResult() {
+        if(!this.props.currentResults || this.props.resource === undefined) {
+            return false;
+        }
+
+        const { page, results } = this.props.currentResults;
+
+        if(page > 1) {
+            return true;
+        } else {
+            const ix = results.findIndex(({ uri }) => uri === this.props.resource!.uri);
+            return ix !== -1 && ix > 0;
+        }
+    }
+
+    hasNextResult() {
+        if(!this.props.currentResults || this.props.resource === undefined) {
+            return false;
+        }
+
+        const { page, pages, results } = this.props.currentResults;
+
+        if(page < pages) {
+            return true;
+        } else {
+            const ix = results.findIndex(({ uri }) => uri === this.props.resource!.uri);
+            return ix !== -1 && ix < (results.length - 1);
+        }
+    }
+
+    renderTextPreview(resource: Resource, highlightableText: HighlightableText, view: string) {
+        return <TextPreview
+            uri={resource.uri}
+            currentUser={this.props.auth.token!.user}
+            text={highlightableText.contents}
+            searchHighlights={highlightableText.highlights}
+            view={view}
+            comments={resource.comments}
+            selection={resource.selection}
+            preferences={this.props.preferences}
+            getComments={this.props.getComments}
+            setSelection={this.props.setSelection}
+        />;
+    }
+
+    renderNoPreview() {
+        return <div className='viewer__no-text-preview'>
+            <p>
+                Cannot display this document. It could still be processing or it could be too large.
+            </p>
+            <DownloadButton />
+        </div>;
+    }
+
+    renderPreview(resource: Resource, view: string) {
+        const { featurePageViewer } = this.props.preferences;
+
+        if (view === 'table') {
+            return <TablePreview text={resource.text.contents}/>
+        } else if (view === 'preview') {
+            return <Preview fingerprint={resource.uri} />;
+        } else if (view.startsWith('ocr')) {
+            if (resource.ocr) {
+                return this.renderTextPreview(resource, _.get(this.props.resource, view), view);
+            } else {
+                // Only matters if a user has manually changed the view in the URL params or is visiting a link with them in
+                return this.renderNoPreview();
+            }
+        } else {
+            if (resource.extracted && featurePageViewer) {
+                return <PageViewer
+                    uri={resource.uri}
+                    fallbackRenderFn={() => this.renderTextPreview(resource, resource.text, 'text')}
+                />;
+            } else if (resource.extracted) {
+                return this.renderTextPreview(resource, resource.text, view);
+            } else if (resource.children.length) {
+                return <LazyTreeBrowser
+                    rootResource={resource}
+                    descendantResources={this.props.descendantResources}
+                    getChildResource={this.props.getChildResource}
+                />;
+            } else {
+                return this.renderNoPreview();
+            }
+        }
+    }
+
+    renderBody(resource: Resource, view: string) {
+        let docClass = 'document';
+
+        if(this.props.urlParams.view === 'preview') {
+            docClass += ' document-fixed';
+        }
+
+        if(resource.type === 'email') {
+            docClass += ' document--browser';
+        }
+
+        if(resource.children.length) {
+            docClass += ' document--browser document--full-height';
+        }
+
+        if (resource.type === 'blob') {
+            return (
+                <div className={docClass}>
+                    {this.renderPreview(resource, view)}
+                </div>
+           );
+        } else if (resource.type === 'email') {
+            return (
+                <div className={docClass}>
+                    <EmailDetails email={this.props.resource} detailsType={this.props.urlParams.details} setDetailsView={this.props.setDetailsView} match={this.props.match}/>
+                    {this.renderPreview(resource, view)}
+                </div>
+            );
+        } else {
+            return <div>Unknown resource type {resource.uri}</div>;
+        }
+    }
+
+    renderDocument(resource: Resource) {
+        const { view, q } = this.props.urlParams;
+        const { uri, text } = resource;
+        const { featurePageViewer } = this.props.preferences;
+
+        if(featurePageViewer) {
+            return <PageViewer
+                uri={uri}
+                q={q}
+                fallbackRenderFn={() => this.renderTextPreview(resource, text, view ?? 'text')}
+            />;
+        }
+
+        return <div className='viewer__main'>
+            {this.renderBody(resource, view || 'text')}
+        </div>;
+    }
+
+    render() {
+        if (!this.props.resource) {
+            return false;
+        }
+
+        return (
+            <div className='viewer'>
+                <KeyboardShortcut shortcut={keyboardShortcuts.nextResult} func={this.nextResult} />
+                <KeyboardShortcut shortcut={keyboardShortcuts.previousResult} func={this.previousResult} />
+
+                {this.renderDocument(this.props.resource)}
+                <div className='viewer__footer'>
+                    {this.props.preferences.featurePageViewer ?
+                        <PageViewerStatusBar
+                            previousDocumentFn={this.hasPreviousResult() ? () => this.previousResult() : undefined}
+                            nextDocumentFn={this.hasNextResult() ? () => this.nextResult() : undefined}
+                        />
+                    :
+                        <StatusBar
+                            resource={this.props.resource}
+                            view={this.props.urlParams.view}
+                            currentHighlight={this.props.currentHighlight}
+                            totalHighlights={this.props.totalHighlights}
+                            previousFn={this.hasPreviousResult() ? () => this.previousResult() : undefined}
+                            nextFn={this.hasNextResult() ? () => this.nextResult() : undefined}
+                        />
+                    }
+                </div>
+            </div>);
+    }
+}
+
+function mapStateToProps(state: GiantState) {
+    const { featurePageViewer } = state.app.preferences;
+
+    const view = state.urlParams.view;
+    let currentHighlight, totalHighlights;
+
+    if (featurePageViewer !== true && state.resource && state.urlParams && view) {
+        // The current highlight is stored separately in redux so it can be preserved on navigation.
+        const highlights = state.highlights[`${state.resource.uri}-${state.urlParams.q}`];
+        if (highlights && _.get(highlights, view)) {
+            currentHighlight = _.get(highlights, view).currentHighlight;
+        }
+        if (_.get(state.resource, view)) {
+            // The total highlights comes from the server representation of a resource.
+            totalHighlights = _.get(state.resource, view).highlights.length;
+        }
+    }
+
+    return {
+        auth: state.auth,
+        urlParams: state.urlParams,
+        resource: state.resource,
+        isLoadingResource: state.isLoadingResource,
+        descendantResources: state.descendantResources,
+        currentResults: state.search.currentResults,
+        preferences: state.app.preferences,
+        currentHighlight,
+        totalHighlights,
+    };
+}
+
+function mapDispatchToProps(dispatch: GiantDispatch) {
+    return {
+        setResourceView: bindActionCreators(setResourceView, dispatch),
+        setDetailsView: bindActionCreators(setDetailsView, dispatch),
+        getResource: bindActionCreators(getResource, dispatch),
+        resetResource: bindActionCreators(resetResource, dispatch),
+        getChildResource: bindActionCreators(getChildResource, dispatch),
+        setCurrentHighlight: bindActionCreators(setCurrentHighlight, dispatch),
+        setCurrentHighlightInUrl: bindActionCreators(setCurrentHighlightInUrl, dispatch),
+        getComments: bindActionCreators(getComments, dispatch),
+        setSelection: bindActionCreators(setSelection, dispatch)
+    };
+}
+
+export default connect(mapStateToProps, mapDispatchToProps)(Viewer);

@@ -1,0 +1,68 @@
+.modal {
+    position: fixed;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 99;
+    background-color: rgba(0, 0, 0, 0.5);
+    text-align: left;
+    cursor: default;
+    overflow-y: scroll;
+
+    .modal__dismiss {
+        position: absolute;
+        right: $baseSpacing / 2;
+        top: $baseSpacing / 2;
+    }
+
+    &__title {
+        margin-bottom: $baseSpacing;
+        padding-bottom: $baseSpacing / 2;
+        border-bottom: 1px solid $borderColour;
+    }
+
+    &__field {
+        margin-top: 5px;
+    }
+
+    &__panel {
+        width: 60%;
+        max-width: 600px;
+        position: absolute;
+        left: 50%;
+        transform: translateX(-50%);
+        background: $secondaryLight;
+
+        top: 10%;
+
+        & form {
+            width: 100%;
+        }
+
+        & input[type="text"], & textarea {
+            background-color: white;
+            border: 1px solid $borderColour;
+            border-radius: $borderRadius;
+            padding: $baseSpacing / 2;
+            color: $primaryDark;
+            display: block;
+            width: 100%;
+            margin-bottom: $baseSpacing;
+
+            &:focus {
+                box-shadow: none;
+                border-color: $highlightColour;
+            }
+        }
+
+        & textarea {
+            height: 200px;
+            resize: vertical;
+        }
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: auto;
+    }
+}

@@ -1,0 +1,13 @@
+.bignum-container {
+    display: flex;
+    justify-content: space-evenly;
+}
+
+.bignum {
+    text-align: center;
+}
+
+.bignum__number {
+    font-size: 2rem;
+    font-weight: bold;
+}

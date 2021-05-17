@@ -1,0 +1,37 @@
+.wizard__wrapper {
+    display: flex;
+    justify-content: space-between;
+}
+
+.wizard__breadcrumbs {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-around;
+}
+
+.wizard__breadcrumb {
+    flex-grow: 1;
+    padding: 5px;
+
+    &-text {
+        text-align: center;
+    }
+
+    &-box {
+        height: 5px;
+        width: 100%;
+        background-color: $secondary;
+
+        &--done {
+            height: 5px;
+            width: 100%;
+            background-color: $highlightColour;
+        }
+    }
+}
+
+.wizard__buttons {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+}

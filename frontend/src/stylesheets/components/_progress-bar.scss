@@ -1,0 +1,29 @@
+%progress-bar {
+    display: inline-block;
+    width: 100%;
+    height: 12px;
+}
+
+%progress-bar__bar {
+    background-color: white;
+    height: 100%;
+
+    transition: width 0.5s;
+}
+
+.progress-bar {
+    @extend %progress-bar;
+    
+    &__bar {
+        @extend %progress-bar__bar;
+    }
+}
+
+.progress-bar--highlight {
+    @extend %progress-bar;
+
+    .progress-bar__bar {
+        @extend %progress-bar__bar;
+        background-color: $highlightColour;
+    }
+}

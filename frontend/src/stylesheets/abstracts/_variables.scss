@@ -1,0 +1,52 @@
+// Font stacks
+$text-font-stack: "Avenir Next", sans-serif;
+$title-font-stack: "Avenir Next", sans-serif;
+
+// Sizes
+$baseSpacing: 12px;
+$headerHeight: 50px;
+$sidebarWidth: 350px;
+$borderRadius: 4px;
+$borderRadiusLarge: 8px;
+$boxShadow: 0px 3px 3px 0px rgba(50, 50, 50, 0.3);
+
+// Primary colours
+// blues used across the site for fonts, icons, the header, etc
+$primaryDark: rgb(31, 45, 62);
+$primary: rgb(73, 89, 105);
+$primaryLight: rgb(129, 165, 200);
+
+// Highlight
+$highlightColour: rgb(253, 182, 0);
+
+// Main area colours
+// Used for the main background, buttons and borders
+$secondaryLight: rgb(239,239,239);
+$secondary: rgb(223, 223, 223);
+$secondaryDark: rgb(216,216,216);
+
+$borderColour: rgb(151,151,151);
+
+$previewDark: rgb(63, 63, 63);
+
+// Accents
+// Used to distinguish chips
+$accentGold: rgb(206, 141, 6);
+
+$accentPink: rgb(219, 23, 94);
+
+$accentPurple: rgb(130, 35, 214);
+
+$accentBlue: rgb(74, 144, 226);
+
+$accentGreen: rgb(85, 142, 26);
+
+$accentOrange: rgb(206, 97, 6);
+
+// TODO: replace these
+$errorColour: rgb(214, 48, 41);
+
+$warningColour: rgb(255, 209, 66);
+
+$accessibleRed: rgb(214, 100, 30);
+$accessibleGreen: rgb(43, 159, 120);

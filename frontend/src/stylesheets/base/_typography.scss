@@ -1,0 +1,86 @@
+/**
+ * Basic typography styles
+ */
+body, input, textarea, button {
+  color: $primaryDark;
+  font: normal 14px / 1.4 $text-font-stack;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: $title-font-stack;
+  font-style: normal;
+  font-weight: normal;
+  margin: 0 0 10px;
+}
+
+h1 {
+  font-size: 20px;
+}
+
+h2 {
+  font-size: 18px;
+}
+
+h3 {
+  font-size: 16px;
+}
+
+a {
+  color: inherit;
+  font-weight: bold;
+}
+
+p {
+  margin: 0 0 $baseSpacing;
+}
+
+.page-title {
+  margin: 0 0 $baseSpacing;
+  padding: 0 0 $baseSpacing;
+  border-bottom: 1px solid $borderColour;
+
+  &--group {
+    display: flex;
+    justify-content: space-between;
+
+    & .page-title__text {
+      margin: 0 $baseSpacing 0 0;
+      padding: 0;
+    }
+  }
+}
+
+.page-subtitle {
+  margin-bottom: $baseSpacing;
+}
+
+// Less generic styles
+a {
+  color: inherit;
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.highlight {
+    color: $highlightColour !important;
+}
+
+.diminish {
+    color: $primaryLight !important;
+}
+
+.error {
+  color: $errorColour !important;
+}
+
+.center-text {
+  text-align: center;
+}
+
+.wrap-my-pre {
+  word-break: break-all;
+  white-space: pre-wrap;
+}

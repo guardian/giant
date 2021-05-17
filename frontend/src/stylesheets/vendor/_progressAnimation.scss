@@ -1,0 +1,42 @@
+.progress-animation {
+  width: 60px;
+  display: flex;
+  align-items: center;
+}
+
+.progress-animation > div {
+  width: 7px;
+  height: 7px;
+  background-color: $primary;
+  margin-left: 3px;
+
+  border-radius: 100%;
+  display: inline-block;
+  -webkit-animation: bouncedelay 2s infinite ease-in-out both;
+  animation: bouncedelay 2s infinite ease-in-out both;
+}
+
+.progress-animation .cube1 {
+  -webkit-animation-delay: -0.32s;
+  animation-delay: -0.32s;
+}
+
+.progress-animation .cube2 {
+  -webkit-animation-delay: -0.16s;
+  animation-delay: -0.16s;
+}
+
+@-webkit-keyframes bouncedelay {
+  0%, 60% { -webkit-transform: scale(0) }
+  20% { -webkit-transform: scale(1.0) }
+}
+
+@keyframes bouncedelay {
+  0%, 60% {
+    -webkit-transform: scale(0);
+    transform: scale(0);
+  } 20% {
+    -webkit-transform: scale(1.0);
+    transform: scale(1.0);
+  }
+}

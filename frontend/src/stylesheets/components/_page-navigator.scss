@@ -1,0 +1,30 @@
+.page-navigator {
+    margin: $baseSpacing;
+    text-align: center;
+}
+
+.page-navigator__page {
+    color: $primaryDark;
+    display: inline-block;
+    height: 30px;
+    min-width: 30px;
+    line-height: 30px;
+    border-radius: 50%;
+
+    &:not(:last-child) {
+        margin-right: 4px;
+    }
+
+    &:hover:not(.page-navigator__page--selected) {
+        cursor: pointer;
+        text-decoration: none;
+        background-color: $primary;
+        color: white;
+    }
+
+    &--selected {
+        font-weight: bold;
+        color: white;
+        background-color: $primaryDark;
+    }
+}

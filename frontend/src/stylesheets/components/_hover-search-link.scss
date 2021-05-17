@@ -1,0 +1,29 @@
+.hover-search-link {
+    position: relative;
+}
+
+.hover-search-link__icon-wrapper--left {
+    position: absolute;
+    left: -30px;
+    top: -5px;
+    z-index: 10;
+}
+
+.hover-search-link__icon-wrapper {
+    position: absolute;
+    right: -35px;
+    top: -5px;
+    z-index: 10;
+}
+
+.hover-search-link__icon {
+    color: $primaryDark;
+    font-size: 30px;
+    font-weight: bold;
+}
+
+.hover-search-link__icon--highlighted {
+    color: $highlightColour;
+    font-size: 30px;
+    font-weight: bold;
+}

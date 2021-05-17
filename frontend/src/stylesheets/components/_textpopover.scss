@@ -1,0 +1,29 @@
+.textpopover {
+    background-color: $primary;
+    padding: 5px;
+    margin: 5px;
+
+    &__button {
+        margin-right: 5px;
+    }
+
+    &-wrapper::after {
+        position: relative;
+        height: 0;
+        width: 0;
+        content: "";
+        bottom: 5px;
+        display: block;
+        left: calc(50% - 10px);
+        border: {
+            top:   10px solid $primary;
+            left:  10px solid transparent;
+            right: 10px solid transparent;
+        }
+    }
+
+    &-icon {
+      width: 20px;
+      height: 20px;
+    }
+}

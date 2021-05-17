@@ -1,0 +1,28 @@
+.email__header {
+    margin: 10px 30px;
+    border-bottom: 1px solid $borderColour;
+}
+
+.email__header-row {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.email__header-item {
+    margin-left: 10px;
+}
+
+.email__header-item--inline {
+    display: flex;
+    flex-wrap: wrap;
+}
+
+.email__recipient {
+    margin-right: 10px;
+}
+
+.email__recipient-address {
+    margin-left: 5px;
+    font-size: 12px;
+}

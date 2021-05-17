@@ -1,0 +1,73 @@
+.timeline {
+    &__container {
+        display: flex;
+        position: relative;
+    }
+
+    &__chart {
+        position: absolute;
+        width: 100%;
+    }
+
+    &__chart-svg {
+        overflow-x: auto;
+    }
+
+    &__addresses-svg {
+        position: relative;
+        pointer-events: none;
+    }
+
+    &__addresses {
+        &--text-shadow {
+            fill: white;
+        }
+    }
+
+    &__userdivider {
+        stroke: $primaryLight;
+        stroke-width: 1px;
+        shape-rendering: crispEdges;
+    }
+
+    &__email {
+        cursor: pointer;
+        fill: $accessibleRed;
+        shape-rendering: crispEdges;
+
+        &--ghost {
+            cursor: initial;
+            fill: $secondary;
+            stroke: $primary;
+            stroke-width: 3px;
+        }
+
+        &--selected {
+            fill: $highlightColour;
+            stroke: $accessibleRed;
+            stroke-width: 3px;
+
+            &.timeline__email--ghost {
+                stroke: $primary;
+            }
+        }
+    }
+
+    &__reply {
+        stroke: $primary;
+        stroke-width: 2px;
+
+        &--selected {
+            stroke: $accessibleGreen;
+        }
+    }
+
+    &__reference {
+        stroke: transparent;;
+        stroke-dasharray: 5px 5px;
+
+        &--selected {
+            stroke: $accessibleGreen;
+        }
+    }
+}

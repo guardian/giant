@@ -1,0 +1,121 @@
+$btnBoxShadowHeight: 2px;
+
+.btn {
+    // Reset browser styles
+    -moz-appearance: none;
+    -webkit-appearance: none;
+    border: none;
+    user-select: none;
+
+    font-size: 12px;
+    line-height: 1;
+    cursor: pointer;
+    color: $primaryDark;
+    font-weight: bold;
+    background-color: $secondaryDark;
+    border: 1px solid $borderColour;
+    border-radius: $borderRadius;
+    padding: $baseSpacing / 2;
+
+    &:hover {
+        background-color: $secondary;
+        text-decoration: none;
+    }
+
+    &:active {
+        outline: none;
+        box-shadow: 0;
+    }
+
+    &:disabled {
+        background-color: $secondaryDark;
+        color: $borderColour;
+        cursor: default;
+
+        &:hover {
+            background: $secondaryDark;
+        }
+    }
+
+    &--tab {
+        border-radius: $borderRadius $borderRadius 0 0;
+        border-bottom: 0;
+    }
+
+    &--icon {
+        font-size: 24px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    &__text {
+        font-size: 14px;
+
+        &:not(:last-child) {
+            margin-right: $baseSpacing;
+        }
+    }
+}
+
+// Plain text that just removes button styles
+.btn-plain {
+    // Reset browser styles
+    -moz-appearance: none;
+    -webkit-appearance: none;
+    border: none;
+    display: inherit;
+    font-size: inherit;
+    text-decoration: inherit;
+}
+
+
+
+.btn-tab-group {
+    border-bottom: $btnBoxShadowHeight solid $primary;
+    margin-bottom: $baseSpacing;
+
+    & > .btn--tab:not(:last-child) {
+        margin-right: $baseSpacing;
+    }
+}
+
+.btn-group {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    // Title with a button to the right
+    &--title {
+        padding-bottom: $baseSpacing;
+        border-bottom: 1px solid $borderColour;
+    }
+
+    &__text {
+        margin: 0;
+    }
+
+    & .btn:not(:last-child) {
+        margin-right: $baseSpacing;
+    }
+
+    &--left {
+        justify-content: flex-start;
+    }
+
+    &--bottom-padding {
+        padding-bottom: $baseSpacing;
+    }
+}
+
+.btn-link {
+    appearance: none;
+    border: none;
+    background: none;
+    color: inherit;
+    cursor: pointer;
+}
+
+.btn-link:hover {
+    text-decoration: underline;
+}

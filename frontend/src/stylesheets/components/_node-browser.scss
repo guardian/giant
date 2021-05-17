@@ -1,0 +1,81 @@
+.node-browser {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+}
+
+.node-browser__card {
+    display: flex;
+    position: relative;
+    color: white;
+    background-color: $primary;
+    margin: 5px;
+    width: 150px;
+    height: 150px;
+    align-items: center;
+    justify-content: space-between;
+    flex-direction: column;
+    border-radius: 10px;
+    border: 1px solid $borderColour;
+
+    &--selected {
+        display: flex;
+        position: relative;
+        margin: 5px;
+        width: 150px;
+        height: 150px;
+        align-items: center;
+        justify-content: space-between;
+        flex-direction: column;
+        border-radius: 10px;
+        border: 1px solid $highlightColour;
+    }
+}
+
+.node-browser__card-wrapper {
+    position: absolute;
+    left: 25px;
+    top: 20px;
+}
+
+.node-browser__card__text {
+    height: 100%;
+    text-align: center;
+    margin-top: 10px;
+}
+
+.node-browser__card__icon {
+    position: absolute;
+    top: 0px;
+    left: 0px;
+    height: 100px;
+    width: 100px;
+}
+
+.node-browser__card__status {
+    position: absolute;
+    top: 13px;
+    left: 17.5px;
+    height: 65px;
+    width: 65px;
+
+    &--down {
+        @extend .node-browser__card__status;
+        color: $accessibleRed;
+    }
+
+    &--up {
+        @extend .node-browser__card__status;
+        color: $accessibleGreen;
+    }
+}
+
+.node-browser__card__icon--down {
+    @extend .node-browser__card__icon;
+    color: $accessibleRed;
+}
+
+.node-browser__card__icon--up {
+    @extend .node-browser__card__icon;
+    color: $accessibleGreen;
+}

@@ -1,0 +1,118 @@
+.workspace {
+    width: calc(100vw - #{$sidebarWidth} - 24px);
+    height: calc(100vh - #{$headerHeight} - 115px);
+
+    &__header {
+        display: flex;
+        flex-direction: row;
+        justify-content: space-between;
+    }
+
+    &__title {
+        display: inline-block;
+    }
+
+    &__created-by {
+        margin-left: $baseSpacing;
+    }
+
+    &__button {
+        margin-right: $baseSpacing;
+    }
+}
+
+.workspace__documents {
+    height: 100%;
+    width: 100%;
+    position: relative;
+}
+
+.workspace_documents-split {
+    display: flex;
+    flex-direction: row;
+    height: 100%;
+}
+
+.workspace__summary {
+    height: 100%;
+    width: 350px;
+    border-left: 1px solid $primaryDark;
+}
+
+.workspace__chronology {
+    width: 100%;
+    position: relative;
+    border-top: 1px solid white;
+}
+
+.workspace__drag-indicator-top {
+    position: absolute;
+    left: 50%;
+    bottom: 0px;
+    transform: rotate(180deg);
+}
+
+.workspace__drag-indicator-bottom {
+    position: absolute;
+    left: 50%;
+    top: 0px;
+}
+
+.workspace__tag {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    margin-right: 5px;
+
+    &--grey {
+        background-color: rgb(156, 160, 165);
+    }
+
+    &--red {
+        background-color: rgb(237, 15, 36);
+    }
+
+    &--green {
+        background-color: rgb(134, 223, 106);
+    }
+
+    &--blue {
+        background-color: rgb(33, 162, 223);
+    }
+
+    &--orange {
+        background-color: rgb(247, 102, 56);
+    }
+
+    &--purple {
+        background-color: rgb(120, 89, 161);
+    }
+}
+
+.workspace-modal__tag-dropdown {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+}
+
+.workspace__tree {
+    position: relative;
+    height: 100%;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    overflow: auto;
+
+    &--fixed {
+        height: 300px
+    }
+
+    &-header {
+        display: flex;
+        justify-content: space-between;
+    }
+}
+
+.workspace__tree-actions {
+    margin-bottom: $baseSpacing;
+}

@@ -1,0 +1,39 @@
+.error-bar {
+    display: flex;
+    position: absolute;
+    align-items: left;
+    margin: 5px;
+    flex-direction: column;
+    z-index: 100;
+}
+
+.error-bar__text {
+    margin: 5px;
+}
+
+.error-bar__icon {
+    height: 100%;
+    margin: 5px;
+
+    &:hover {
+        cursor: pointer;
+    }
+}
+
+.error-bar__item {
+    margin: 5px;
+    border-radius: 5px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.error-bar__error {
+    color: white;
+    background-color: $errorColour;
+}
+
+.error-bar__warning {
+    color: $primary;
+    background-color: $warningColour;
+}

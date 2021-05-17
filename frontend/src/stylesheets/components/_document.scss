@@ -1,0 +1,346 @@
+.document {
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    flex-grow: 2;
+    /* stop page scroll jumps when we add comments */
+    overflow-anchor: none;
+}
+
+.document-fixed {
+    position: relative;
+    height: 100%;
+}
+
+.document--browser {
+    background-color: $secondaryLight;
+    margin: 10px;
+    padding: 10px;
+}
+
+.document--full-height {
+    height: calc(100vh - 100px);
+}
+
+.document__column {
+    flex-direction: column;
+    flex-grow: 2;
+}
+
+.document__preview {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    position: relative;
+
+    &__text-wrapper {
+        width: 100%;
+        margin: 20px 30px;
+        padding: 20px;
+        background-color: white;
+        font-family: monospace;
+        font-size: 16px;
+        white-space: pre-line;
+        position: relative;
+        overflow: hidden;
+        word-break: break-word;
+    }
+}
+.document__preview-table {
+    height: 100%;
+    max-width: calc(100vw - 350px);
+    padding: 20px;
+    overflow: auto;
+}
+
+.document__status {
+    position: relative;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 5px;
+    height: 30px;
+    font-weight: bold;
+    background-color: $primaryDark;
+    color: white;
+    user-select: none;
+}
+
+.document__status-icon {
+    height: 20px;
+    margin-right: 5px;
+}
+
+.document__status-text {
+    height: 20px;
+}
+
+.document__dictionary--tooltip {
+    max-width: 500px;
+}
+
+.preview__links {
+    display: inline;
+}
+
+.preview__link {
+    margin: 0 5px;
+    padding: 0 20px;
+    text-decoration: none;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.preview__link--active {
+    background-color: $primary;
+}
+
+.preview__dialog {
+    max-width: 400px;
+    overflow: hidden;
+
+    margin: 0 auto;
+    padding: 20px;
+
+    text-align: center;
+    color: white;
+}
+
+.preview__dialog--error {
+    background-color: $errorColour;
+}
+
+.preview__dialog__loading {
+    display: flex;
+    justify-content: center;
+}
+
+.preview__pdf {
+    position: relative;
+}
+
+.preview__text {
+    position: absolute;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    overflow: hidden;
+    line-height: 1.0;
+}
+
+.preview__text > div {
+    position: absolute;
+    color: transparent;
+    transform-origin: 0% 0%;
+}
+
+.preview__text .comment__text {
+    opacity: 0.4;
+}
+
+.preview__canvas {
+    width: 100%;
+    height: 100%;
+}
+
+.preview__control {
+    align-self: center;
+
+    font-size: 60px;
+    cursor: pointer;
+}
+
+.preview__content {
+    position: relative;
+}
+
+.preview__nav-button--active {
+    cursor: pointer;
+}
+
+.preview__nav-button--inactive {
+    opacity: 0.4;
+}
+
+.download-modal__name {
+    position: relative;
+}
+
+.download-modal_extension {
+    position: absolute;
+    top: 5px;
+    right: $baseSpacing;
+    user-select: none;
+}
+.search-navigation__container {
+    position: fixed;
+    right: 12px;
+    font-size: 12px;
+    top: 45px;
+    background: white;
+}
+
+.search-navigation__button {
+    background: inherit;
+    border: none;
+    padding: 3px 7px 3px 0px;
+    font-size: 14px;
+
+    &:focus {
+      outline: none;
+    }
+
+}
+
+result-highlight {
+  position: relative;
+  display: inline-block;
+  font-weight: bold;
+  font-style: italic;
+  z-index: 1;
+
+  &:nth-of-type(4n-3)::before {
+      transform: rotate(-3deg);
+  }
+
+  &:nth-of-type(4n-2)::before {
+      transform: rotate(2deg);
+  }
+
+  &:nth-of-type(4n-1)::before {
+      transform: rotate(-1deg);
+  }
+
+  &:before {
+      content: " ";
+      position:absolute;
+      width: calc(100% + 5px);
+      left: -3px;
+      top: 1px;
+      height: 100%;
+      z-index: -1;
+      transform: rotate(2deg);
+      background-color: $highlightColour;
+  }
+}
+
+result-highlight.result-highlight--focused {
+  &:before {
+    background-color: lighten($highlightColour, 20%);
+    box-shadow: 0px 2px 5px 0px rgba(0, 0, 0, 0.5);
+    transition: box-shadow 0.2s;
+  }
+}
+
+comment-highlight {
+  position: relative;
+  display: inline-block;
+  font-weight: bold;
+  font-style: italic;
+  z-index: 2;
+  white-space: pre;
+
+  &:nth-of-type(4n-3):before {
+      transform: rotate(-3deg);
+  }
+
+  &:nth-of-type(4n-2):before {
+      transform: rotate(2deg);
+  }
+
+  &:nth-of-type(4n-1):before {
+      transform: rotate(-1deg);
+  }
+
+  &:before {
+      content: " ";
+      background-color: lightpink;
+      position:absolute;
+      width: calc(100% + 5px);
+      left: -3px;
+      top: 1px;
+      height: 100%;
+      opacity: 0.5;
+      transform: rotate(-2deg);
+      pointer-events: none;
+  }
+}
+
+comment-highlight.comment-highlight--focused {
+  &:before {
+    background-color: hotpink;
+  }
+}
+
+result-highlight {
+    position: relative;
+    display: inline-block;
+    font-weight: bold;
+    font-style: italic;
+    z-index: 1;
+
+    &:nth-of-type(4n-3)::before {
+        transform: rotate(-3deg);
+    }
+
+    &:nth-of-type(4n-2)::before {
+        transform: rotate(2deg);
+    }
+
+    &:nth-of-type(4n-1)::before {
+        transform: rotate(-1deg);
+    }
+
+    &:before {
+        content: " ";
+        position:absolute;
+        width: calc(100% + 5px);
+        left: -3px;
+        top: 1px;
+        height: 100%;
+        z-index: -1;
+        transform: rotate(2deg);
+        background-color: $highlightColour;
+    }
+}
+
+comment-highlight {
+    position: relative;
+    display: inline-block;
+    font-weight: bold;
+    font-style: italic;
+    z-index: 2;
+    white-space: pre;
+
+    &:nth-of-type(4n-3):before {
+        transform: rotate(-3deg);
+    }
+
+    &:nth-of-type(4n-2):before {
+        transform: rotate(2deg);
+    }
+
+    &:nth-of-type(4n-1):before {
+        transform: rotate(-1deg);
+    }
+
+    &:before {
+        content: " ";
+        background-color: lightpink;
+        position:absolute;
+        width: calc(100% + 5px);
+        left: -3px;
+        top: 1px;
+        height: 100%;
+        opacity: 0.5;
+        transform: rotate(-2deg);
+        pointer-events: none;
+    }
+}
+
+comment-highlight.comment-highlight--focused {
+    &:before {
+        background-color: hotpink;
+    }
+}

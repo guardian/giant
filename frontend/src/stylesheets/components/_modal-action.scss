@@ -1,0 +1,21 @@
+.modal-action__modal {
+    width: 100%;
+    padding: $baseSpacing;
+}
+
+.modal-action__panel {
+    padding: $baseSpacing;
+}
+
+.modal-action__modal-text {
+    margin-left: $baseSpacing;
+}
+
+.modal-action__buttons {
+    margin-top: $baseSpacing;
+    float: right;
+
+    & button {
+        margin-right: $baseSpacing;
+    }
+}
