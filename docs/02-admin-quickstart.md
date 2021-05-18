@@ -2,7 +2,43 @@
 
 ## Creating the initial admin (genesis) user
 
-TODO
+When first run, Giant will redirect you to an interactive page to create the initial administrator user, known as the genesis user:
+
+![Screenshot of the genesis dialog](images/admin_quickstart/01_genesis.png)
+
+For convenience during development, TOTP two factor authentication is optional (see Skip this Step below):
+
+![Screenshot of the two factor registration dialog](images/admin_quickstart/02_2fa.png)
+
+However it must be enabled in any deployment for security. To require TOTP, edit `application.conf`:
+
+```
+auth {
+  database {
+    require2FA = true
+  }
+}
+```
+
+You can then create additional users from the settings page:
+
+![Screenshot of the create user dialog](images/admin_quickstart/03_create_user.png)
+
+They will then need to register using the temporary password by visiting the `/register` UI:
+
+![Screenshot of the register user dialog](images/admin_quickstart/04_user_register.png)
+
+## User management
+
+As an administrator, you can control which datasets each user can see in the Settings page:
+
+![Screenshot of the register user dialog](images/admin_quickstart/05_user_management.png)
+
+You can make other users administrators by ticking the "Admin" checkbox.
+
+Giant will automatically create a "Documents" dataset for each user which is used for direct uploads to workspaces.
+
+Administrators can see a summary of all files uploaded to workspaces in the Uploads tab on the Settings page.
 
 ## Uploading large amounts of data using the CLI
 
