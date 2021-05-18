@@ -1,0 +1,15 @@
+name: pfi
+mappings:
+  - prefix: pfi
+    port: 3000
+  - prefix: neo4j.pfi
+    port: 7474
+  - prefix: bolt.neo4j.pfi
+    websocket: /
+    port: 7687
+  - prefix: elasticsearch.pfi
+    port: 9200
+  - prefix: minio.pfi
+    port: 9090
+  - prefix: cerebro.pfi
+    port: 9091
