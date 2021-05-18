@@ -86,6 +86,8 @@ frontend:
 The frontend script will wait for the backend to start before launching Giant at
 `http://localhost:3000`.
 
+Once Giant has started, follow the [admin quickstart guide](./docs/02-admin-quickstart.md).
+
 ### dev-nginx proxy
 
 You can use [dev-nginx](https://github.com/guardian/dev-nginx) to more easily access Giant
