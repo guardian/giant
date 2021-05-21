@@ -6,6 +6,7 @@ import extraction.{ExtractionParams, Extractor, FileExtractor}
 import model.index.{Page, PageDimensions}
 import model.manifest.{Blob, MimeType}
 import model.{Language, Uri}
+import org.apache.commons.io.FileUtils
 import org.apache.pdfbox.pdmodel.{PDDocument, PDPage}
 import org.apache.pdfbox.text.PDFTextStripper
 import services._
@@ -39,12 +40,14 @@ class OcrMyPdfExtractor(scratch: ScratchSpace, index: Index, pageService: Pages,
       throw new IllegalStateException("Image OCR Extractor requires a language")
     }
 
+    val tmpDir = scratch.createWorkingDir(s"ocrmypdf-tmp-${blob.uri}")
+
     val stderr = mutable.Buffer.empty[String]
     var pdDocuments: Map[Language, (Path, PDDocument)] = Map.empty
 
     try {
       pdDocuments = params.languages.map { lang =>
-        val pdfPath = Ocr.invokeOcrMyPdf(lang.ocr, file.getAbsolutePath, None, stderr)
+        val pdfPath = Ocr.invokeOcrMyPdf(lang.ocr, file.getAbsolutePath, None, stderr, tmpDir)
         val pdfDoc = PDDocument.load(pdfPath.toFile)
 
         lang -> (pdfPath, pdfDoc)
@@ -108,6 +111,8 @@ class OcrMyPdfExtractor(scratch: ScratchSpace, index: Index, pageService: Pages,
         doc.close()
         Files.deleteIfExists(path)
       }
+
+      FileUtils.deleteDirectory(tmpDir.toFile)
 
       if(stderr.nonEmpty) {
         logger.info(s"OCR output for ${blob.uri}")

@@ -1,10 +1,11 @@
 package extraction.ocr
 
 import java.io.{File, InputStream}
-import java.nio.file.Files
+import java.nio.file.{Files, Path}
 import extraction.{ExtractionParams, Extractor, FileExtractor}
 import model.manifest.{Blob, MimeType}
 import model.{Language, Uri}
+import org.apache.commons.io.FileUtils
 import org.apache.pdfbox.pdmodel.PDDocument
 import org.apache.pdfbox.text.PDFTextStripper
 import services.index.Index
@@ -39,11 +40,12 @@ class OcrMyPdfImageExtractor(config: OcrConfig, scratch: ScratchSpace, index: In
       throw new IllegalStateException("Image OCR Extractor requires a language")
     }
 
+    val tmpDir = scratch.createWorkingDir(s"ocrmypdf-tmp-${blob.uri}")
     val stderr = mutable.Buffer.empty[String]
 
     try {
       params.languages.foreach { lang =>
-        val text = invokeOcrMyPdf(blob.uri, lang, file, config, stderr)
+        val text = invokeOcrMyPdf(blob.uri, lang, file, config, stderr, tmpDir)
         val optionalText = if (text.trim().isEmpty) None else Some(text)
         index.addDocumentOcr(blob.uri, optionalText, lang).awaitEither(10.second)
       }
@@ -53,6 +55,8 @@ class OcrMyPdfImageExtractor(config: OcrConfig, scratch: ScratchSpace, index: In
       case NonFatal(e) =>
         throw new IllegalStateException(s"ImageOcrExtractor error ${stderr.mkString("\n")}", e)
     } finally {
+      FileUtils.deleteDirectory(tmpDir.toFile)
+
       if(stderr.nonEmpty) {
         logger.info(s"OCR output for ${blob.uri}")
         logger.info(stderr.mkString("\n"))
@@ -60,8 +64,8 @@ class OcrMyPdfImageExtractor(config: OcrConfig, scratch: ScratchSpace, index: In
     }
   }
 
-  private def invokeOcrMyPdf(blobUri: Uri, lang: Language, file: File, config: OcrConfig, stderr: mutable.Buffer[String]): String = {
-    val pdfFile = Ocr.invokeOcrMyPdf(lang.ocr, file.getAbsolutePath, Some(config.dpi), stderr)
+  private def invokeOcrMyPdf(blobUri: Uri, lang: Language, file: File, config: OcrConfig, stderr: mutable.Buffer[String], tmpDir: Path): String = {
+    val pdfFile = Ocr.invokeOcrMyPdf(lang.ocr, file.getAbsolutePath, Some(config.dpi), stderr, tmpDir)
     var document: PDDocument = null
 
     try {
