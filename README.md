@@ -12,7 +12,7 @@ to `pfi` in the code. Under development since 2017, it's written in Scala and Ty
 is maintained by the Investigations & Reporting team.
 
 If Giant doesn't fit your needs, check out [Aleph](https://github.com/alephdata/aleph/) from
-the OCCRP and [Datashare](github.com/icij/datashare) from the ICIJ.
+the OCCRP and [Datashare](https://github.com/icij/datashare) from the ICIJ.
 
 ## (Users) Getting started
 
