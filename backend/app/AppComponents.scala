@@ -138,9 +138,9 @@ class AppComponents(context: Context, config: Config)
     val mboxExtractor = new MBoxEmailExtractor(emlParser)
 
     val tesseractPdfOcrExtractor = new TesseractPdfOcrExtractor(config.ocr, scratchSpace, esResources, esPages, ingestionServices)
-    val ocrMyPdfExtractor = new OcrMyPdfExtractor(scratchSpace, esResources, esPages, previewStorage)
-    val imageOcrExtractor = new ImageOcrExtractor(config.ocr, scratchSpace, esResources)
-    val ocrMyPdfImageExtractor = new OcrMyPdfImageExtractor(config.ocr, scratchSpace, esResources, previewStorage)
+    val ocrMyPdfExtractor = new OcrMyPdfExtractor(scratchSpace, esResources, esPages, previewStorage, ingestionServices)
+    val imageOcrExtractor = new ImageOcrExtractor(config.ocr, scratchSpace, esResources, ingestionServices)
+    val ocrMyPdfImageExtractor = new OcrMyPdfImageExtractor(config.ocr, scratchSpace, esResources, previewStorage, ingestionServices)
 
     val ocrExtractors = config.ocr.defaultEngine match {
       case OcrEngine.OcrMyPdf => List(ocrMyPdfExtractor, ocrMyPdfImageExtractor)

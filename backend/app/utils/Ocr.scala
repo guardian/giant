@@ -1,12 +1,26 @@
 package utils
 
 import java.nio.file.{Files, Path}
-
 import services.TesseractOcrConfig
+import utils.attempt.Failure
 
 import scala.collection.mutable
 import scala.sys.process._
 
+class OcrStderrLogger(setProgressNote: Option[String => Either[Failure, Unit]]) extends Logging {
+  val acc = mutable.Buffer[String]()
+
+  def append(line: String): Unit = {
+    acc.append(line)
+
+    logger.info(line)
+    setProgressNote.foreach(f => f(line))
+  }
+
+  def getOutput: String = {
+    acc.mkString("\n")
+  }
+}
 
 object Ocr {
   class OcrSubprocessCrashedException(exitCode: Int, stderr: String) extends Exception(s"Exit code: $exitCode: ${stderr}")
@@ -26,11 +40,11 @@ object Ocr {
   object OcrMyPdfOtherError extends Exception("Some other error occurred.")
   object OcrMyPdfCtrlC extends Exception("The program was interrupted by pressing Ctrl+C.")
 
-  def invokeTesseractDirectly(lang: String, imageFileName: String, config: TesseractOcrConfig, stderr: mutable.Buffer[String]): String = {
+  def invokeTesseractDirectly(lang: String, imageFileName: String, config: TesseractOcrConfig, stderr: OcrStderrLogger): String = {
     val cmd = s"tesseract $imageFileName stdout -l $lang --oem ${config.engineMode} --psm ${config.pageSegmentationMode}"
 
     val stdout = mutable.Buffer.empty[String]
-    val exitCode = Process(cmd).!(ProcessLogger(stdout.append(_), stderr.append(_)))
+    val exitCode = Process(cmd).!(ProcessLogger(stdout.append(_), stderr.append))
 
     exitCode match {
       case 143 =>
@@ -41,19 +55,19 @@ object Ocr {
         stdout.mkString("\n")
 
       case _ =>
-        throw new OcrSubprocessCrashedException(exitCode, stderr.mkString("\n"))
+        throw new OcrSubprocessCrashedException(exitCode, stderr.getOutput)
     }
   }
 
   // TODO MRB: allow OcrMyPdf to read DPI if set in metadata
   // OCRmyPDF is a wrapper for Tesseract that we use to overlay the OCR as a text layer in the resulting PDF
-  def invokeOcrMyPdf(lang: String, inputFileName: String, dpi: Option[Int], stderr: mutable.Buffer[String], tmpDir: Path): Path = {
+  def invokeOcrMyPdf(lang: String, inputFileName: String, dpi: Option[Int], stderr: OcrStderrLogger, tmpDir: Path): Path = {
     val tempFile = Files.createTempFile("ocrmypdf", ".pdf")
     val cmd = s"ocrmypdf --redo-ocr -l $lang ${dpi.map(dpi => s"--image-dpi $dpi").getOrElse("")} ${inputFileName} ${tempFile.toAbsolutePath}"
 
     val stdout = mutable.Buffer.empty[String]
     val process = Process(cmd, cwd = None, extraEnv = "TMPDIR" -> tmpDir.toAbsolutePath.toString)
-    val exitCode = process.!(ProcessLogger(stdout.append(_), stderr.append(_)))
+    val exitCode = process.!(ProcessLogger(stdout.append(_), stderr.append))
 
     exitCode match {
       // 0: success

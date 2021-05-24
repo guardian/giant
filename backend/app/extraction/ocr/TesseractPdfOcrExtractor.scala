@@ -15,7 +15,7 @@ import services.{OcrConfig, ScratchSpace}
 import utils.Ocr.OcrSubprocessInterruptedException
 import utils.attempt.AttemptAwait._
 import utils.attempt.{Failure, SubprocessInterruptedFailure}
-import utils.{Logging, Ocr}
+import utils.{Logging, Ocr, OcrStderrLogger}
 
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
@@ -48,7 +48,7 @@ class TesseractPdfOcrExtractor(config: OcrConfig, scratch: ScratchSpace, index: 
       throw new IllegalStateException("Image OCR Extractor requires a language")
     }
 
-    val stderr = mutable.Buffer.empty[String]
+    val stderr = new OcrStderrLogger(None) // this extractor manually sets the progress note
     var document: PDDocument = null
 
     try {
@@ -99,11 +99,6 @@ class TesseractPdfOcrExtractor(config: OcrConfig, scratch: ScratchSpace, index: 
     } finally {
       Option(document).foreach(_.close())
       cleanup(file)
-
-      if(stderr.nonEmpty) {
-        logger.info(s"OCR output for ${blob.uri}")
-        logger.info(stderr.mkString("\n"))
-      }
     }
   }
 
