@@ -40,7 +40,7 @@ class OcrMyPdfExtractor(scratch: ScratchSpace, index: Index, pageService: Pages,
       throw new IllegalStateException("Image OCR Extractor requires a language")
     }
 
-    val tmpDir = scratch.createWorkingDir(s"ocrmypdf-tmp-${blob.uri}")
+    val tmpDir = scratch.createWorkingDir(s"ocrmypdf-tmp-${blob.uri.value}")
 
     val stderr = mutable.Buffer.empty[String]
     var pdDocuments: Map[Language, (Path, PDDocument)] = Map.empty
