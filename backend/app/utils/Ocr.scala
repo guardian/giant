@@ -8,13 +8,22 @@ import scala.collection.mutable
 import scala.sys.process._
 
 class OcrStderrLogger(setProgressNote: Option[String => Either[Failure, Unit]]) extends Logging {
+  val LOG_THROTTLE_RATE_MILLIS = 5000
+
   val acc = mutable.Buffer[String]()
+  var lastLogTime: Option[Long] = None
 
   def append(line: String): Unit = {
     acc.append(line)
 
     logger.info(line)
-    setProgressNote.foreach(f => f(line))
+
+    // Avoid spamming the database should the extractor output a lot of stderr logging quickly
+    val now = System.currentTimeMillis()
+    if(lastLogTime.isEmpty || lastLogTime.exists(t => (now - t) > LOG_THROTTLE_RATE_MILLIS)) {
+      setProgressNote.foreach(f => f(line))
+      lastLogTime = Some(now)
+    }
   }
 
   def getOutput: String = {
