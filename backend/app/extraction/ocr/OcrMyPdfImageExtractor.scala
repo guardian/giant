@@ -65,7 +65,7 @@ class OcrMyPdfImageExtractor(config: OcrConfig, scratch: ScratchSpace, index: In
   }
 
   private def invokeOcrMyPdf(blobUri: Uri, lang: Language, file: File, config: OcrConfig, stderr: mutable.Buffer[String], tmpDir: Path): String = {
-    val pdfFile = Ocr.invokeOcrMyPdf(lang.ocr, file.getAbsolutePath, Some(config.dpi), stderr, tmpDir)
+    val pdfFile = Ocr.invokeOcrMyPdf(lang.ocr, file.toPath, Some(config.dpi), stderr, tmpDir)
     var document: PDDocument = null
 
     try {
