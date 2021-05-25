@@ -1,6 +1,6 @@
 package extraction.ocr
 
-import extraction.{ExtractionParams, FileExtractor}
+import extraction.ExtractionParams
 import model.index.{Page, PageDimensions}
 import model.manifest.{Blob, MimeType}
 import model.{Language, Uri}
@@ -11,19 +11,16 @@ import services._
 import services.index.{Index, Pages}
 import services.ingestion.IngestionServices
 import services.previewing.PreviewService
-import utils.Ocr.OcrSubprocessInterruptedException
 import utils.attempt.AttemptAwait._
-import utils.attempt.{Failure, SubprocessInterruptedFailure}
 import utils.{Logging, Ocr, OcrStderrLogger}
 
 import java.io.File
 import java.nio.file.{Files, Path}
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
-import scala.util.control.NonFatal
 
 class OcrMyPdfExtractor(scratch: ScratchSpace, index: Index, pageService: Pages, previewStorage: ObjectStorage,
-  ingestionServices: IngestionServices)(implicit ec: ExecutionContext) extends FileExtractor(scratch) with Logging {
+  ingestionServices: IngestionServices)(implicit ec: ExecutionContext) extends BaseOcrExtractor(scratch) with Logging {
 
   val mimeTypes = Set(
     "application/pdf"
@@ -38,19 +35,17 @@ class OcrMyPdfExtractor(scratch: ScratchSpace, index: Index, pageService: Pages,
     100 * size
   }
 
-  override def extract(blob: Blob, file: File, params: ExtractionParams): Either[Failure, Unit] = {
-    if (params.languages.isEmpty) {
-      throw new IllegalStateException("Image OCR Extractor requires a language")
-    }
+  override def buildStdErrLogger(blob: Blob): OcrStderrLogger = {
+    new OcrStderrLogger(Some(ingestionServices.setProgressNote(blob.uri, this, _)))
+  }
 
+  override def extractOcr(blob: Blob, file: File, params: ExtractionParams, stdErrLogger: OcrStderrLogger): Unit = {
     val tmpDir = scratch.createWorkingDir(s"ocrmypdf-tmp-${blob.uri}")
-
-    val stderr = new OcrStderrLogger(Some(ingestionServices.setProgressNote(blob.uri, this, _)))
     var pdDocuments: Map[Language, (Path, PDDocument)] = Map.empty
 
     try {
       pdDocuments = params.languages.map { lang =>
-        val pdfPath = Ocr.invokeOcrMyPdf(lang.ocr, file.getAbsolutePath, None, stderr, tmpDir)
+        val pdfPath = Ocr.invokeOcrMyPdf(lang.ocr, file.getAbsolutePath, None, stdErrLogger, tmpDir)
         val pdfDoc = PDDocument.load(pdfPath.toFile)
 
         lang -> (pdfPath, pdfDoc)
@@ -104,14 +99,6 @@ class OcrMyPdfExtractor(scratch: ScratchSpace, index: Index, pageService: Pages,
       }
 
       OcrMyPdfExtractor.insertFullText(blob.uri, pages, index)
-
-      Right(())
-    } catch {
-      case OcrSubprocessInterruptedException =>
-        Left(SubprocessInterruptedFailure)
-
-      case NonFatal(e) =>
-        throw new IllegalStateException(s"PdfOcrExtractor error ${stderr.getOutput}", e)
     } finally {
       pdDocuments.foreach { case(_, (path, doc)) =>
         doc.close()
