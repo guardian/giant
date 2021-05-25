@@ -201,3 +201,4 @@ whilst it was closed source at the Guardian:
 - [Amy Hughes](https://github.com/amyhughes)
 - [Max Duval](https://github.com/mxdvl)
 - [Mateusz](https://github.com/paperboyo)
+- [Maria Livia Chiorean](https://github.com/marialivia16)
