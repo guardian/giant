@@ -7,12 +7,13 @@ import play.api.mvc.{AnyContent, Request}
 import services.ObjectStorage
 import services.index.Index
 import services.manifest.Manifest
+import utils.Logging
 import utils.attempt.Attempt
 import utils.controller.{AuthApiController, AuthControllerComponents}
 
 class Blobs(override val controllerComponents: AuthControllerComponents, manifest: Manifest, index: Index,
             objectStorage: ObjectStorage, previewStorage: ObjectStorage)
-  extends AuthApiController {
+  extends AuthApiController with Logging {
 
   def param(name: String, req: Request[AnyContent]): Option[String] = req.queryString.get(name).flatMap(_.headOption)
 
@@ -34,6 +35,37 @@ class Blobs(override val controllerComponents: AuthControllerComponents, manifes
 
         case _ =>
           Attempt.Right(BadRequest("Missing collection or ingestion query parameter"))
+      }
+    }
+  }
+
+  def reprocess(id: String, rerunSuccessfulParam: Option[Boolean], rerunFailedParam: Option[Boolean]) = ApiAction.attempt { req =>
+    checkPermission(CanPerformAdminOperations, req) {
+      val uri = Uri(id)
+
+      def rerunFailedIfRequested() = {
+        if(rerunFailedParam.getOrElse(true)) {
+          logger.info(s"Reprocessing failed extractors for blob ${id}")
+          manifest.rerunFailedExtractorsForBlob(uri)
+        } else {
+          Attempt.Right(())
+        }
+      }
+
+      def rerunSuccessfulIfRequested() = {
+        if(rerunSuccessfulParam.getOrElse(true)) {
+          logger.info(s"Reprocessing successful extractors for blob ${id}")
+          manifest.rerunSuccessfulExtractorsForBlob(uri)
+        } else {
+          Attempt.Right(())
+        }
+      }
+
+      for {
+        _ <- rerunFailedIfRequested()
+        _ <- rerunSuccessfulIfRequested()
+      } yield {
+        NoContent
       }
     }
   }

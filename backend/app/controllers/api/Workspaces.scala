@@ -74,20 +74,22 @@ class Workspaces(override val controllerComponents: AuthControllerComponents, an
       .map(workspaces => Ok(Json.toJson(workspaces)))
   }
 
-  private def reprocessBlob(uri: Uri): Attempt[Unit] = for {
-    _ <- manifest.rerunFailedExtractorsForBlob(uri)
-    _ <- manifest.rerunSuccessfulExtractorsForBlob(uri)
+  private def reprocessBlob(uri: Uri, rerunSuccessful: Boolean, rerunFailed: Boolean): Attempt[Unit] = for {
+    _ <- if(rerunFailed) { manifest.rerunFailedExtractorsForBlob(uri) } else { Attempt.Right(()) }
+    _ <- if(rerunSuccessful) { manifest.rerunSuccessfulExtractorsForBlob(uri) } else { Attempt.Right(()) }
   } yield {
     ()
   }
 
   // Execute in series rather than in parallel,
   // to avoid locking issues between successive blobs
-  private def reprocessBlobs(blobIds: List[Uri]): Attempt[Unit] = {
+  private def reprocessBlobs(blobIds: List[Uri], rerunSuccesful: Boolean, rerunFailed: Boolean): Attempt[Unit] = {
     blobIds match {
       case Nil => Attempt.Right(())
-      case blobId :: Nil => reprocessBlob(blobId)
-      case blobId :: tail => reprocessBlob(blobId).flatMap(_ => reprocessBlobs(tail))
+      case blobId :: Nil => reprocessBlob(blobId, rerunSuccesful, rerunFailed)
+      case blobId :: tail => reprocessBlob(blobId, rerunSuccesful, rerunFailed).flatMap(_ =>
+        reprocessBlobs(tail, rerunSuccesful, rerunFailed)
+      )
     }
   }
 
@@ -95,11 +97,14 @@ class Workspaces(override val controllerComponents: AuthControllerComponents, an
   // re-process those blobs by putting neo4j in a state where
   // first all previously failed extractors will re-run,
   // and then all previously successful extractors will re-run
-  def reprocess(workspaceId: String) = ApiAction.attempt { req: UserIdentityRequest[_] =>
+  def reprocess(workspaceId: String, rerunSuccessfulParam: Option[Boolean], rerunFailedParam: Option[Boolean]) = ApiAction.attempt { req: UserIdentityRequest[_] =>
+    val rerunSuccessful = rerunSuccessfulParam.getOrElse(true)
+    val rerunFailed = rerunFailedParam.getOrElse(true)
+
     for {
       contents <- annotation.getWorkspaceContents(req.user.username, workspaceId)
       blobIds = TreeEntry.workspaceTreeToBlobIds(contents)
-      _ <- reprocessBlobs(blobIds)
+      _ <- reprocessBlobs(blobIds, rerunSuccessful, rerunFailed)
     } yield {
       Ok(Json.toJson(blobIds))
     }
