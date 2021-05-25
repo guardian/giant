@@ -11,7 +11,7 @@ DELETE        /api/collections/:collection/:ingestion                       cont
 POST          /api/collections/:collection/:ingestion/verifyFiles           controllers.api.Collections.verifyFiles(collection, ingestion)
 
 GET           /api/blobs                                                    controllers.api.Blobs.getBlobs
-POST          /api/blobs/:id/reprocess                                      controllers.api.Blobs.reprocess(id, rerunSuccessfulParam: Option[Boolean])
+POST          /api/blobs/:id/reprocess                                      controllers.api.Blobs.reprocess(id, rerunSuccessful: Option[Boolean], rerunFailed: Option[Boolean])
 DELETE        /api/blobs/:id                                                controllers.api.Blobs.delete(id)
 
 GET           /api/filters                                                  controllers.api.Filters.getFilters
@@ -47,7 +47,7 @@ PUT           /api/workspaces/:workspaceId/isPublic                         cont
 PUT           /api/workspaces/:workspaceId/name                             controllers.api.Workspaces.updateWorkspaceName(workspaceId: String)
 GET           /api/workspaces/:workspaceId                                  controllers.api.Workspaces.get(workspaceId: String)
 GET           /api/workspaces/:workspaceId/nodes                            controllers.api.Workspaces.getContents(workspaceId: String)
-POST          /api/workspaces/:workspaceId/reprocess                        controllers.api.Workspaces.reprocess(workspaceId: String)
+POST          /api/workspaces/:workspaceId/reprocess                        controllers.api.Workspaces.reprocess(workspaceId: String, rerunSuccessful: Option[Boolean], rerunFailed: Option[Boolean])
 POST          /api/workspaces/:workspaceId/nodes                            controllers.api.Workspaces.addItemToWorkspace(workspaceId: String)
 PUT           /api/workspaces/:workspaceId/nodes/:itemId/name               controllers.api.Workspaces.renameItem(workspaceId: String, itemId: String)
 PUT           /api/workspaces/:workspaceId/nodes/:itemId/parent             controllers.api.Workspaces.moveItem(workspaceId: String, itemId: String)

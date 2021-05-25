@@ -39,20 +39,32 @@ class Blobs(override val controllerComponents: AuthControllerComponents, manifes
     }
   }
 
-  def reprocess(id: String, rerunSuccessfulParam: Option[Boolean]) = ApiAction.attempt { req =>
+  def reprocess(id: String, rerunSuccessfulParam: Option[Boolean], rerunFailedParam: Option[Boolean]) = ApiAction.attempt { req =>
     checkPermission(CanPerformAdminOperations, req) {
       val uri = Uri(id)
-      val rerunSuccessful = rerunSuccessfulParam.getOrElse(true)
 
-      logger.info(s"Reprocessing failed extractors for blob ${id}")
-      manifest.rerunFailedExtractorsForBlob(uri).flatMap { _ =>
-        if(rerunSuccessful) {
+      def rerunFailedIfRequested() = {
+        if(rerunFailedParam.getOrElse(true)) {
+          logger.info(s"Reprocessing failed extractors for blob ${id}")
+          manifest.rerunFailedExtractorsForBlob(uri)
+        } else {
+          Attempt.Right(())
+        }
+      }
+
+      def rerunSuccessfulIfRequested() = {
+        if(rerunSuccessfulParam.getOrElse(true)) {
           logger.info(s"Reprocessing successful extractors for blob ${id}")
           manifest.rerunSuccessfulExtractorsForBlob(uri)
         } else {
           Attempt.Right(())
         }
-      }.map { _ =>
+      }
+
+      for {
+        _ <- rerunFailedIfRequested()
+        _ <- rerunSuccessfulIfRequested()
+      } yield {
         NoContent
       }
     }
