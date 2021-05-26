@@ -145,8 +145,14 @@ class ElasticsearchPages(val client: ElasticClient, indexNamePrefix: String)(imp
         .sortBy(fieldSort(PagesFields.page).asc())
         .highlighting(highlightFields)
 
-    }.map { resp =>
-      resp.to[Page].toList
+    }.flatMap { resp =>
+      val pages = resp.to[Page].toList
+
+      if(pages.isEmpty) {
+        Attempt.Left(NotFoundFailure(s"No pages found for ${uri.value}"))
+      } else {
+        Attempt.Right(pages)
+      }
     }
   }
 
