@@ -1,31 +1,24 @@
 package extraction.ocr
 
-import java.io.{File, InputStream}
-import java.nio.file.{Files, Paths}
-import extraction.{ExtractionParams, Extractor, FileExtractor}
+import extraction.ExtractionParams
 import model.index.{Page, PageDimensions}
 import model.manifest.{Blob, MimeType}
-import model.{Language, Uri}
 import org.apache.pdfbox.pdmodel.PDDocument
 import org.apache.pdfbox.rendering.{ImageType, PDFRenderer}
 import org.apache.pdfbox.tools.imageio.ImageIOUtil
 import services.index.{Index, Pages}
 import services.ingestion.IngestionServices
 import services.{OcrConfig, ScratchSpace}
-import utils.Ocr.OcrSubprocessInterruptedException
-import utils.attempt.AttemptAwait._
-import utils.attempt.{Failure, SubprocessInterruptedFailure}
-import utils.{Logging, Ocr}
+import utils.{Logging, Ocr, OcrStderrLogger}
 
-import scala.collection.mutable
-import scala.collection.mutable.ArrayBuffer
+import java.io.File
+import java.nio.file.{Files, Paths}
 import scala.concurrent.ExecutionContext
-import scala.concurrent.duration._
-import scala.util.control.NonFatal
 
 // We could also use this as a possible fallback option after the primary OcrMyPdfExtractor, which
 // doesn't ocr as many docs (e.g. it respects encryption of PDFs)
-class TesseractPdfOcrExtractor(config: OcrConfig, scratch: ScratchSpace, index: Index, pageService: Pages, ingestionServices: IngestionServices)(implicit ec: ExecutionContext) extends FileExtractor(scratch) with Logging {
+class TesseractPdfOcrExtractor(config: OcrConfig, scratch: ScratchSpace, index: Index, pageService: Pages,
+  ingestionServices: IngestionServices)(implicit ec: ExecutionContext) extends BaseOcrExtractor(scratch) with Logging {
   val mimeTypes = Set(
     "application/pdf"
   )
@@ -43,12 +36,11 @@ class TesseractPdfOcrExtractor(config: OcrConfig, scratch: ScratchSpace, index: 
     100 * size
   }
 
-  override def extract(blob: Blob, file: File, params: ExtractionParams): Either[Failure, Unit] = {
-    if (params.languages.isEmpty) {
-      throw new IllegalStateException("Image OCR Extractor requires a language")
-    }
+  override def buildStdErrLogger(blob: Blob): OcrStderrLogger = {
+    new OcrStderrLogger(None) // this extractor manually sets the progress note
+  }
 
-    val stderr = mutable.Buffer.empty[String]
+  override def extractOcr(blob: Blob, file: File, params: ExtractionParams, stdErrLogger: OcrStderrLogger): Unit = {
     var document: PDDocument = null
 
     try {
@@ -74,7 +66,7 @@ class TesseractPdfOcrExtractor(config: OcrConfig, scratch: ScratchSpace, index: 
 
         val pageTextByLanguage = params.languages.map { lang =>
           ingestionServices.setProgressNote(blob.uri, this, s"Page ${pageNumber + 1}/${totalPages} (${lang.key})")
-          val text = Ocr.invokeTesseractDirectly(lang.ocr, imageFileName, config.tesseract, stderr)
+          val text = Ocr.invokeTesseractDirectly(lang.ocr, imageFileName, config.tesseract, stdErrLogger)
 
           lang -> text
         }
@@ -88,22 +80,9 @@ class TesseractPdfOcrExtractor(config: OcrConfig, scratch: ScratchSpace, index: 
 
       pageService.addPageContents(blob.uri, pages)
       OcrMyPdfExtractor.insertFullText(blob.uri, pages, index)
-
-      Right(())
-    } catch {
-      case OcrSubprocessInterruptedException =>
-        Left(SubprocessInterruptedFailure)
-
-      case NonFatal(e) =>
-        throw e
     } finally {
       Option(document).foreach(_.close())
       cleanup(file)
-
-      if(stderr.nonEmpty) {
-        logger.info(s"OCR output for ${blob.uri}")
-        logger.info(stderr.mkString("\n"))
-      }
     }
   }
 

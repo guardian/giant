@@ -1,8 +1,6 @@
 package extraction.ocr
 
-import java.io.{File, InputStream}
-import java.nio.file.{Files, Path}
-import extraction.{ExtractionParams, Extractor, FileExtractor}
+import extraction.ExtractionParams
 import model.index.{Page, PageDimensions}
 import model.manifest.{Blob, MimeType}
 import model.{Language, Uri}
@@ -11,17 +9,19 @@ import org.apache.pdfbox.pdmodel.{PDDocument, PDPage}
 import org.apache.pdfbox.text.PDFTextStripper
 import services._
 import services.index.{Index, Pages}
+import services.ingestion.IngestionServices
 import services.previewing.PreviewService
 import utils.attempt.AttemptAwait._
-import utils.attempt.Failure
-import utils.{Logging, Ocr}
+import utils.{Logging, Ocr, OcrStderrLogger}
 
-import scala.collection.mutable
+import java.io.File
+import java.nio.file.{Files, Path}
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
-import scala.util.control.NonFatal
 
-class OcrMyPdfExtractor(scratch: ScratchSpace, index: Index, pageService: Pages, previewStorage: ObjectStorage)(implicit ec: ExecutionContext) extends FileExtractor(scratch) with Logging {
+class OcrMyPdfExtractor(scratch: ScratchSpace, index: Index, pageService: Pages, previewStorage: ObjectStorage,
+  ingestionServices: IngestionServices)(implicit ec: ExecutionContext) extends BaseOcrExtractor(scratch) with Logging {
+
   val mimeTypes = Set(
     "application/pdf"
   )
@@ -35,19 +35,17 @@ class OcrMyPdfExtractor(scratch: ScratchSpace, index: Index, pageService: Pages,
     100 * size
   }
 
-  override def extract(blob: Blob, file: File, params: ExtractionParams): Either[Failure, Unit] = {
-    if (params.languages.isEmpty) {
-      throw new IllegalStateException("Image OCR Extractor requires a language")
-    }
+  override def buildStdErrLogger(blob: Blob): OcrStderrLogger = {
+    new OcrStderrLogger(Some(ingestionServices.setProgressNote(blob.uri, this, _)))
+  }
 
+  override def extractOcr(blob: Blob, file: File, params: ExtractionParams, stdErrLogger: OcrStderrLogger): Unit = {
     val tmpDir = scratch.createWorkingDir(s"ocrmypdf-tmp-${blob.uri.value}")
-
-    val stderr = mutable.Buffer.empty[String]
     var pdDocuments: Map[Language, (Path, PDDocument)] = Map.empty
 
     try {
       pdDocuments = params.languages.map { lang =>
-        val pdfPath = Ocr.invokeOcrMyPdf(lang.ocr, file.toPath, None, stderr, tmpDir)
+        val pdfPath = Ocr.invokeOcrMyPdf(lang.ocr, file.toPath, None, stdErrLogger, tmpDir)
         val pdfDoc = PDDocument.load(pdfPath.toFile)
 
         lang -> (pdfPath, pdfDoc)
@@ -101,11 +99,6 @@ class OcrMyPdfExtractor(scratch: ScratchSpace, index: Index, pageService: Pages,
       }
 
       OcrMyPdfExtractor.insertFullText(blob.uri, pages, index)
-
-      Right(())
-    } catch {
-      case NonFatal(e) =>
-        throw new IllegalStateException(s"PdfOcrExtractor error ${stderr.mkString("\n")}", e)
     } finally {
       pdDocuments.foreach { case(_, (path, doc)) =>
         doc.close()
@@ -113,11 +106,6 @@ class OcrMyPdfExtractor(scratch: ScratchSpace, index: Index, pageService: Pages,
       }
 
       FileUtils.deleteDirectory(tmpDir.toFile)
-
-      if(stderr.nonEmpty) {
-        logger.info(s"OCR output for ${blob.uri}")
-        logger.info(stderr.mkString("\n"))
-      }
     }
   }
 
