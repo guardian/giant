@@ -40,12 +40,12 @@ class OcrMyPdfExtractor(scratch: ScratchSpace, index: Index, pageService: Pages,
   }
 
   override def extractOcr(blob: Blob, file: File, params: ExtractionParams, stdErrLogger: OcrStderrLogger): Unit = {
-    val tmpDir = scratch.createWorkingDir(s"ocrmypdf-tmp-${blob.uri}")
+    val tmpDir = scratch.createWorkingDir(s"ocrmypdf-tmp-${blob.uri.value}")
     var pdDocuments: Map[Language, (Path, PDDocument)] = Map.empty
 
     try {
       pdDocuments = params.languages.map { lang =>
-        val pdfPath = Ocr.invokeOcrMyPdf(lang.ocr, file.getAbsolutePath, None, stdErrLogger, tmpDir)
+        val pdfPath = Ocr.invokeOcrMyPdf(lang.ocr, file.toPath, None, stdErrLogger, tmpDir)
         val pdfDoc = PDDocument.load(pdfPath.toFile)
 
         lang -> (pdfPath, pdfDoc)

@@ -39,7 +39,7 @@ class OcrMyPdfImageExtractor(config: OcrConfig, scratch: ScratchSpace, index: In
   }
 
   override def extractOcr(blob: Blob, file: File, params: ExtractionParams, stdErrLogger: OcrStderrLogger): Unit = {
-    val tmpDir = scratch.createWorkingDir(s"ocrmypdf-tmp-${blob.uri}")
+    val tmpDir = scratch.createWorkingDir(s"ocrmypdf-tmp-${blob.uri.value}")
 
     try {
       params.languages.foreach { lang =>
@@ -53,7 +53,7 @@ class OcrMyPdfImageExtractor(config: OcrConfig, scratch: ScratchSpace, index: In
   }
 
   private def invokeOcrMyPdf(blobUri: Uri, lang: Language, file: File, config: OcrConfig, stderr: OcrStderrLogger, tmpDir: Path): String = {
-    val pdfFile = Ocr.invokeOcrMyPdf(lang.ocr, file.getAbsolutePath, Some(config.dpi), stderr, tmpDir)
+    val pdfFile = Ocr.invokeOcrMyPdf(lang.ocr, file.toPath, Some(config.dpi), stderr, tmpDir)
     var document: PDDocument = null
 
     try {
