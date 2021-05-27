@@ -110,7 +110,7 @@ class Worker(
   }
 
   private def markAsFailure(blob: Blob, extractor: Extractor, failure: Failure): Unit = {
-    logger.error(s"Error in extractor '${extractor.name}': ${failure.msg}")
+    logger.error(s"Error in '${extractor.name} processing ${blob.uri.value}': ${failure.msg}")
 
     manifest.logExtractionFailure(blob.uri, extractor.name, failure.msg).left.foreach { f =>
       logger.error(s"Failed to log extractor in manifest: ${f.msg}")
