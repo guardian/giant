@@ -10,11 +10,10 @@ import { GiantDispatch } from '../../../types/redux/GiantDispatch';
 
 type Props = {
     uri: string,
-    q?: string,
-    fallbackRenderFn: () => React.ReactElement,
+    q?: string
 }
 
-export default function PageViewer({ uri, q, fallbackRenderFn }: Props) {
+export default function PageViewer({ uri, q }: Props) {
     const dispatch: GiantDispatch = useDispatch();
     const state = useSelector<GiantState, PagesState>(({ pages }) => pages);
 
@@ -84,12 +83,6 @@ export default function PageViewer({ uri, q, fallbackRenderFn }: Props) {
         return <div className="viewer__main">
             <div className='viewer__no-text-preview'>Loading...</div>
         </div>;
-    }
-
-    if (state.doc.summary.numberOfPages === 0) {
-        return <div className="viewer__main">
-            {fallbackRenderFn()}
-        </div>
     }
 
     return <div className="viewer__main" ref={setViewport} onScroll={throttledOnScroll}>

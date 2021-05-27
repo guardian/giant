@@ -27,7 +27,7 @@ import { setCurrentHighlight } from '../../actions/highlights';
 import { setCurrentHighlightInUrl } from '../../actions/urlParams/setCurrentHighlight';
 import { getComments } from '../../actions/resources/getComments';
 import { setSelection } from '../../actions/resources/setSelection';
-import { DescendantResources, GiantState, UrlParamsState } from '../../types/redux/GiantState';
+import { DescendantResources, GiantState, PagesState, UrlParamsState } from '../../types/redux/GiantState';
 import { Auth } from '../../types/Auth';
 import { GiantDispatch } from '../../types/redux/GiantDispatch';
 import LazyTreeBrowser from './LazyTreeBrowser';
@@ -39,6 +39,7 @@ import PageViewerStatusBar from './PageViewer/PageViewerStatusBar';
 type Props = {
     match: Match,
     auth: Auth,
+    pages: PagesState,
     preferences: any,
     urlParams: UrlParamsState,
     resource: Resource | null,
@@ -273,9 +274,7 @@ class Viewer extends React.Component<Props, State> {
         </div>;
     }
 
-    renderPreview(resource: Resource, view: string) {
-        const { featurePageViewer } = this.props.preferences;
-
+    renderFullContents(resource: Resource, view: string) {
         if (view === 'table') {
             return <TablePreview text={resource.text.contents}/>
         } else if (view === 'preview') {
@@ -287,27 +286,20 @@ class Viewer extends React.Component<Props, State> {
                 // Only matters if a user has manually changed the view in the URL params or is visiting a link with them in
                 return this.renderNoPreview();
             }
+        } else if (resource.extracted) {
+            this.renderTextPreview(resource, resource.text, 'text');
+        } else if (resource.children.length) {
+            return <LazyTreeBrowser
+                rootResource={resource}
+                descendantResources={this.props.descendantResources}
+                getChildResource={this.props.getChildResource}
+            />;
         } else {
-            if (resource.extracted && featurePageViewer) {
-                return <PageViewer
-                    uri={resource.uri}
-                    fallbackRenderFn={() => this.renderTextPreview(resource, resource.text, 'text')}
-                />;
-            } else if (resource.extracted) {
-                return this.renderTextPreview(resource, resource.text, view);
-            } else if (resource.children.length) {
-                return <LazyTreeBrowser
-                    rootResource={resource}
-                    descendantResources={this.props.descendantResources}
-                    getChildResource={this.props.getChildResource}
-                />;
-            } else {
-                return this.renderNoPreview();
-            }
+            return this.renderNoPreview();
         }
     }
 
-    renderBody(resource: Resource, view: string) {
+    renderFullResource(resource: Resource, view: string) {
         let docClass = 'document';
 
         if(this.props.urlParams.view === 'preview') {
@@ -325,14 +317,14 @@ class Viewer extends React.Component<Props, State> {
         if (resource.type === 'blob') {
             return (
                 <div className={docClass}>
-                    {this.renderPreview(resource, view)}
+                    {this.renderFullContents(resource, view)}
                 </div>
            );
         } else if (resource.type === 'email') {
             return (
                 <div className={docClass}>
                     <EmailDetails email={this.props.resource} detailsType={this.props.urlParams.details} setDetailsView={this.props.setDetailsView} match={this.props.match}/>
-                    {this.renderPreview(resource, view)}
+                    {this.renderFullContents(resource, view)}
                 </div>
             );
         } else {
@@ -340,21 +332,20 @@ class Viewer extends React.Component<Props, State> {
         }
     }
 
-    renderDocument(resource: Resource) {
+    renderResource(resource: Resource) {
         const { view, q } = this.props.urlParams;
-        const { uri, text } = resource;
+        const { uri } = resource;
         const { featurePageViewer } = this.props.preferences;
 
-        if(featurePageViewer) {
+        if (featurePageViewer && this.props.pages.doc?.summary.numberOfPages) {
             return <PageViewer
                 uri={uri}
                 q={q}
-                fallbackRenderFn={() => this.renderTextPreview(resource, text, view ?? 'text')}
             />;
         }
 
         return <div className='viewer__main'>
-            {this.renderBody(resource, view || 'text')}
+            {this.renderFullResource(resource, view || 'text')}
         </div>;
     }
 
@@ -368,7 +359,7 @@ class Viewer extends React.Component<Props, State> {
                 <KeyboardShortcut shortcut={keyboardShortcuts.nextResult} func={this.nextResult} />
                 <KeyboardShortcut shortcut={keyboardShortcuts.previousResult} func={this.previousResult} />
 
-                {this.renderDocument(this.props.resource)}
+                {this.renderResource(this.props.resource)}
                 <div className='viewer__footer'>
                     {this.props.preferences.featurePageViewer ?
                         <PageViewerStatusBar
@@ -409,6 +400,7 @@ function mapStateToProps(state: GiantState) {
     }
 
     return {
+        pages: state.pages,
         auth: state.auth,
         urlParams: state.urlParams,
         resource: state.resource,

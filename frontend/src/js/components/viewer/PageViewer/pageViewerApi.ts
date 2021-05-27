@@ -80,13 +80,19 @@ export async function fetchPages(uri: string, viewportTop: number, viewportBotto
 
     const pageUrl = documentUrlBase + getQueryParams(viewportTop, viewportBottom, q);
 
-    const response = await authFetch(pageUrl);
-    const unscaledDoc: PagedDocument = await response.json();
-
-    if(unscaledDoc.pages.length === 0) {
-        throw new Error("Zero pages for " + pageUrl);
-    } else {
+    try {
+        const response = await authFetch(pageUrl);
+        const unscaledDoc: PagedDocument = await response.json();
         return scaleDocument(unscaledDoc);
+    } catch (e) {
+        console.error('Error fetching pages (will return empty PagedDocument): ', e);
+        return {
+            summary: {
+                numberOfPages: 0,
+                height: 0
+            },
+            pages: []
+        }
     }
 }
 
