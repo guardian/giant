@@ -35,6 +35,7 @@ import { SearchResults } from '../../types/SearchResults';
 import { getDefaultView } from '../../util/resourceUtils';
 import DownloadButton from './DownloadButton';
 import PageViewerStatusBar from './PageViewer/PageViewerStatusBar';
+import { loadPages } from '../../actions/pages/loadPages';
 
 type Props = {
     match: Match,
@@ -56,7 +57,8 @@ type Props = {
     setDetailsView: typeof setDetailsView,
     setCurrentHighlight: typeof setCurrentHighlight,
     setCurrentHighlightInUrl: typeof setCurrentHighlightInUrl,
-    setSelection: typeof setSelection
+    setSelection: typeof setSelection,
+    loadPages: typeof loadPages
 }
 
 type State = {
@@ -89,6 +91,7 @@ class Viewer extends React.Component<Props, State> {
     UNSAFE_componentWillReceiveProps(props: Props) {
         if (!this.props.isLoadingResource && props.match.params.uri !== this.props.match.params.uri) {
             this.props.getResource(props.match.params.uri, props.urlParams.q);
+            this.props.loadPages(props.match.params.uri);
         }
 
         const currentUri = this.props.resource ? this.props.resource.uri : undefined;
@@ -125,6 +128,11 @@ class Viewer extends React.Component<Props, State> {
         // Ultimately we'd like the resource fetch to be triggered from a common parent of this and <ViewerSidebar>
         if (!this.props.isLoadingResource && !this.props.resource) {
             this.props.getResource(this.props.match.params.uri, this.props.urlParams.q);
+        }
+
+
+        if (this.props.pages.doc === undefined) {
+            this.props.loadPages(this.props.match.params.uri);
         }
 
         document.title = calculateResourceTitle(this.props.resource);
@@ -423,7 +431,8 @@ function mapDispatchToProps(dispatch: GiantDispatch) {
         setCurrentHighlight: bindActionCreators(setCurrentHighlight, dispatch),
         setCurrentHighlightInUrl: bindActionCreators(setCurrentHighlightInUrl, dispatch),
         getComments: bindActionCreators(getComments, dispatch),
-        setSelection: bindActionCreators(setSelection, dispatch)
+        setSelection: bindActionCreators(setSelection, dispatch),
+        loadPages: bindActionCreators(loadPages, dispatch)
     };
 }
 
