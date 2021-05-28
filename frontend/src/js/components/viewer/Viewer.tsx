@@ -36,6 +36,7 @@ import { getDefaultView } from '../../util/resourceUtils';
 import DownloadButton from './DownloadButton';
 import PageViewerStatusBar from './PageViewer/PageViewerStatusBar';
 import { loadPages } from '../../actions/pages/loadPages';
+import { resetPages } from '../../actions/pages/resetPages';
 
 type Props = {
     match: Match,
@@ -58,7 +59,8 @@ type Props = {
     setCurrentHighlight: typeof setCurrentHighlight,
     setCurrentHighlightInUrl: typeof setCurrentHighlightInUrl,
     setSelection: typeof setSelection,
-    loadPages: typeof loadPages
+    loadPages: typeof loadPages,
+    resetPages: typeof resetPages
 }
 
 type State = {
@@ -213,6 +215,7 @@ class Viewer extends React.Component<Props, State> {
     componentWillUnmount() {
         document.title = "Giant";
         this.props.resetResource();
+        this.props.resetPages();
     }
 
     previousResult = () => {
@@ -404,7 +407,7 @@ function mapStateToProps(state: GiantState) {
     const view = state.urlParams.view;
     let currentHighlight, totalHighlights;
 
-    if (featurePageViewer !== true && state.resource && state.urlParams && view) {
+    if (state.resource && state.urlParams && view) {
         // The current highlight is stored separately in redux so it can be preserved on navigation.
         const highlights = state.highlights[`${state.resource.uri}-${state.urlParams.q}`];
         if (highlights && _.get(highlights, view)) {
@@ -441,7 +444,8 @@ function mapDispatchToProps(dispatch: GiantDispatch) {
         setCurrentHighlightInUrl: bindActionCreators(setCurrentHighlightInUrl, dispatch),
         getComments: bindActionCreators(getComments, dispatch),
         setSelection: bindActionCreators(setSelection, dispatch),
-        loadPages: bindActionCreators(loadPages, dispatch)
+        loadPages: bindActionCreators(loadPages, dispatch),
+        resetPages: bindActionCreators(resetPages, dispatch)
     };
 }
 
