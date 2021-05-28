@@ -90,8 +90,9 @@ class Viewer extends React.Component<Props, State> {
 
     UNSAFE_componentWillReceiveProps(props: Props) {
         if (!this.props.isLoadingResource && props.match.params.uri !== this.props.match.params.uri) {
+            // See comment below in componentDidMount about not racing these two requests
             this.props.getResource(props.match.params.uri, props.urlParams.q);
-            this.props.loadPages(props.match.params.uri);
+            this.props.loadPages(props.match.params.uri, props.urlParams.q);
         }
 
         const currentUri = this.props.resource ? this.props.resource.uri : undefined;
@@ -130,9 +131,17 @@ class Viewer extends React.Component<Props, State> {
             this.props.getResource(this.props.match.params.uri, this.props.urlParams.q);
         }
 
+        // TODO: we shouldn't race loading both the resource and the pages. Once the page viewer is the default
+        // we should try and load the pages up front and fallback to getResource (to get the old fashioned text, OCR etc)
+        // if there aren't any. This might need some API changes to include any required metadata from getResource
+        // in the pages response as well.
+        //
+        // For big documents this race is also not ideal as we could stress React by trying to load a large amount of text
+        // returned from getResource before the pages response has come back. That said, there is a circuit breaker on the
+        // server for documents that we know have more than N pages so that may help in the meantime before we can refactor this.
 
         if (this.props.pages.doc === undefined) {
-            this.props.loadPages(this.props.match.params.uri);
+            this.props.loadPages(this.props.match.params.uri, this.props.urlParams.q);
         }
 
         document.title = calculateResourceTitle(this.props.resource);
