@@ -295,7 +295,7 @@ class Viewer extends React.Component<Props, State> {
                 return this.renderNoPreview();
             }
         } else if (resource.extracted) {
-            this.renderTextPreview(resource, resource.text, 'text');
+            return this.renderTextPreview(resource, resource.text, 'text');
         } else if (resource.children.length) {
             return <LazyTreeBrowser
                 rootResource={resource}
@@ -369,7 +369,7 @@ class Viewer extends React.Component<Props, State> {
 
                 {this.renderResource(this.props.resource)}
                 <div className='viewer__footer'>
-                    {this.props.preferences.featurePageViewer ?
+                    {this.props.preferences.featurePageViewer && this.props.pages.doc?.summary.numberOfPages ?
                         <PageViewerStatusBar
                             previousDocumentFn={this.hasPreviousResult() ? () => this.previousResult() : undefined}
                             nextDocumentFn={this.hasNextResult() ? () => this.nextResult() : undefined}
