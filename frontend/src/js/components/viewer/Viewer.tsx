@@ -402,8 +402,6 @@ class Viewer extends React.Component<Props, State> {
 }
 
 function mapStateToProps(state: GiantState) {
-    const { featurePageViewer } = state.app.preferences;
-
     const view = state.urlParams.view;
     let currentHighlight, totalHighlights;
 
