@@ -13,9 +13,12 @@ import services.{AWSDiscoveryConfig, BucketConfig, Config, DatabaseAuthConfig}
 
 import scala.collection.JavaConverters._
 
+case class DiscoveryResult(updatedConfig: Config, jsonLoggingProperties: Map[String, String])
+
 object AwsDiscovery extends Logging {
-  def build(config: Config, discoveryConfig: AWSDiscoveryConfig): Config = {
-    val instanceId = EC2MetadataUtils.getInstanceId
+  def build(config: Config, discoveryConfig: AWSDiscoveryConfig): DiscoveryResult = {
+    // We won't have an instance ID if running locally but against databases in S3
+    val maybeInstanceId = Option(EC2MetadataUtils.getInstanceId)
 
     val AWSDiscoveryConfig(region, stack, app, stage, _, _) = discoveryConfig
     val runningLocally = discoveryConfig.runningLocally.getOrElse(false)
@@ -26,7 +29,7 @@ object AwsDiscovery extends Logging {
 
     logger.info(s"AWS discovery stack: $stack app: $app stage: $stage region: $region runningLocally: $runningLocally")
 
-    config.copy(
+    val updatedConfig = config.copy(
       app = config.app.copy(
         hideDownloadButton = true,
         label = getLabel(stack)
@@ -61,13 +64,25 @@ object AwsDiscovery extends Logging {
         password = readSSMParameter("neo4j/password", stack, stage, ssmClient)
       ),
       // Using the instanceId as the worker name will allow us to break locks on terminated instances in the future
-      worker = config.worker.copy(
-        name = Some(instanceId)
-      ),
+      worker = maybeInstanceId.map { instanceId =>
+        config.worker.copy(
+          name = Some(instanceId)
+        )
+      }.getOrElse(config.worker),
       underlying = config.underlying
         .withValue("play.http.secret.key", fromAnyRef(readSSMParameter("pfi/playSecret", stack, stage, ssmClient)))
         .withValue("akka.actor.provider", fromAnyRef("local")) // disable Akka clustering, we query EC2 directly
     )
+
+    val jsonLoggingProperties = Map(
+      "stack" -> discoveryConfig.stack,
+      "app" -> discoveryConfig.app,
+      "stage" -> discoveryConfig.stage
+    ) ++ maybeInstanceId.map { instanceId =>
+      Map("instanceId" -> instanceId)
+    }.getOrElse(Map.empty)
+
+    DiscoveryResult(updatedConfig, jsonLoggingProperties)
   }
 
   def getLabel(stack: String): Option[String] = {
