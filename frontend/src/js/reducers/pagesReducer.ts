@@ -117,6 +117,9 @@ export default function pageViewerReducer(before: PagesState | undefined, action
             }
         }
 
+        case PagesActionType.RESET_PAGES:
+            return initialState;
+
         default:
             return before;
     }

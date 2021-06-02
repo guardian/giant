@@ -10,23 +10,14 @@ import { GiantDispatch } from '../../../types/redux/GiantDispatch';
 
 type Props = {
     uri: string,
-    q?: string,
-    fallbackRenderFn: () => React.ReactElement,
+    q?: string
 }
 
-export default function PageViewer({ uri, q, fallbackRenderFn }: Props) {
+export default function PageViewer({ uri, q }: Props) {
     const dispatch: GiantDispatch = useDispatch();
     const state = useSelector<GiantState, PagesState>(({ pages }) => pages);
 
     const [viewport, setViewport] = useState<HTMLDivElement | null>(null);
-
-    // Load initial pages
-    // TODO MRB: as this reacts to aspect changing it should load based on the current scroll position
-
-    // This is just to get a string dependency for useEffect.
-    // Objects cause crazy infinite looping because of reference equality
-    // (objects with same value are seen as different so useEffect is always called).
-    const pageApiUri = `/api/pages/text/${uri}`;
 
     const currentHighlightElement = state.currentHighlightId ? state.mountedHighlightElements[state.currentHighlightId] : null;
 
@@ -38,13 +29,6 @@ export default function PageViewer({ uri, q, fallbackRenderFn }: Props) {
             });
         }
     }, [currentHighlightElement]);
-
-    useEffect(() => {
-        const viewportTop = 0;
-        const viewportBottom = window.innerHeight;
-
-        dispatch(loadPages(pageApiUri, viewportTop, viewportBottom, q));
-    }, [pageApiUri, q, dispatch]);
 
     async function onScroll() {
         if (viewport !== null && state.doc && state.doc.pages.length > 0) {
@@ -62,7 +46,7 @@ export default function PageViewer({ uri, q, fallbackRenderFn }: Props) {
             const spaceBelowLastPage = lastPageInViewport ? lastPageInViewport.dimensions.bottom < viewportBottom : false;
 
             if(nothingInViewport || spaceAboveFirstPage || spaceBelowLastPage) {
-                dispatch(loadPages(pageApiUri, viewportTop, viewportBottom, q));
+                dispatch(loadPages(uri, q, viewportTop, viewportBottom));
             }
         }
     }
@@ -84,12 +68,6 @@ export default function PageViewer({ uri, q, fallbackRenderFn }: Props) {
         return <div className="viewer__main">
             <div className='viewer__no-text-preview'>Loading...</div>
         </div>;
-    }
-
-    if (state.doc.summary.numberOfPages === 0) {
-        return <div className="viewer__main">
-            {fallbackRenderFn()}
-        </div>
     }
 
     return <div className="viewer__main" ref={setViewport} onScroll={throttledOnScroll}>

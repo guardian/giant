@@ -145,8 +145,18 @@ class ElasticsearchPages(val client: ElasticClient, indexNamePrefix: String)(imp
         .sortBy(fieldSort(PagesFields.page).asc())
         .highlighting(highlightFields)
 
-    }.map { resp =>
-      resp.to[Page].toList
+    }.flatMap { resp =>
+      val pages = resp.to[Page].toList
+
+      if(pages.isEmpty) {
+        // TODO: this could also occur if the viewport passed from the client didn't match any pages
+        // strictly speaking should this only be a 404 if no pages are found for the given blob ID?
+        // In practice we don't think it matters and we have full control of the client code at the moment so can always
+        // change the response here as needed
+        Attempt.Left(NotFoundFailure(s"No pages found for ${uri.value}"))
+      } else {
+        Attempt.Right(pages)
+      }
     }
   }
 

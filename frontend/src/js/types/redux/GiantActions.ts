@@ -254,13 +254,15 @@ export type LoadingStateAction = {
 export enum PagesActionType {
     SET_CURRENT_HIGHLIGHT_ID = 'SET_CURRENT_HIGHLIGHT_ID',
     SET_PAGES = 'SET_PAGES',
-    SEARCH_HIGHLIGHT_MOUNTED = 'SEARCH_HIGHLIGHT_MOUNTED'
+    SEARCH_HIGHLIGHT_MOUNTED = 'SEARCH_HIGHLIGHT_MOUNTED',
+    RESET_PAGES = 'RESET_PAGES'
 }
 
 export type PagesAction =
     { type: PagesActionType.SET_CURRENT_HIGHLIGHT_ID, newHighlightId: string } |
     { type: PagesActionType.SET_PAGES, doc: PagedDocument } |
-    { type: PagesActionType.SEARCH_HIGHLIGHT_MOUNTED, id: string, element: HTMLElement };
+    { type: PagesActionType.SEARCH_HIGHLIGHT_MOUNTED, id: string, element: HTMLElement } |
+    { type: PagesActionType.RESET_PAGES };
 
 export type GiantAction =
     | WorkspacesAction
