@@ -106,7 +106,7 @@ class AuthActionBuilderTest extends AnyFreeSpec with Matchers with BaseOneAppPer
         }
         inside (result.left.value) {
           case uf: HiddenFailure =>
-            uf.actualMessage should startWith ("Failed to parse token: ")
+            uf.actualMessage should be ("No token in request")
         }
       }
 
