@@ -40,7 +40,11 @@ class S3Client(config: S3Config)(implicit executionContext: ExecutionContext) {
     val metadata = createMetadata(contentType, Some(contentLength))
     val request = new PutObjectRequest(bucket, key, is, metadata)
 
-    aws.putObject(request)
+    try {
+      aws.putObject(request)
+    } finally {
+      is.close()
+    }
   }
 
   def putObjectSync(bucket: String, key: String, contentType: Option[String], file: Path): PutObjectResult = {
