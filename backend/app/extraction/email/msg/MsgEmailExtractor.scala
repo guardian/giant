@@ -102,6 +102,7 @@ class MsgEmailExtractor(scratch: ScratchSpace, ingestionServices: IngestionServi
   }
 
   override def extract(blob: Blob, stream: InputStream, params: ExtractionParams): Either[Failure, Unit] = {
+    // maybe
     processMessage(blob, new OutlookMessageParser().parseMsg(stream), params)
     Right(Unit)
   }

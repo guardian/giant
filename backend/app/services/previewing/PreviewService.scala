@@ -97,6 +97,7 @@ class DefaultPreviewService(index: Index, blobStorage: ObjectStorage, previewSto
       Attempt.Left(NotFoundFailure(s"Email exists but does not have any HTML"))
 
     case e: Email =>
+      // maybe
       val content = new ByteArrayInputStream(e.html.get.getBytes(StandardCharsets.UTF_8))
       runGeneratorOnInputStream(e.uri.toStoragePath, htmlPreview, content)
 
@@ -107,6 +108,7 @@ class DefaultPreviewService(index: Index, blobStorage: ObjectStorage, previewSto
         } else {
           Attempt.Left[Unit](UnsupportedOperationFailure(s"Libreoffice cannot convert '${doc.mimeTypes.mkString(", ")}' to a PDF"))
         }
+        // need to close blobData?
       }
 
     case _ =>
@@ -117,6 +119,7 @@ class DefaultPreviewService(index: Index, blobStorage: ObjectStorage, previewSto
     localPathToGeneratedPreview <- generator.generate(is)
     _ <- previewStorage.create(storagePathInS3, localPathToGeneratedPreview, mimeType = Some("application/pdf")).toAttempt
   } yield {
+    // close is here?
     Future { Files.delete(localPathToGeneratedPreview) } // asynchronously delete the file now it is in
     Right(()) // signal we are done immediately
   }

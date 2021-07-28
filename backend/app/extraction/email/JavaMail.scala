@@ -32,6 +32,7 @@ object JavaMail {
   }
 
   def parseMessage(stream: InputStream): MimeMessage = {
+    //maybe
     new MimeMessage(session, stream)
   }
 

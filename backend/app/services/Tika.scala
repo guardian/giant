@@ -60,6 +60,7 @@ class Tika(detector: Detector, parser: Parser) extends TypeDetector {
       parser.parse(stream, new BodyContentHandler(writer), metadata, new ParseContext())
       metadata -> writer.toString
     }.left.map(UnknownFailure.apply)
+    // maybe
     stream.close()
     data
   }

@@ -3,7 +3,6 @@ package extraction.archives
 import java.io.File
 import java.nio.file.attribute.FileTime
 import java.nio.file.{Files, Path, Paths}
-
 import cats.syntax.either._
 import extraction.{ExtractionParams, FileExtractor}
 import ingestion.IngestionContextBuilder
@@ -18,6 +17,7 @@ import utils.Logging
 import utils.attempt.{Failure, UnknownFailure}
 
 import scala.collection.JavaConverters._
+import scala.sys.process.processInternal.InputStream
 
 class ZipExtractor(scratch: ScratchSpace, ingestionServices: IngestionServices) extends FileExtractor(scratch) with Logging {
   val mimeTypes = Set(
@@ -39,9 +39,10 @@ class ZipExtractor(scratch: ScratchSpace, ingestionServices: IngestionServices) 
       zipFile.getEntries.asScala.foreach { entry =>
         if (!entry.isDirectory) {
           var scratchFile: Option[Path] = None
+          var content: InputStream = null
 
           try {
-            val content = zipFile.getInputStream(entry)
+            content = zipFile.getInputStream(entry)
             scratchFile = Some(scratch.copyToScratchSpace(content).toPath)
 
             val blobUri = Uri(FingerprintServices.createFingerprintFromFile(scratchFile.get.toFile))
@@ -49,6 +50,7 @@ class ZipExtractor(scratch: ScratchSpace, ingestionServices: IngestionServices) 
 
             ingestionServices.ingestFile(context, blobUri, scratchFile.get)
           } finally {
+            content.close()
             scratchFile.foreach(Files.deleteIfExists)
           }
         }

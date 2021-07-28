@@ -76,6 +76,7 @@ class EmlParser(val scratch: ScratchSpace, val ingestionServices: IngestionServi
 
         val email = Email.createFrom(uri, from, recipients, sentAt, sensitivity, priority, subject, "<empty>", inReplyTo, references, None, 0)
         val attachment = new MimeBodyPart(headers, IOUtils.toByteArray(is))
+        is.clos()
 
         Some((email, Seq(attachment)))
 

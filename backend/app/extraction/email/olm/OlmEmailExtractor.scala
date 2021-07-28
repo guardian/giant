@@ -69,6 +69,7 @@ class OlmEmailExtractor(scratch: ScratchSpace, ingestion: IngestionServices) ext
       val context = rootContext.pushParentDirectories(Paths.get(entry.getName))
 
       val xml = XML.load(stream)
+      stream.close()
       val messages = (xml \\ "email").map(OlmMessage(_))
 
       if(messages.isEmpty) {

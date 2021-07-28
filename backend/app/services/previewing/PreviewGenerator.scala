@@ -38,6 +38,7 @@ abstract class PreviewGenerator(workspace: Path, temporaryFileExtension: String 
         case other => throw new IllegalStateException(s"Failed to generate preview. Code $other")
       }
     } finally {
+      data.close()
       Files.delete(input)
     }
   }

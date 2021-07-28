@@ -11,6 +11,7 @@ object OlmEmailDetector extends CustomTikaDetector {
   val OLM_MIME_TYPE = "application/vnd.ms-outlook-olm"
 
   override def detectType(input: InputStream): Option[MediaType] = {
+    // maybe
     val zipInput = new ZipInputStream(input)
     Option(zipInput.getNextEntry) match {
       case Some(entry) if entry.getName == "Categories.xml" =>
