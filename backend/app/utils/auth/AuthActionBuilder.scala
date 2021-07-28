@@ -1,7 +1,5 @@
 package utils.auth
 
-import pdi.jwt.JwtSession
-
 import java.time.{Clock, Instant, LocalDateTime, ZoneId, ZoneOffset}
 import pdi.jwt.JwtSession._
 import play.api.Configuration
@@ -76,29 +74,37 @@ class DefaultAuthActionBuilder(val controllerComponents: ControllerComponents, f
   private[auth] def invokeBlockWithTime[A](request: Request[A], block: (UserIdentityRequest[A]) => Future[Result],
                                            now: Long): Future[Either[Failure, Result]] = {
     implicit val implicitReq = request
+    val claimData = request.jwtSession.claimData
 
-    // Why can't we do request.jwtSession.isEmpty?
-    // Because request.jwtSession gets initialised with some default properties if there's no
-    // actual JWT token in the request. This seems a little odd to me, but it's in the pdi.jwt
-    // library so we can't control this behaviour.
-    if (request.headers.get(JwtSession.REQUEST_HEADER_NAME).isEmpty) {
-      val msg = s"No token in request"
-      logger.warn(msg)
-      Future.successful(Left(AuthenticationFailure(msg, reportAsFailure = false)))
-    } else {
-      val claimData = request.jwtSession.claimData
-      val maybeToken = claimData.validate[Token]
-      maybeToken match {
-        case (JsSuccess(token, _)) if token.loginExpiry > now =>
-          handleValidUnexpiredToken(token, request, block, now)
+    val maybeToken = claimData.validate[Token]
+    maybeToken match {
+      case (JsSuccess(token, _)) if token.loginExpiry > now =>
+        handleValidUnexpiredToken(token, request, block, now)
 
-        case JsSuccess(token, _) => {
-          val msg = s"Token is older than $maxLoginAge"
-          logger.info(token.user.asLogMarker, msg)
-          Future.successful(Left(AuthenticationFailure(msg, reportAsFailure = false)))
+      case JsSuccess(token, _) => {
+        val msg = s"Token is older than $maxLoginAge"
+        logger.info(token.user.asLogMarker, msg)
+        Future.successful(Left(AuthenticationFailure(msg, reportAsFailure = false)))
+      }
+
+      case JsError(errors) => {
+        // It would be nice to just call request.jwtSession.isEmpty right at the top,
+        // instead of all this. But request.jwtSession gets initialised with some default
+        // properties if there's no actual JWT token in the request (which seems a little
+        // odd to me, but it's in the pdi.jwt library so we can't control this behaviour).
+        val isTokenMissing = errors.forall {
+          case (_, pathErrors) =>
+            pathErrors.forall {
+              case JsonValidationError(messages) => messages.forall(_ == "error.path.missing")
+              case _ => false
+            }
+          case _ => false
         }
-
-        case JsError(errors) => {
+        if (isTokenMissing) {
+          val msg = s"No token in request"
+          logger.warn(msg)
+          Future.successful(Left(AuthenticationFailure(msg, reportAsFailure = false)))
+        } else {
           val msg = s"Failed to parse token: $errors"
           logger.warn(msg)
           Future.successful(Left(AuthenticationFailure(msg, reportAsFailure = true)))
