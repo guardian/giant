@@ -86,7 +86,11 @@ class DefaultAuthActionBuilder(val controllerComponents: ControllerComponents, f
       case JsError(errors) => {
         val msg = s"Failed to parse token: $errors"
         logger.warn(msg)
-        Future.successful(Left(AuthenticationFailure(msg, reportAsFailure = true)))
+        // This error happens whenever the token is missing,
+        // as a result of vulnerability scanners and occasionally developer testing/debugging
+        // (e.g. just opening https://giant.pfi.gutools.co.uk/api/search in your browser will fire this alarm).
+        // For this reason we don't want to get an alarm.
+        Future.successful(Left(AuthenticationFailure(msg, reportAsFailure = false)))
       }
     }
   }
