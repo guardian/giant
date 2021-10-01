@@ -31,7 +31,7 @@ object AwsDiscovery extends Logging {
 
     val updatedConfig = config.copy(
       app = config.app.copy(
-        hideDownloadButton = true,
+        hideDownloadButton = false,
         label = getLabel(stack)
       ),
       auth = config.auth.copy(
