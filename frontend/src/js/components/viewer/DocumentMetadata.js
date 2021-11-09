@@ -78,10 +78,10 @@ export class DocumentMetadata extends React.Component {
                 <li className='sidebar__list-item'>
                     <div className='sidebar__list-title'>elasticsearch</div>
                     <div className='sidebar__list-value'>
-                        <a target='_blank' rel='noopener noreferrer' href={`http://localhost:9200/pfi/documents/${this.props.resource.uri}`}>dev</a>
+                        <a target='_blank' rel='noopener noreferrer' href={`http://localhost:9200/pfi/_doc/${this.props.resource.uri}`}>dev</a>
                     </div>
                     <div className='sidebar__list-value'>
-                        <a target='_blank' rel='noopener noreferrer' href={`http://localhost:19200/pfi/documents/${this.props.resource.uri}`}>prod</a>
+                        <a target='_blank' rel='noopener noreferrer' href={`http://localhost:19200/pfi/_doc/${this.props.resource.uri}`}>prod</a>
                     </div>
                 </li>
                 <li className='sidebar__list-item'>
