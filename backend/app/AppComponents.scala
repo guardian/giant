@@ -153,8 +153,10 @@ class AppComponents(context: Context, config: Config)
     val extractors = List(olmExtractor, zipExtractor, rarExtractor, documentBodyExtractor, pstExtractor, emlExtractor, msgExtractor, mboxExtractor, csvTableExtractor, excelTableExtractor) ++ ocrExtractors
     extractors.foreach(mimeTypeMapper.addExtractor)
 
+    val metricsService = new MetricsService(config.aws)
+
     // Common components
-    val failureToResultMapper = config.aws.map(c => new CloudWatchReportingFailureToResultMapper(new MetricsService(c))).getOrElse(new DefaultFailureToResultMapper)
+    val failureToResultMapper = new CloudWatchReportingFailureToResultMapper(metricsService)
     val authActionBuilder = new DefaultAuthActionBuilder(controllerComponents, failureToResultMapper, config.auth.timeouts.maxLoginAge, config.auth.timeouts.maxVerificationAge, users)(configuration, Clock.systemUTC())
     val authControllerComponents = new AuthControllerComponents(authActionBuilder, failureToResultMapper, users, controllerComponents)
 
@@ -189,11 +191,11 @@ class AppComponents(context: Context, config: Config)
       logger.info("Worker enabled on this instance")
 
       // PFI processors
-      val worker = new Worker(workerName, manifest, blobStorage, extractors, failureToResultMapper)(workerExecutionContext)
+      val worker = new Worker(workerName, manifest, blobStorage, extractors, metricsService)(workerExecutionContext)
 
       // ingestion phase 2
       val phase2IngestionScheduler =
-        new IngestStorePolling(actorSystem, workerExecutionContext, workerControl, ingestStorage, scratchSpace, ingestionServices, config.ingestion.batchSize, failureToResultMapper)
+        new IngestStorePolling(actorSystem, workerExecutionContext, workerControl, ingestStorage, scratchSpace, ingestionServices, config.ingestion.batchSize, metricsService)
       phase2IngestionScheduler.start()
       applicationLifecycle.addStopHook(() => phase2IngestionScheduler.stop())
 

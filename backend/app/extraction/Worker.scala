@@ -88,7 +88,8 @@ class Worker(
 
         case Left(failure) =>
           markAsFailure(blob, extractor, failure)
-          failureToResultMapper.failureToResult(failure)
+          metricsService.updateCloudwatchMetric(Metrics.itemsFailed)
+          logger.warn(s"Ingest batch execution failure, ${failure.msg}", failure.toThrowable)
           completed
       }
     }
