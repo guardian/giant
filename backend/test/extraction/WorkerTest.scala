@@ -5,7 +5,7 @@ import java.nio.file.Path
 import model.manifest.{Blob, WorkItem}
 import model.{English, ObjectMetadata, Uri}
 import org.scalatest.EitherValues
-import services.ObjectStorage
+import services.{DefaultMetricsService, ObjectStorage}
 import services.manifest.Manifest.WorkCounts
 import services.manifest.WorkerManifest
 import utils.attempt.AttemptAwait._
@@ -89,7 +89,7 @@ class WorkerTest extends AnyFlatSpec with Matchers with EitherValues {
       override def delete(key: String): Either[Failure, Unit] = ???
     }
 
-    new Worker("test", manifest, blobStorage, extractors, new DefaultFailureToResultMapper)(scala.concurrent.ExecutionContext.global)
+    new Worker("test", manifest, blobStorage, extractors, new DefaultMetricsService)(scala.concurrent.ExecutionContext.global)
   }
 }
 

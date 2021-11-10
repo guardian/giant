@@ -29,28 +29,30 @@ object Metrics {
   }
 }
 
-class MetricsService(configOpt: Option[AWSDiscoveryConfig]) extends  Logging {
+trait MetricsService {
+  def updateCloudwatchMetrics(metrics:List[MetricUpdate]): Unit
+  def updateCloudwatchMetric(metricName: String, metricValue: Double = 1): Unit
+}
 
-  val defaultRegion = "eu-west-1"
+class DefaultMetricsService() extends MetricsService {
+  def updateCloudwatchMetrics(metrics:List[MetricUpdate]): Unit = Unit
+  def updateCloudwatchMetric(metricName: String, metricValue: Double = 1): Unit = Unit
+}
 
-  if (configOpt.isEmpty) {
-    logger.warn(s"No AWS discovery config provided to metrics service. Initialising service in default region $defaultRegion and without Stack/Stage dimensions.")
-  }
+class CloudwatchMetricsService(config: AWSDiscoveryConfig) extends MetricsService with Logging {
 
   private val credentials: AWSCredentialsProvider = AwsCredentials()
   private val cloudwatch: AmazonCloudWatch = AmazonCloudWatchClientBuilder.standard()
     .withCredentials(credentials)
-    .withRegion(configOpt.map(_.region).getOrElse(defaultRegion))
+    .withRegion(config.region)
     .build()
 
   // These must be exactly the same as in the alarm, without any additional dimensions.
   // CloudWatch will not aggregate custom metrics
-  private val dimensions = configOpt.map{ config =>
-    List(
+  private val dimensions = List(
       new Dimension().withName("Stack").withValue(config.stack),
       new Dimension().withName("Stage").withValue(config.stage)
     )
-  }.getOrElse(List())
 
   def updateCloudwatchMetrics(metrics:List[MetricUpdate]): Unit = {
     val metricsData = metrics.map(m => Metrics.metricDatum(m.name, dimensions, m.value))
