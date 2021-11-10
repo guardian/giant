@@ -5,17 +5,16 @@ import java.util.concurrent.atomic.AtomicInteger
 import cats.syntax.either._
 import extraction.Worker.Batch
 import model.manifest.{Blob, WorkItem}
-import services.ObjectStorage
+import services.{Metrics, MetricsService, ObjectStorage}
 import services.manifest.WorkerManifest
 import utils.Logging
 import utils.attempt._
-import utils.controller.FailureToResultMapper
 
 import scala.concurrent.ExecutionContext
 import scala.language.postfixOps
 import scala.util.control.NonFatal
 
-object Worker {
+object Worker extends Logging {
   type Batch = List[(Extractor, Blob, ExtractionParams)]
 }
 
@@ -24,7 +23,7 @@ class Worker(
   manifest: WorkerManifest,
   blobStorage: ObjectStorage,
   extractors: List[Extractor],
-  failureToResultMapper: FailureToResultMapper)(implicit executionContext: ExecutionContext) extends Logging {
+  metricsService: MetricsService)(implicit executionContext: ExecutionContext) extends Logging {
 
   private val maxBatchSize = 1000 // tasks
   private val maxCost = 100 * 1024 * 1024 // 100MB
@@ -36,7 +35,9 @@ class Worker(
       completed
     }.recoverWith {
       case err =>
-        failureToResultMapper.failureToResult(err)
+        metricsService.updateCloudwatchMetric(Metrics.batchesFailed)
+        // on failure, fetchBatch just returns the first failure
+        logger.error("Error executing batch", err)
         manifest.releaseLocks(name)
         Attempt.Left(err)
     }

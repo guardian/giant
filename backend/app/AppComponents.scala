@@ -154,7 +154,7 @@ class AppComponents(context: Context, config: Config)
     extractors.foreach(mimeTypeMapper.addExtractor)
 
     // Common components
-    val failureToResultMapper = config.aws.map(new CloudWatchReportingFailureToResultMapper(_)).getOrElse(new DefaultFailureToResultMapper)
+    val failureToResultMapper = config.aws.map(c => new CloudWatchReportingFailureToResultMapper(new MetricsService(c))).getOrElse(new DefaultFailureToResultMapper)
     val authActionBuilder = new DefaultAuthActionBuilder(controllerComponents, failureToResultMapper, config.auth.timeouts.maxLoginAge, config.auth.timeouts.maxVerificationAge, users)(configuration, Clock.systemUTC())
     val authControllerComponents = new AuthControllerComponents(authActionBuilder, failureToResultMapper, users, controllerComponents)
 
