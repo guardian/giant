@@ -35,7 +35,7 @@ class Worker(
       completed
     }.recoverWith {
       case err =>
-        metricsService.updateCloudwatchMetric(Metrics.batchesFailed)
+        metricsService.updateMetric(Metrics.batchesFailed)
         // on failure, fetchBatch just returns the first failure
         logger.error("Error executing batch", err)
         manifest.releaseLocks(name)
@@ -88,8 +88,8 @@ class Worker(
 
         case Left(failure) =>
           markAsFailure(blob, extractor, failure)
-          metricsService.updateCloudwatchMetric(Metrics.itemsFailed)
-          logger.warn(s"Ingest batch execution failure, ${failure.msg}", failure.toThrowable)
+          metricsService.updateMetric(Metrics.itemsFailed)
+          logger.error(s"Ingest batch execution failure, ${failure.msg}", failure.toThrowable)
           completed
       }
     }

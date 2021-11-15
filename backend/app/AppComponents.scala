@@ -153,7 +153,7 @@ class AppComponents(context: Context, config: Config)
     val extractors = List(olmExtractor, zipExtractor, rarExtractor, documentBodyExtractor, pstExtractor, emlExtractor, msgExtractor, mboxExtractor, csvTableExtractor, excelTableExtractor) ++ ocrExtractors
     extractors.foreach(mimeTypeMapper.addExtractor)
 
-    val metricsService = config.aws.map(new CloudwatchMetricsService(_)).getOrElse(new DefaultMetricsService())
+    val metricsService = config.aws.map(new CloudwatchMetricsService(_)).getOrElse(new NoOpMetricsService())
 
     // Common components
     val failureToResultMapper = new CloudWatchReportingFailureToResultMapper(metricsService)

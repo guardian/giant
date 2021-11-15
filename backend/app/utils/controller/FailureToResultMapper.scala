@@ -135,7 +135,7 @@ class CloudWatchReportingFailureToResultMapper(metricsService: MetricsService) e
       FailureToResultMapper.failureToResult(err, user)
 
     case _ =>
-      metricsService.updateCloudwatchMetric(Metrics.failureToResultMapper)
+      metricsService.updateMetric(Metrics.failureToResultMapper)
       FailureToResultMapper.failureToResult(err, user)
   }
 }

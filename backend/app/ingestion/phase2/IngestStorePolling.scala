@@ -59,7 +59,7 @@ class IngestStorePolling(
       val pollCompleteFuture: Future[FiniteDuration] = getNextBatch.fold(
         failure => {
           logger.warn(s"Failed to poll ingestion store $failure")
-          metricsService.updateCloudwatchMetric(Metrics.batchesFailed)
+          metricsService.updateMetric(Metrics.batchesFailed)
           maximumWait
         },
         batch => {
@@ -72,13 +72,13 @@ class IngestStorePolling(
               val result = processKey(key)
               result match {
                 case Left(failure) =>
-                  metricsService.updateCloudwatchMetric(Metrics.itemsFailed)
+                  metricsService.updateMetric(Metrics.itemsFailed)
                   logger.warn(s"Failed to process $key: $failure")
                 case _ => ingestStorage.delete(key)
               }
               result
             }.collect { case Right(success) => success }
-            metricsService.updateCloudwatchMetrics(List(
+            metricsService.updateMetrics(List(
               MetricUpdate(Metrics.itemsIngested, results.size),
               MetricUpdate(Metrics.batchesIngested, 1)))
             logger.info(s"Processed ${results.size}. Checking for work again in $minimumWait")
@@ -90,13 +90,13 @@ class IngestStorePolling(
         case Success(pollDuration) => schedulePoll(pollDuration)
         case SFailure(NonFatal(t)) =>
           logger.error("Exception whilst processing ingestion batch", t)
-          metricsService.updateCloudwatchMetric(Metrics.batchesFailed)
+          metricsService.updateMetric(Metrics.batchesFailed)
           schedulePoll(maximumWait)
       }
     } catch {
       case NonFatal(t) =>
         logger.error("Exception whilst getting next batch from ingestion store", t)
-        metricsService.updateCloudwatchMetric(Metrics.batchesFailed)
+        metricsService.updateMetric(Metrics.batchesFailed)
         schedulePoll(maximumWait)
     }
   }

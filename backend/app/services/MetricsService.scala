@@ -20,7 +20,7 @@ object Metrics {
   val failureToResultMapper = "ErrorsInGiantFailureToResultMapper"
 
 
-  def metricDatum(name: String, dimensions: List[Dimension], value: Double): MetricDatum = {
+  protected def metricDatum(name: String, dimensions: List[Dimension], value: Double): MetricDatum = {
     new MetricDatum()
       .withMetricName(name)
       .withTimestamp(new Date())
@@ -30,13 +30,13 @@ object Metrics {
 }
 
 trait MetricsService {
-  def updateCloudwatchMetrics(metrics:List[MetricUpdate]): Unit
-  def updateCloudwatchMetric(metricName: String, metricValue: Double = 1): Unit
+  def updateMetrics(metrics:List[MetricUpdate]): Unit
+  def updateMetric(metricName: String, metricValue: Double = 1): Unit
 }
 
-class DefaultMetricsService() extends MetricsService {
-  def updateCloudwatchMetrics(metrics:List[MetricUpdate]): Unit = Unit
-  def updateCloudwatchMetric(metricName: String, metricValue: Double = 1): Unit = Unit
+class NoOpMetricsService() extends MetricsService {
+  def updateMetrics(metrics:List[MetricUpdate]): Unit = Unit
+  def updateMetric(metricName: String, metricValue: Double = 1): Unit = Unit
 }
 
 class CloudwatchMetricsService(config: AWSDiscoveryConfig) extends MetricsService with Logging {
@@ -54,7 +54,7 @@ class CloudwatchMetricsService(config: AWSDiscoveryConfig) extends MetricsServic
       new Dimension().withName("Stage").withValue(config.stage)
     )
 
-  def updateCloudwatchMetrics(metrics:List[MetricUpdate]): Unit = {
+  def updateMetrics(metrics:List[MetricUpdate]): Unit = {
     val metricsData = metrics.map(m => Metrics.metricDatum(m.name, dimensions, m.value))
     try {
       val request = new PutMetricDataRequest()
@@ -71,6 +71,6 @@ class CloudwatchMetricsService(config: AWSDiscoveryConfig) extends MetricsServic
     }
   }
 
-  def updateCloudwatchMetric(metricName: String, metricValue: Double = 1): Unit =
-    updateCloudwatchMetrics(List(MetricUpdate(metricName, metricValue)))
+  def updateMetric(metricName: String, metricValue: Double = 1): Unit =
+    updateMetrics(List(MetricUpdate(metricName, metricValue)))
 }
