@@ -20,7 +20,7 @@ object Metrics {
   val failureToResultMapper = "ErrorsInGiantFailureToResultMapper"
 
 
-  protected def metricDatum(name: String, dimensions: List[Dimension], value: Double): MetricDatum = {
+  def metricDatum(name: String, dimensions: List[Dimension], value: Double): MetricDatum = {
     new MetricDatum()
       .withMetricName(name)
       .withTimestamp(new Date())
