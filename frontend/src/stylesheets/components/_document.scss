@@ -200,18 +200,6 @@ result-highlight {
   font-style: italic;
   z-index: 1;
 
-  &:nth-of-type(4n-3)::before {
-      transform: rotate(-3deg);
-  }
-
-  &:nth-of-type(4n-2)::before {
-      transform: rotate(2deg);
-  }
-
-  &:nth-of-type(4n-1)::before {
-      transform: rotate(-1deg);
-  }
-
   &:before {
       content: " ";
       position:absolute;
@@ -220,7 +208,6 @@ result-highlight {
       top: 1px;
       height: 100%;
       z-index: -1;
-      transform: rotate(2deg);
       background-color: $highlightColour;
   }
 }
