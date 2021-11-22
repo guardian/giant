@@ -7,7 +7,7 @@ import net.logstash.logback.marker.Markers.{aggregate, append}
 import play.api.http.HeaderNames
 import play.api.libs.json.JsError
 import play.api.mvc.{Result, Results}
-import services.AWSDiscoveryConfig
+import services.{AWSDiscoveryConfig, Metrics, MetricsService}
 import utils.attempt._
 import utils.auth.User
 import utils.{AwsCredentials, Logging}
@@ -118,11 +118,7 @@ class DefaultFailureToResultMapper extends FailureToResultMapper with Logging {
   }
 }
 
-class CloudWatchReportingFailureToResultMapper(config: AWSDiscoveryConfig) extends FailureToResultMapper with Logging {
-  val credentials = AwsCredentials()
-  val cloudwatch = AmazonCloudWatchClientBuilder.standard().withCredentials(credentials).withRegion(config.region).build()
-
-  val instanceId = EC2MetadataUtils.getInstanceId
+class CloudWatchReportingFailureToResultMapper(metricsService: MetricsService) extends FailureToResultMapper with Logging {
 
   override def failureToResult(err: Failure, user: Option[User]): Result = err match {
     // Don't alarm on expected authentication failures such as expired tokens.
@@ -139,35 +135,7 @@ class CloudWatchReportingFailureToResultMapper(config: AWSDiscoveryConfig) exten
       FailureToResultMapper.failureToResult(err, user)
 
     case _ =>
-      tryToReportToCloudWatch()
+      metricsService.updateMetric(Metrics.failureToResultMapper)
       FailureToResultMapper.failureToResult(err, user)
-  }
-
-  private def tryToReportToCloudWatch(): Unit = try {
-    val namespace = "PFI"
-    val metricName = "ErrorsInGiantFailureToResultMapper"
-
-    // These must be exactly the same as in the alarm, without any additional dimensions.
-    // CloudWatch will not aggregate custom metrics
-    val dimensions = List(
-      new Dimension().withName("Stack").withValue(config.stack),
-      new Dimension().withName("Stage").withValue(config.stage)
-    )
-
-    val request = new PutMetricDataRequest()
-      .withNamespace(namespace)
-      .withMetricData(
-        // As above, the metric must have the same unit as the alarm, in this case no unit
-        new MetricDatum()
-          .withMetricName(metricName)
-          .withTimestamp(new Date())
-          .withDimensions(dimensions: _*)
-          .withValue(1d)
-      )
-
-    cloudwatch.putMetricData(request)
-  } catch {
-    case NonFatal(e) =>
-      logger.warn("Unable to report failure to Cloudwatch", e)
   }
 }

@@ -4,12 +4,13 @@ import java.nio.file.{Files, Path}
 import java.util.UUID
 import akka.actor.{ActorSystem, Cancellable}
 import cats.syntax.either._
+import com.amazonaws.services.cloudwatch.model.MetricDatum
+import extraction.Worker
 import model.Uri
 import model.ingestion.Key
 import services.ingestion.IngestionServices
-import services.{FingerprintServices, IngestStorage, ScratchSpace}
+import services.{FingerprintServices, IngestStorage, MetricUpdate, Metrics, MetricsService, ScratchSpace}
 import utils.attempt.{Attempt, Failure, UnknownFailure}
-import utils.controller.FailureToResultMapper
 import utils.{Logging, WorkerControl}
 
 import scala.concurrent.duration._
@@ -32,7 +33,7 @@ class IngestStorePolling(
   scratchSpace: ScratchSpace,
   ingestionServices: IngestionServices,
   batchSize: Int,
-  failureToResultMapper: FailureToResultMapper) extends Logging {
+  metricsService: MetricsService) extends Logging {
   implicit val workerContext: ExecutionContext = executionContext
 
   private val minimumWait = 10.second
@@ -58,7 +59,7 @@ class IngestStorePolling(
       val pollCompleteFuture: Future[FiniteDuration] = getNextBatch.fold(
         failure => {
           logger.warn(s"Failed to poll ingestion store $failure")
-          failureToResultMapper.failureToResult(failure)
+          metricsService.updateMetric(Metrics.batchesFailed)
           maximumWait
         },
         batch => {
@@ -71,12 +72,15 @@ class IngestStorePolling(
               val result = processKey(key)
               result match {
                 case Left(failure) =>
-                  failureToResultMapper.failureToResult(failure)
+                  metricsService.updateMetric(Metrics.itemsFailed)
                   logger.warn(s"Failed to process $key: $failure")
                 case _ => ingestStorage.delete(key)
               }
               result
             }.collect { case Right(success) => success }
+            metricsService.updateMetrics(List(
+              MetricUpdate(Metrics.itemsIngested, results.size),
+              MetricUpdate(Metrics.batchesIngested, 1)))
             logger.info(s"Processed ${results.size}. Checking for work again in $minimumWait")
             minimumWait
           }
@@ -86,13 +90,13 @@ class IngestStorePolling(
         case Success(pollDuration) => schedulePoll(pollDuration)
         case SFailure(NonFatal(t)) =>
           logger.error("Exception whilst processing ingestion batch", t)
-          failureToResultMapper.failureToResult(UnknownFailure(t))
+          metricsService.updateMetric(Metrics.batchesFailed)
           schedulePoll(maximumWait)
       }
     } catch {
       case NonFatal(t) =>
         logger.error("Exception whilst getting next batch from ingestion store", t)
-        failureToResultMapper.failureToResult(UnknownFailure(t))
+        metricsService.updateMetric(Metrics.batchesFailed)
         schedulePoll(maximumWait)
     }
   }
