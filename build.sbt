@@ -16,7 +16,7 @@ val compilerFlags = Seq(
 )
 
 val awsVersion = "1.11.566"
-val log4jVersion = "2.15.0"
+val log4jVersion = "2.16.0"
 // To match what the main app gets from scalatestplus-play transitively
 val scalatestVersion = "3.1.1"
 
