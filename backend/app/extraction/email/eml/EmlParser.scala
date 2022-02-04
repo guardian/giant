@@ -15,7 +15,7 @@ import model.manifest.{Blob, MimeType}
 import org.apache.commons.io.FileUtils
 import services.ingestion.IngestionServices
 import services.{FingerprintServices, ScratchSpace}
-import utils.{DateTimeUtils, Logging}
+import utils.{HtmlToPlainText, DateTimeUtils, Logging}
 
 import scala.collection.JavaConverters._
 import scala.util.control.NonFatal
@@ -46,11 +46,19 @@ class EmlParser(val scratch: ScratchSpace, val ingestionServices: IngestionServi
           .collect { case p: MimeBodyPart => p }
           .flatMap(flattenMultipart)
 
-        val attachments = parts.filter(p => p.getEncoding == "base64" && getFilename(p).nonEmpty)
+        val attachments = parts.filter(p => p.getEncoding.toLowerCase() == "base64" && getFilename(p).nonEmpty)
         val nonAttachments = parts.filter(p => getFilename(p).isEmpty)
 
-        val body: String = nonAttachments.find(_.getContentType.startsWith("text/plain")).map(_.getContent.asInstanceOf[String]).getOrElse("")
-        val html: Option[String] = nonAttachments.find(_.getContentType.startsWith("text/html"))
+        val bodyPart = nonAttachments.find(_.getContentType.toLowerCase().startsWith("text/plain"))
+        val htmlPart = nonAttachments.find(_.getContentType.toLowerCase().startsWith("text/html"))
+
+        val body = (bodyPart, htmlPart) match {
+          case (Some(body), _) => body.getContent.asInstanceOf[String]
+          case (None, Some(html)) => HtmlToPlainText.convert(html.getContent.asInstanceOf[String])
+          case _ => ""
+        }
+
+        val html: Option[String] = htmlPart
           .map(_.getContent.asInstanceOf[String])
           .map(Email.inlineAttachmentsIntoHtml(_, attachments.iterator)(a =>
             Option(a.getContentID).map { id =>
