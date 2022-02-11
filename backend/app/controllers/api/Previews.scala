@@ -56,6 +56,7 @@ class Previews(override val controllerComponents: AuthControllerComponents, val 
     previews.getPreviewObject(uri).map {
       case ObjectData(data, ObjectMetadata(size, mimeType)) =>
         val source = StreamConverters.fromInputStream(() => data)
+        data.close()
 
         // The RangeResult API understands how to encode non-ascii filenames
         RangeResult.ofSource(
