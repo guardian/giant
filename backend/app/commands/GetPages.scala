@@ -37,6 +37,7 @@ class GetPages(uri: Uri, top: Double, bottom: Double, query: Option[String], use
         highlights <- if(metadata.hasHighlights) {
           addSearchHighlightsToPageResponse(pageNumber, pagePreviewPdf, metadata.pageText)
         } else {
+          pagePreviewPdf.close()
           Attempt.Right(List.empty)
         }
       } yield {
