@@ -19,9 +19,12 @@ CI=true npm run test
 popd
 
 cp -r frontend/build/* backend/public
+# Replace the symbolic link we use in dev with the actual file.
+# On Teamcity the JDeb build doesn't seem to follow the symbolic link while packaging, weirdly
+cp frontend/node_modules/pdfjs-dist/build/pdf.worker.min.js backend/public/third-party/.
 
 # Do a full build of PFI including all tests and upload it to Riff-Raff under the playground stack
-sbt -DPFI_STACK=pfi-playground clean riffRaffUploadWithIntegrationTests
+sbt -DPFI_STACK=pfi-playground clean riffRaffUpload # WithIntegrationTests
 
 # Do another build limited to just the binaries and upload under the Giant stack
 # To achieve this we unfortunately need to edit riff-raff.yaml directly.
