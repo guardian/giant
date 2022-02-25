@@ -38,18 +38,6 @@
     z-index: 1;
     opacity: 0.4;
 
-    &:nth-of-type(4n-3)::before {
-        transform: rotate(-3deg);
-    }
-
-    &:nth-of-type(4n-2)::before {
-        transform: rotate(2deg);
-    }
-
-    &:nth-of-type(4n-1)::before {
-        transform: rotate(-1deg);
-    }
-
     &:before {
         content: " ";
         position:absolute;
@@ -58,12 +46,11 @@
         top: 1px;
         height: 100%;
         z-index: -1;
-        transform: rotate(2deg);
         background-color: $highlightColour;
     }
 
     &--focused:before {
-        background-color: lighten($highlightColour, 20%);
+        background-color: darken($highlightColour, 20%);
         box-shadow: 0px 2px 5px 0px rgba(0, 0, 0, 0.5);
         transition: box-shadow 0.2s;
     }

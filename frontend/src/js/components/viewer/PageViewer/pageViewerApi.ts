@@ -30,12 +30,13 @@ function scaleHighlight(highlight: PageHighlight): PageHighlight {
         case 'SearchResultPageHighlight':
             return {
                 ...highlight,
-                data: {
-                    x: ptsToPx(highlight.data.x),
-                    y: ptsToPx(highlight.data.y),
-                    width: ptsToPx(highlight.data.width),
-                    height: ptsToPx(highlight.data.height)
-                }
+                data: highlight.data.map(hls => ({
+                    x: ptsToPx(hls.x),
+                    y: ptsToPx(hls.y),
+                    width: ptsToPx(hls.width),
+                    height: ptsToPx(hls.height),
+                    rotation: hls.rotation
+                }))
             }
     }
 }
