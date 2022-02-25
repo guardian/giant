@@ -18,10 +18,6 @@ class App (components: ControllerComponents, assets: Assets, config: Config,
     assets.at("index.html")
   }
 
-  def thirdPartyAssets(path: String) = Action.async { implicit req: Request[AnyContent] =>
-    assets.at(s"third-party/$path").apply(req)
-  }
-
   def assetOrBundle(path: String) = Action.async { implicit req: Request[AnyContent] =>
     // Try assets first. If not then it is a route in the SPA so serve the app bundle
     assets.at(path)(req).flatMap { result =>
