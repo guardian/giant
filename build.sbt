@@ -6,6 +6,7 @@ scalaVersion in ThisBuild := "2.12.5"
 
 import com.gu.riffraff.artifact.BuildInfo
 import play.sbt.PlayImport.PlayKeys._
+import com.typesafe.sbt.packager.MappingsHelper._
 
 val compilerFlags = Seq(
   "-unchecked",

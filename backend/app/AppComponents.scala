@@ -228,7 +228,8 @@ class AppComponents(context: Context, config: Config)
       usersController,
       authController,
       appController,
-      genesisController
+      genesisController,
+      assets
     )
   } catch {
     case NonFatal(e) =>

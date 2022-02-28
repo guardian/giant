@@ -96,5 +96,5 @@ PUT           /setup                                                        cont
 
 # === Web Client ===
 GET           /                                                             controllers.frontend.App.index
-GET           /third-party/*path                                            controllers.frontend.App.thirdPartyAssets(path)
+GET           /third-party/*file                                            controllers.Assets.at(path="/public/third-party", file)
 GET           /*path                                                        controllers.frontend.App.assetOrBundle(path)
