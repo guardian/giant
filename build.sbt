@@ -167,7 +167,6 @@ lazy val backend = (project in file("backend"))
     packageDescription := description.value,
 
     mappings in Universal ~= { _.filterNot { case (_, fileName) => fileName == "conf/site.conf" }},
-    mappings in Universal ++= directory(baseDirectory.value / "public"),
 
     javaOptions in Universal ++= Seq(
       "-Dpidfile.path=/dev/null",
