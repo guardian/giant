@@ -1,7 +1,7 @@
 package utils
 
 import model.frontend.HighlightableText
-import model.index.SearchResultPageHighlight
+import model.index.{HighlightSpan, SearchResultPageHighlight}
 import org.apache.pdfbox.pdmodel.PDDocument
 import org.apache.pdfbox.pdmodel.common.PDRectangle
 import org.apache.pdfbox.pdmodel.graphics.color.{PDColor, PDDeviceRGB}
@@ -10,6 +10,7 @@ import org.apache.pdfbox.text.{PDFTextStripper, TextPosition}
 
 import java.util
 import scala.collection.JavaConverters._
+import scala.math.{atan2, sqrt, sin, cos}
 
 object PDFUtil {
   val highlightColour = new PDColor(Array(253f, 182f, 0f), PDDeviceRGB.INSTANCE)
@@ -75,47 +76,56 @@ object PDFUtil {
     textStripper.getText(singlePageDoc)
 
     highlights.zipWithIndex.map { case(highlight, ix) =>
-      // TODO MRB: do we need to do more work to handle handle rotated lines (see getXDirAdj and getRot on TextPosition)
-      val startCharacter = textPositions(highlight.range.startCharacter).left.get
-      val endCharacter = textPositions(highlight.range.endCharacter - 1).left.get
+      val startIdx = highlight.range.startCharacter
+      val endIdx = highlight.range.endCharacter - 1
 
-      val x = startCharacter.getX
-      val y = startCharacter.getY - endCharacter.getHeight
-
-      val x1 = endCharacter.getX + endCharacter.getWidth
-      val y1 = y + endCharacter.getHeight
+      // We're going to split the existing text path
+      val highlightSpans: List[List[TextPosition]] = textPositions
+        .slice(startIdx, endIdx + 1)
+        .zipWithIndex
+        .foldLeft(List(List[TextPosition]()))((acc, currWithIndex) => {
+            currWithIndex._1 match {
+              // Regular character just append to the last span
+              case Left(pos) => acc.init :+ (acc.last :+ pos)
+              // If there's a newline push a new span
+              case Right(NewlinePlaceholder) => acc :+ List()
+            }
+      })
 
       val id = HighlightableText.searchHighlightId(ix, Some(pageNumber))
+      val spans = highlightSpans.map { span =>
 
-      SearchResultPageHighlight(id, x, y, width = x1 - x, height = y1 - y)
-    }
-  }
+        val startCharacter = span.head
+        val endCharacter = span.last
 
-  // This works but PDF.js renders them directly onto the canvas (and requires a beta version)
-  def highlightSearchResultsInline(pageText: HighlightableText, singlePageDoc: PDDocument): PDDocument = {
-    for (pageNumber <- 1 to singlePageDoc.getNumberOfPages) {
-      val page = singlePageDoc.getPage(pageNumber - 1)
-      val pageHeight = page.getMediaBox.getHeight
+        // This coordinate system makes my head hurt
 
-      val highlightRectangles = getSearchResultHighlights(pageText, singlePageDoc, 1)
+        val x = startCharacter.getX
+        val y = startCharacter.getY
 
-      highlightRectangles.foreach { case SearchResultPageHighlight(_, x, y, width, height) =>
-        val rekt = new PDRectangle(x.toFloat, pageHeight - (y.toFloat + height.toFloat), width.toFloat, height.toFloat)
-        val quadPoints = rectangleToQuadPoints(rekt)
+        val x1 = endCharacter.getX
+        val y1 = endCharacter.getY
 
-        val highlightBox = new PDAnnotationTextMarkup(PDAnnotationTextMarkup.SUB_TYPE_HIGHLIGHT)
+        val dX = x1 - x
+        val dY = y1 - y
 
-        // I'm not sure (and neither is the internet) why we need to set both a rectangle and quad points
-        highlightBox.setRectangle(rekt)
-        highlightBox.setQuadPoints(quadPoints)
+        val width = sqrt(dX * dX + dY * dY) + endCharacter.getWidth
+        val height = span.maxBy(_.getFontSize).getFontSize
 
-        highlightBox.setColor(highlightColour)
-        highlightBox.setPrinted(true)
+        val rotation = atan2(dY, dX)
 
-        page.getAnnotations.add(highlightBox)
+        // The highlight is rendered slightly off, we need to move the position by about 0.75 * the max character height
+        // while also factoring in rotation. Here were getting the x/y offsets by rotating a Y axis unit vector and then
+        // multiplying the result by the offset magnitude. The Y axis has to be negated due to the coordinate spaces.
+
+        val offsetMagnitude = height * 0.75
+        val offsetX = offsetMagnitude * sin(rotation)
+        val offsetY = -offsetMagnitude * cos(rotation)
+
+        HighlightSpan(x + offsetX, y + offsetY, width, height, rotation)
       }
-    }
 
-    singlePageDoc
+      SearchResultPageHighlight(id, spans)
+    }
   }
 }

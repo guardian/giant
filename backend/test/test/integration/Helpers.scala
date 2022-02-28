@@ -250,7 +250,7 @@ object Helpers extends Matchers with Logging with OptionValues with Inside {
 
       val controllerComponents = stubControllerComponentsAsUser(username, userManagement)
       val collectionsController = new Collections(controllerComponents, manifest, userManagement, elasticsearch.elasticResources, s3Config, elasticsearch.elasticEvents, elasticsearch.elasticPages, ingestionServices, annotations)
-      val resourceController = new Resource(controllerComponents, manifest, elasticsearch.elasticResources, elasticsearch.elasticPages,  annotations, null, false)
+      val resourceController = new Resource(controllerComponents, manifest, elasticsearch.elasticResources, elasticsearch.elasticPages,  annotations, null)
       val filtersController = new Filters(controllerComponents, manifest, annotations)
       val workspaceController = new Workspaces(controllerComponents, annotations, elasticsearch.elasticResources, manifest)
       val searchController = new Search(controllerComponents, userManagement, elasticsearch.elasticResources, annotations)

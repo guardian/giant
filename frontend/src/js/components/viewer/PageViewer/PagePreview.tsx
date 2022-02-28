@@ -1,8 +1,8 @@
 import { PDFPageProxy } from 'pdfjs-dist/types/display/api';
 import React, { useCallback, useEffect, useState } from 'react';
-import { parsePDF, PDFText, rasterisePage, renderPDFText } from './pageViewerPdf';
-import { fetchPagePreview } from './pageViewerApi';
 import { Page } from '../../../reducers/pagesReducer';
+import { fetchPagePreview } from './pageViewerApi';
+import { parsePDF, PDFText, rasterisePage, renderPDFText } from './pageViewerPdf';
 
 type Props = {
     page: Page,
@@ -108,7 +108,7 @@ export function PagePreview({ uri, page, onHighlightMount, currentHighlightId, q
     const highlightElements = page.highlights.flatMap(highlight => {
         switch(highlight.type) {
             case 'SearchResultPageHighlight':
-                return [
+                return highlight.data.map(highlightSpan => (
                     <PageHighlightWrapper
                         key={highlight.id}
                         highlightId={highlight.id}
@@ -118,14 +118,16 @@ export function PagePreview({ uri, page, onHighlightMount, currentHighlightId, q
                         style={{
                             display: 'block',
                             position: 'absolute',
-                            left: highlight.data.x,
-                            top: highlight.data.y,
-                            width: highlight.data.width,
-                            height: highlight.data.height,
+                            left: highlightSpan.x,
+                            top: highlightSpan.y,
+                            width: highlightSpan.width,
+                            height: highlightSpan.height,
+                            transformOrigin: 'top left',
+                            transform: `rotate(${highlightSpan.rotation}rad)`,
                             pointerEvents: 'none'
                         }}
                     />
-                ];
+                ));
 
             // Without this ESLint complains about not returning a value from the arrow function,
             // presumably because it doesn't understand my switch is exhaustive (does TS even do that?)

@@ -8,15 +8,18 @@ export type PageDimensions = {
     bottom: number
 }
 
+export type SearchResultHighlightSpan = {
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+    rotation: number
+}
+
 export type SearchResultPageHighlight = {
     type: 'SearchResultPageHighlight',
     id: string
-    data: {
-        x: number,
-        y: number,
-        width: number,
-        height: number
-    }
+    data: SearchResultHighlightSpan[]
 }
 
 export type PageHighlight =

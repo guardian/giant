@@ -124,8 +124,7 @@ case class IngestConfig(
 case class PreviewConfig(
   libreOfficeBinary: String,
   chromiumBinary: String,
-  workspace: String,
-  annotateSearchHighlightsDirectlyOnPage: Boolean
+  workspace: String
 )
 
 case class S3Config(

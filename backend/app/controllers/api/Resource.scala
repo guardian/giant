@@ -31,8 +31,7 @@ object FlagData {
 }
 
 class Resource(val controllerComponents: AuthControllerComponents, manifest: Manifest,
-               index: Index, pages: Pages, annotations: Annotations, previewStorage: ObjectStorage,
-               annotateSearchHighlightsDirectlyOnPage: Boolean) extends AuthApiController {
+               index: Index, pages: Pages, annotations: Annotations, previewStorage: ObjectStorage) extends AuthApiController {
 
   def getResource(uri: Uri, basic: Boolean, q: Option[String]) = ApiAction.attempt  { implicit req =>
     val query = q.map(Chips.parseQueryString)
@@ -93,7 +92,7 @@ class Resource(val controllerComponents: AuthControllerComponents, manifest: Man
     for {
       // Check we have permission to see this file
       _ <- GetResource(uri, ResourceFetchMode.Basic, req.user.username, manifest, index, annotations, controllerComponents.users).process()
-      response <- new GetPagePreview(uri, language, pageNumber, query, annotateSearchHighlightsDirectlyOnPage, pages, previewStorage).process()
+      response <- new GetPagePreview(uri, language, pageNumber, query, previewStorage).process()
     } yield {
       Result(ResponseHeader(200, Map.empty), response)
     }

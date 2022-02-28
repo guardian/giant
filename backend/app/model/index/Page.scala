@@ -2,7 +2,7 @@ package model.index
 
 import model.Language
 import model.frontend.HighlightableText
-import play.api.libs.json.{Format, JsNumber, JsString, JsValue, Json, Writes}
+import play.api.libs.json.{Format, JsNumber, JsString, JsValue, Json, Writes, JsArray}
 
 case class PagesSummary(numberOfPages: Long, height: Double)
 object PagesSummary {
@@ -17,19 +17,23 @@ object PageDimensions {
 }
 
 sealed abstract class PageHighlight { def id: String }
-case class SearchResultPageHighlight(id: String, x: Double, y: Double, width: Double, height: Double) extends PageHighlight
+case class HighlightSpan(x: Double, y: Double, width: Double, height: Double, rotation: Double)
+case class SearchResultPageHighlight(id: String, spans: List[HighlightSpan]) extends PageHighlight
 
 object PageHighlight {
   implicit val writes: Writes[PageHighlight] = {
     case h: SearchResultPageHighlight => Json.obj(
       "type" -> JsString("SearchResultPageHighlight"),
       "id" -> JsString(h.id),
-      "data" -> Json.obj(
-        "x" -> JsNumber(h.x),
-        "y" -> JsNumber(h.y),
-        "width" -> JsNumber(h.width),
-        "height" -> JsNumber(h.height)
-      )
+      "data" -> JsArray(h.spans.map  { s =>
+        Json.obj(
+          "x" -> JsNumber(s.x),
+          "y" -> JsNumber(s.y),
+          "width" -> JsNumber(s.width),
+          "height" -> JsNumber(s.height),
+          "rotation" -> JsNumber(s.rotation),
+        )
+      })
     )
   }
 }
