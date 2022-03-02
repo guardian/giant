@@ -9,7 +9,7 @@ import utils.attempt.Attempt
 
 import scala.concurrent.ExecutionContext
 
-class GetPagePreview(uri: Uri, language: Language, pageNumber: Int, query: Option[String],
+class GetPagePreview(uri: Uri, language: Language, pageNumber: Int,
                      previewStorage: ObjectStorage)(implicit ec: ExecutionContext) extends AttemptCommand[HttpEntity] {
   override def process(): Attempt[HttpEntity] = {
     val previewUri = PreviewService.getPageStoragePath(uri, language, pageNumber)
