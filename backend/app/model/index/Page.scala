@@ -16,9 +16,11 @@ object PageDimensions {
   val A4_PORTRAIT = PageDimensions(595, 842, 0, 842)
 }
 
-sealed abstract class PageHighlight { def id: String }
 case class HighlightSpan(x: Double, y: Double, width: Double, height: Double, rotation: Double)
+
+sealed abstract class PageHighlight { def id: String }
 case class SearchResultPageHighlight(id: String, spans: List[HighlightSpan]) extends PageHighlight
+// Other types of highlight might include comments or Ctrl-F searches
 
 object PageHighlight {
   implicit val writes: Writes[PageHighlight] = {

@@ -20,6 +20,7 @@ import {ResourceHandler} from './components/ResourceHandler/ResourceHandler';
 import Directory from './components/Directory/Directory';
 import Thread from './components/EmailBrowser/Thread';
 import Viewer from './components/viewer/Viewer';
+import {PageViewer} from './components/PageViewer/PageViewer';
 import ViewerSidebar from './components/viewer/ViewerSidebar';
 import {ErrorBar} from './components/UtilComponents/ErrorBar';
 import Login from './components/Login/Login';
@@ -75,6 +76,7 @@ class App extends React.Component {
                     <Route path='/collections/:uri' component={CurrentCollection} />
                     <Route path='/search' component={Search} />
                     <Route path='/viewer/:uri' component={Viewer} />
+                    <Route path='/viewer2/:uri' component={PageViewer} />
                     <Route path='/files/*' component={() => <Directory currentResource={getCurrentResource()} />} />
                     <Route path='/emails/thread/:uri' component={Thread} />
                     <Route path='/ingestions/*' component={() => <Directory currentResource={getCurrentResource()} />} />

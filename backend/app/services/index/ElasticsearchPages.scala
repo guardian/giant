@@ -106,6 +106,7 @@ class ElasticsearchPages(val client: ElasticClient, indexNamePrefix: String)(imp
   }
 
   // TODO MRB: collapse total page count and height into fields on the document itself
+  // TODO SC/JS: We agree.
   private def getTotalPageCount(indexName: String, uri: Uri): Attempt[Long] = {
     execute {
       count(indexName).query(
@@ -137,6 +138,7 @@ class ElasticsearchPages(val client: ElasticClient, indexNamePrefix: String)(imp
     val filters = List(termQuery(PagesFields.resourceId, uri.value)) ++ rangeFilters
 
     // TODO MRB: removed the size parameter so can bring in total count and agg size to a single query
+    // TODO SC/JS: Not sure about this? Maybe just denormalize the page height/count?
     execute {
       search(indexName).query(
         should(query.getOrElse(matchAllQuery()))
@@ -235,7 +237,9 @@ class ElasticsearchPages(val client: ElasticClient, indexNamePrefix: String)(imp
               val maybePrior = pointers.reverse.find(_.page < firstPageInViewport)
               val maybeAfter = pointers.find(_.page > lastPageInViewport)
 
-              val prior = maybePrior.getOrElse(max) // wraparound
+              // The first and last are used if you need to wrap around, e.g. you're on highlight 0 and you press "previous"
+              // you should be taken to the last highlight in the entire document
+              val prior = maybePrior.getOrElse(max)
               val after = maybeAfter.getOrElse(min)
 
               Attempt.Right(distinctByPageNumber(List(after, prior)))

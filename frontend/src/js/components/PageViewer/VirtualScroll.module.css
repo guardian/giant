@@ -1,0 +1,21 @@
+.scrollArea {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.pages {
+    position: relative;
+}
+
+.container {
+    position: absolute;
+    margin: 10px;
+    box-sizing: border-box;
+    border: 5px dashed blue;
+    background: red;
+    min-width: 400px;
+    min-height: 400px;
+    max-width: 400px;
+    max-height: 400px;
+}
