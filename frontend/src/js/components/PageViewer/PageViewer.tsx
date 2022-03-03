@@ -11,9 +11,8 @@ type PageViewerProps = {
 
 export const PageViewer: FC<PageViewerProps> = () => {
   const { uri } = useParams<{ uri: string }>();
-  const [page] = useState(
-    Number(new URLSearchParams(document.location.search).get("page"))
-  );
+  const [page, setPage] = useState<number | undefined>(undefined);
+  const [query, setQuery] = useState<string | undefined>(undefined);
 
   const [pageCache] = useState(new PageCache(uri));
   const [totalPages, setTotalPages] = useState<number | null>(null);
@@ -22,13 +21,18 @@ export const PageViewer: FC<PageViewerProps> = () => {
     authFetch(`/api/pages2/${uri}/pageCount`)
       .then((res) => res.json())
       .then((obj) => setTotalPages(obj.pageCount));
+
+    const params = new URLSearchParams(document.location.search);
+
+    setPage(Number(params.get("page")));
+    setQuery(params.get("q") ?? undefined);
   }, [uri]);
 
   const renderPage = (pageNumber: number) => {
     return (
       <Page
         getPagePreview={() => pageCache.getPagePreview(pageNumber)}
-        getPageText={() => pageCache.getPageText(pageNumber)}
+        getPageText={() => pageCache.getPageText(pageNumber, query)}
       />
     );
   };

@@ -1,5 +1,6 @@
 import _ from "lodash";
 import React, { FC, ReactNode, useLayoutEffect, useRef, useState } from "react";
+import { CONTAINER_AND_MARGIN_SIZE } from "./model";
 import styles from "./VirtualScroll.module.css";
 
 type VirtualScrollProps = {
@@ -13,15 +14,14 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
   initialPage,
   renderPage,
 }) => {
-  const PRELOAD_PAGES = 9;
+  const PRELOAD_PAGES = 2;
 
-  // Height + margins
-  const pageHeight = 1020;
+  const pageHeight = CONTAINER_AND_MARGIN_SIZE;
 
   const viewport = useRef<HTMLDivElement>(null);
 
   const [topPage, setTopPage] = useState(1);
-  const [midPage, setMidPage] = useState(1);
+  const [midPage, setMidPage] = useState(1); // Todo hook up to URL
   const [botPage, setBotPage] = useState(1 + PRELOAD_PAGES);
 
   const onScroll = () => {

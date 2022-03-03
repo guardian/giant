@@ -1,8 +1,12 @@
 import _ from "lodash";
 import authFetch from "../../util/auth/authFetch";
 import * as pdfjs from "pdfjs-dist";
-import { Page } from "./model";
+import { CONTAINER_SIZE, Page } from "./model";
 
+export type Preview = {
+  canvas: HTMLCanvasElement;
+  scale: number;
+};
 export class PageCache {
   uri: string;
 
@@ -10,7 +14,7 @@ export class PageCache {
 
   // Tracking of text (Page}) and rendered previews (HTMLCanvasElement) is handled seperately incase an
   // eviction happens to an item that is in flight
-  previews: HTMLCanvasElement[] = [];
+  previews: Preview[] = [];
   cachedPreviewsLru: number[] = [];
 
   pages: Page[] = [];
@@ -24,10 +28,7 @@ export class PageCache {
   // Previews //
   //////////////
 
-  private addToPreviewCache = (
-    pageNumber: number,
-    canvas: HTMLCanvasElement
-  ) => {
+  private addToPreviewCache = (pageNumber: number, canvas: Preview) => {
     this.previews[pageNumber] = canvas;
     this.cachedPreviewsLru.push(pageNumber);
     if (this.cachedPreviewsLru.length > PageCache.MAX_CACHED_PAGES) {
@@ -45,7 +46,7 @@ export class PageCache {
   };
 
   // Get a cached canvas with the page rendered into it
-  getPagePreview = async (pageNumber: number): Promise<HTMLCanvasElement> => {
+  getPagePreview = async (pageNumber: number): Promise<Preview> => {
     if (this.previews[pageNumber]) {
       this.bumpPreviewRecency(pageNumber);
 
@@ -66,8 +67,8 @@ export class PageCache {
       const unscaledViewport = pdfPage.getViewport({ scale: 1.0 });
       const isLandscape = unscaledViewport.width > unscaledViewport.height;
 
-      const widthScale = 1000 / unscaledViewport.width;
-      const heightScale = 1000 / unscaledViewport.height;
+      const widthScale = CONTAINER_SIZE / unscaledViewport.width;
+      const heightScale = CONTAINER_SIZE / unscaledViewport.height;
 
       const scale = isLandscape ? widthScale : heightScale;
 
@@ -83,9 +84,11 @@ export class PageCache {
       });
 
       // Handle caching
-      this.addToPreviewCache(pageNumber, canvas);
+      const preview = { canvas, scale };
 
-      return canvas;
+      this.addToPreviewCache(pageNumber, preview);
+
+      return preview;
     }
   };
 
