@@ -16,20 +16,23 @@ export const Page: FC<PageProps> = ({ getPagePreview, getPageText }) => {
   const [scale, setScale] = useState<number | null>(null);
   const [textOverlays, setTextOverlays] = useState<PdfText[] | null>(null);
 
-  const mountCanvas = useCallback((pageRef) => {
-    getPagePreview()
-      .then((preview) => {
-        setScale(preview.scale);
-        pageRef?.appendChild(preview.canvas);
-        return preview;
-      })
-      .then((preview) => {
-        // Begin rendering the text overlays after the PDF rendered to the DOM
-        renderTextOverlays(preview).then(setTextOverlays);
-      });
+  const mountCanvas = useCallback(
+    (pageRef) => {
+      getPagePreview()
+        .then((preview) => {
+          setScale(preview.scale);
+          pageRef?.appendChild(preview.canvas);
+          return preview;
+        })
+        .then((preview) => {
+          // Begin rendering the text overlays after the PDF rendered to the DOM
+          renderTextOverlays(preview).then(setTextOverlays);
+        });
 
-    getPageText().then(setPageText);
-  }, []);
+      getPageText().then(setPageText);
+    },
+    [getPagePreview, getPageText]
+  );
 
   return (
     <div ref={mountCanvas} className={styles.container}>

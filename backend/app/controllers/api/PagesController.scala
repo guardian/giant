@@ -28,10 +28,13 @@ class PagesController(val controllerComponents: AuthControllerComponents, manife
   def getPageText(uri: Uri, pageNumber: Int, q: Option[String], language: Option[Language]) = ApiAction.attempt { req =>
     val query = q.map(Chips.parseQueryString)
 
+    val getResource = GetResource(uri, ResourceFetchMode.Basic, req.user.username, manifest, index, annotations, controllerComponents.users).process()
+    val getPage = pagesService.getPage(uri, pageNumber, query)
+
     for {
       // Check we have permission to see this file
-      _ <- GetResource(uri, ResourceFetchMode.Basic, req.user.username, manifest, index, annotations, controllerComponents.users).process()
-      page <- pagesService.getPage(uri, pageNumber, query)
+      _ <- getResource
+      page <- getPage
       allLanguages = page.value.keySet
       // Highlighting stuff
       metadata <- GetPages.getPagePreviewMetadata(uri, page, language)
@@ -61,11 +64,13 @@ class PagesController(val controllerComponents: AuthControllerComponents, manife
   }
 
   def getPagePreview(uri: Uri, pageNumber: Int) = ApiAction.attempt { req =>
+    val getResource = GetResource(uri, ResourceFetchMode.Basic, req.user.username, manifest, index, annotations, controllerComponents.users).process()
+    val getPagePreview =  new GetPagePreview(uri, Languages.getByKeyOrThrow("english"), pageNumber, previewStorage).process()
+
     for {
       // Check we have permission to see this file
-      _ <- GetResource(uri, ResourceFetchMode.Basic, req.user.username, manifest, index, annotations, controllerComponents.users).process()
-      // TODO fix language stuff
-      response <- new GetPagePreview(uri, Languages.getByKeyOrThrow("english"), pageNumber, previewStorage).process()
+      _ <- getResource
+      response <- getPagePreview
     } yield {
       Result(ResponseHeader(200, Map.empty), response)
     }

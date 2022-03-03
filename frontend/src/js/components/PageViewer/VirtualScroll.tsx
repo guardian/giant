@@ -24,7 +24,7 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
   const viewport = useRef<HTMLDivElement>(null);
 
   const [topPage, setTopPage] = useState(1);
-  const [midPage, setMidPage] = useState(1); // Todo hook up to URL
+  //const [midPage, setMidPage] = useState(1); // Todo hook up to URL
   const [botPage, setBotPage] = useState(1 + PRELOAD_PAGES);
 
   const onScroll = () => {
@@ -37,11 +37,11 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
       const botEdge = currentMid + PRELOAD_PAGES * pageHeight;
 
       const topPage = Math.max(Math.floor(topEdge / pageHeight), 1);
-      const midPage = Math.floor(currentMid / pageHeight);
+      //const midPage = Math.floor(currentMid / pageHeight);
       const botPage = Math.min(Math.ceil(botEdge / pageHeight), totalPages);
 
       setTopPage(topPage);
-      setMidPage(midPage);
+      //setMidPage(midPage);
       setBotPage(botPage);
     }
   };
@@ -50,10 +50,12 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
     if (viewport?.current && initialPage) {
       const v = viewport.current!;
 
-      const scrollTo = initialPage * pageHeight - v.clientHeight / 2;
+      const scrollTo =
+        initialPage != 1 ? initialPage * pageHeight - v.clientHeight / 2 : 0;
+
       v.scrollTop = scrollTo;
     }
-  }, [viewport]);
+  }, [viewport, initialPage, pageHeight]);
 
   return (
     <div ref={viewport} className="viewer__main" onScroll={onScroll}>
