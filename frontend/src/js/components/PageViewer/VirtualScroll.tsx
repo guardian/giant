@@ -14,6 +14,9 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
   initialPage,
   renderPage,
 }) => {
+  // Tweaked this and 2 seems to be a good amount on a regular monitor
+  // The fewer pages we preload the faster the initial paint will be
+  // Could possibly make it dynamic based on the visible of the container
   const PRELOAD_PAGES = 2;
 
   const pageHeight = CONTAINER_AND_MARGIN_SIZE;
@@ -29,6 +32,7 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
       const v = viewport.current;
 
       const currentMid = v.scrollTop + v.clientHeight / 2;
+
       const topEdge = currentMid - PRELOAD_PAGES * pageHeight;
       const botEdge = currentMid + PRELOAD_PAGES * pageHeight;
 

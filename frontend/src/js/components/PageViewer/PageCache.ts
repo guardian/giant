@@ -1,12 +1,7 @@
-import _ from "lodash";
 import authFetch from "../../util/auth/authFetch";
-import * as pdfjs from "pdfjs-dist";
-import { CONTAINER_SIZE, Page } from "./model";
+import { CachedPreview, Page } from "./model";
+import { renderPdfPreview } from "./PdfHelpers";
 
-export type Preview = {
-  canvas: HTMLCanvasElement;
-  scale: number;
-};
 export class PageCache {
   uri: string;
 
@@ -14,7 +9,7 @@ export class PageCache {
 
   // Tracking of text (Page}) and rendered previews (HTMLCanvasElement) is handled seperately incase an
   // eviction happens to an item that is in flight
-  previews: Preview[] = [];
+  previews: CachedPreview[] = [];
   cachedPreviewsLru: number[] = [];
 
   pages: Page[] = [];
@@ -28,7 +23,7 @@ export class PageCache {
   // Previews //
   //////////////
 
-  private addToPreviewCache = (pageNumber: number, canvas: Preview) => {
+  private addToPreviewCache = (pageNumber: number, canvas: CachedPreview) => {
     this.previews[pageNumber] = canvas;
     this.cachedPreviewsLru.push(pageNumber);
     if (this.cachedPreviewsLru.length > PageCache.MAX_CACHED_PAGES) {
@@ -46,7 +41,7 @@ export class PageCache {
   };
 
   // Get a cached canvas with the page rendered into it
-  getPagePreview = async (pageNumber: number): Promise<Preview> => {
+  getPagePreview = async (pageNumber: number): Promise<CachedPreview> => {
     if (this.previews[pageNumber]) {
       this.bumpPreviewRecency(pageNumber);
 
@@ -57,34 +52,7 @@ export class PageCache {
       );
       const buffer = await response.arrayBuffer();
 
-      const doc = await pdfjs.getDocument(new Uint8Array(buffer)).promise;
-      const pdfPage = await doc.getPage(1);
-
-      const canvas = document.createElement("canvas");
-      const canvasContext = canvas.getContext("2d")!;
-
-      // Scaling
-      const unscaledViewport = pdfPage.getViewport({ scale: 1.0 });
-      const isLandscape = unscaledViewport.width > unscaledViewport.height;
-
-      const widthScale = CONTAINER_SIZE / unscaledViewport.width;
-      const heightScale = CONTAINER_SIZE / unscaledViewport.height;
-
-      const scale = isLandscape ? widthScale : heightScale;
-
-      const viewport = pdfPage.getViewport({ scale });
-
-      canvas.width = viewport.width;
-      canvas.height = viewport.height;
-
-      // Render
-      await pdfPage.render({
-        canvasContext,
-        viewport,
-      });
-
-      // Handle caching
-      const preview = { canvas, scale };
+      const preview = await renderPdfPreview(buffer);
 
       this.addToPreviewCache(pageNumber, preview);
 
