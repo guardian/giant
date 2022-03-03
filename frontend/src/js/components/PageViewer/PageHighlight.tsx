@@ -1,5 +1,4 @@
 import React, { CSSProperties, FC } from "react";
-import { ptsToPx } from "../viewer/PageViewer/pageViewerApi";
 import { Highlight } from "./model";
 
 type PageHighlightProps = {

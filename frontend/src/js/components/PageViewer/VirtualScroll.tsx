@@ -51,7 +51,7 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
       const v = viewport.current!;
 
       const scrollTo =
-        initialPage != 1 ? initialPage * pageHeight - v.clientHeight / 2 : 0;
+        initialPage !== 1 ? initialPage * pageHeight - v.clientHeight / 2 : 0;
 
       v.scrollTop = scrollTo;
     }
