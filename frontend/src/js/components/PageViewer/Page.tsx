@@ -31,7 +31,9 @@ export const Page: FC<PageProps> = ({ getPagePreview, getPageText }) => {
 
       getPageText().then(setPageText);
     },
-    [getPagePreview, getPageText]
+    // TypeScript insists that the array be there but following exhaustive-deps lint suggestion breaks behaviour
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    []
   );
 
   return (
