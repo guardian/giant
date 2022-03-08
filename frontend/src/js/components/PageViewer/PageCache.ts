@@ -48,8 +48,7 @@ export class PageCache {
     };
   };
 
-  private onCacheEvict = (pageNumber: number, v: CachedPageData) => {
-    console.log('Evicting ' + pageNumber);
+  private onCacheEvict = (_: number, v: CachedPageData) => {
     v.previewAbortController.abort();
     v.dataAbortController.abort();
   };

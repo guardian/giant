@@ -16,11 +16,14 @@ export const Page: FC<PageProps> = ({ getPagePreview, getPageData }) => {
   const [scale, setScale] = useState<number | null>(null);
   const [textOverlays, setTextOverlays] = useState<PdfText[] | null>(null);
 
-  // If the
   const [aborted, setAborted] = useState(false);
 
   const handleAbort = (err: Error) => {
     if (err.name === "AbortError") {
+      // If our fetch request gets aborted due to a cache eviction then
+      // we want to show some info to the user saying why the page isn't rendering.
+      //
+      // Since the cache is an LRU we should never get an eviction on a visible page.
       setAborted(true);
     }
   };
