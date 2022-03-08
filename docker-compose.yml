@@ -40,19 +40,20 @@ services:
       - ${PWD}/util/local-cerebro.conf:/opt/cerebro/conf/cerebro.conf
 
   minio:
-    image: minio/minio
+    image: minio/minio:RELEASE.2022-03-05T06-32-39Z
     container_name: pfi-minio
     environment:
-      MINIO_ACCESS_KEY: minio-user
-      MINIO_SECRET_KEY: reallyverysecret
+      MINIO_ROOT_USER: minio-user
+      MINIO_ROOT_PASSWORD: reallyverysecret
     volumes:
       - minio:/export
     ports:
       - 9090:9000
+      - 9092:9001
     entrypoint:
       sh
     command:
-      -c 'mkdir -p /export/ingest-data && mkdir -p /export/data && mkdir -p /export/preview && /usr/bin/minio server /export'
+      -c 'mkdir -p /export/ingest-data && mkdir -p /export/data && mkdir -p /export/preview && minio server --console-address ":9001" /export'
 
 volumes:
   neo4j:
