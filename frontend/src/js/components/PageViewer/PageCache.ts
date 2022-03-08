@@ -14,14 +14,17 @@ export class PageCache {
   uri: string;
   query?: string;
 
-  static MAX_CACHED_PAGES = 100;
+  // Arrived at by testing with Chrome on Ubuntu.
+  // Having too many cached pages can result in having too many 
+  // in-flight requests, causing browser instability.
+  static MAX_CACHED_PAGES = 25;
 
   private cache: LruCache<number, CachedPageData>;
 
   constructor(uri: string, query?: string) {
     this.uri = uri;
     this.query = query;
-    this.cache = new LruCache(25, this.onCacheMiss, this.onCacheEvict);
+    this.cache = new LruCache(PageCache.MAX_CACHED_PAGES, this.onCacheMiss, this.onCacheEvict);
   }
 
   private onCacheMiss = (pageNumber: number): CachedPageData => {
