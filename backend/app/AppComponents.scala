@@ -33,7 +33,7 @@ import router.Routes
 import services._
 import services.annotations.Neo4jAnnotations
 import services.events.ElasticsearchEvents
-import services.index.{ElasticsearchPages, ElasticsearchResources}
+import services.index.{ElasticsearchPages, ElasticsearchResources, Pages2}
 import services.ingestion.IngestionServices
 import services.manifest.Neo4jManifest
 import services.previewing.PreviewService
@@ -89,6 +89,7 @@ class AppComponents(context: Context, config: Config)
     val esTables = new ElasticsearchTable(esClient, config.elasticsearch.tableRowIndexName).setup().await()
     val esEvents = new ElasticsearchEvents(esClient, config.elasticsearch.eventIndexName).setup().await()
     val esPages = new ElasticsearchPages(esClient, config.elasticsearch.pageIndexNamePrefix).setup().await()
+    val pages2 = new Pages2(esClient, config.elasticsearch.pageIndexNamePrefix)
 
     val neo4jDriver = GraphDatabase.driver(config.neo4j.url, AuthTokens.basic(config.neo4j.user, config.neo4j.password))
     val manifest = Neo4jManifest.setupManifest(neo4jDriver, neo4jExecutionContext, config.neo4j.queryLogging).valueOr(failure => throw new Exception(failure.msg))
@@ -177,6 +178,7 @@ class AppComponents(context: Context, config: Config)
     val workspacesController = new Workspaces(authControllerComponents, annotations, esResources, manifest)
     val commentsController = new Comments(authControllerComponents, manifest, esResources, annotations)
     val usersController = new Users(authControllerComponents, userProvider)
+    val pagesController = new PagesController(authControllerComponents, manifest, esResources, pages2, annotations, previewStorage)
 
     val workerControl = config.aws match {
       case Some(awsDiscoveryConfig) =>
@@ -221,6 +223,7 @@ class AppComponents(context: Context, config: Config)
       documentsController,
       commentsController,
       resourceController,
+      pagesController,
       emailController,
       mimeTypesController,
       workspacesController,

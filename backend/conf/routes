@@ -30,7 +30,11 @@ GET           /api/resources/*uri                                           cont
 DELETE        /api/comments/:commentId                                      controllers.api.Comments.deleteComment(commentId: String)
 
 GET           /api/pages/text/:uri                                          controllers.api.Resource.getTextPages(uri: model.Uri, top: Double, bottom: Double, q: Option[String], language: Option[model.Language])
-GET           /api/pages/preview/:language/:uri/:pageNumber                 controllers.api.Resource.getPagePreview(uri: model.Uri, language: model.Language, pageNumber: Int, q: Option[String])
+GET           /api/pages/preview/:language/:uri/:pageNumber                 controllers.api.Resource.getPagePreview(uri: model.Uri, language: model.Language, pageNumber: Int)
+
+GET           /api/pages2/:uri/pageCount                                    controllers.api.PagesController.getPageCount(uri: model.Uri)
+GET           /api/pages2/:uri/:pageNumber/preview                          controllers.api.PagesController.getPagePreview(uri: model.Uri, pageNumber: Int)
+GET           /api/pages2/:uri/:pageNumber/text                             controllers.api.PagesController.getPageData(uri: model.Uri, pageNumber: Int, q: Option[String], language: Option[model.Language])
 
 GET           /api/extractions/failures                                     controllers.api.Resource.getExtractionFailures
 POST          /api/extractions/failures/resources                           controllers.api.Resource.getResourcesForExtractionFailure(page: Int ?= 1, pageSize: Int ?= 20)

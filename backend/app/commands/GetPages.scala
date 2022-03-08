@@ -41,6 +41,7 @@ class GetPages(uri: Uri, top: Double, bottom: Double, query: Option[String], use
           Attempt.Right(List.empty)
         }
       } yield {
+        // FIXME? Why don't we just return the PDF data here? This would save the
         FrontendPage(pageNumber, metadata.language, allLanguages, page.dimensions, highlights)
       }
     }
@@ -63,6 +64,7 @@ class GetPages(uri: Uri, top: Double, bottom: Double, query: Option[String], use
 object GetPages {
   case class PagePreviewMetadata(language: Language, pageText: String, hasHighlights: Boolean)
 
+  // TODO SC/JS: This name is a bit wrong - its not simply metadata, it's language choice and *actual* data
   def getPagePreviewMetadata(uri: Uri, page: Page, userRequestedLanguage: Option[Language]): Attempt[PagePreviewMetadata] = {
     val pageNumber = page.page.toInt
     val allLanguages = page.value.keySet

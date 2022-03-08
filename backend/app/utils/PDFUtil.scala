@@ -79,7 +79,8 @@ object PDFUtil {
       val startIdx = highlight.range.startCharacter
       val endIdx = highlight.range.endCharacter - 1
 
-      // We're going to split the existing text path
+      // Split the existing text path into lines of characters
+      // TODO SC: Make a case class for this to help readability?
       val highlightSpans: List[List[TextPosition]] = textPositions
         .slice(startIdx, endIdx + 1)
         .zipWithIndex
@@ -93,8 +94,8 @@ object PDFUtil {
       })
 
       val id = HighlightableText.searchHighlightId(ix, Some(pageNumber))
-      val spans = highlightSpans.map { span =>
 
+      val spans = highlightSpans.map { span =>
         val startCharacter = span.head
         val endCharacter = span.last
 
