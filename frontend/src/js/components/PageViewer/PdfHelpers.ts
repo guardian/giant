@@ -56,16 +56,12 @@ export const renderTextOverlays = async (
     textContentItemsStr,
   }).promise;
 
-  return textDivs.flatMap((textDiv) => {
-    return [
-      {
-        value: textDiv.innerHTML,
-        left: textDiv.style.left,
-        top: textDiv.style.top,
-        fontSize: textDiv.style.fontSize,
-        fontFamily: textDiv.style.fontFamily,
-        transform: textDiv.style.transform,
-      },
-    ];
-  });
+  return textDivs.map((textDiv) => ({
+    value: textDiv.innerHTML,
+    left: textDiv.style.left,
+    top: textDiv.style.top,
+    fontSize: textDiv.style.fontSize,
+    fontFamily: textDiv.style.fontFamily,
+    transform: textDiv.style.transform,
+  }));
 };

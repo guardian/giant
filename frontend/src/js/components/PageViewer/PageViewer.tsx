@@ -1,20 +1,24 @@
 import React, { FC, useEffect, useState } from "react";
-import { VirtualScroll } from "./VirtualScroll";
-import { PageCache } from "./PageCache";
-import authFetch from "../../util/auth/authFetch";
 import { useParams } from "react-router-dom";
+import authFetch from "../../util/auth/authFetch";
 import { Page } from "./Page";
+import { PageCache } from "./PageCache";
+import styles from "./PageViewer.module.css";
+import { VirtualScroll } from "./VirtualScroll";
 
 type PageViewerProps = {
   page: number;
 };
 
 export const PageViewer: FC<PageViewerProps> = () => {
-  const { uri } = useParams<{ uri: string }>();
-  const [page, setPage] = useState<number | undefined>(undefined);
-  const [query, setQuery] = useState<string | undefined>(undefined);
+  const params = new URLSearchParams(document.location.search);
 
-  const [pageCache] = useState(new PageCache(uri));
+  const query = params.get("q") ?? undefined;
+  const page = Number(params.get("page"));
+
+  const { uri } = useParams<{ uri: string }>();
+
+  const [pageCache] = useState(new PageCache(uri, query));
   const [totalPages, setTotalPages] = useState<number | null>(null);
 
   useEffect(() => {
@@ -22,26 +26,28 @@ export const PageViewer: FC<PageViewerProps> = () => {
       .then((res) => res.json())
       .then((obj) => setTotalPages(obj.pageCount));
 
-    const params = new URLSearchParams(document.location.search);
-
-    setPage(Number(params.get("page")));
-    setQuery(params.get("q") ?? undefined);
   }, [uri]);
 
   const renderPage = (pageNumber: number) => {
+    const cachedPage = pageCache.getPage(pageNumber);
+
     return (
       <Page
-        getPagePreview={() => pageCache.getPagePreview(pageNumber)}
-        getPageText={() => pageCache.getPageText(pageNumber, query)}
+        getPagePreview={() => cachedPage.preview}
+        getPageData={() => cachedPage.data}
       />
     );
   };
 
-  return totalPages ? (
-    <VirtualScroll
-      totalPages={totalPages}
-      renderPage={renderPage}
-      initialPage={page}
-    />
-  ) : null;
+  return (
+    <main className={styles.main}>
+      {totalPages ? (
+        <VirtualScroll
+          totalPages={totalPages}
+          renderPage={renderPage}
+          initialPage={page}
+        />
+      ) : null}
+    </main>
+  );
 };

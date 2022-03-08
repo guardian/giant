@@ -178,7 +178,7 @@ class AppComponents(context: Context, config: Config)
     val workspacesController = new Workspaces(authControllerComponents, annotations, esResources, manifest)
     val commentsController = new Comments(authControllerComponents, manifest, esResources, annotations)
     val usersController = new Users(authControllerComponents, userProvider)
-    val pagesControler = new PagesController(authControllerComponents, manifest, esResources, pages2, annotations, previewStorage)
+    val pagesController = new PagesController(authControllerComponents, manifest, esResources, pages2, annotations, previewStorage)
 
     val workerControl = config.aws match {
       case Some(awsDiscoveryConfig) =>
@@ -223,7 +223,7 @@ class AppComponents(context: Context, config: Config)
       documentsController,
       commentsController,
       resourceController,
-      pagesControler,
+      pagesController,
       emailController,
       mimeTypesController,
       workspacesController,

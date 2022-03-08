@@ -25,7 +25,8 @@ class PagesController(val controllerComponents: AuthControllerComponents, manife
     pagesService.getPageCount(uri).map(count => Ok(Json.obj("pageCount" -> count)))
   }
 
-  def getPageText(uri: Uri, pageNumber: Int, q: Option[String], language: Option[Language]) = ApiAction.attempt { req =>
+  // Get language and highlight data for a given page
+  def getPageData(uri: Uri, pageNumber: Int, q: Option[String], language: Option[Language]) = ApiAction.attempt { req =>
     val query = q.map(Chips.parseQueryString)
 
     val getResource = GetResource(uri, ResourceFetchMode.Basic, req.user.username, manifest, index, annotations, controllerComponents.users).process()

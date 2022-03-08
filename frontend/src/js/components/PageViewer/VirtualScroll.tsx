@@ -48,34 +48,28 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
 
   useLayoutEffect(() => {
     if (viewport?.current && initialPage) {
-      const v = viewport.current!;
+      const v = viewport.current;
 
-      const scrollTo =
-        initialPage !== 1 ? initialPage * pageHeight - v.clientHeight / 2 : 0;
+      const scrollTo = (initialPage - 1) * pageHeight;
 
       v.scrollTop = scrollTo;
     }
   }, [viewport, initialPage, pageHeight]);
 
   return (
-    <div ref={viewport} className="viewer__main" onScroll={onScroll}>
-      <div
-        className={styles.scrollArea}
-        style={{ height: totalPages * pageHeight }}
-      >
-        <div className={styles.pages}>
-          {_.range(topPage, botPage + 1)
-            .filter((p) => p > 0 && p <= totalPages)
-            .map((p) => (
-              <div
-                key={p}
-                style={{ top: (p - 1) * pageHeight }}
-                className={styles.container}
-              >
-                {renderPage(p)}
-              </div>
-            ))}
-        </div>
+    <div ref={viewport} className={styles.scrollContainer} onScroll={onScroll}>
+      <div className={styles.pages} style={{ height: totalPages * pageHeight }}>
+        {_.range(topPage, botPage + 1)
+          .filter((pageNumber) => pageNumber > 0 && pageNumber <= totalPages)
+          .map((pageNumber) => (
+            <div
+              key={pageNumber}
+              style={{ top: (pageNumber - 1) * pageHeight }}
+              className={styles.pageContainer}
+            >
+              {renderPage(pageNumber)}
+            </div>
+          ))}
       </div>
     </div>
   );

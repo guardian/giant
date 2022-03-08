@@ -38,7 +38,7 @@ export type PdfText = {
   transform: string;
 };
 
-export type Page = {
+export type PageData = {
   // TODO: Do we need this value wrapper? Keep getting lost looking for highlights, then remember I need to expand value
   page: number;
   dimensions: PageDimensions;
