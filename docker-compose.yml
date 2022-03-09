@@ -49,11 +49,10 @@ services:
       - minio:/export
     ports:
       - 9090:9000
-      - 9092:9001
     entrypoint:
       sh
     command:
-      -c 'mkdir -p /export/ingest-data && mkdir -p /export/data && mkdir -p /export/preview && minio server --console-address ":9001" /export'
+      -c 'mkdir -p /export/ingest-data && mkdir -p /export/data && mkdir -p /export/preview && minio server /export'
 
 volumes:
   neo4j:
