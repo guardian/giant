@@ -20,6 +20,7 @@ case class HighlightSpan(x: Double, y: Double, width: Double, height: Double, ro
 
 sealed abstract class PageHighlight { def id: String }
 case class SearchResultPageHighlight(id: String, spans: List[HighlightSpan]) extends PageHighlight
+/// case class ImpromptuSearchPageHighlight(id: String, spans: List[HighlightSpan]) extends PageHighlight
 // Other types of highlight might include comments or Ctrl-F searches
 
 object PageHighlight {

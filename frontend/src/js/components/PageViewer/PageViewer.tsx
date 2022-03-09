@@ -39,12 +39,17 @@ export const PageViewer: FC<PageViewerProps> = () => {
     );
   };
 
+  const onPageChange = (pageNumber: number) => {
+    authFetch(`/api/pages2/${uri}/${pageNumber}/impromptu?q="Blair"&pageCount=${totalPages}`)
+  }
+
   return (
     <main className={styles.main}>
       {totalPages ? (
         <VirtualScroll
           totalPages={totalPages}
           renderPage={renderPage}
+          onPageChange={onPageChange}
           initialPage={page}
         />
       ) : null}

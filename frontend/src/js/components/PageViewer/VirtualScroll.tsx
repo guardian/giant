@@ -6,12 +6,14 @@ import styles from "./VirtualScroll.module.css";
 type VirtualScrollProps = {
   totalPages: number;
   initialPage?: number;
+  onPageChange: (pageNumber: number) => void;
   renderPage: (pageNumber: number) => ReactNode;
 };
 
 export const VirtualScroll: FC<VirtualScrollProps> = ({
   totalPages,
   initialPage,
+  onPageChange,
   renderPage,
 }) => {
   // Tweaked this and 2 seems to be a good amount on a regular monitor
@@ -24,7 +26,7 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
   const viewport = useRef<HTMLDivElement>(null);
 
   const [topPage, setTopPage] = useState(1);
-  //const [midPage, setMidPage] = useState(1); // Todo hook up to URL
+  const [midPage, setMidPage] = useState(1); // Todo hook up to URL
   const [botPage, setBotPage] = useState(1 + PRELOAD_PAGES);
 
   const onScroll = () => {
@@ -36,13 +38,17 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
       const topEdge = currentMid - PRELOAD_PAGES * pageHeight;
       const botEdge = currentMid + PRELOAD_PAGES * pageHeight;
 
-      const topPage = Math.max(Math.floor(topEdge / pageHeight), 1);
-      //const midPage = Math.floor(currentMid / pageHeight);
-      const botPage = Math.min(Math.ceil(botEdge / pageHeight), totalPages);
+      const newTopPage = Math.max(Math.floor(topEdge / pageHeight), 1);
+      const newMidPage = Math.floor(currentMid / pageHeight) + 1;
+      const newBotPage = Math.min(Math.ceil(botEdge / pageHeight), totalPages);
 
-      setTopPage(topPage);
-      //setMidPage(midPage);
-      setBotPage(botPage);
+      if (midPage !== newMidPage) {
+        onPageChange(newMidPage);
+      }
+
+      setTopPage(newTopPage);
+      setMidPage(newMidPage);
+      setBotPage(newBotPage);
     }
   };
 

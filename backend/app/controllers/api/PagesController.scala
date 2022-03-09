@@ -30,7 +30,7 @@ class PagesController(val controllerComponents: AuthControllerComponents, manife
     val query = q.map(Chips.parseQueryString)
 
     val getResource = GetResource(uri, ResourceFetchMode.Basic, req.user.username, manifest, index, annotations, controllerComponents.users).process()
-    val getPage = pagesService.getPage(uri, pageNumber, query)
+    val getPage = pagesService.getPageGeometries(uri, pageNumber, query)
 
     for {
       // Check we have permission to see this file
@@ -75,5 +75,11 @@ class PagesController(val controllerComponents: AuthControllerComponents, manife
     } yield {
       Result(ResponseHeader(200, Map.empty), response)
     }
+  }
+
+  def impromptuSearch(uri: Uri, pageNumber: Int, pageCount: Int, q: String) = ApiAction.attempt { req =>
+    pagesService.searchPages(uri, pageNumber, pageCount, q).map( res =>
+      Ok(Json.toJson(res))
+    )
   }
 }
