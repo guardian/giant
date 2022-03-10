@@ -6,14 +6,14 @@ import styles from "./VirtualScroll.module.css";
 type VirtualScrollProps = {
   totalPages: number;
   initialPage?: number;
-  onPageChange: (pageNumber: number) => void;
+  jumpToPage: number | null;
   renderPage: (pageNumber: number) => ReactNode;
 };
 
 export const VirtualScroll: FC<VirtualScrollProps> = ({
   totalPages,
   initialPage,
-  onPageChange,
+  jumpToPage,
   renderPage,
 }) => {
   // Tweaked this and 2 seems to be a good amount on a regular monitor
@@ -42,25 +42,28 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
       const newMidPage = Math.floor(currentMid / pageHeight) + 1;
       const newBotPage = Math.min(Math.ceil(botEdge / pageHeight), totalPages);
 
-      if (midPage !== newMidPage) {
-        onPageChange(newMidPage);
-      }
-
       setTopPage(newTopPage);
-      setMidPage(newMidPage);
       setBotPage(newBotPage);
     }
   };
 
+  // Jump to page when it changes
+  useLayoutEffect(() => {
+    if (viewport?.current && jumpToPage) {
+      const v = viewport.current;
+      const scrollTo = (jumpToPage - 1) * pageHeight;
+      v.scrollTop = scrollTo;
+    }
+  }, [initialPage, pageHeight, jumpToPage]);
+
+  // Jump to initial page
   useLayoutEffect(() => {
     if (viewport?.current && initialPage) {
       const v = viewport.current;
-
       const scrollTo = (initialPage - 1) * pageHeight;
-
       v.scrollTop = scrollTo;
     }
-  }, [viewport, initialPage, pageHeight]);
+  }, [viewport, pageHeight, initialPage]);
 
   return (
     <div ref={viewport} className={styles.scrollContainer} onScroll={onScroll}>

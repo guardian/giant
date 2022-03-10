@@ -54,91 +54,24 @@ class Pages2(val client: ElasticClient, indexNamePrefix: String)(implicit val ex
 
   // This function is used to search within the page index to find highlights for a given query
   // it can be reused for impromptu search and for regular highlighting.
-  //
-  // Data is returned in batches around the current page, and the first and last result this allows the client to
-  // make requests less frequently. The query wraps around the beginning/end of the document if the current page is
-  // close to the start or the end.
-  //
-  // The page count is sent to this query since we don't want to recalculate it. A client could lie to the API but
-  // they'll just get garbage results so it shouldn't be a security issue.
-  def searchPages(uri: Uri, currentPageNumber: Int, pageCount: Int, q: String): Attempt[Seq[Int]] = {
+  def searchPages(uri: Uri, q: String): Attempt[Seq[Int]] = {
     val query = buildQuery(q)
 
     val documentFilter = termQuery(PagesFields.resourceId, uri.value)
 
-    // The number of pages worth of highlights we'll get either side of the current page
-    val pageSpan = 25
-
-    var startLimit: Option[Int] = None
-    var lowerLimit = currentPageNumber - pageSpan
-    var upperLimit = currentPageNumber + pageSpan
-    var endLimit: Option[Int] = None
-
-    if (lowerLimit < 1) {
-      endLimit = Some((currentPageNumber - pageSpan) % pageCount)
-      lowerLimit = 1
-    }
-
-    if (upperLimit > pageCount) {
-      startLimit = Some((currentPageNumber + pageSpan) % pageCount)
-      upperLimit = pageCount
-    }
-
-    val queries: List[Option[SearchRequest]] = List(
-      // Optional: Search from the first page forward
-      startLimit.map(limit =>
+    execute {
         search(textIndexName)
-          .size(limit) // Default is 10 but we possibly might wrap more than that
-          .query(
-            must(query).filter(
-              documentFilter,
-              rangeQuery(PagesFields.page).lte(limit)
-            )
-          )
-      ),
-      // Search around the current page
-      Some(search(textIndexName)
-        .size(2 * pageSpan + 1) // Default is 10, and we'll need more
+        .size(500)
         .query(
           must(query).filter(
             documentFilter,
-            rangeQuery(PagesFields.page).gte(lowerLimit).lte(upperLimit)
           )
-        )),
-      // If we're wrapping around the end - search from the end
-      endLimit.map(limit =>
-        search(textIndexName)
-          .size(pageCount - limit)
-          .query(
-            must(query).filter(
-              documentFilter,
-              rangeQuery(PagesFields.page).gte(limit)
-            )
-          )
-      )
-    )
-
-    val definedQueries: List[SearchRequest] = queries.flatten
-
-    execute {
-      multi(
-        definedQueries
-      )
+        )
     }.flatMap { response =>
-      val results = response.items.collect { case MultisearchResponseItem(_, _, Right(result)) => result }
+      // TODO should really be a map of language -> page matches
+      val matchingPages: Seq[Int] = response.hits.hits.map(_.field[Int](PagesFields.page)).distinct.sorted
 
-      val errors = response.items.collect { case MultisearchResponseItem(_, status, Left(err)) =>
-        ElasticSearchQueryFailure(new IllegalStateException(err.toString), status, None)
-      }
-
-      if (errors.nonEmpty) {
-        Attempt.Left(MultipleFailures(errors.toList))
-      } else {
-        // TODO should really be a map of language -> page matches
-        val matchingPages: Seq[Int] = results.flatMap(_.hits.hits).map(_.field[Int](PagesFields.page)).distinct.sorted
-
-        Attempt.Right(matchingPages)
-      }
+      Attempt.Right(matchingPages)
     }
   }
 

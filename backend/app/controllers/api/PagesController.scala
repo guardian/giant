@@ -77,8 +77,8 @@ class PagesController(val controllerComponents: AuthControllerComponents, manife
     }
   }
 
-  def impromptuSearch(uri: Uri, pageNumber: Int, pageCount: Int, q: String) = ApiAction.attempt { req =>
-    pagesService.searchPages(uri, pageNumber, pageCount, q).map( res =>
+  def impromptuSearch(uri: Uri, q: String) = ApiAction.attempt {
+    pagesService.searchPages(uri, q).map( res =>
       Ok(Json.toJson(res))
     )
   }

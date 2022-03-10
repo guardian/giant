@@ -33,9 +33,9 @@ GET           /api/pages/text/:uri                                          cont
 GET           /api/pages/preview/:language/:uri/:pageNumber                 controllers.api.Resource.getPagePreview(uri: model.Uri, language: model.Language, pageNumber: Int)
 
 GET           /api/pages2/:uri/pageCount                                    controllers.api.PagesController.getPageCount(uri: model.Uri)
+GET           /api/pages2/:uri/impromptu                                    controllers.api.PagesController.impromptuSearch(uri: model.Uri, q: String)
 GET           /api/pages2/:uri/:pageNumber/preview                          controllers.api.PagesController.getPagePreview(uri: model.Uri, pageNumber: Int)
 GET           /api/pages2/:uri/:pageNumber/text                             controllers.api.PagesController.getPageData(uri: model.Uri, pageNumber: Int, q: Option[String], language: Option[model.Language])
-GET           /api/pages2/:uri/:pageNumber/impromptu                        controllers.api.PagesController.impromptuSearch(uri: model.Uri, pageNumber: Int, pageCount: Int, q: String)
 
 GET           /api/extractions/failures                                     controllers.api.Resource.getExtractionFailures
 POST          /api/extractions/failures/resources                           controllers.api.Resource.getResourcesForExtractionFailure(page: Int ?= 1, pageSize: Int ?= 20)
