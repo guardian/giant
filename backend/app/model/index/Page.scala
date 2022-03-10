@@ -42,6 +42,7 @@ object PageHighlight {
 }
 
 case class Page(page: Long, value: Map[Language, String], dimensions: PageDimensions)
+case class PageWithImpromptuSearch(page: Long, value: Map[Language, String], impromptuSearchValue: Option[Map[Language, String]], dimensions: PageDimensions)
 case class FrontendPage(page: Long, currentLanguage: Language, allLanguages: Set[Language], dimensions: PageDimensions, highlights: List[PageHighlight])
 
 object FrontendPage {

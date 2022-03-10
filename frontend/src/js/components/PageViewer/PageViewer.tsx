@@ -1,3 +1,4 @@
+import _ from "lodash";
 import React, { FC, useCallback, useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import authFetch from "../../util/auth/authFetch";
@@ -65,35 +66,62 @@ export const PageViewer: FC<PageViewerProps> = () => {
   };
 
   const performImpromptuSearch = useCallback(
-    (pageNumber: number) =>
-      authFetch(`/api/pages2/${uri}/impromptu?q="${impromptuSearch}"`)
+    (query: string) =>
+      authFetch(`/api/pages2/${uri}/impromptu?q="${query}"`)
         .then((res) => res.json())
         .then(setImpromptuSearchHits),
-    [totalPages, impromptuSearch]
+    []
   );
+
+  const preloadNextPreviousImpromptuPages = (
+    centrePage: number,
+    pageHits: number[]
+  ) => {
+    const index = pageHits.findIndex((page) => page === centrePage);
+    const length = pageHits.length;
+
+    for (let i = -3; i <= 3; i++) {
+      const preloadPageIndex = (index - (1 % length) + length) % length;
+      pageCache.getPage(pageHits[preloadPageIndex]);
+    }
+  };
 
   const jumpToNextImpromptuSearchHit = useCallback(() => {
     if (impromptuSearchHits.length > 0) {
-      const nextPage = impromptuSearchHits.find((page) => page > lastPageHit);
-      if (nextPage) {
-        setLastPageHit(nextPage);
-        setJumpToPage(nextPage);
-      } else {
-        const firstPage = impromptuSearchHits[0];
-        setLastPageHit(firstPage);
-        setJumpToPage(firstPage);
-      }
+      const maybePage = impromptuSearchHits.find((page) => page > lastPageHit);
+      const nextPage = maybePage ? maybePage : impromptuSearchHits[0];
+
+      preloadNextPreviousImpromptuPages(nextPage, impromptuSearchHits);
+      setLastPageHit(nextPage);
+      setJumpToPage(nextPage);
     }
-  }, []);
+  }, [impromptuSearchHits, lastPageHit]);
+
+  const jumpToPreviousImpromptuSearchHit = useCallback(() => {
+    if (impromptuSearchHits.length > 0) {
+      const maybePage = _.findLast(
+        impromptuSearchHits,
+        (page) => page < lastPageHit
+      );
+      const previousPage = maybePage
+        ? maybePage
+        : impromptuSearchHits[impromptuSearchHits.length - 1];
+
+      preloadNextPreviousImpromptuPages(previousPage, impromptuSearchHits);
+      setLastPageHit(previousPage);
+      setJumpToPage(previousPage);
+    }
+  }, [impromptuSearchHits, lastPageHit]);
 
   return (
     <main className={styles.main}>
       {impromptuSearchVisible && (
         <ImpromptuSearchInput
           value={impromptuSearch}
-          onChange={(e) => setImpromptuSearch(e.target.value)}
+          setValue={setImpromptuSearch}
           performImpromptuSearch={performImpromptuSearch}
           jumpToNextImpromptuSearchHit={jumpToNextImpromptuSearchHit}
+          jumpToPreviousImpromptuSearchHit={jumpToPreviousImpromptuSearchHit}
         />
       )}
       {totalPages ? (

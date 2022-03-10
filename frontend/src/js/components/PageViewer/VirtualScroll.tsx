@@ -49,6 +49,7 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
 
   // Jump to page when it changes
   useLayoutEffect(() => {
+    console.log("jump up jump up and get down");
     if (viewport?.current && jumpToPage) {
       const v = viewport.current;
       const scrollTo = (jumpToPage - 1) * pageHeight;
