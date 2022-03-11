@@ -1,7 +1,7 @@
 package utils
 
-import model.frontend.HighlightableText
-import model.index.{HighlightSpan, SearchResultPageHighlight}
+import model.frontend.{HighlightableText, TextHighlight}
+import model.index.{HighlightSpan, ImpromptuSearchPageHighlight, PageHighlight, SearchResultPageHighlight}
 import org.apache.pdfbox.pdmodel.PDDocument
 import org.apache.pdfbox.pdmodel.common.PDRectangle
 import org.apache.pdfbox.pdmodel.graphics.color.{PDColor, PDDeviceRGB}
@@ -10,7 +10,7 @@ import org.apache.pdfbox.text.{PDFTextStripper, TextPosition}
 
 import java.util
 import scala.collection.JavaConverters._
-import scala.math.{atan2, sqrt, sin, cos}
+import scala.math.{atan2, cos, sin, sqrt}
 
 object PDFUtil {
   val highlightColour = new PDColor(Array(253f, 182f, 0f), PDDeviceRGB.INSTANCE)
@@ -59,8 +59,7 @@ object PDFUtil {
     )
   }
 
-  def getSearchResultHighlights(pageText: HighlightableText, singlePageDoc: PDDocument, pageNumber: Int): List[SearchResultPageHighlight] = {
-    val highlights = pageText.highlights
+  def getSearchResultHighlights(highlights: List[TextHighlight], singlePageDoc: PDDocument, pageNumber: Int, isImpromptu: Boolean = false): List[PageHighlight] = {
 
     var textPositions = List.empty[Either[TextPosition, NewlinePlaceholder.type]]
 
@@ -126,7 +125,11 @@ object PDFUtil {
         HighlightSpan(x + offsetX, y + offsetY, width, height, rotation)
       }
 
-      SearchResultPageHighlight(id, spans)
+      if (isImpromptu) {
+        ImpromptuSearchPageHighlight(id, spans)
+      } else {
+        SearchResultPageHighlight(id, spans)
+      }
     }
   }
 }

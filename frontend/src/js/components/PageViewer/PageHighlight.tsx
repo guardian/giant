@@ -13,40 +13,35 @@ export const PageHighlight: FC<PageHighlightProps> = ({
   scale,
 }) => {
   const { id, type } = highlight;
-  const onMountOrUnmount = () => {};
 
-  switch (type) {
-    case "SearchResultPageHighlight":
-      return (
-        <>
-          {highlight.data.map((span, i) => {
-            const style: CSSProperties = {
-              position: "absolute",
-              left: span.x * scale,
-              top: span.y * scale,
-              width: span.width * scale,
-              height: span.height * scale,
-              transformOrigin: "top left",
-              transform: `rotate(${span.rotation}rad)`,
-              pointerEvents: "none",
-            };
+  const color = type === "SearchResultPageHighlight" ? "blue" : "yellow";
+  return (
+    <>
+      {highlight.data.map((span, i) => {
+        const style: CSSProperties = {
+          position: "absolute",
+          left: span.x * scale,
+          top: span.y * scale,
+          width: span.width * scale,
+          height: span.height * scale,
+          transformOrigin: "top left",
+          transform: `rotate(${span.rotation}rad)`,
+          pointerEvents: "none",
+          background: color,
+        };
 
-            return (
-              <span
-                className={
-                  focused
-                    ? `pfi-page-highlight pfi-page-highlight--focused`
-                    : "pfi-page-highlight"
-                }
-                ref={onMountOrUnmount}
-                key={`${id}-${i}`}
-                style={style}
-              />
-            );
-          })}
-        </>
-      );
-    default:
-      return null;
-  }
+        return (
+          <span
+            className={
+              focused
+                ? `pfi-page-highlight pfi-page-highlight--focused`
+                : "pfi-page-highlight"
+            }
+            key={`${id}-${i}`}
+            style={style}
+          />
+        );
+      })}
+    </>
+  );
 };

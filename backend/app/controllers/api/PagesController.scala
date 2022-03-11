@@ -41,32 +41,48 @@ class PagesController(val controllerComponents: AuthControllerComponents, manife
       page <- getPage
       allLanguages = page.value.keySet
       // Highlighting stuff
-      metadata <- GetPages.getPagePreviewMetadata(uri, page, language)
-      previewUri = PreviewService.getPageStoragePath(uri, metadata.language, pageNumber)
-      pagePreviewPdf <- previewStorage.get(previewUri).toAttempt
-      highlights <- if(metadata.hasHighlights) {
-        addSearchHighlightsToPageResponse(pageNumber, pagePreviewPdf, metadata.pageText)
-      } else {
-        pagePreviewPdf.close()
-        Attempt.Right(List.empty)
-      }
+      highlights = dedupHighlightSpans(page.page, page.value)
+      impromptuHighlights = page.impromptuSearchValue.map { langMap =>
+          dedupHighlightSpans(page.page, langMap)
+        }.getOrElse(Map.empty)
+      highlights <- getHighlightGeometriesForPage(uri, pageNumber, highlights, impromptuHighlights)
     } yield {
       val response = FrontendPage(pageNumber, metadata.language, allLanguages, page.dimensions, highlights)
       Ok(Json.toJson(response))
     }
   }
 
-  // Gets highlights across all languages, deduplicating where possible
-  private def getLanguagesWithHighlights(page: PageWithImpromptuSearch)  = {
-    val allLanguages = page.value.keySet
+  case class HighlightGeometries(lang: Language, highlights: List[PageHighlight])
 
-    val highlights: Map[Language, List[TextHighlight]] = dedupHighlightSpans(page.page, page.value)
-    val impromptuHighlights: Map[Language, List[TextHighlight]] = page.impromptuSearchValue.map { langMap =>
-      dedupHighlightSpans(page.page, langMap)
-    }.getOrElse(Nil)
+  private def getHighlightGeometriesForPage(uri: Uri,
+                                   pageNumber: Int,
+                                   highlights: Map[Language, List[TextHighlight]],
+                                   impromptuHighlights: Map[Language, List[TextHighlight]]) = {
+    val previewPaths = (highlights.keySet ++ impromptuHighlights.keySet).map { lang =>
+      lang -> PreviewService.getPageStoragePath(uri, lang, pageNumber)
+    }
+
+    Attempt.sequence(previewPaths.map { case (lang, path) =>
+      previewStorage.get(path).toAttempt.map { pdfData =>
+        try {
+          val pdf = PDDocument.load(pdfData)
+
+          val highlightSpans = highlights.getOrElse(lang, Nil)
+          val impromptuHighlightSpans = impromptuHighlights.getOrElse(lang, Nil)
+
+          val highlightGeometries = PDFUtil.getSearchResultHighlights(highlightSpans, pdf, pageNumber, false)
+          val impromptuHighlightGeometries = PDFUtil.getSearchResultHighlights(impromptuHighlightSpans, pdf, pageNumber, true)
+
+          HighlightGeometries(lang, highlightGeometries ++ impromptuHighlightGeometries)
+        } finally {
+          pdfData.close()
+        }
+      }
+    })
   }
 
-  // This is pretty ugly, probably super ineffient too...
+
+  // This is pretty ugly, probably super inefficient too...
   // It basically pulls out the individual highlight spans for each language and then deduplicates ones that appear
   // in multiple langauges. This allows us to avoid calculating highlight geometry for multiple languages when the
   // highlight is the same.
@@ -77,17 +93,8 @@ class PagesController(val controllerComponents: AuthControllerComponents, manife
       hlText.highlights.map(span => (lang, span))
     }.groupBy(_._2).toList.map { case (lang, commonSpans) =>
       commonSpans.head
-    }.groupBy(_._1).mapValues(_.map(_._2))
-  }
-
-  private def addSearchHighlightsToPageResponse(pageNumber: Int, pageData: InputStream, pageText: String): Attempt[List[PageHighlight]] = Attempt.catchNonFatalBlasé {
-    try {
-      val pagePDF = PDDocument.load(pageData)
-      val highlightableText = HighlightableText.fromString(pageText, Some(pageNumber))
-
-      PDFUtil.getSearchResultHighlights(highlightableText, pagePDF, pageNumber)
-    } finally {
-      pageData.close()
+    }.groupBy(_._1).mapValues(_.map(_._2)).filter { case (k, v) =>
+      v.nonEmpty
     }
   }
 

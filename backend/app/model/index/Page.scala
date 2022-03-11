@@ -20,13 +20,26 @@ case class HighlightSpan(x: Double, y: Double, width: Double, height: Double, ro
 
 sealed abstract class PageHighlight { def id: String }
 case class SearchResultPageHighlight(id: String, spans: List[HighlightSpan]) extends PageHighlight
-/// case class ImpromptuSearchPageHighlight(id: String, spans: List[HighlightSpan]) extends PageHighlight
+case class ImpromptuSearchPageHighlight(id: String, spans: List[HighlightSpan]) extends PageHighlight
 // Other types of highlight might include comments or Ctrl-F searches
 
 object PageHighlight {
   implicit val writes: Writes[PageHighlight] = {
     case h: SearchResultPageHighlight => Json.obj(
       "type" -> JsString("SearchResultPageHighlight"),
+      "id" -> JsString(h.id),
+      "data" -> JsArray(h.spans.map  { s =>
+        Json.obj(
+          "x" -> JsNumber(s.x),
+          "y" -> JsNumber(s.y),
+          "width" -> JsNumber(s.width),
+          "height" -> JsNumber(s.height),
+          "rotation" -> JsNumber(s.rotation),
+        )
+      })
+    )
+    case h: ImpromptuSearchPageHighlight => Json.obj(
+      "type" -> JsString("ImpromptuSearchPageHighlight"),
       "id" -> JsString(h.id),
       "data" -> JsArray(h.spans.map  { s =>
         Json.obj(
