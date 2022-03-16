@@ -25,7 +25,7 @@ export CI=true
 
 #Use java 11
 export JAVA_HOME=/usr/lib/jvm/java-11-amazon-corretto
-PATH=$PATH:$JAVA_HOME
+export PATH=$JAVA_HOME/bin:$PATH
 echo $JAVA_HOME
 java -version
 
