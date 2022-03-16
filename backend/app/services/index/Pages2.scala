@@ -40,28 +40,29 @@ class Pages2(val client: ElasticClient, indexNamePrefix: String)(implicit val ex
     val impromptuQuery = impromptuHighlightQuery.map(buildQuery)
     val impromptuHighlightFields = impromptuQuery.toList.flatMap { query =>
       HighlightFields.languageHighlighters(PagesFields.value, query)
-        // Change the tags so we can highlight them differently
-        .map(_.numberOfFragments(0).preTag("<impromptu-highlight>").postTag("</impromptu-highlight>"))
+        .map(_.numberOfFragments(0))
     }
-      
+
+    val queries =
+      List(
+        Some(
+          search(textIndexName)
+            .termQuery("_id", s"${uri.value}-$pageNumber")
+            .highlighting(highlightFields)
+        ),
+        impromptuQuery.map { _ =>
+          search(textIndexName)
+            .termQuery("_id", s"${uri.value}-$pageNumber")
+            .highlighting(impromptuHighlightFields)
+        }
+      ).flatten
+
     execute {
       multi (
-        List(
-          Some(
-            search(textIndexName)
-              .termQuery("_id", s"${uri.value}-$pageNumber")
-              .highlighting(highlightFields)
-          ),
-          impromptuQuery.map { _ => 
-            search(textIndexName)
-              .termQuery("_id", s"${uri.value}-$pageNumber")
-              .highlighting(impromptuHighlightFields) 
-          }
-        ).flatten
+        queries
       )
     }.flatMap { response =>
           val results = response.items.collect { case MultisearchResponseItem(_, _, Right(result)) => result }
-
           val errors = response.items.collect { case MultisearchResponseItem(_, status, Left(err)) =>
             ElasticSearchQueryFailure(new IllegalStateException(err.toString), status, None)
           }

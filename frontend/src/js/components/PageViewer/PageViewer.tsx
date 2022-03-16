@@ -20,17 +20,22 @@ export const PageViewer: FC<PageViewerProps> = () => {
 
   const { uri } = useParams<{ uri: string }>();
 
-  const [pageCache] = useState(new PageCache(uri, query));
   const [totalPages, setTotalPages] = useState<number | null>(null);
 
+  const [middlePage, setMiddlePage] = useState(page);
+
   // Used by various things to signal to the virtual scroller to scroll to a particular page
-  const [jumpToPage, setJumpToPage] = useState<number | null>(null);
+  // Initially set to the page in the URL
+  const [jumpToPage, setJumpToPage] = useState<number | null>(page);
 
   // Impromptu searching...
   const [lastPageHit, setLastPageHit] = useState<number>(0);
   const [impromptuSearchHits, setImpromptuSearchHits] = useState<number[]>([]);
   const [impromptuSearchVisible, setImpromptuSearchVisible] = useState(false);
   const [impromptuSearch, setImpromptuSearch] = useState("");
+
+  const [triggerRefresh, setTriggerRefresh] = useState(0);
+  const [preloadPages, setPreloadPages] = useState<number[]>([]);
 
   useEffect(() => {
     authFetch(`/api/pages2/${uri}/pageCount`)
@@ -43,6 +48,14 @@ export const PageViewer: FC<PageViewerProps> = () => {
     if ((e.ctrlKey || e.metaKey) && e.keyCode === 70) {
       e.preventDefault();
       setImpromptuSearchVisible(true);
+
+      const maybeInput = document.getElementById(
+        "impromptu-search-input"
+      ) as HTMLInputElement;
+      if (maybeInput) {
+        maybeInput.focus();
+        maybeInput.setSelectionRange(0, maybeInput.value.length);
+      }
     }
   }, []);
 
@@ -54,23 +67,16 @@ export const PageViewer: FC<PageViewerProps> = () => {
     };
   }, [handleUserKeyPress]);
 
-  const renderPage = (pageNumber: number) => {
-    const cachedPage = pageCache.getPage(pageNumber);
-
-    return (
-      <Page
-        getPagePreview={() => cachedPage.preview}
-        getPageData={() => cachedPage.data}
-      />
-    );
-  };
-
   const performImpromptuSearch = useCallback(
     (query: string) =>
       authFetch(`/api/pages2/${uri}/impromptu?q="${query}"`)
         .then((res) => res.json())
-        .then(setImpromptuSearchHits),
-    []
+        .then((searchHits) => {
+          setLastPageHit(middlePage);
+          setImpromptuSearchHits(searchHits);
+          setTriggerRefresh((t) => t + 1);
+        }),
+    [middlePage]
   );
 
   const preloadNextPreviousImpromptuPages = (
@@ -80,10 +86,19 @@ export const PageViewer: FC<PageViewerProps> = () => {
     const index = pageHits.findIndex((page) => page === centrePage);
     const length = pageHits.length;
 
-    for (let i = -3; i <= 3; i++) {
-      const preloadPageIndex = (index - (1 % length) + length) % length;
-      pageCache.getPage(pageHits[preloadPageIndex]);
-    }
+    const hitsToPreloadIndexes = _.uniq(
+      _.range(-3, 3).map((offset) => {
+        const offsetIndex = index + offset;
+        // modulo - the regular % is 'remainder' in JS which is different
+        return ((offsetIndex % length) + length) % length;
+      })
+    );
+
+    const newPreloadPages = hitsToPreloadIndexes.map(
+      (idx) => impromptuSearchHits[idx]
+    );
+
+    setPreloadPages(newPreloadPages);
   };
 
   const jumpToNextImpromptuSearchHit = useCallback(() => {
@@ -118,7 +133,11 @@ export const PageViewer: FC<PageViewerProps> = () => {
       {impromptuSearchVisible && (
         <ImpromptuSearchInput
           value={impromptuSearch}
-          setValue={setImpromptuSearch}
+          setValue={(q) => {
+            setImpromptuSearch(q);
+          }}
+          hits={impromptuSearchHits}
+          lastPageHit={lastPageHit}
           performImpromptuSearch={performImpromptuSearch}
           jumpToNextImpromptuSearchHit={jumpToNextImpromptuSearchHit}
           jumpToPreviousImpromptuSearchHit={jumpToPreviousImpromptuSearchHit}
@@ -126,10 +145,14 @@ export const PageViewer: FC<PageViewerProps> = () => {
       )}
       {totalPages ? (
         <VirtualScroll
+          uri={uri}
+          query={query}
+          impromptuQuery={impromptuSearch}
+          triggerRefresh={triggerRefresh}
           totalPages={totalPages}
-          renderPage={renderPage}
-          initialPage={page}
           jumpToPage={jumpToPage}
+          preloadPages={preloadPages}
+          setMiddlePage={setMiddlePage}
         />
       ) : null}
     </main>

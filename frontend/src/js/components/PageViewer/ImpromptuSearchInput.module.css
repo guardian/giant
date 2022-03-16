@@ -12,3 +12,20 @@
   flex-direction: row;
   gap: 5px;
 }
+
+.inputContainer {
+  position: relative;
+}
+
+.input {
+  width: 400px;
+}
+
+.count {
+  height: 50%;
+  margin: auto;
+  position: absolute;
+  top: 0;
+  bottom: 4px;
+  right: 5px;
+}

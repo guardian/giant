@@ -1,0 +1,26 @@
+.highlight {
+  position: relative;
+  display: inline-block;
+  font-weight: bold;
+  font-style: italic;
+  z-index: 1;
+  opacity: 0.4;
+}
+
+.highlight::before {
+  content: " ";
+  position: absolute;
+  width: calc(100% + 5px);
+  left: -3px;
+  top: 1px;
+  height: 100%;
+  z-index: -1;
+}
+
+.impromptuHighlight::before {
+  background-color: hotpink !important;
+}
+
+.searchHighlight::before {
+  background-color: #fdb600;
+}

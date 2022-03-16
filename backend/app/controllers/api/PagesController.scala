@@ -19,8 +19,6 @@ import utils.PDFUtil
 import utils.attempt.{Attempt, IllegalStateFailure}
 import utils.controller.{AuthApiController, AuthControllerComponents}
 
-import scala.collection.breakOut
-
 class PagesController(val controllerComponents: AuthControllerComponents, manifest: Manifest,
     index: Index, pagesService: Pages2, annotations: Annotations, previewStorage: ObjectStorage) extends AuthApiController {
 
@@ -33,7 +31,7 @@ class PagesController(val controllerComponents: AuthControllerComponents, manife
     val query = q.map(Chips.parseQueryString)
 
     val getResource = GetResource(uri, ResourceFetchMode.Basic, req.user.username, manifest, index, annotations, controllerComponents.users).process()
-    val getPage = pagesService.getPageGeometries(uri, pageNumber, query)
+    val getPage = pagesService.getPageGeometries(uri, pageNumber, query, iq)
 
     for {
       // Check we have permission to see this file
@@ -41,13 +39,13 @@ class PagesController(val controllerComponents: AuthControllerComponents, manife
       page <- getPage
       allLanguages = page.value.keySet
       // Highlighting stuff
-      highlights = dedupHighlightSpans(page.page, page.value)
+      highlights = dedupHighlightSpans(page.page, page.value, false)
       impromptuHighlights = page.impromptuSearchValue.map { langMap =>
-          dedupHighlightSpans(page.page, langMap)
+          dedupHighlightSpans(page.page, langMap, true)
         }.getOrElse(Map.empty)
       highlights <- getHighlightGeometriesForPage(uri, pageNumber, highlights, impromptuHighlights)
     } yield {
-      val response = FrontendPage(pageNumber, metadata.language, allLanguages, page.dimensions, highlights)
+      val response = FrontendPage(pageNumber, allLanguages.head, allLanguages, page.dimensions, highlights.flatMap(_.highlights).toList)
       Ok(Json.toJson(response))
     }
   }
@@ -87,9 +85,9 @@ class PagesController(val controllerComponents: AuthControllerComponents, manife
   // in multiple langauges. This allows us to avoid calculating highlight geometry for multiple languages when the
   // highlight is the same.
   // This is good because it allows us to minimise the number of downloads from S3 in the common case.
-  private def dedupHighlightSpans(page: Long, valueMap: Map[Language, String]): Map[Language, List[TextHighlight]] = {
+  private def dedupHighlightSpans(page: Long, valueMap: Map[Language, String], isImpromptu: Boolean): Map[Language, List[TextHighlight]] = {
     valueMap.toList.flatMap { case (lang, text) =>
-      val hlText = HighlightableText.fromString(text, Some(page))
+      val hlText = HighlightableText.fromString(text, Some(page), isImpromptu)
       hlText.highlights.map(span => (lang, span))
     }.groupBy(_._2).toList.map { case (lang, commonSpans) =>
       commonSpans.head

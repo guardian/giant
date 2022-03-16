@@ -1,5 +1,6 @@
 import React, { CSSProperties, FC } from "react";
 import { Highlight } from "./model";
+import styles from "./PageHighlight.module.css";
 
 type PageHighlightProps = {
   highlight: Highlight;
@@ -14,7 +15,7 @@ export const PageHighlight: FC<PageHighlightProps> = ({
 }) => {
   const { id, type } = highlight;
 
-  const color = type === "SearchResultPageHighlight" ? "blue" : "yellow";
+  const isImpromptu = type === "ImpromptuSearchPageHighlight";
   return (
     <>
       {highlight.data.map((span, i) => {
@@ -27,16 +28,19 @@ export const PageHighlight: FC<PageHighlightProps> = ({
           transformOrigin: "top left",
           transform: `rotate(${span.rotation}rad)`,
           pointerEvents: "none",
-          background: color,
         };
+
+        const classes = [
+          styles.highlight,
+          ...(focused ? ["pfi-page-highlight--focused"] : []),
+          ...(isImpromptu
+            ? [styles.impromptuHighlight]
+            : [styles.searchHighlight]),
+        ];
 
         return (
           <span
-            className={
-              focused
-                ? `pfi-page-highlight pfi-page-highlight--focused`
-                : "pfi-page-highlight"
-            }
+            className={classes.join(" ")}
             key={`${id}-${i}`}
             style={style}
           />
