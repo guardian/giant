@@ -4,9 +4,6 @@ set -e
 # Make Create React App treat warnings as errors
 export CI=true
 
-#Use java 11
-export JAVA_HOME=/usr/lib/jvm/java-11-amazon-corretto
-
 export NVM_DIR="$HOME/.nvm"
 [[ -s "$NVM_DIR/nvm.sh" ]] && . "$NVM_DIR/nvm.sh"  # This loads nvm
 
@@ -25,6 +22,11 @@ cp -r frontend/build/* backend/public
 # Replace the symbolic link we use in dev with the actual file.
 # On Teamcity the JDeb build doesn't seem to follow the symbolic link while packaging, weirdly
 cp frontend/node_modules/pdfjs-dist/build/pdf.worker.min.js backend/public/third-party/pdf.worker.min.js
+
+#Use java 11
+export JAVA_HOME=/usr/lib/jvm/java-11-amazon-corretto
+echo $JAVA_HOME
+java -version
 
 # Do a full build of PFI including all tests and upload it to Riff-Raff under the playground stack
 sbt -DPFI_STACK=pfi-playground clean riffRaffUploadWithIntegrationTests
