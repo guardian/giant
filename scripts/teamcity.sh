@@ -4,24 +4,24 @@ set -e
 # Make Create React App treat warnings as errors
 export CI=true
 
-export NVM_DIR="$HOME/.nvm"
-[[ -s "$NVM_DIR/nvm.sh" ]] && . "$NVM_DIR/nvm.sh"  # This loads nvm
-
-nvm install
-nvm use
-
-pushd frontend
-
-npm install
-npm run build
-CI=true npm run test
-
-popd
-
-cp -r frontend/build/* backend/public
-# Replace the symbolic link we use in dev with the actual file.
-# On Teamcity the JDeb build doesn't seem to follow the symbolic link while packaging, weirdly
-cp frontend/node_modules/pdfjs-dist/build/pdf.worker.min.js backend/public/third-party/pdf.worker.min.js
+#export NVM_DIR="$HOME/.nvm"
+#[[ -s "$NVM_DIR/nvm.sh" ]] && . "$NVM_DIR/nvm.sh"  # This loads nvm
+#
+#nvm install
+#nvm use
+#
+#pushd frontend
+#
+#npm install
+#npm run build
+#CI=true npm run test
+#
+#popd
+#
+#cp -r frontend/build/* backend/public
+## Replace the symbolic link we use in dev with the actual file.
+## On Teamcity the JDeb build doesn't seem to follow the symbolic link while packaging, weirdly
+#cp frontend/node_modules/pdfjs-dist/build/pdf.worker.min.js backend/public/third-party/pdf.worker.min.js
 
 #Use java 11
 export JAVA_HOME=/usr/lib/jvm/java-11-amazon-corretto
