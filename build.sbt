@@ -174,8 +174,7 @@ lazy val backend = (project in file("backend"))
       "-J-XX:InitialRAMFraction=2",
       "-J-XX:MaxMetaspaceSize=500m",
       "-J-XX:+UseConcMarkSweepGC",
-      "-J-XX:+PrintGCDetails",
-      "-J-XX:+PrintGCDateStamps",
+      "-J-Xlog:gc*",
       "-J-XX:+HeapDumpOnOutOfMemoryError",
       s"-J-Xloggc:/var/log/${name.value}/gc.log",
       s"-J-Dhttp.port=$port"
