@@ -2,7 +2,7 @@ import _ from "lodash";
 import React, { FC, useCallback, useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import authFetch from "../../util/auth/authFetch";
-import { ImpromptuSearchInput } from "./ImpromptuSearchInput";
+import { Controls } from "./Controls";
 import styles from "./PageViewer.module.css";
 import { VirtualScroll } from "./VirtualScroll";
 
@@ -34,6 +34,8 @@ export const PageViewer: FC<PageViewerProps> = () => {
 
   const [triggerRefresh, setTriggerRefresh] = useState(0);
   const [preloadPages, setPreloadPages] = useState<number[]>([]);
+
+  const [rotation, setRotation] = useState(0);
 
   useEffect(() => {
     authFetch(`/api/pages2/${uri}/pageCount`)
@@ -128,29 +130,30 @@ export const PageViewer: FC<PageViewerProps> = () => {
 
   return (
     <main className={styles.main}>
-      {impromptuSearchVisible && (
-        <ImpromptuSearchInput
-          value={impromptuSearch}
-          setValue={(q) => {
+        <Controls
+          rotateAnticlockwise={() => setRotation(r => r - 90)}
+          rotateClockwise={() => setRotation(r => r + 90)}
+          impromptuSearch={impromptuSearch}
+          setImpromptuSearch={(q) => {
             setImpromptuSearch(q);
           }}
-          hits={impromptuSearchHits}
+          impromptuSearchHits={impromptuSearchHits}
           lastPageHit={lastPageHit}
           performImpromptuSearch={performImpromptuSearch}
           jumpToNextImpromptuSearchHit={jumpToNextImpromptuSearchHit}
           jumpToPreviousImpromptuSearchHit={jumpToPreviousImpromptuSearchHit}
         />
-      )}
       {totalPages ? (
         <VirtualScroll
           uri={uri}
           query={query}
           impromptuQuery={impromptuSearch}
-          triggerRefresh={triggerRefresh}
+          triggerHighlightRefresh={triggerRefresh}
           totalPages={totalPages}
           jumpToPage={jumpToPage}
           preloadPages={preloadPages}
           setMiddlePage={setMiddlePage}
+          rotation={rotation}
         />
       ) : null}
     </main>

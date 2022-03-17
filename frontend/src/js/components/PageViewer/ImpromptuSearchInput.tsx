@@ -60,7 +60,6 @@ export const ImpromptuSearchInput: FC<ImpromptuSearchInputProps> = ({
 
   const currentHit = hits.findIndex((p) => lastPageHit === p);
   return (
-    <div className={styles.popover}>
       <div className={styles.container}>
         <div className={styles.inputContainer}>
           <input
@@ -68,6 +67,7 @@ export const ImpromptuSearchInput: FC<ImpromptuSearchInputProps> = ({
             autoComplete="off"
             autoFocus
             value={value}
+            placeholder="Search document..."
             onKeyDown={onKeyDown}
             onChange={(e) => {
               setValue(e.target.value);
@@ -89,7 +89,6 @@ export const ImpromptuSearchInput: FC<ImpromptuSearchInputProps> = ({
         <button onClick={jumpToPreviousImpromptuSearchHit}>
           <UpIcon />
         </button>
-      </div>
       <div
         data-visible={showWarning || null}
         className={styles.warningContainer}
@@ -100,6 +99,6 @@ export const ImpromptuSearchInput: FC<ImpromptuSearchInputProps> = ({
           shown
         </div>
       </div>
-    </div>
+      </div>
   );
 };

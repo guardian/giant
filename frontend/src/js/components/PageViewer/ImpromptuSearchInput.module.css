@@ -1,13 +1,5 @@
-.popover {
-  position: absolute;
-  right: 5%;
-  top: 0;
-  z-index: 10;
-}
-
 .container {
-  background: var(--color-primary);
-  padding: 6px;
+  position: relative;
   display: flex;
   flex-direction: row;
   gap: 5px;

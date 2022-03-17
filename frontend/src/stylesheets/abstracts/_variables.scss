@@ -52,6 +52,8 @@ $accessibleRed: rgb(214, 100, 30);
 $accessibleGreen: rgb(43, 159, 120);
 
 :root {
+  --color-primary-dark: #{$primaryDark};
   --color-primary: #{$primary};
+  --color-primary-light: #{$primaryLight};
   --color-secondary: #{$secondary};
 }

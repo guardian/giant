@@ -9,24 +9,28 @@ type VirtualScrollProps = {
   uri: string;
   query?: string;
   impromptuQuery?: string;
-  triggerRefresh: number;
+  triggerHighlightRefresh: number;
 
   totalPages: number;
   jumpToPage: number | null;
   preloadPages: number[];
   setMiddlePage: (n: number) => void;
+
+  rotation: number;
 };
 
 export const VirtualScroll: FC<VirtualScrollProps> = ({
   uri,
   query,
   impromptuQuery,
-  triggerRefresh: triggerHighlightRefresh,
+  triggerHighlightRefresh,
 
   totalPages,
   jumpToPage,
   preloadPages,
   setMiddlePage,
+
+  rotation,
 }) => {
   // Tweaked this and 2 seems to be a good amount on a regular monitor
   // The fewer pages we preload the faster the initial paint will be
@@ -140,7 +144,7 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
         {currentPages.map((page) => (
           <div
             key={page.pageNumber}
-            style={{ top: (page.pageNumber - 1) * pageHeight }}
+            style={{ top: (page.pageNumber - 1) * pageHeight, transform: `rotate(${rotation}deg)` }}
             className={styles.pageContainer}
           >
             <Page
