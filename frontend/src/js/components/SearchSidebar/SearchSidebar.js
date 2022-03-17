@@ -44,8 +44,10 @@ export class SearchSidebarUnconnected extends React.Component {
     sortFilters = (filters) => {
         // Hard-coded to pull up workspace and dataset (collection  and ingestion) filters
         // as we expect these to be immediately useful as the number of workspaces grow
-        const hardcodedTopLevelFilters = ['workspace', 'ingestion'];
-        const topLevelFilters = filters.filter(({ key }) => hardcodedTopLevelFilters.includes(key));
+        const hardcodedTopLevelFilters = ['ingestion', 'workspace'];
+
+        // Map the hardcoded filters to be the actual filter structure to preserve ordering
+        const topLevelFilters = hardcodedTopLevelFilters.map(key => filters.find(f => f.key === key)).filter(f => f !== undefined);
         const theRest = filters.filter(({ key }) => !hardcodedTopLevelFilters.includes(key)).sort(this.sortByDisplay);
 
         return [...topLevelFilters, ...theRest];
