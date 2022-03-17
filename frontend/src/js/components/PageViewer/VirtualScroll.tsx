@@ -106,8 +106,7 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
 
   useLayoutEffect(() => {
     if (triggerHighlightRefresh > 0) {
-      const renderedPages = currentPages.map((page) => {
-        // TODO This currently refetches the preview too which is pointless...
+      const newCurrentPages = currentPages.map((page) => {
         const refreshedPage = pageCache.getPageRefreshHighlights(
           page.pageNumber
         );
@@ -118,9 +117,16 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
         };
       });
 
-      preloadPages.forEach((p) => pageCache.getPageRefreshHighlights(p));
+      // Once we've refreshed all visible pages go and refresh the cached pages too
+      Promise.all(newCurrentPages.map((r) => r.getPageData)).then(() => {
+        pageCache
+          .getAllPageNumbers()
+          .filter((p) => !newCurrentPages.some(cp => cp.pageNumber === p))
+          .forEach((p) =>
+            pageCache.getPageRefreshHighlights(p));
+      });
 
-      setCurrentPages(renderedPages);
+      setCurrentPages(newCurrentPages);
     }
   }, [triggerHighlightRefresh]);
 

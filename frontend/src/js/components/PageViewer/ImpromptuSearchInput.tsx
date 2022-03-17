@@ -65,6 +65,7 @@ export const ImpromptuSearchInput: FC<ImpromptuSearchInputProps> = ({
         <div className={styles.inputContainer}>
           <input
             id="impromptu-search-input"
+            autoComplete="off"
             autoFocus
             value={value}
             onKeyDown={onKeyDown}
@@ -77,7 +78,7 @@ export const ImpromptuSearchInput: FC<ImpromptuSearchInputProps> = ({
             {currentHit === -1 ? " - " : currentHit + 1}/
             {hits.length > 0
               ? hits.length >= MAX_HITS
-                ? "???"
+                ? ">" + MAX_HITS
                 : hits.length
               : " - "}
           </div>

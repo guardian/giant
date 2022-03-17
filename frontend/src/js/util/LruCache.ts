@@ -58,6 +58,8 @@ export class LruCache<K extends string | number, V> {
     this.recencyQueue.push(key);
   };
 
+  keys = () => this.recencyQueue;
+
   get = (k: K): V => {
     if (this.entries[k]) {
       this.bumpRecency(k);

@@ -96,6 +96,10 @@ export class PageCache {
     v.dataAbortController.abort();
   };
 
+  getAllPageNumbers = (): number[] => {
+    return this.dataCache.keys();
+  }
+
   getPage = (pageNumber: number): CachedPage => {
     const preview = this.previewCache.get(pageNumber);
     const data = this.dataCache.get(pageNumber);

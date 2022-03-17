@@ -91,7 +91,7 @@ class Pages2(val client: ElasticClient, indexNamePrefix: String)(implicit val ex
 
     execute {
         search(textIndexName)
-        .size(500)
+        .size(501)
         .query(
           must(query).filter(
             documentFilter,
