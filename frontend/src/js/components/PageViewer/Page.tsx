@@ -1,4 +1,4 @@
-import React, { FC, useCallback, useEffect, useRef, useState } from "react";
+import React, { FC, useEffect, useRef, useState } from "react";
 import { CachedPreview, PageData, PdfText } from "./model";
 import styles from "./Page.module.css";
 import { PageHighlight } from "./PageHighlight";
@@ -20,6 +20,7 @@ export const Page: FC<PageProps> = ({
   const [scale, setScale] = useState<number | null>(null);
   const [textOverlays, setTextOverlays] = useState<PdfText[] | null>(null);
 
+  const [previewMounted, setPreviewMounted] = useState(false);
   const [aborted, setAborted] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -43,6 +44,7 @@ export const Page: FC<PageProps> = ({
             setScale(preview.scale);
             node.appendChild(preview.canvas);
           }
+          setPreviewMounted(true);
           return preview;
         })
         .then((preview) => {
@@ -51,7 +53,7 @@ export const Page: FC<PageProps> = ({
         })
         .catch(handleAbort);
     }
-  }, [containerRef]);
+  }, []);
 
   useEffect(() => {
     getPageData.then(setPageText).catch(handleAbort);
@@ -59,6 +61,12 @@ export const Page: FC<PageProps> = ({
 
   return (
     <div ref={containerRef} className={styles.container}>
+      {aborted && !previewMounted && (
+        <div>
+          The request for this page has been aborted. If you're seeing this
+          message please contact your administrator
+        </div>
+      )}
       {textOverlays &&
         textOverlays.map((to, i) => <PageOverlayText key={i} text={to} />)}
       {scale &&

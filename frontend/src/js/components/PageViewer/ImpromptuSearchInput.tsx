@@ -1,5 +1,11 @@
 import _ from "lodash";
-import React, { FC, KeyboardEventHandler, useCallback } from "react";
+import React, {
+  FC,
+  KeyboardEventHandler,
+  useCallback,
+  useEffect,
+  useState
+} from "react";
 import DownIcon from "react-icons/lib/md/arrow-downward";
 import UpIcon from "react-icons/lib/md/arrow-upward";
 import styles from "./ImpromptuSearchInput.module.css";
@@ -14,6 +20,11 @@ type ImpromptuSearchInputProps = {
   lastPageHit: number;
 };
 
+// The backend will only return 500 pages of hits.
+// If we get that many then we need to inform the user that there could be missing values.
+// In the future we can make a paging system for impromptu search hits.
+const MAX_HITS = 500;
+
 export const ImpromptuSearchInput: FC<ImpromptuSearchInputProps> = ({
   value,
   setValue,
@@ -23,6 +34,8 @@ export const ImpromptuSearchInput: FC<ImpromptuSearchInputProps> = ({
   hits,
   lastPageHit,
 }) => {
+  const [showWarning, setShowWarning] = useState(false);
+
   const debouncedPerformSearch = useCallback(
     _.debounce(performImpromptuSearch, 300),
     [performImpromptuSearch]
@@ -37,6 +50,13 @@ export const ImpromptuSearchInput: FC<ImpromptuSearchInputProps> = ({
       }
     }
   };
+
+  useEffect(() => {
+    if (hits.length >= MAX_HITS) {
+      setShowWarning(true);
+      setTimeout(() => setShowWarning(false), 5000);
+    }
+  }, [hits]);
 
   const currentHit = hits.findIndex((p) => lastPageHit === p);
   return (
@@ -55,7 +75,11 @@ export const ImpromptuSearchInput: FC<ImpromptuSearchInputProps> = ({
           />
           <div className={styles.count}>
             {currentHit === -1 ? " - " : currentHit + 1}/
-            {hits.length > 0 ? hits.length : " - "}
+            {hits.length > 0
+              ? hits.length >= MAX_HITS
+                ? "???"
+                : hits.length
+              : " - "}
           </div>
         </div>
         <button onClick={jumpToNextImpromptuSearchHit}>
@@ -64,6 +88,16 @@ export const ImpromptuSearchInput: FC<ImpromptuSearchInputProps> = ({
         <button onClick={jumpToPreviousImpromptuSearchHit}>
           <UpIcon />
         </button>
+      </div>
+      <div
+        data-visible={showWarning || null}
+        className={styles.warningContainer}
+      >
+        <div className={styles.warningArrow} />
+        <div className={styles.warning}>
+          Over 500 pages match your search only the first 500 highlights will be
+          shown
+        </div>
       </div>
     </div>
   );

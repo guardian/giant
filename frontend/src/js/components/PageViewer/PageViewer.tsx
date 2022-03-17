@@ -3,8 +3,6 @@ import React, { FC, useCallback, useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import authFetch from "../../util/auth/authFetch";
 import { ImpromptuSearchInput } from "./ImpromptuSearchInput";
-import { Page } from "./Page";
-import { PageCache } from "./PageCache";
 import styles from "./PageViewer.module.css";
 import { VirtualScroll } from "./VirtualScroll";
 

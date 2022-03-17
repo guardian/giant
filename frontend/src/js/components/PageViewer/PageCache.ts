@@ -73,13 +73,6 @@ export class PageCache {
   };
 
   private onDataCacheMiss = (pageNumber: number): CachedPageData => {
-    const previewAbortController = new AbortController();
-    const preview = authFetch(`/api/pages2/${this.uri}/${pageNumber}/preview`, {
-      signal: previewAbortController.signal,
-    })
-      .then((res) => res.arrayBuffer())
-      .then((buf) => renderPdfPreview(buf));
-
     const dataAbortController = new AbortController();
     const textParams = new URLSearchParams();
     if (this.query) {

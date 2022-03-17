@@ -1,13 +1,5 @@
 import _ from "lodash";
-import React, {
-  FC,
-  ReactNode,
-  useEffect,
-  useLayoutEffect,
-  useRef,
-  useState,
-} from "react";
-import { query } from "../../types/Query";
+import React, { FC, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { CONTAINER_AND_MARGIN_SIZE } from "./model";
 import { Page } from "./Page";
 import { PageCache } from "./PageCache";
@@ -112,20 +104,24 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
     setCurrentPages(renderedPages);
   }, [midPage]);
 
-  useEffect(() => {
-    const renderedPages = currentPages.map((page) => {
-      // TODO This currently refetches the preview too which is pointless...
-      const refreshedPage = pageCache.getPageRefreshHighlights(page.pageNumber);
-      return {
-        pageNumber: page.pageNumber,
-        getPagePreview: page.getPagePreview,
-        getPageData: refreshedPage.data,
-      };
-    });
+  useLayoutEffect(() => {
+    if (triggerHighlightRefresh > 0) {
+      const renderedPages = currentPages.map((page) => {
+        // TODO This currently refetches the preview too which is pointless...
+        const refreshedPage = pageCache.getPageRefreshHighlights(
+          page.pageNumber
+        );
+        return {
+          pageNumber: page.pageNumber,
+          getPagePreview: page.getPagePreview,
+          getPageData: refreshedPage.data,
+        };
+      });
 
-    preloadPages.forEach((p) => pageCache.getPageRefreshHighlights(p));
+      preloadPages.forEach((p) => pageCache.getPageRefreshHighlights(p));
 
-    setCurrentPages(renderedPages);
+      setCurrentPages(renderedPages);
+    }
   }, [triggerHighlightRefresh]);
 
   useEffect(() => {
