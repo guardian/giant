@@ -161,7 +161,7 @@ lazy val backend = (project in file("backend"))
     RoutesKeys.routesImport += "utils.Binders._",
     playDefaultPort := port,
 
-    debianPackageDependencies := Seq("openjdk-8-jre-headless"),
+    debianPackageDependencies := Seq("java-11-amazon-corretto-jdk"),
     maintainer in Linux := "Guardian Developers <dig.dev.software@theguardian.com>",
     packageSummary in Linux := description.value,
     packageDescription := description.value,
