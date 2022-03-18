@@ -1,7 +1,6 @@
 package controllers.api
 
 import java.io.InputStream
-
 import commands.{GetPagePreview, GetPages, GetResource, ResourceFetchMode}
 import model.frontend.{Chips, HighlightableText}
 import model.index.{FrontendPage, PageHighlight}
@@ -9,14 +8,17 @@ import model.{Language, Languages, Uri}
 import org.apache.pdfbox.pdmodel.PDDocument
 import play.api.libs.json.Json
 import play.api.mvc.{ResponseHeader, Result}
+import play.utils.UriEncoding
 import services.ObjectStorage
 import services.annotations.Annotations
 import services.manifest.Manifest
 import services.index.{Index, Pages2}
 import services.previewing.PreviewService
 import utils.PDFUtil
-import utils.attempt.Attempt
+import utils.attempt.{Attempt, ClientFailure}
 import utils.controller.{AuthApiController, AuthControllerComponents}
+
+import java.nio.charset.StandardCharsets
 
 class PagesController(val controllerComponents: AuthControllerComponents, manifest: Manifest,
     index: Index, pagesService: Pages2, annotations: Annotations, previewStorage: ObjectStorage) extends AuthApiController {
@@ -75,5 +77,22 @@ class PagesController(val controllerComponents: AuthControllerComponents, manife
     } yield {
       Result(ResponseHeader(200, Map.empty), response)
     }
+  }
+
+  case class PageCommentData()
+
+  def postPageComment(uri: Uri, pageNumber: Int) = ApiAction.attempt(parse.json) { req =>
+    val data = req.body.as[PostCommentData]
+    val getResource = GetResource(uri, ResourceFetchMode.Basic, req.user.username, manifest, index, annotations, controllerComponents.users).process()
+    for {
+      // Does permissions checking
+      r <- getResource
+      // _ <- isValidForComments(r)
+      // _ <- annotation.postComment(req.user.username, uri, data.text, data.anchor)
+    } yield NoContent
+  }
+
+  def getPageComments(uri: Uri, pageNumber: Int) = ApiAction.attempt { req =>
+   NoContent
   }
 }

@@ -49,8 +49,17 @@ export const Page: FC<PageProps> = ({ getPagePreview, getPageData }) => {
     []
   );
 
+  const checkSelection = () => {
+    const selection = window.getSelection();
+
+    if (selection && selection.rangeCount > 0) {
+      const rectangles = selection.getRangeAt(0).getClientRects();
+      console.log(rectangles)
+    }
+  }
+
   return (
-    <div ref={mountCanvas} className={styles.container}>
+    <div ref={mountCanvas} className={styles.container} onMouseUp={checkSelection} onDoubleClick={checkSelection}>
       {aborted && (
         <div>Page fetch was aborted. Try refreshing your browser.</div>
       )}
