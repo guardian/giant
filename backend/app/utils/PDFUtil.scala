@@ -1,7 +1,7 @@
 package utils
 
 import model.frontend.{HighlightableText, TextHighlight}
-import model.index.{HighlightSpan, ImpromptuSearchPageHighlight, PageHighlight, SearchResultPageHighlight}
+import model.index.{HighlightSpan, FindPageHighlight, PageHighlight, SearchResultPageHighlight}
 import org.apache.pdfbox.pdmodel.PDDocument
 import org.apache.pdfbox.pdmodel.common.PDRectangle
 import org.apache.pdfbox.pdmodel.graphics.color.{PDColor, PDDeviceRGB}
@@ -64,7 +64,7 @@ object PDFUtil {
     getSearchResultHighlights(highlights.highlights, singlePageDoc, pageNumber, false)
   }
 
-  def getSearchResultHighlights(highlights: List[TextHighlight], singlePageDoc: PDDocument, pageNumber: Int, isImpromptu: Boolean = false): List[PageHighlight] = {
+  def getSearchResultHighlights(highlights: List[TextHighlight], singlePageDoc: PDDocument, pageNumber: Int, isFind: Boolean = false): List[PageHighlight] = {
 
     var textPositions = List.empty[Either[TextPosition, NewlinePlaceholder.type]]
 
@@ -130,8 +130,8 @@ object PDFUtil {
         }
       }
 
-      if (isImpromptu) {
-        ImpromptuSearchPageHighlight(highlight.id, spans)
+      if (isFind) {
+        FindPageHighlight(highlight.id, spans)
       } else {
         SearchResultPageHighlight(highlight.id, spans)
       }

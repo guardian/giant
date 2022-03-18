@@ -23,7 +23,7 @@ export type CachedPageData = {
 export class PageCache {
   uri: string;
   query?: string;
-  impromptuQuery?: string;
+  findQuery?: string;
 
   // Arrived at by testing with Chrome on Ubuntu.
   // Having too many cached pages can result in having too many
@@ -50,8 +50,8 @@ export class PageCache {
     );
   }
 
-  setImpromptuQuery = (q?: string) => {
-    this.impromptuQuery = q;
+  setFindQuery = (q?: string) => {
+    this.findQuery = q;
   };
 
   private onPreviewCacheMiss = (pageNumber: number): CachedPreviewData => {
@@ -78,8 +78,8 @@ export class PageCache {
     if (this.query) {
       textParams.set("q", this.query);
     }
-    if (this.impromptuQuery) {
-      textParams.set("iq", this.impromptuQuery);
+    if (this.findQuery) {
+      textParams.set("iq", this.findQuery);
     }
     const data = authFetch(
       `/api/pages2/${this.uri}/${pageNumber}/text?${textParams.toString()}`,
@@ -98,7 +98,7 @@ export class PageCache {
 
   getAllPageNumbers = (): number[] => {
     return this.dataCache.keys();
-  }
+  };
 
   getPage = (pageNumber: number): CachedPage => {
     const preview = this.previewCache.get(pageNumber);

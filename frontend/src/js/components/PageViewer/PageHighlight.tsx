@@ -15,7 +15,7 @@ export const PageHighlight: FC<PageHighlightProps> = ({
 }) => {
   const { id, type } = highlight;
 
-  const isImpromptu = type === "ImpromptuSearchPageHighlight";
+  const isFind = type === "FindPageHighlight";
   return (
     <>
       {highlight.data.map((span, i) => {
@@ -33,9 +33,7 @@ export const PageHighlight: FC<PageHighlightProps> = ({
         const classes = [
           styles.highlight,
           ...(focused ? ["pfi-page-highlight--focused"] : []),
-          ...(isImpromptu
-            ? [styles.impromptuHighlight]
-            : [styles.searchHighlight]),
+          ...(isFind ? [styles.findHighlight] : [styles.searchHighlight]),
         ];
 
         return (

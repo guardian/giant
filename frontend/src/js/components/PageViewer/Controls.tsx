@@ -2,56 +2,55 @@ import React, { FC } from "react";
 import RotateLeft from "react-icons/lib/md/rotate-left";
 import RotateRight from "react-icons/lib/md/rotate-right";
 import styles from "./Controls.module.css";
-import { ImpromptuSearchInput } from "./ImpromptuSearchInput";
+import { FindInput } from "./FindInput";
 
 type ControlsProps = {
   // Rotation
   rotateClockwise: () => void;
   rotateAnticlockwise: () => void;
 
-  // Impromptu Search Input
-  impromptuSearch: string;
-  setImpromptuSearch: (v: string) => void;
+  // Find Search Input
+  findSearch: string;
+  setFind: (v: string) => void;
 
-  performImpromptuSearch: (query: string) => Promise<void>;
+  performFind: (query: string) => Promise<void>;
 
-  jumpToNextImpromptuSearchHit: () => void;
-  jumpToPreviousImpromptuSearchHit: () => void;
-  impromptuSearchHits: number[];
+  jumpToNextFindHit: () => void;
+  jumpToPreviousFindHit: () => void;
+  findSearchHits: number[];
   lastPageHit: number;
 };
 
 export const Controls: FC<ControlsProps> = ({
   rotateClockwise,
   rotateAnticlockwise,
-  impromptuSearch,
-  setImpromptuSearch,
-  jumpToNextImpromptuSearchHit,
-  jumpToPreviousImpromptuSearchHit,
-  performImpromptuSearch,
-  impromptuSearchHits,
+  findSearch,
+  setFind,
+  jumpToNextFindHit,
+  jumpToPreviousFindHit,
+  performFind,
+  findSearchHits,
   lastPageHit,
 }) => {
   return (
     <div className={styles.bar}>
-        <div>
+      <div>
+        <button onClick={rotateAnticlockwise}>
+          <RotateLeft />
+        </button>
+        <button onClick={rotateClockwise}>
+          <RotateRight />
+        </button>
+      </div>
 
-      <button onClick={rotateAnticlockwise}>
-        <RotateLeft />
-      </button>
-      <button onClick={rotateClockwise}>
-        <RotateRight />
-      </button>
-        </div>
-
-      <ImpromptuSearchInput
-        value={impromptuSearch}
-        setValue={setImpromptuSearch}
-        hits={impromptuSearchHits}
+      <FindInput
+        value={findSearch}
+        setValue={setFind}
+        hits={findSearchHits}
         lastPageHit={lastPageHit}
-        performImpromptuSearch={performImpromptuSearch}
-        jumpToNextImpromptuSearchHit={jumpToNextImpromptuSearchHit}
-        jumpToPreviousImpromptuSearchHit={jumpToPreviousImpromptuSearchHit}
+        performFind={performFind}
+        jumpToNextFindHit={jumpToNextFindHit}
+        jumpToPreviousFindHit={jumpToPreviousFindHit}
       />
     </div>
   );

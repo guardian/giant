@@ -7,7 +7,7 @@ import com.sksamuel.elastic4s.requests.searches.queries.Query
 import com.sksamuel.elastic4s.requests.searches.{HighlightField, MultisearchResponseItem, SearchRequest}
 import model.Uri
 import model.frontend.Highlight
-import model.index.{Page, PageWithImpromptuSearch}
+import model.index.{Page, PageWithFind}
 import services.ElasticsearchSyntax
 import utils.Logging
 import utils.attempt.{Attempt, ElasticSearchQueryFailure, MultipleFailures, NotFoundFailure}
@@ -29,7 +29,7 @@ class Pages2(val client: ElasticClient, indexNamePrefix: String)(implicit val ex
   }
 
   // Get geometries for a given page (page geometry and highlights)
-  def getPageGeometries(uri: Uri, pageNumber: Int, highlightQuery: Option[String], impromptuHighlightQuery: Option[String]): Attempt[PageWithImpromptuSearch] = {
+  def getPageGeometries(uri: Uri, pageNumber: Int, highlightQuery: Option[String], findHighlightQuery: Option[String]): Attempt[PageWithFind] = {
     val query = highlightQuery.map(buildQuery)
     val highlightFields = query.toList.flatMap { query =>
       HighlightFields.languageHighlighters(PagesFields.value, query)
@@ -37,8 +37,8 @@ class Pages2(val client: ElasticClient, indexNamePrefix: String)(implicit val ex
         .map(_.numberOfFragments(0))
     }
 
-    val impromptuQuery = impromptuHighlightQuery.map(buildQuery)
-    val impromptuHighlightFields = impromptuQuery.toList.flatMap { query =>
+    val findQuery = findHighlightQuery.map(buildQuery)
+    val findHighlightFields = findQuery.toList.flatMap { query =>
       HighlightFields.languageHighlighters(PagesFields.value, query)
         .map(_.numberOfFragments(0))
     }
@@ -50,10 +50,10 @@ class Pages2(val client: ElasticClient, indexNamePrefix: String)(implicit val ex
             .termQuery("_id", s"${uri.value}-$pageNumber")
             .highlighting(highlightFields)
         ),
-        impromptuQuery.map { _ =>
+        findQuery.map { _ =>
           search(textIndexName)
             .termQuery("_id", s"${uri.value}-$pageNumber")
-            .highlighting(impromptuHighlightFields)
+            .highlighting(findHighlightFields)
         }
       ).flatten
 
@@ -73,17 +73,17 @@ class Pages2(val client: ElasticClient, indexNamePrefix: String)(implicit val ex
             val pages = results.flatMap(_.to[Page])
 
             val page = pages.head
-            val impromptuSearchPage = pages.lift(1)
+            val findSearchPage = pages.lift(1)
 
             Attempt.Right(
-              PageWithImpromptuSearch(page.page, page.value, impromptuSearchPage.map(_.value), page.dimensions)
+              PageWithFind(page.page, page.value, findSearchPage.map(_.value), page.dimensions)
             )
           }
         }
   }
 
   // This function is used to search within the page index to find highlights for a given query
-  // it can be reused for impromptu search and for regular highlighting.
+  // it can be reused for find search and for regular highlighting.
   def searchPages(uri: Uri, q: String): Attempt[Seq[Int]] = {
     val query = buildQuery(q)
 

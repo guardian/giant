@@ -8,7 +8,7 @@ import styles from "./VirtualScroll.module.css";
 type VirtualScrollProps = {
   uri: string;
   query?: string;
-  impromptuQuery?: string;
+  findQuery?: string;
   triggerHighlightRefresh: number;
 
   totalPages: number;
@@ -22,7 +22,7 @@ type VirtualScrollProps = {
 export const VirtualScroll: FC<VirtualScrollProps> = ({
   uri,
   query,
-  impromptuQuery,
+  findQuery,
   triggerHighlightRefresh,
 
   totalPages,
@@ -48,8 +48,8 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
   const [currentPages, setCurrentPages] = useState<any[]>([]);
 
   useEffect(() => {
-    pageCache.setImpromptuQuery(impromptuQuery);
-  }, [impromptuQuery]);
+    pageCache.setFindQuery(findQuery);
+  }, [findQuery]);
 
   const [topPage, setTopPage] = useState(1);
   const [midPage, setMidPage] = useState(1); // Todo hook up to URL
@@ -74,7 +74,7 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
 
       // Inform the parent component of the new middle page
       // This allows it to do useful things such as have a sensible "next" page
-      // to go to for the impromptu hits
+      // to go to for the find hits
       setMiddlePage(newMidPage);
     }
   };
@@ -125,9 +125,8 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
       Promise.all(newCurrentPages.map((r) => r.getPageData)).then(() => {
         pageCache
           .getAllPageNumbers()
-          .filter((p) => !newCurrentPages.some(cp => cp.pageNumber === p))
-          .forEach((p) =>
-            pageCache.getPageRefreshHighlights(p));
+          .filter((p) => !newCurrentPages.some((cp) => cp.pageNumber === p))
+          .forEach((p) => pageCache.getPageRefreshHighlights(p));
       });
 
       setCurrentPages(newCurrentPages);
@@ -144,7 +143,10 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
         {currentPages.map((page) => (
           <div
             key={page.pageNumber}
-            style={{ top: (page.pageNumber - 1) * pageHeight, transform: `rotate(${rotation}deg)` }}
+            style={{
+              top: (page.pageNumber - 1) * pageHeight,
+              transform: `rotate(${rotation}deg)`,
+            }}
             className={styles.pageContainer}
           >
             <Page

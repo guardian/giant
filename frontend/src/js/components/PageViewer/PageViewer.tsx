@@ -26,11 +26,11 @@ export const PageViewer: FC<PageViewerProps> = () => {
   // Initially set to the page in the URL
   const [jumpToPage, setJumpToPage] = useState<number | null>(page);
 
-  // Impromptu searching...
+  // Find searching...
   const [lastPageHit, setLastPageHit] = useState<number>(0);
-  const [impromptuSearchHits, setImpromptuSearchHits] = useState<number[]>([]);
-  const [impromptuSearchVisible, setImpromptuSearchVisible] = useState(false);
-  const [impromptuSearch, setImpromptuSearch] = useState("");
+  const [findSearchHits, setFindHits] = useState<number[]>([]);
+  const [findSearchVisible, setFindVisible] = useState(false);
+  const [findSearch, setFind] = useState("");
 
   const [triggerRefresh, setTriggerRefresh] = useState(0);
   const [preloadPages, setPreloadPages] = useState<number[]>([]);
@@ -47,10 +47,10 @@ export const PageViewer: FC<PageViewerProps> = () => {
   const handleUserKeyPress = useCallback((e) => {
     if ((e.ctrlKey || e.metaKey) && e.keyCode === 70) {
       e.preventDefault();
-      setImpromptuSearchVisible(true);
+      setFindVisible(true);
 
       const maybeInput = document.getElementById(
-        "impromptu-search-input"
+        "find-search-input"
       ) as HTMLInputElement;
       if (maybeInput) {
         maybeInput.focus();
@@ -67,19 +67,19 @@ export const PageViewer: FC<PageViewerProps> = () => {
     };
   }, [handleUserKeyPress]);
 
-  const performImpromptuSearch = useCallback(
+  const performFind = useCallback(
     (query: string) =>
-      authFetch(`/api/pages2/${uri}/impromptu?q="${query}"`)
+      authFetch(`/api/pages2/${uri}/find?q="${query}"`)
         .then((res) => res.json())
         .then((searchHits) => {
           setLastPageHit(middlePage);
-          setImpromptuSearchHits(searchHits);
+          setFindHits(searchHits);
           setTriggerRefresh((t) => t + 1);
         }),
     [middlePage]
   );
 
-  const preloadNextPreviousImpromptuPages = (
+  const preloadNextPreviousFindPages = (
     centrePage: number,
     pageHits: number[]
   ) => {
@@ -95,59 +95,59 @@ export const PageViewer: FC<PageViewerProps> = () => {
     );
 
     const newPreloadPages = hitsToPreloadIndexes.map(
-      (idx) => impromptuSearchHits[idx]
+      (idx) => findSearchHits[idx]
     );
 
     setPreloadPages(newPreloadPages);
   };
 
-  const jumpToNextImpromptuSearchHit = useCallback(() => {
-    if (impromptuSearchHits.length > 0) {
-      const maybePage = impromptuSearchHits.find((page) => page > lastPageHit);
-      const nextPage = maybePage ? maybePage : impromptuSearchHits[0];
+  const jumpToNextFindHit = useCallback(() => {
+    if (findSearchHits.length > 0) {
+      const maybePage = findSearchHits.find((page) => page > lastPageHit);
+      const nextPage = maybePage ? maybePage : findSearchHits[0];
 
-      preloadNextPreviousImpromptuPages(nextPage, impromptuSearchHits);
+      preloadNextPreviousFindPages(nextPage, findSearchHits);
       setLastPageHit(nextPage);
       setJumpToPage(nextPage);
     }
-  }, [impromptuSearchHits, lastPageHit]);
+  }, [findSearchHits, lastPageHit]);
 
-  const jumpToPreviousImpromptuSearchHit = useCallback(() => {
-    if (impromptuSearchHits.length > 0) {
+  const jumpToPreviousFindHit = useCallback(() => {
+    if (findSearchHits.length > 0) {
       const maybePage = _.findLast(
-        impromptuSearchHits,
+        findSearchHits,
         (page) => page < lastPageHit
       );
       const previousPage = maybePage
         ? maybePage
-        : impromptuSearchHits[impromptuSearchHits.length - 1];
+        : findSearchHits[findSearchHits.length - 1];
 
-      preloadNextPreviousImpromptuPages(previousPage, impromptuSearchHits);
+      preloadNextPreviousFindPages(previousPage, findSearchHits);
       setLastPageHit(previousPage);
       setJumpToPage(previousPage);
     }
-  }, [impromptuSearchHits, lastPageHit]);
+  }, [findSearchHits, lastPageHit]);
 
   return (
     <main className={styles.main}>
-        <Controls
-          rotateAnticlockwise={() => setRotation(r => r - 90)}
-          rotateClockwise={() => setRotation(r => r + 90)}
-          impromptuSearch={impromptuSearch}
-          setImpromptuSearch={(q) => {
-            setImpromptuSearch(q);
-          }}
-          impromptuSearchHits={impromptuSearchHits}
-          lastPageHit={lastPageHit}
-          performImpromptuSearch={performImpromptuSearch}
-          jumpToNextImpromptuSearchHit={jumpToNextImpromptuSearchHit}
-          jumpToPreviousImpromptuSearchHit={jumpToPreviousImpromptuSearchHit}
-        />
+      <Controls
+        rotateAnticlockwise={() => setRotation((r) => r - 90)}
+        rotateClockwise={() => setRotation((r) => r + 90)}
+        findSearch={findSearch}
+        setFind={(q) => {
+          setFind(q);
+        }}
+        findSearchHits={findSearchHits}
+        lastPageHit={lastPageHit}
+        performFind={performFind}
+        jumpToNextFindHit={jumpToNextFindHit}
+        jumpToPreviousFindHit={jumpToPreviousFindHit}
+      />
       {totalPages ? (
         <VirtualScroll
           uri={uri}
           query={query}
-          impromptuQuery={impromptuSearch}
+          findQuery={findSearch}
           triggerHighlightRefresh={triggerRefresh}
           totalPages={totalPages}
           jumpToPage={jumpToPage}

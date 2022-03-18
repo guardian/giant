@@ -5,7 +5,7 @@ import commands.GetPages.PagePreviewMetadata
 import java.io.InputStream
 import commands.{GetPagePreview, GetPages, GetResource, ResourceFetchMode}
 import model.frontend.{Chips, HighlightableText, TextHighlight}
-import model.index.{FrontendPage, Page, PageHighlight, PageWithImpromptuSearch}
+import model.index.{FrontendPage, Page, PageHighlight, PageWithFind}
 import model.{Language, Languages, Uri}
 import org.apache.pdfbox.pdmodel.PDDocument
 import play.api.libs.json.Json
@@ -40,10 +40,10 @@ class PagesController(val controllerComponents: AuthControllerComponents, manife
       allLanguages = page.value.keySet
       // Highlighting stuff
       highlights = dedupHighlightSpans(page.page, page.value, false)
-      impromptuHighlights = page.impromptuSearchValue.map { langMap =>
+      findHighlights = page.findSearchValue.map { langMap =>
           dedupHighlightSpans(page.page, langMap, true)
         }.getOrElse(Map.empty)
-      highlights <- getHighlightGeometriesForPage(uri, pageNumber, highlights, impromptuHighlights)
+      highlights <- getHighlightGeometriesForPage(uri, pageNumber, highlights, findHighlights)
     } yield {
       val response = FrontendPage(pageNumber, allLanguages.head, allLanguages, page.dimensions, highlights.flatMap(_.highlights).toList)
       Ok(Json.toJson(response))
@@ -55,8 +55,8 @@ class PagesController(val controllerComponents: AuthControllerComponents, manife
   private def getHighlightGeometriesForPage(uri: Uri,
                                    pageNumber: Int,
                                    highlights: Map[Language, List[TextHighlight]],
-                                   impromptuHighlights: Map[Language, List[TextHighlight]]) = {
-    val previewPaths = (highlights.keySet ++ impromptuHighlights.keySet).map { lang =>
+                                   findHighlights: Map[Language, List[TextHighlight]]) = {
+    val previewPaths = (highlights.keySet ++ findHighlights.keySet).map { lang =>
       lang -> PreviewService.getPageStoragePath(uri, lang, pageNumber)
     }
 
@@ -66,12 +66,12 @@ class PagesController(val controllerComponents: AuthControllerComponents, manife
           val pdf = PDDocument.load(pdfData)
 
           val highlightSpans = highlights.getOrElse(lang, Nil)
-          val impromptuHighlightSpans = impromptuHighlights.getOrElse(lang, Nil)
+          val findHighlightSpans = findHighlights.getOrElse(lang, Nil)
 
           val highlightGeometries = PDFUtil.getSearchResultHighlights(highlightSpans, pdf, pageNumber, false)
-          val impromptuHighlightGeometries = PDFUtil.getSearchResultHighlights(impromptuHighlightSpans, pdf, pageNumber, true)
+          val findHighlightGeometries = PDFUtil.getSearchResultHighlights(findHighlightSpans, pdf, pageNumber, true)
 
-          HighlightGeometries(lang, highlightGeometries ++ impromptuHighlightGeometries)
+          HighlightGeometries(lang, highlightGeometries ++ findHighlightGeometries)
         } finally {
           pdfData.close()
         }
@@ -85,9 +85,9 @@ class PagesController(val controllerComponents: AuthControllerComponents, manife
   // in multiple langauges. This allows us to avoid calculating highlight geometry for multiple languages when the
   // highlight is the same.
   // This is good because it allows us to minimise the number of downloads from S3 in the common case.
-  private def dedupHighlightSpans(page: Long, valueMap: Map[Language, String], isImpromptu: Boolean): Map[Language, List[TextHighlight]] = {
+  private def dedupHighlightSpans(page: Long, valueMap: Map[Language, String], isFind: Boolean): Map[Language, List[TextHighlight]] = {
     valueMap.toList.flatMap { case (lang, text) =>
-      val hlText = HighlightableText.fromString(text, Some(page), isImpromptu)
+      val hlText = HighlightableText.fromString(text, Some(page), isFind)
       hlText.highlights.map(span => (lang, span))
     }.groupBy(_._2).toList.map { case (lang, commonSpans) =>
       commonSpans.head
@@ -109,7 +109,7 @@ class PagesController(val controllerComponents: AuthControllerComponents, manife
     }
   }
 
-  def impromptuSearch(uri: Uri, q: String) = ApiAction.attempt {
+  def findSearch(uri: Uri, q: String) = ApiAction.attempt {
     pagesService.searchPages(uri, q).map( res =>
       Ok(Json.toJson(res))
     )
