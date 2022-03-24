@@ -1,5 +1,6 @@
 import React from 'react';
 import DownloadButton from './DownloadButton';
+import DeleteButton from './DeleteButton';
 import AddToWorkspaceModal from './AddToWorkspaceModal';
 import { resourcePropType } from '../../types/Resource';
 
@@ -22,6 +23,7 @@ export default class ViewerActions extends React.Component {
                         Add to Workspace
                     </button>
                     <DownloadButton />
+                    <DeleteButton />
                 </div>
 
                 <AddToWorkspaceModal
