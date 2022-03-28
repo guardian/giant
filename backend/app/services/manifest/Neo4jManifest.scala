@@ -11,7 +11,7 @@ import model.ingestion.{IngestionFile, WorkspaceItemContext}
 import model.manifest._
 import org.joda.time.DateTime
 import org.neo4j.driver.v1.Values.parameters
-import org.neo4j.driver.v1.{Driver, StatementRunner, Value}
+import org.neo4j.driver.v1.{Driver, StatementResult, StatementRunner, Value}
 import services.Neo4jQueryLoggingConfig
 import services.manifest.Manifest.WorkCounts
 import utils._
@@ -947,27 +947,48 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
     Right(WorkCounts(inProgress, outstanding))
   }
 
-  def deleteBlob(uri: Uri): Attempt[Unit] = attemptTransaction { tx =>
+  private def processDelete(uri: Uri, query: String, correctResultsCount: Int => Boolean, errorText: String): Attempt[Unit] = attemptTransaction { tx =>
     tx.run(
-      """
-        |MATCH (b: Blob { uri: { uri }}) DETACH DELETE b
-      """.stripMargin,
+      query,
       parameters(
         "uri", uri.value
-      )).flatMap { result =>
+      )).flatMap { result: StatementResult =>
 
       val counters = result.summary().counters()
 
-      // We consider the deletion a success even if nothing has been deleted since the deletion may have been triggered
-      // from a list of results coming back from Elasticsearch (which is eventually consistent so doesn't immediately
-      // show that the delete happened). TODO MRB: handle this more gracefully at a higher level, it's a hack down here
-      if(counters.nodesDeleted() == 0 || counters.nodesDeleted() == 1) {
-        Attempt.Right(())
-      } else {
-        Attempt.Left(IllegalStateFailure(s"Error deleting blob $uri. Nodes deleted: ${counters.nodesDeleted()}"))
+      if (correctResultsCount(counters.nodesDeleted())) Attempt.Right(())
+      else {
+        Attempt.Left(IllegalStateFailure(s"$errorText of  blob $uri. Nodes deleted: ${counters.nodesDeleted()}"))
       }
     }
   }
+
+  def deleteBlobWorkspaceNode(uri: Uri): Attempt[Unit] = processDelete(
+    uri,
+    """
+        |MATCH (w: WorkspaceNode { uri: { uri }})  DETACH DELETE w
+      """.stripMargin,
+    count => count == 1,
+    "Error deleting workspace node")
+
+  def deleteBlobFileParent(uri: Uri): Attempt[Unit] = processDelete(
+    uri,
+    """
+      |MATCH (: Blob { uri: { uri }}) -->(f: File) DETACH DELETE f
+      """.stripMargin,
+    count => count > 0,
+    "Error deleting file parent")
+
+  def deleteBlob(uri: Uri): Attempt[Unit] = processDelete(
+    uri,
+    """
+      |MATCH (b: Blob { uri: { uri }}) DETACH DELETE b
+      """.stripMargin,
+    // We consider the deletion a success even if nothing has been deleted since the deletion may have been triggered
+    // from a list of results coming back from Elasticsearch (which is eventually consistent so doesn't immediately
+    // show that the delete happened). TODO MRB: handle this more gracefully at a higher level, it's a hack down here
+    count => count == 0 || count == 1,
+    "Error deleting blob")
 
   def deleteIngestion(uri: Uri): Attempt[Unit] = attemptTransaction { tx =>
     tx.run(

@@ -7,22 +7,25 @@ import {deleteBlob} from "../../services/BlobApi";
 
 
 
-export function DeleteButton({ resource }: { resource: Resource | null }) {
+export function DeleteButton({ resource, isAdmin }: { resource: Resource | null , isAdmin: Boolean}) {
     const [modalOpen, setModalOpen] = useState(false);
 
-    const isAdmin =true
-
-    if (!resource || !isAdmin) {
+    if (!isAdmin || !resource ) {
         return null;
     }
-    console.log(resource.uri)
 
-    const deleteItem = (uri: string) => (e: React.SyntheticEvent<HTMLFormElement>) => {
+    const deleteItem = async (e: React.SyntheticEvent<HTMLFormElement>) => {
         e.preventDefault()
-        console.log("woohoo")
-        deleteBlob(uri);
-        setModalOpen(false)
-        window.history.go(-2)
+        try {
+            await deleteBlob(resource.uri);
+            setModalOpen(false)
+            // if the user has come from a search this will take them back to the search results
+            // in other instances the file will have been opened in a new tab so we'll need to do something else
+            window.history.back()
+        }
+        catch (e){
+            console.error("Error deleting item", e)
+        }
     }
 
     return <React.Fragment>
@@ -31,7 +34,7 @@ export function DeleteButton({ resource }: { resource: Resource | null }) {
             dismiss={() => setModalOpen(false)}
         >
 
-            <form className="form" onSubmit={deleteItem(resource.uri)}>
+            <form className="form" onSubmit={deleteItem}>
                 <h2 className='modal__title'>Delete Item?</h2>
                 <div className='form__row'>
             Are you sure you want to delete this item? This action will permanently delete the resource from all collections and

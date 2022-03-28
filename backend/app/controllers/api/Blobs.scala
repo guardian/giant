@@ -3,7 +3,7 @@ package controllers.api
 import model.Uri
 import model.user.UserPermission.CanPerformAdminOperations
 import play.api.libs.json.Json
-import play.api.mvc.{AnyContent, Request}
+import play.api.mvc.{Action, AnyContent, Request}
 import services.ObjectStorage
 import services.index.Index
 import services.manifest.Manifest
@@ -70,7 +70,7 @@ class Blobs(override val controllerComponents: AuthControllerComponents, manifes
     }
   }
 
-  def delete(id: String) = ApiAction.attempt { req =>
+  def delete(id: String): Action[AnyContent] = ApiAction.attempt { req =>
     checkPermission(CanPerformAdminOperations, req) {
       val uri = Uri(id)
 
@@ -79,6 +79,9 @@ class Blobs(override val controllerComponents: AuthControllerComponents, manifes
         _ <- Attempt.fromEither(previewStorage.delete(uri.toStoragePath))
         _ <- Attempt.fromEither(objectStorage.delete(uri.toStoragePath))
         _ <- index.delete(id)
+        _ <- manifest.deleteBlobFileParent(uri)
+        // not all blobs are in workspaces so ignore failures here
+        _ <- manifest.deleteBlobWorkspaceNode(uri).recoverWith{ case _ => Attempt.Right(())}
         _ <- manifest.deleteBlob(uri)
       } yield {
         NoContent

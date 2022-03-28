@@ -3,10 +3,12 @@ import DownloadButton from './DownloadButton';
 import DeleteButton from './DeleteButton';
 import AddToWorkspaceModal from './AddToWorkspaceModal';
 import { resourcePropType } from '../../types/Resource';
+import {permissionsPropType} from "../../types/User";
 
 export default class ViewerActions extends React.Component {
     static propTypes = {
-        resource: resourcePropType
+        resource: resourcePropType,
+        isAdmin: Boolean,
     }
 
     state = {
@@ -23,7 +25,7 @@ export default class ViewerActions extends React.Component {
                         Add to Workspace
                     </button>
                     <DownloadButton />
-                    <DeleteButton />
+                    <DeleteButton isAdmin={this.props.isAdmin} />
                 </div>
 
                 <AddToWorkspaceModal
