@@ -12,7 +12,7 @@ POST          /api/collections/:collection/:ingestion/verifyFiles           cont
 
 GET           /api/blobs                                                    controllers.api.Blobs.getBlobs
 POST          /api/blobs/:id/reprocess                                      controllers.api.Blobs.reprocess(id, rerunSuccessful: Option[Boolean], rerunFailed: Option[Boolean])
-DELETE        /api/blobs/:id                                                controllers.api.Blobs.delete(id, deleteFolders: Boolean = false)
+DELETE        /api/blobs/:id                                                controllers.api.Blobs.delete(id, deleteFolders: Boolean ?= false)
 
 GET           /api/filters                                                  controllers.api.Filters.getFilters
 
