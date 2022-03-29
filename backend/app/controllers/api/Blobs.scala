@@ -70,18 +70,20 @@ class Blobs(override val controllerComponents: AuthControllerComponents, manifes
     }
   }
 
-  def delete(id: String): Action[AnyContent] = ApiAction.attempt { req =>
+  def delete(id: String, deleteFolders: Boolean): Action[AnyContent] = ApiAction.attempt { req =>
     checkPermission(CanPerformAdminOperations, req) {
       val uri = Uri(id)
+
+      val successAttempt = Attempt.Right(())
 
       for {
         // Not everything has a preview but S3 returns success for deleting an object that doesn't exist so we're fine
         _ <- Attempt.fromEither(previewStorage.delete(uri.toStoragePath))
         _ <- Attempt.fromEither(objectStorage.delete(uri.toStoragePath))
         _ <- index.delete(id)
-        _ <- manifest.deleteBlobFileParent(uri)
+        _ <- if (deleteFolders) manifest.deleteBlobFileParent(uri) else successAttempt
         // not all blobs are in workspaces so ignore failures here
-        _ <- manifest.deleteBlobWorkspaceNode(uri).recoverWith{ case _ => Attempt.Right(())}
+        _ <- if (deleteFolders) manifest.deleteBlobWorkspaceNode(uri).recoverWith{ case _ => successAttempt} else successAttempt
         _ <- manifest.deleteBlob(uri)
       } yield {
         NoContent
