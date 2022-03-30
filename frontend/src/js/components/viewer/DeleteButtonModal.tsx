@@ -12,7 +12,7 @@ export function DeleteButtonModal({ resource }: { resource: Resource | null }) {
     const [modalOpen, setModalOpen] = useState(false);
     const [deleteStatus, setDeleteStatus] = useState<DeleteStatus>("unconfirmed");
 
-    if (!resource ) {
+    if (!resource || resource.children.length > 0) {
         return null;
     }
 
