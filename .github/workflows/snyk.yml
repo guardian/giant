@@ -15,7 +15,7 @@ jobs:
   security:
     uses: guardian/.github/.github/workflows/sbt-node-snyk.yml@main
     with:
-      SKIP_NODE: true
+      SKIP_NODE: false
       ORG: guardian-investigations
     secrets:
       SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
