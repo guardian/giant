@@ -2,7 +2,7 @@ name := "giant"
 description := "Tool for journalists to search, analyse and categorise unstructured data, often during an investigation"
 version := "0.1.0"
 
-scalaVersion in ThisBuild := "2.12.5"
+scalaVersion in ThisBuild := "2.12.6"
 
 import com.gu.riffraff.artifact.BuildInfo
 import play.sbt.PlayImport.PlayKeys._
@@ -161,7 +161,7 @@ lazy val backend = (project in file("backend"))
     RoutesKeys.routesImport += "utils.Binders._",
     playDefaultPort := port,
 
-    debianPackageDependencies := Seq("openjdk-8-jre-headless"),
+    debianPackageDependencies := Seq("java-11-amazon-corretto-jdk"),
     maintainer in Linux := "Guardian Developers <dig.dev.software@theguardian.com>",
     packageSummary in Linux := description.value,
     packageDescription := description.value,
@@ -174,8 +174,7 @@ lazy val backend = (project in file("backend"))
       "-J-XX:InitialRAMFraction=2",
       "-J-XX:MaxMetaspaceSize=500m",
       "-J-XX:+UseConcMarkSweepGC",
-      "-J-XX:+PrintGCDetails",
-      "-J-XX:+PrintGCDateStamps",
+      "-J-Xlog:gc*",
       "-J-XX:+HeapDumpOnOutOfMemoryError",
       s"-J-Xloggc:/var/log/${name.value}/gc.log",
       s"-J-Dhttp.port=$port"

@@ -23,6 +23,10 @@ cp -r frontend/build/* backend/public
 # On Teamcity the JDeb build doesn't seem to follow the symbolic link while packaging, weirdly
 cp frontend/node_modules/pdfjs-dist/build/pdf.worker.min.js backend/public/third-party/pdf.worker.min.js
 
+#Use java 11
+export JAVA_HOME=/usr/lib/jvm/java-11-amazon-corretto
+export PATH=$JAVA_HOME/bin:$PATH
+
 # Do a full build of PFI including all tests and upload it to Riff-Raff under the playground stack
 sbt -DPFI_STACK=pfi-playground clean riffRaffUploadWithIntegrationTests
 
