@@ -966,7 +966,7 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
   def deleteBlobWorkspaceNode(uri: Uri): Attempt[Unit] = processDelete(
     uri,
     """
-        |MATCH (w: WorkspaceNode { uri: { uri }})  DETACH DELETE w
+        |MATCH (w: WorkspaceNode:Resource { uri: { uri }})  DETACH DELETE w
       """.stripMargin,
     count => count == 1,
     "Error deleting workspace node")
@@ -974,7 +974,7 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
   def deleteBlobFileParent(uri: Uri): Attempt[Unit] = processDelete(
     uri,
     """
-      |MATCH (: Blob { uri: { uri }}) -->(f: File) DETACH DELETE f
+      |MATCH (: Blob:Resource { uri: { uri }}) -->(f: File) DETACH DELETE f
       """.stripMargin,
     count => count > 0,
     "Error deleting file parent")
@@ -982,7 +982,7 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
   def deleteBlob(uri: Uri): Attempt[Unit] = processDelete(
     uri,
     """
-      |MATCH (b: Blob { uri: { uri }}) DETACH DELETE b
+      |MATCH (b: Blob:Resource { uri: { uri }}) DETACH DELETE b
       """.stripMargin,
     // We consider the deletion a success even if nothing has been deleted since the deletion may have been triggered
     // from a list of results coming back from Elasticsearch (which is eventually consistent so doesn't immediately

@@ -7,7 +7,7 @@ import services.ObjectStorage
 import services.index.Index
 import services.manifest.Manifest
 import utils.Logging
-import utils.attempt.{Attempt, DeleteFailure}
+import utils.attempt.{Attempt, DeleteFailure, IllegalStateFailure}
 
 import scala.concurrent.ExecutionContext
 
@@ -40,7 +40,7 @@ class DeleteResource( manifest: Manifest, index: Index,
        // casting to an option here because Attempt[Resource] and Attempt[Unit] are incompatible - so can't use a for comprehension with toAttempt
        val deleteResult = manifest.getResource(uri).toOption map { resource =>
          if (resource.children.isEmpty) deleteResource(uri, deleteFolders)
-         else Attempt.Left(DeleteFailure(s"Cannot delete $uri as it has child nodes - is it a zip file or an email?"))
+         else Attempt.Left(IllegalStateFailure(s"Cannot delete $uri as it has child nodes"))
        }
        deleteResult.getOrElse(Attempt.Left(DeleteFailure("Failed to fetch resource")))
      }

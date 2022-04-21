@@ -48,7 +48,7 @@ export function DeleteButtonModal({ resource }: { resource: Resource | null }) {
                             <button className="btn" onClick={()=>document.location.href="/"}>
                                 Giant Home
                             </button>
-                            {window.history.length > 1 &&  <button className="btn" onClick={() => window.history.back()}>Return to Search</button>}
+                            {window.history.length > 1 &&  <button className="btn" onClick={() => window.history.back()}>Back to last page</button>}
                         </> :
                         <>
                             <button className="btn" onClick={() => setModalOpen(false)}>Cancel</button>
