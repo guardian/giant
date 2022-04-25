@@ -12,9 +12,12 @@ export function DeleteButtonModal({ resource }: { resource: Resource | null }) {
     const [modalOpen, setModalOpen] = useState(false);
     const [deleteStatus, setDeleteStatus] = useState<DeleteStatus>("unconfirmed");
 
-    if (!resource || resource.children.length > 0) {
+    if (!resource) {
         return null;
     }
+
+    const hasChildResources = resource.children.length > 0
+    const tooltip = hasChildResources ? "Item cannot be deleted as it has child resources" : "Delete item"
 
     const deleteItem = async () => {
         try {
@@ -61,7 +64,7 @@ export function DeleteButtonModal({ resource }: { resource: Resource | null }) {
             </div>
         </Modal>
 
-        <button className="btn" onClick={() => setModalOpen(true)}>
+        <button className="btn" onClick={() => setModalOpen(true)} title={tooltip} disabled={hasChildResources}>
             Delete
         </button>
     </React.Fragment>
