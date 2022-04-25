@@ -1,15 +1,17 @@
 package controllers.api
 
+import commands.DeleteResource
 import model.Uri
 import model.user.UserPermission.CanPerformAdminOperations
 import play.api.libs.json.Json
-import play.api.mvc.{AnyContent, Request}
+import play.api.mvc.{Action, AnyContent, Request, Result}
 import services.ObjectStorage
 import services.index.Index
 import services.manifest.Manifest
 import utils.Logging
-import utils.attempt.Attempt
-import utils.controller.{AuthApiController, AuthControllerComponents}
+import utils.attempt.{Attempt, DeleteFailure}
+import utils.controller.{AuthApiController, AuthControllerComponents, FailureToResultMapper}
+
 
 class Blobs(override val controllerComponents: AuthControllerComponents, manifest: Manifest, index: Index,
             objectStorage: ObjectStorage, previewStorage: ObjectStorage)
@@ -70,19 +72,14 @@ class Blobs(override val controllerComponents: AuthControllerComponents, manifes
     }
   }
 
-  def delete(id: String) = ApiAction.attempt { req =>
-    checkPermission(CanPerformAdminOperations, req) {
-      val uri = Uri(id)
 
-      for {
-        // Not everything has a preview but S3 returns success for deleting an object that doesn't exist so we're fine
-        _ <- Attempt.fromEither(previewStorage.delete(uri.toStoragePath))
-        _ <- Attempt.fromEither(objectStorage.delete(uri.toStoragePath))
-        _ <- index.delete(id)
-        _ <- manifest.deleteBlob(uri)
-      } yield {
-        NoContent
-      }
+  def delete(id: String, deleteFolders: Boolean, checkChildren: Boolean): Action[AnyContent] = ApiAction.attempt { req =>
+    import scala.language.existentials
+    val deleteResource = new DeleteResource(manifest, index, previewStorage, objectStorage)
+    checkPermission(CanPerformAdminOperations, req) {
+      val result = if (checkChildren) deleteResource.deleteBlobCheckChildren(id, deleteFolders)
+      else deleteResource.deleteBlob(id, deleteFolders)
+      result.map(_ => NoContent)
     }
   }
 }

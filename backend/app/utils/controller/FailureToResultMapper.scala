@@ -108,6 +108,9 @@ object FailureToResultMapper extends Logging {
       case ContentTooLongFailure(msg) =>
         logUserAndMessage(user, s"Content Too Long Failure: ${msg}")
         Results.EntityTooLarge(msg)
+      case DeleteFailure(msg) =>
+        logUserAndMessage(user, s"Delete failed: ${msg}")
+        Results.InternalServerError(msg)
     }
   }
 }

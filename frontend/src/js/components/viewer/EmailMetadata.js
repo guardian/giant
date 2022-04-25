@@ -7,7 +7,8 @@ import ViewerActions from './ViewerActions';
 export class EmailMetadata extends React.Component {
     static propTypes = {
         resource: resourcePropType,
-        config: PropTypes.object
+        config: PropTypes.object,
+        isAdmin: Boolean
     }
 
     render() {
@@ -16,7 +17,13 @@ export class EmailMetadata extends React.Component {
                 <div className='sidebar__title'>
                     Actions
                 </div>
-                <ViewerActions resource={this.props.resource} config={this.props.config}/>
+                <ViewerActions
+                    resource={this.props.resource}
+                    config={this.props.config}
+                    isAdmin={this.props.isAdmin}
+                    // emails are awkward to delete so keep this disabled for now
+                    disableDelete={true}
+                />
 
                 <div className='sidebar__title'>
                     Locations
