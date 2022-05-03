@@ -60,19 +60,19 @@ lazy val root = (project in file("."))
   .aggregate(common, backend, cli)
   .settings(
     riffRaffUploadWithIntegrationTests := Def.sequential(
-      test in Test in common,
-      test in Test in cli,
-      test in Test in backend,
-      test in IntTest in backend,
+      common / Test / test,
+      cli / Test / test,
+      backend / Test / test,
+      backend / IntTest / test,
       riffRaffUpload
     ).value,
     riffRaffManifestProjectName := s"investigations::${sys.props.getOrElse("PFI_STACK", "pfi-playground")}",
     riffRaffUploadArtifactBucket := Some("riffraff-artifact"),
     riffRaffUploadManifestBucket := Some("riffraff-builds"),
     riffRaffArtifactResources := Seq(
-      (packageBin in Debian in backend).value -> s"${(name in backend).value}/${(name in backend).value}.deb",
-      (packageBin in Debian in cli).value -> s"${(name in cli).value}/${(name in cli).value}.deb",
-      (packageZipTarball in Universal in cli).value -> s"pfi-public-downloads/${(name in cli).value}.tar.gz",
+      (backend / Debian / packageBin).value -> s"${(backend / name).value}/${(backend / name).value}.deb",
+      (cli / Debian / packageBin).value -> s"${(cli / name).value}/${(cli / name).value}.deb",
+      (cli / Universal / packageZipTarball).value -> s"pfi-public-downloads/${(cli / name).value}.tar.gz",
       file("riff-raff.yaml") -> "riff-raff.yaml"
     )
   )
@@ -155,20 +155,20 @@ lazy val backend = (project in file("backend"))
 
     // set up separate tests and integration tests - http://www.scala-sbt.org/0.13.1/docs/Detailed-Topics/Testing.html#custom-test-configuration
     inConfig(IntTest)(Defaults.testTasks),
-    testOptions in Test := Seq(Tests.Filter(name => !itFilter(name))),
-    testOptions in IntTest := Seq(Tests.Filter(itFilter)),
+    Test / testOptions := Seq(Tests.Filter(name => !itFilter(name))),
+    IntTest / testOptions  := Seq(Tests.Filter(itFilter)),
 
     RoutesKeys.routesImport += "utils.Binders._",
     playDefaultPort := port,
 
     debianPackageDependencies := Seq("java-11-amazon-corretto-jdk"),
-    maintainer in Linux := "Guardian Developers <dig.dev.software@theguardian.com>",
-    packageSummary in Linux := description.value,
+    Linux / maintainer  := "Guardian Developers <dig.dev.software@theguardian.com>",
+    Linux / packageSummary  := description.value,
     packageDescription := description.value,
 
-    mappings in Universal ~= { _.filterNot { case (_, fileName) => fileName == "conf/site.conf" }},
+    Universal / mappings ~= { _.filterNot { case (_, fileName) => fileName == "conf/site.conf" }},
 
-    javaOptions in Universal ++= Seq(
+    Universal / javaOptions ++= Seq(
       "-Dpidfile.path=/dev/null",
       "-J-XX:MaxRAMFraction=2",
       "-J-XX:InitialRAMFraction=2",
@@ -198,11 +198,11 @@ lazy val cli = (project in file("cli"))
       "org.slf4j" % "jcl-over-slf4j" % "1.7.25",
       "org.scalatest" %% "scalatest" % scalatestVersion
     ),
-    fork in run := true,
-    connectInput in run := true,
+    run / fork := true,
+    run / connectInput := true,
 
-    mappings in Universal +=
-      ((resourceDirectory in Compile).value / "logback.xml") -> "conf/logback.xml",
+    Universal / mappings +=
+      ((Compile / resourceDirectory).value / "logback.xml") -> "conf/logback.xml",
 
     bashScriptExtraDefines +=
       """addJava "-Dlogback.configurationFile=${app_home}/../conf/logback.xml""""
