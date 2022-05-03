@@ -63,7 +63,11 @@ class ViewerSidebar extends React.Component {
                     </div>
                     {this.props.resource.type ==='blob' ?
                         <DocumentMetadata resource={this.props.resource} config={this.props.config} myPermissions={this.props.myPermissions}/> :
-                        <EmailMetadata resource={this.props.resource} config={this.props.config}/>
+                        <EmailMetadata
+                            resource={this.props.resource}
+                            config={this.props.config}
+                            isAdmin={this.props.myPermissions.includes('CanPerformAdminOperations')}
+                        />
                     }
                 </div>
             );

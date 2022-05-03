@@ -104,7 +104,7 @@ export class DocumentMetadata extends React.Component {
                 <div className='sidebar__title'>
                     Actions
                 </div>
-                <ViewerActions resource={this.props.resource} config={this.props.config} />
+                <ViewerActions resource={this.props.resource} config={this.props.config} isAdmin={this.props.myPermissions.includes('CanPerformAdminOperations')} />
 
                 <div className='sidebar__title'>
                     Locations

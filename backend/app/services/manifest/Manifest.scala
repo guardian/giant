@@ -73,7 +73,7 @@ trait Manifest extends WorkerManifest {
   def rerunSuccessfulExtractorsForBlob(uri: Uri): Attempt[Unit]
 
   def rerunFailedExtractorsForBlob(uri: Uri): Attempt[Unit]
-  
+
   def getBlob(uri: Uri): Either[Failure, Blob]
 
   def getBlobsForFiles(fileUris: List[String]): Either[Failure, Map[String, Blob]]
@@ -81,6 +81,8 @@ trait Manifest extends WorkerManifest {
   def getEmailThread(uri: String): Attempt[List[EmailNeighbours]]
 
   def deleteBlob(uri: Uri): Attempt[Unit]
+  def deleteBlobFileParent(uri: Uri): Attempt[Unit]
+  def deleteBlobWorkspaceNode(uri: Uri): Attempt[Unit]
 
   def deleteIngestion(uri: Uri): Attempt[Unit]
 }
