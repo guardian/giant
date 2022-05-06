@@ -81,11 +81,11 @@ export const FindInput: FC<FindInputProps> = ({
             : " - "}
         </div>
       </div>
-      <button onClick={jumpToNextFindHit}>
-        <DownIcon />
-      </button>
       <button onClick={jumpToPreviousFindHit}>
         <UpIcon />
+      </button>
+      <button onClick={jumpToNextFindHit}>
+        <DownIcon />
       </button>
       <div
         data-visible={showWarning || null}
