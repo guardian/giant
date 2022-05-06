@@ -1,4 +1,4 @@
-import _ from "lodash";
+import { uniq, range, findLast } from "lodash";
 import React, { FC, useCallback, useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import authFetch from "../../util/auth/authFetch";
@@ -29,7 +29,7 @@ export const PageViewer: FC<PageViewerProps> = () => {
   // Find searching...
   const [lastPageHit, setLastPageHit] = useState<number>(0);
   const [findSearchHits, setFindHits] = useState<number[]>([]);
-  const [findSearchVisible, setFindVisible] = useState(false);
+  const [, setFindVisible] = useState(false);
   const [findSearch, setFind] = useState("");
 
   const [triggerRefresh, setTriggerRefresh] = useState(0);
@@ -86,8 +86,8 @@ export const PageViewer: FC<PageViewerProps> = () => {
     const index = pageHits.findIndex((page) => page === centrePage);
     const length = pageHits.length;
 
-    const hitsToPreloadIndexes = _.uniq(
-      _.range(-3, 3).map((offset) => {
+    const hitsToPreloadIndexes = uniq(
+      range(-3, 3).map((offset) => {
         const offsetIndex = index + offset;
         // modulo - the regular % is 'remainder' in JS which is different
         return ((offsetIndex % length) + length) % length;
@@ -114,7 +114,7 @@ export const PageViewer: FC<PageViewerProps> = () => {
 
   const jumpToPreviousFindHit = useCallback(() => {
     if (findSearchHits.length > 0) {
-      const maybePage = _.findLast(
+      const maybePage = findLast(
         findSearchHits,
         (page) => page < lastPageHit
       );
