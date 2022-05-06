@@ -76,10 +76,10 @@ export const PageViewer: FC<PageViewerProps> = () => {
           setFindHits(searchHits);
           setTriggerRefresh((t) => t + 1);
         }),
-    [middlePage]
+    [middlePage, uri]
   );
 
-  const preloadNextPreviousFindPages = (
+  const preloadNextPreviousFindPages = useCallback((
     centrePage: number,
     pageHits: number[]
   ) => {
@@ -99,7 +99,7 @@ export const PageViewer: FC<PageViewerProps> = () => {
     );
 
     setPreloadPages(newPreloadPages);
-  };
+  }, [findSearchHits]);
 
   const jumpToNextFindHit = useCallback(() => {
     if (findSearchHits.length > 0) {
@@ -110,7 +110,7 @@ export const PageViewer: FC<PageViewerProps> = () => {
       setLastPageHit(nextPage);
       setJumpToPage(nextPage);
     }
-  }, [findSearchHits, lastPageHit]);
+  }, [findSearchHits, lastPageHit, preloadNextPreviousFindPages, setLastPageHit, setJumpToPage]);
 
   const jumpToPreviousFindHit = useCallback(() => {
     if (findSearchHits.length > 0) {
@@ -126,7 +126,7 @@ export const PageViewer: FC<PageViewerProps> = () => {
       setLastPageHit(previousPage);
       setJumpToPage(previousPage);
     }
-  }, [findSearchHits, lastPageHit]);
+  }, [findSearchHits, lastPageHit, preloadNextPreviousFindPages, setLastPageHit, setJumpToPage]);
 
   return (
     <main className={styles.main}>
