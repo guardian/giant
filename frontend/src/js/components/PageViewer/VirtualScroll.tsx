@@ -1,5 +1,5 @@
 import _ from "lodash";
-import React, { FC, useEffect, useLayoutEffect, useRef, useState } from "react";
+import React, { FC, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { CONTAINER_AND_MARGIN_SIZE } from "./model";
 import { Page } from "./Page";
 import { PageCache } from "./PageCache";
@@ -41,7 +41,7 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
 
   const viewport = useRef<HTMLDivElement>(null);
 
-  const [pageCache] = useState(new PageCache(uri, query));
+  const [pageCache] = useState(() => new PageCache(uri, query));
 
   // We have a second tier cache tied to the React component lifecycle for storing
   // rendered pages which allows us to swap out stale pages without flickering pages
@@ -49,13 +49,13 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
 
   useEffect(() => {
     pageCache.setFindQuery(findQuery);
-  }, [findQuery]);
+  }, [findQuery, pageCache]);
 
   const [topPage, setTopPage] = useState(1);
   const [midPage, setMidPage] = useState(1); // Todo hook up to URL
   const [botPage, setBotPage] = useState(1 + PRELOAD_PAGES);
 
-  const getPages = () => {
+  const getPages = useCallback(() => {
     if (viewport?.current) {
       const v = viewport.current;
 
@@ -77,7 +77,7 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
       // to go to for the find hits
       setMiddlePage(newMidPage);
     }
-  };
+  }, [pageHeight, setMiddlePage, totalPages]);
 
   const onScroll = () => {
     getPages();
@@ -85,7 +85,7 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
 
   useEffect(() => {
     getPages();
-  }, [viewport]);
+  }, [viewport, getPages]);
 
   useLayoutEffect(() => {
     if (viewport?.current && jumpToPage) {
@@ -106,7 +106,7 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
     });
 
     setCurrentPages(renderedPages);
-  }, [midPage]);
+  }, [botPage, midPage, topPage, pageCache, setCurrentPages]);
 
   useLayoutEffect(() => {
     if (triggerHighlightRefresh > 0) {
@@ -131,11 +131,11 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
 
       setCurrentPages(newCurrentPages);
     }
-  }, [triggerHighlightRefresh]);
+  }, [triggerHighlightRefresh, pageCache, currentPages]);
 
   useEffect(() => {
     preloadPages.forEach((p) => pageCache.getPage(p));
-  }, [preloadPages]);
+  }, [preloadPages, pageCache]);
 
   return (
     <div ref={viewport} className={styles.scrollContainer} onScroll={onScroll}>

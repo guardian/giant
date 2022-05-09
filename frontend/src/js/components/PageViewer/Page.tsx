@@ -53,7 +53,7 @@ export const Page: FC<PageProps> = ({
         })
         .catch(handleAbort);
     }
-  }, []);
+  }, [getPagePreview]);
 
   useEffect(() => {
     getPageData.then(setPageText).catch(handleAbort);
