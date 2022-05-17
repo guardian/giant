@@ -131,7 +131,7 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
 
       setCurrentPages(newCurrentPages);
     }
-  }, [triggerHighlightRefresh, pageCache, currentPages]);
+  }, [triggerHighlightRefresh, pageCache]);
 
   useEffect(() => {
     preloadPages.forEach((p) => pageCache.getPage(p));
