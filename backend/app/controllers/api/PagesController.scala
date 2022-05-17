@@ -39,9 +39,9 @@ class PagesController(val controllerComponents: AuthControllerComponents, manife
       page <- getPage
       allLanguages = page.value.keySet
       // Highlighting stuff
-      highlights = dedupHighlightSpans(page.page, page.value, false)
+      highlights = dedupeHighlightSpans(page.page, page.value, false)
       findHighlights = page.findSearchValue.map { langMap =>
-          dedupHighlightSpans(page.page, langMap, true)
+          dedupeHighlightSpans(page.page, langMap, true)
         }.getOrElse(Map.empty)
       highlights <- getHighlightGeometriesForPage(uri, pageNumber, highlights, findHighlights)
     } yield {
@@ -85,7 +85,7 @@ class PagesController(val controllerComponents: AuthControllerComponents, manife
   // in multiple langauges. This allows us to avoid calculating highlight geometry for multiple languages when the
   // highlight is the same.
   // This is good because it allows us to minimise the number of downloads from S3 in the common case.
-  private def dedupHighlightSpans(page: Long, valueMap: Map[Language, String], isFind: Boolean): Map[Language, List[TextHighlight]] = {
+  private def dedupeHighlightSpans(page: Long, valueMap: Map[Language, String], isFind: Boolean): Map[Language, List[TextHighlight]] = {
     valueMap.toList.flatMap { case (lang, text) =>
       val hlText = HighlightableText.fromString(text, Some(page), isFind)
       hlText.highlights.map(span => (lang, span))
@@ -109,7 +109,7 @@ class PagesController(val controllerComponents: AuthControllerComponents, manife
     }
   }
 
-  def findSearch(uri: Uri, q: String) = ApiAction.attempt {
+  def findInDocument(uri: Uri, q: String) = ApiAction.attempt {
     pagesService.searchPages(uri, q).map( res =>
       Ok(Json.toJson(res))
     )
