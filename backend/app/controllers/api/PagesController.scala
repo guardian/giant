@@ -27,11 +27,14 @@ class PagesController(val controllerComponents: AuthControllerComponents, manife
   }
 
   // Get language and highlight data for a given page
-  def getPageData(uri: Uri, pageNumber: Int, q: Option[String], iq: Option[String], language: Option[Language]) = ApiAction.attempt { req =>
-    val query = q.map(Chips.parseQueryString)
+  def getPageData(uri: Uri, pageNumber: Int, sq: Option[String], fq: Option[String]) = ApiAction.attempt { req =>
+    // Across documents
+    val searchQuery = sq.map(Chips.parseQueryString)
+    // Within document
+    val findQuery = fq
 
     val getResource = GetResource(uri, ResourceFetchMode.Basic, req.user.username, manifest, index, annotations, controllerComponents.users).process()
-    val getPage = pagesService.getPageGeometries(uri, pageNumber, query, iq)
+    val getPage = pagesService.getPageGeometries(uri, pageNumber, searchQuery, findQuery)
 
     for {
       // Check we have permission to see this file
@@ -39,11 +42,11 @@ class PagesController(val controllerComponents: AuthControllerComponents, manife
       page <- getPage
       allLanguages = page.value.keySet
       // Highlighting stuff
-      highlights = dedupeHighlightSpans(page.page, page.value, false)
-      findHighlights = page.findSearchValue.map { langMap =>
+      searchHighlights = dedupeHighlightSpans(page.page, page.value, false)
+      findHighlights = page.highlightedText.map { langMap =>
           dedupeHighlightSpans(page.page, langMap, true)
         }.getOrElse(Map.empty)
-      highlights <- getHighlightGeometriesForPage(uri, pageNumber, highlights, findHighlights)
+      highlights <- getHighlightGeometriesForPage(uri, pageNumber, searchHighlights, findHighlights)
     } yield {
       val response = FrontendPage(pageNumber, allLanguages.head, allLanguages, page.dimensions, highlights.flatMap(_.highlights).toList)
       Ok(Json.toJson(response))
@@ -109,8 +112,9 @@ class PagesController(val controllerComponents: AuthControllerComponents, manife
     }
   }
 
-  def findInDocument(uri: Uri, q: String) = ApiAction.attempt {
-    pagesService.searchPages(uri, q).map( res =>
+  def findInDocument(uri: Uri, fq: String) = ApiAction.attempt {
+    val findQuery = fq
+    pagesService.findInPages(uri, findQuery).map( res =>
       Ok(Json.toJson(res))
     )
   }

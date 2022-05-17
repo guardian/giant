@@ -1,7 +1,7 @@
 package utils
 
 import model.frontend.{HighlightableText, TextHighlight}
-import model.index.{HighlightSpan, FindPageHighlight, PageHighlight, SearchResultPageHighlight}
+import model.index.{HighlightSpan, FindHighlight, PageHighlight, SearchHighlight}
 import org.apache.pdfbox.pdmodel.PDDocument
 import org.apache.pdfbox.pdmodel.common.PDRectangle
 import org.apache.pdfbox.pdmodel.graphics.color.{PDColor, PDDeviceRGB}
@@ -131,9 +131,9 @@ object PDFUtil {
       }
 
       if (isFind) {
-        FindPageHighlight(highlight.id, spans)
+        FindHighlight(highlight.id, spans)
       } else {
-        SearchResultPageHighlight(highlight.id, spans)
+        SearchHighlight(highlight.id, spans)
       }
     }
   }

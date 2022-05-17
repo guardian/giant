@@ -29,26 +29,16 @@ class Pages2(val client: ElasticClient, indexNamePrefix: String)(implicit val ex
   }
 
   // Get geometries for a given page (page geometry and highlights)
-  def getPageGeometries(uri: Uri, pageNumber: Int, highlightQuery: Option[String], findHighlightQuery: Option[String]): Attempt[PageWithFind] = {
-    val query = highlightQuery.map(buildQuery)
-    val highlightFields = query.toList.flatMap { query =>
-      HighlightFields.languageHighlighters(PagesFields.value, query)
-        // Ensure we get the whole page, not just the highlights
-        .map(_.numberOfFragments(0))
-    }
-
-    val findQuery = findHighlightQuery.map(buildQuery)
-    val findHighlightFields = findQuery.toList.flatMap { query =>
-      HighlightFields.languageHighlighters(PagesFields.value, query)
-        .map(_.numberOfFragments(0))
-    }
+  def getPageGeometries(uri: Uri, pageNumber: Int, searchQuery: Option[String], findQuery: Option[String]): Attempt[PageWithFind] = {
+    val searchHighlightFields = buildHighlightFields(searchQuery)
+    val findHighlightFields = buildHighlightFields(findQuery)
 
     val queries =
       List(
         Some(
           search(textIndexName)
             .termQuery("_id", s"${uri.value}-$pageNumber")
-            .highlighting(highlightFields)
+            .highlighting(searchHighlightFields)
         ),
         findQuery.map { _ =>
           search(textIndexName)
@@ -73,10 +63,10 @@ class Pages2(val client: ElasticClient, indexNamePrefix: String)(implicit val ex
             val pages = results.flatMap(_.to[Page])
 
             val page = pages.head
-            val findSearchPage = pages.lift(1)
+            val pageWithFindHighlights = pages.lift(1)
 
             Attempt.Right(
-              PageWithFind(page.page, page.value, findSearchPage.map(_.value), page.dimensions)
+              PageWithFind(page.page, page.value, pageWithFindHighlights.map(_.value), page.dimensions)
             )
           }
         }
@@ -84,8 +74,8 @@ class Pages2(val client: ElasticClient, indexNamePrefix: String)(implicit val ex
 
   // This function is used to search within the page index to find highlights for a given query
   // it can be reused for find search and for regular highlighting.
-  def searchPages(uri: Uri, q: String): Attempt[Seq[Int]] = {
-    val query = buildQuery(q)
+  def findInPages(uri: Uri, findQuery: String): Attempt[Seq[Int]] = {
+    val query = buildQuery(findQuery)
 
     val documentFilter = termQuery(PagesFields.resourceId, uri.value)
 
@@ -105,9 +95,16 @@ class Pages2(val client: ElasticClient, indexNamePrefix: String)(implicit val ex
     }
   }
 
-  private def buildQuery(q: String) =
-    queryStringQuery(q)
+  private def buildQuery(query: String) =
+    queryStringQuery(query)
     .defaultOperator("and")
     .field(s"${PagesFields.value}.*")
     .quoteFieldSuffix(".exact")
+
+  private def buildHighlightFields(query: Option[String]) =
+    query.map(buildQuery).toList.flatMap { query =>
+      HighlightFields.languageHighlighters(PagesFields.value, query)
+        // Ensure we get the whole page, not just the highlights
+        .map(_.numberOfFragments(0))
+    }
 }

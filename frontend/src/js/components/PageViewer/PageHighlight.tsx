@@ -15,7 +15,7 @@ export const PageHighlight: FC<PageHighlightProps> = ({
 }) => {
   const { id, type } = highlight;
 
-  const isFind = type === "FindPageHighlight";
+  const isFind = type === "FindHighlight";
   return (
     <>
       {highlight.data.map((span, i) => {

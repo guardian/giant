@@ -22,7 +22,9 @@ export type CachedPageData = {
 
 export class PageCache {
   uri: string;
-  query?: string;
+  // across documents
+  searchQuery?: string;
+  // within document
   findQuery?: string;
 
   // Arrived at by testing with Chrome on Ubuntu.
@@ -37,7 +39,7 @@ export class PageCache {
 
   constructor(uri: string, query?: string) {
     this.uri = uri;
-    this.query = query;
+    this.searchQuery = query;
     this.previewCache = new LruCache(
       PageCache.MAX_CACHED_PAGES,
       this.onPreviewCacheMiss,
@@ -75,11 +77,11 @@ export class PageCache {
   private onDataCacheMiss = (pageNumber: number): CachedPageData => {
     const dataAbortController = new AbortController();
     const textParams = new URLSearchParams();
-    if (this.query) {
-      textParams.set("q", this.query);
+    if (this.searchQuery) {
+      textParams.set("sq", this.searchQuery);
     }
     if (this.findQuery) {
-      textParams.set("iq", this.findQuery);
+      textParams.set("fq", this.findQuery);
     }
     const data = authFetch(
       `/api/pages2/${this.uri}/${pageNumber}/text?${textParams.toString()}`,

@@ -69,7 +69,7 @@ export const PageViewer: FC<PageViewerProps> = () => {
 
   const performFind = useCallback(
     (query: string) =>
-      authFetch(`/api/pages2/${uri}/find?q="${query}"`)
+      authFetch(`/api/pages2/${uri}/find?fq="${query}"`)
         .then((res) => res.json())
         .then((searchHits) => {
           setLastPageHit(middlePage);
