@@ -13,7 +13,7 @@ type PageViewerProps = {
 export const PageViewer: FC<PageViewerProps> = () => {
   const params = new URLSearchParams(document.location.search);
 
-  const query = params.get("q") ?? undefined;
+  const query = params.get("sq") ?? undefined;
   const page = Number(params.get("page"));
 
   const { uri } = useParams<{ uri: string }>();
