@@ -2,10 +2,10 @@ import java.net.InetAddress
 import java.nio.file.Paths
 import java.security.Security
 import java.time.Clock
-
 import akka.actor.CoordinatedShutdown
 import akka.actor.CoordinatedShutdown.Reason
 import cats.syntax.either._
+import com.amazonaws.metrics.AwsSdkMetrics
 import com.gu.pandomainauth
 import com.gu.pandomainauth.PublicSettings
 import controllers.AssetsComponents
@@ -72,6 +72,17 @@ class AppComponents(context: Context, config: Config)
     val neo4jExecutionContext = actorSystem.dispatchers.lookup("neo4j-context")
     val s3ExecutionContext = actorSystem.dispatchers.lookup("s3-context")
     val ingestionExecutionContext = actorSystem.dispatchers.lookup("ingestion-context")
+
+    AwsSdkMetrics.enableDefaultMetrics()
+    config.aws match {
+      case Some(awsDiscoveryConfig) =>
+        AwsSdkMetrics.setCredentialProvider(AwsCredentials())
+        AwsSdkMetrics.setMetricNameSpace(s"${awsDiscoveryConfig.stack}-${awsDiscoveryConfig.app}-${awsDiscoveryConfig.stage}")
+
+      case None =>
+        AwsSdkMetrics.setCredentialProvider(AwsCredentials(profile = Some("investigations")))
+        AwsSdkMetrics.setMetricNameSpace(s"Giant-LOCAL")
+    }
 
     val s3Client = new S3Client(config.s3)(s3ExecutionContext)
 
