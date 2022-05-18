@@ -12,7 +12,7 @@ export type PageDimensions = {
   bottom: number;
 };
 
-export type SearchResultHighlightSpan = {
+export type HighlightSpan = {
   x: number;
   y: number;
   width: number;
@@ -23,16 +23,16 @@ export type SearchResultHighlightSpan = {
 export type FindHighlight = {
   type: "FindHighlight";
   id: string;
-  data: SearchResultHighlightSpan[];
+  data: HighlightSpan[];
 };
 
-export type SearchResultHighlight = {
+export type SearchHighlight = {
   type: "SearchHighlight";
   id: string;
-  data: SearchResultHighlightSpan[];
+  data: HighlightSpan[];
 };
 
-export type Highlight = SearchResultHighlight | FindHighlight; // TODO MRB: add a highlight type for comments
+export type Highlight = SearchHighlight | FindHighlight; // TODO MRB: add a highlight type for comments
 
 // Used for positioning overlay text
 export type PdfText = {
