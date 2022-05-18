@@ -27,7 +27,7 @@ function scaleDimensions(before: PageDimensions): PageDimensions {
 
 function scaleHighlight(highlight: PageHighlight): PageHighlight {
     switch(highlight.type) {
-        case 'SearchResultPageHighlight':
+        case 'SearchHighlight':
             return {
                 ...highlight,
                 data: highlight.data.map(hls => ({

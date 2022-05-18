@@ -32,13 +32,14 @@ case class HighlightableText(
 object HighlightableText {
   implicit val highlightableTextFormat = Json.format[HighlightableText]
 
-  def searchHighlightId(ix: Int, page: Option[Long]): String = {
+  def searchHighlightId(ix: Int, page: Option[Long], isFind: Boolean): String = {
     val pageIdPrefix = page.map { p => s"page-$p-" }.getOrElse("")
-    pageIdPrefix + s"search-result-${ix}"
+    val findPrefix = if (isFind) "find-" else ""
+    findPrefix + pageIdPrefix + s"search-result-$ix"
   }
 
   @tailrec
-  private def _fromString(s: String, page: Option[Long], acc: HighlightableText): HighlightableText = {
+  private def _fromString(s: String, page: Option[Long], acc: HighlightableText, isFind: Boolean): HighlightableText = {
     val startOfTag = s.indexOf("<result-highlight>")
     val endOfTag = s.indexOf("</result-highlight>")
 
@@ -49,7 +50,7 @@ object HighlightableText {
       val inSlice = s.slice(startOfTag + "<result-highlight>".length, endOfTag)
 
       val highlight = TextHighlight(
-        id = searchHighlightId(acc.highlights.length, page),
+        id = searchHighlightId(acc.highlights.length, page, isFind),
         HighlightRangeType.SearchResult,
         HighlightRange(
           startOfTag + acc.contents.length,
@@ -60,11 +61,11 @@ object HighlightableText {
       val newText = acc.contents + beforeSlice + inSlice
       val textRemaining = s.slice(endOfTag + "</result-highlight>".length, s.length)
 
-      _fromString(textRemaining, page, HighlightableText(newText, acc.highlights :+ highlight))
+      _fromString(textRemaining, page, HighlightableText(newText, acc.highlights :+ highlight), isFind)
     }
   }
 
-  def fromString(s: String, page: Option[Long]): HighlightableText = {
-    _fromString(s, page, HighlightableText("", List.empty))
+  def fromString(s: String, page: Option[Long], isFind: Boolean = false): HighlightableText = {
+    _fromString(s, page, HighlightableText("", List.empty), isFind)
   }
 }

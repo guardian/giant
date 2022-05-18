@@ -52,7 +52,7 @@ class GetPages(uri: Uri, top: Double, bottom: Double, query: Option[String], use
   private def addSearchHighlightsToPageResponse(pageNumber: Int, pageData: InputStream, pageText: String): Attempt[List[PageHighlight]] = Attempt.catchNonFatalBlasé {
     try {
       val pagePDF = PDDocument.load(pageData)
-      val highlightableText = HighlightableText.fromString(pageText, Some(pageNumber))
+      val highlightableText = HighlightableText.fromString(pageText, Some(pageNumber), isFind = false)
 
       PDFUtil.getSearchResultHighlights(highlightableText, pagePDF, pageNumber)
     } finally {
