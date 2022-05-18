@@ -11,3 +11,4 @@ backend/public/build
 npm-debug.log
 .DS_Store
 backend/conf/site.conf
+.bsp/

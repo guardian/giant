@@ -3,31 +3,60 @@ import { LruCache } from "../../util/LruCache";
 import { CachedPreview, PageData } from "./model";
 import { renderPdfPreview } from "./PdfHelpers";
 
-export type CachedPageData = {
+export type CachedPage = {
   previewAbortController: AbortController;
   preview: Promise<CachedPreview>;
   dataAbortController: AbortController;
   data: Promise<PageData>;
 };
 
+export type CachedPreviewData = {
+  previewAbortController: AbortController;
+  preview: Promise<CachedPreview>;
+};
+
+export type CachedPageData = {
+  dataAbortController: AbortController;
+  data: Promise<PageData>;
+};
+
 export class PageCache {
   uri: string;
-  query?: string;
+  // across documents
+  searchQuery?: string;
+  // within document
+  findQuery?: string;
 
   // Arrived at by testing with Chrome on Ubuntu.
-  // Having too many cached pages can result in having too many 
+  // Having too many cached pages can result in having too many
   // in-flight requests, causing browser instability.
-  static MAX_CACHED_PAGES = 25;
+  static MAX_CACHED_PAGES = 50;
 
-  private cache: LruCache<number, CachedPageData>;
+  // Caches are managed seperately so we can do things like cache bust highlights
+  // without rerendering previews
+  private previewCache: LruCache<number, CachedPreviewData>;
+  private dataCache: LruCache<number, CachedPageData>;
 
   constructor(uri: string, query?: string) {
     this.uri = uri;
-    this.query = query;
-    this.cache = new LruCache(PageCache.MAX_CACHED_PAGES, this.onCacheMiss, this.onCacheEvict);
+    this.searchQuery = query;
+    this.previewCache = new LruCache(
+      PageCache.MAX_CACHED_PAGES,
+      this.onPreviewCacheMiss,
+      this.onPreviewCacheEvict
+    );
+    this.dataCache = new LruCache(
+      PageCache.MAX_CACHED_PAGES,
+      this.onDataCacheMiss,
+      this.onDataCacheEvict
+    );
   }
 
-  private onCacheMiss = (pageNumber: number): CachedPageData => {
+  setFindQuery = (q?: string) => {
+    this.findQuery = q;
+  };
+
+  private onPreviewCacheMiss = (pageNumber: number): CachedPreviewData => {
     const previewAbortController = new AbortController();
     const preview = authFetch(`/api/pages2/${this.uri}/${pageNumber}/preview`, {
       signal: previewAbortController.signal,
@@ -35,26 +64,61 @@ export class PageCache {
       .then((res) => res.arrayBuffer())
       .then((buf) => renderPdfPreview(buf));
 
+    return {
+      previewAbortController,
+      preview,
+    };
+  };
+
+  private onPreviewCacheEvict = (_: number, v: CachedPreviewData) => {
+    v.previewAbortController.abort();
+  };
+
+  private onDataCacheMiss = (pageNumber: number): CachedPageData => {
     const dataAbortController = new AbortController();
+    const textParams = new URLSearchParams();
+    if (this.searchQuery) {
+      textParams.set("sq", this.searchQuery);
+    }
+    if (this.findQuery) {
+      textParams.set("fq", this.findQuery);
+    }
     const data = authFetch(
-      `/api/pages2/${this.uri}/${pageNumber}/text${
-        this.query ? `?q=${this.query}` : ""
-      }`,
+      `/api/pages2/${this.uri}/${pageNumber}/text?${textParams.toString()}`,
       { signal: dataAbortController.signal }
     ).then((res) => res.json());
 
     return {
-      previewAbortController,
-      preview,
       dataAbortController,
       data,
     };
   };
 
-  private onCacheEvict = (_: number, v: CachedPageData) => {
-    v.previewAbortController.abort();
+  private onDataCacheEvict = (_: number, v: CachedPageData) => {
     v.dataAbortController.abort();
   };
 
-  getPage = (pageNumber: number) => this.cache.get(pageNumber);
+  getAllPageNumbers = (): number[] => {
+    return this.dataCache.keys();
+  };
+
+  getPage = (pageNumber: number): CachedPage => {
+    const preview = this.previewCache.get(pageNumber);
+    const data = this.dataCache.get(pageNumber);
+
+    return {
+      ...preview,
+      ...data,
+    };
+  };
+
+  getPageAndRefreshHighlights = (pageNumber: number): CachedPage => {
+    const preview = this.previewCache.get(pageNumber);
+    const data = this.dataCache.getAndForceRefresh(pageNumber);
+
+    return {
+      ...preview,
+      ...data,
+    };
+  };
 }
