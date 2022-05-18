@@ -110,26 +110,29 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
 
   useLayoutEffect(() => {
     if (triggerHighlightRefresh > 0) {
-      const newCurrentPages = currentPages.map((page) => {
-        const refreshedPage = pageCache.getPageRefreshHighlights(
-          page.pageNumber
-        );
-        return {
-          pageNumber: page.pageNumber,
-          getPagePreview: page.getPagePreview,
-          getPageData: refreshedPage.data,
-        };
-      });
+      setCurrentPages((oldPages) => {
+        const newPages = oldPages.map((page) => {
+          const refreshedPage = pageCache.getPageAndRefreshHighlights(
+              page.pageNumber
+          );
+          return {
+            pageNumber: page.pageNumber,
+            getPagePreview: page.getPagePreview,
+            getPageData: refreshedPage.data,
+          }
+        });
 
-      // Once we've refreshed all visible pages go and refresh the cached pages too
-      Promise.all(newCurrentPages.map((r) => r.getPageData)).then(() => {
-        pageCache
-          .getAllPageNumbers()
-          .filter((p) => !newCurrentPages.some((cp) => cp.pageNumber === p))
-          .forEach((p) => pageCache.getPageRefreshHighlights(p));
-      });
+        // Once we've refreshed all visible pages go and refresh the cached pages too
+        // Will this work inside a setState callback?? It seems so...
+        Promise.all(newPages.map((r) => r.getPageData)).then(() => {
+          pageCache
+              .getAllPageNumbers()
+              .filter((p) => !newPages.some((cp) => cp.pageNumber === p))
+              .forEach((p) => pageCache.getPageAndRefreshHighlights(p));
+        });
 
-      setCurrentPages(newCurrentPages);
+        return newPages;
+      });
     }
   }, [triggerHighlightRefresh, pageCache]);
 

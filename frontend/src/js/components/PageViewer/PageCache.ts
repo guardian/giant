@@ -112,9 +112,9 @@ export class PageCache {
     };
   };
 
-  getPageRefreshHighlights = (pageNumber: number): CachedPage => {
+  getPageAndRefreshHighlights = (pageNumber: number): CachedPage => {
     const preview = this.previewCache.get(pageNumber);
-    const data = this.dataCache.getForceRefresh(pageNumber);
+    const data = this.dataCache.getAndForceRefresh(pageNumber);
 
     return {
       ...preview,

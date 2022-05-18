@@ -71,7 +71,7 @@ export class LruCache<K extends string | number, V> {
     }
   };
 
-  getForceRefresh = (k: K): V => {
+  getAndForceRefresh = (k: K): V => {
     const oldValue = this.entries[k];
     const newValue = this.onMiss(k);
 
