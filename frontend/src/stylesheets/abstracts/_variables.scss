@@ -21,11 +21,11 @@ $highlightColour: rgb(253, 182, 0);
 
 // Main area colours
 // Used for the main background, buttons and borders
-$secondaryLight: rgb(239,239,239);
+$secondaryLight: rgb(239, 239, 239);
 $secondary: rgb(223, 223, 223);
-$secondaryDark: rgb(216,216,216);
+$secondaryDark: rgb(216, 216, 216);
 
-$borderColour: rgb(151,151,151);
+$borderColour: rgb(151, 151, 151);
 
 $previewDark: rgb(63, 63, 63);
 
@@ -50,3 +50,10 @@ $warningColour: rgb(255, 209, 66);
 
 $accessibleRed: rgb(214, 100, 30);
 $accessibleGreen: rgb(43, 159, 120);
+
+:root {
+  --color-primary-dark: #{$primaryDark};
+  --color-primary: #{$primary};
+  --color-primary-light: #{$primaryLight};
+  --color-secondary: #{$secondary};
+}

@@ -19,13 +19,27 @@ object PageDimensions {
 case class HighlightSpan(x: Double, y: Double, width: Double, height: Double, rotation: Double)
 
 sealed abstract class PageHighlight { def id: String }
-case class SearchResultPageHighlight(id: String, spans: List[HighlightSpan]) extends PageHighlight
+case class SearchHighlight(id: String, spans: List[HighlightSpan]) extends PageHighlight
+case class FindHighlight(id: String, spans: List[HighlightSpan]) extends PageHighlight
 // Other types of highlight might include comments or Ctrl-F searches
 
 object PageHighlight {
   implicit val writes: Writes[PageHighlight] = {
-    case h: SearchResultPageHighlight => Json.obj(
-      "type" -> JsString("SearchResultPageHighlight"),
+    case h: SearchHighlight => Json.obj(
+      "type" -> JsString("SearchHighlight"),
+      "id" -> JsString(h.id),
+      "data" -> JsArray(h.spans.map  { s =>
+        Json.obj(
+          "x" -> JsNumber(s.x),
+          "y" -> JsNumber(s.y),
+          "width" -> JsNumber(s.width),
+          "height" -> JsNumber(s.height),
+          "rotation" -> JsNumber(s.rotation),
+        )
+      })
+    )
+    case h: FindHighlight => Json.obj(
+      "type" -> JsString("FindHighlight"),
       "id" -> JsString(h.id),
       "data" -> JsArray(h.spans.map  { s =>
         Json.obj(
@@ -41,6 +55,7 @@ object PageHighlight {
 }
 
 case class Page(page: Long, value: Map[Language, String], dimensions: PageDimensions)
+case class PageWithFind(page: Long, value: Map[Language, String], highlightedText: Option[Map[Language, String]], dimensions: PageDimensions)
 case class FrontendPage(page: Long, currentLanguage: Language, allLanguages: Set[Language], dimensions: PageDimensions, highlights: List[PageHighlight])
 
 object FrontendPage {

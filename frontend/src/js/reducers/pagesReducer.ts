@@ -16,14 +16,14 @@ export type SearchResultHighlightSpan = {
     rotation: number
 }
 
-export type SearchResultPageHighlight = {
-    type: 'SearchResultPageHighlight',
+export type SearchHighlight = {
+    type: 'SearchHighlight',
     id: string
     data: SearchResultHighlightSpan[]
 }
 
 export type PageHighlight =
-    SearchResultPageHighlight; // TODO MRB: add a highlight type for comments
+    SearchHighlight; // TODO MRB: add a highlight type for comments
 
 export type Page = {
     // TODO: Do we need this value wrapper? Keep getting lost looking for highlights, then remember I need to expand value

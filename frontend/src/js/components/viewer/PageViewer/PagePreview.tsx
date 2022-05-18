@@ -107,7 +107,7 @@ export function PagePreview({ uri, page, onHighlightMount, currentHighlightId, q
 
     const highlightElements = page.highlights.flatMap(highlight => {
         switch(highlight.type) {
-            case 'SearchResultPageHighlight':
+            case 'SearchHighlight':
                 return highlight.data.map(highlightSpan => (
                     <PageHighlightWrapper
                         key={highlight.id}
