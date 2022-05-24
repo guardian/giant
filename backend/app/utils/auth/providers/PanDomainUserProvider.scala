@@ -8,7 +8,7 @@ import model.user.{DBUser, UserPermissions}
 import play.api.libs.json.{JsString, JsValue}
 import play.api.mvc.{AnyContent, Request}
 import services.users.UserManagement
-import services.PandaAuthConfig
+import services.{MetricsService, PandaAuthConfig}
 import utils.{Epoch, Logging}
 import utils.attempt._
 import utils.attempt.AttemptAwait._
@@ -20,7 +20,7 @@ import scala.concurrent.duration._
 /**
   * A UserAuthenticator implementation that authenticates a valid user based on the presence of a pan-domain cookie
   */
-class PanDomainUserProvider(val config: PandaAuthConfig, currentPublicKey: () => Option[PublicKey], users: UserManagement)(implicit ec: ExecutionContext)
+class PanDomainUserProvider(val config: PandaAuthConfig, currentPublicKey: () => Option[PublicKey], users: UserManagement, metricsService: MetricsService)(implicit ec: ExecutionContext)
   extends UserProvider with Logging {
 
   /** The client needs to know where to redirect the user so they can pick up a pan domain cookie **/
@@ -51,7 +51,10 @@ class PanDomainUserProvider(val config: PandaAuthConfig, currentPublicKey: () =>
               else {
                 users.registerUser(user.username, displayName, None, None)
               }
-            } yield PartialUser(user.username, user.displayName.getOrElse(displayName))
+            } yield {
+              metricsService.recordUsageEvent(user.username)
+              PartialUser(user.username, user.displayName.getOrElse(displayName))
+            }
           case NotAuthorized(authedUser) => Attempt.Left(PanDomainCookieInvalid(s"User ${authedUser.user.email} is not authorised to use this system.", reportAsFailure = true))
           case InvalidCookie(exception) => Attempt.Left(PanDomainCookieInvalid(s"Pan domain cookie invalid: ${exception.getMessage}", reportAsFailure = true))
           case Expired(authedUser) => Attempt.Left(PanDomainCookieInvalid(s"User ${authedUser.user.email} panda cookie has expired.", reportAsFailure = false))

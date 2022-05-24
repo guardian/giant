@@ -95,6 +95,7 @@ class AppComponents(context: Context, config: Config)
     val manifest = Neo4jManifest.setupManifest(neo4jDriver, neo4jExecutionContext, config.neo4j.queryLogging).valueOr(failure => throw new Exception(failure.msg))
     val annotations = Neo4jAnnotations.setupAnnotations(neo4jDriver, neo4jExecutionContext, config.neo4j.queryLogging).valueOr(failure => throw new Exception(failure.msg))
     val users = Neo4jUserManagement(neo4jDriver, neo4jExecutionContext, config.neo4j.queryLogging, manifest, esResources, esPages, annotations)
+    val metricsService = config.aws.map(new CloudwatchMetricsService(_)).getOrElse(new NoOpMetricsService())
 
     val userProvider = config.auth.provider match {
       case config: DatabaseAuthConfig =>
@@ -110,7 +111,7 @@ class AppComponents(context: Context, config: Config)
         // start polling of S3 bucket for public key
         publicSettings.start()
         val getCurrentPublicKey: () => Option[pandomainauth.PublicKey] = () => publicSettings.publicKey
-        new PanDomainUserProvider(config, getCurrentPublicKey, users)
+        new PanDomainUserProvider(config, getCurrentPublicKey, users, metricsService)
     }
 
     logger.info(s"Initialised authentication provider '${config.auth.provider}'")
@@ -153,8 +154,6 @@ class AppComponents(context: Context, config: Config)
 
     val extractors = List(olmExtractor, zipExtractor, rarExtractor, documentBodyExtractor, pstExtractor, emlExtractor, msgExtractor, mboxExtractor, csvTableExtractor, excelTableExtractor) ++ ocrExtractors
     extractors.foreach(mimeTypeMapper.addExtractor)
-
-    val metricsService = config.aws.map(new CloudwatchMetricsService(_)).getOrElse(new NoOpMetricsService())
 
     // Common components
     val failureToResultMapper = new CloudWatchReportingFailureToResultMapper(metricsService)
