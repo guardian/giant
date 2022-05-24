@@ -2,6 +2,8 @@
 # updating all references to `pfi-playground` in this file between each.
 stacks: [pfi-playground]
 regions: [eu-west-1]
+allowedStages:
+ - rex
 
 deployments:
   pfi-ami-update:
