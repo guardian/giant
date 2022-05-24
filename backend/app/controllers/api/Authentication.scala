@@ -4,7 +4,7 @@ import pdi.jwt.JwtSession._
 import pdi.jwt.JwtTime
 import play.api.libs.json.Json
 import play.api.mvc.{AnyContent, ControllerComponents, Request}
-import services.{Config, MetricsService}
+import services.Config
 import services.users.UserManagement
 import utils.{Epoch, Logging}
 import utils.attempt._
@@ -16,7 +16,7 @@ import play.api.Configuration
 
 import scala.concurrent.ExecutionContext
 
-class Authentication(override val controllerComponents: AuthControllerComponents, userAuthenticator: UserProvider, users: UserManagement, config: Config, metricsService: MetricsService)(implicit conf: Configuration, clock: Clock)
+class Authentication(override val controllerComponents: AuthControllerComponents, userAuthenticator: UserProvider, users: UserManagement, config: Config)(implicit conf: Configuration, clock: Clock)
   extends OptionalAuthApiController with Logging {
 
   def healthcheck() = noAuth.ApiAction {
@@ -34,7 +34,6 @@ class Authentication(override val controllerComponents: AuthControllerComponents
       val verificationExpiry = issuedAt + config.auth.timeouts.maxVerificationAge.toMillis
 
       logger.info(s"User ${user.username} logged in. Login Expiry: $loginExpiry. Verification Expiry: $verificationExpiry")
-      metricsService.recordUsageEvent(user.username)
 
       NoContent
         .addingToJwtSession(Token.USER_KEY, Json.toJson(user))
