@@ -84,9 +84,9 @@ class CloudwatchMetricsService(config: AWSDiscoveryConfig) extends MetricsServic
   def updateMetric(metricName: String, metricValue: Double = 1): Unit =
     updateMetrics(List(MetricUpdate(metricName, metricValue)))
 
-  def recordUsageEvent(username: String): Unit = {
+  def recordUsageEvent(userEmail: String): Unit = {
     val standardisedStage = if (config.stack == "pfi-giant") "PROD" else "CODE"
-    val dimensions = List(("App", "Giant"), ("Stage", standardisedStage), ("Username", username))
+    val dimensions = List(("App", "Giant"), ("Stage", standardisedStage), ("UserEmail", userEmail))
 
     updateMetrics(List(MetricUpdate(Metrics.usageEvents, 1)), dimensions)
   }
