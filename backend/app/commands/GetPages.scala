@@ -33,6 +33,7 @@ class GetPages(uri: Uri, top: Double, bottom: Double, query: Option[String], use
       for {
         metadata <- GetPages.getPagePreviewMetadata(uri, page, userRequestedLanguage)
         previewUri = PreviewService.getPageStoragePath(uri, metadata.language, pageNumber)
+        // --S3
         pagePreviewPdf <- previewStorage.get(previewUri).toAttempt
         highlights <- if(metadata.hasHighlights) {
           addSearchHighlightsToPageResponse(pageNumber, pagePreviewPdf, metadata.pageText)

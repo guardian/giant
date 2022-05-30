@@ -23,10 +23,12 @@ class S3ObjectStorage private(client: S3Client, bucket: String) extends ObjectSt
   }
 
   def get(key: String): Either[Failure, InputStream] = {
+    // --S3: close stream
     run(client.aws.getObject(bucket, key).getObjectContent)
   }
 
   def getMetadata(key: String): Either[Failure, ObjectMetadata] = run {
+    // --S3: close stream
     val stats = client.aws.getObjectMetadata(bucket, key)
     ObjectMetadata(stats.getContentLength, stats.getContentType)
   }

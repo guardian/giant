@@ -122,6 +122,7 @@ class DefaultPreviewService(index: Index, blobStorage: ObjectStorage, previewSto
   }
 
   private def getObjectData(key: String, storage: ObjectStorage): Attempt[ObjectData] = for {
+    // --S3
     metadata <- storage.getMetadata(key).toAttempt
     data <- storage.get(key).toAttempt
   } yield {

@@ -39,6 +39,7 @@ abstract class PreviewGenerator(workspace: Path, temporaryFileExtension: String 
       }
     } finally {
       Files.delete(input)
+      // --S3
     }
   }
 

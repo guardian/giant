@@ -33,6 +33,7 @@ class S3IngestStorage private(client: S3Client, bucket: String) extends IngestSt
 
   override def list = {
     Either.catchNonFatal {
+      // --S3
       val result = client.aws.listObjects(bucket, dataPrefix)
       val objs = result.getObjectSummaries.asScala
       objs.map(parseKey)
