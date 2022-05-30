@@ -2,9 +2,15 @@ import * as pdfjs from "pdfjs-dist";
 import { CachedPreview, CONTAINER_SIZE, PdfText } from "./model";
 
 export const renderPdfPreview = async (
-  buffer: ArrayBuffer
+  buffer: ArrayBuffer,
+  pdfWorker: typeof pdfjs.PDFWorker
 ): Promise<CachedPreview> => {
-  const doc = await pdfjs.getDocument(new Uint8Array(buffer)).promise;
+  const doc = await pdfjs.getDocument({
+    data: new Uint8Array(buffer),
+    // Use the same web worker for all pages
+    worker: pdfWorker
+  }).promise;
+
   const pdfPage = await doc.getPage(1);
 
   const canvas = document.createElement("canvas");
