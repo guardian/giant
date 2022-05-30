@@ -2,6 +2,7 @@ import authFetch from "../../util/auth/authFetch";
 import { LruCache } from "../../util/LruCache";
 import { CachedPreview, PageData } from "./model";
 import { renderPdfPreview } from "./PdfHelpers";
+import * as pdfjs from 'pdfjs-dist';
 
 export type CachedPage = {
   previewAbortController: AbortController;
@@ -27,6 +28,11 @@ export class PageCache {
   // within document
   findQuery?: string;
 
+  // Unfortunately because PDF.js haven't typed it,
+  // this type is actually just "any" so type system won't enforce anything.
+  // But at least this documents what we should be putting in here.
+  pdfWorker: typeof pdfjs.PDFWorker;
+
   // Arrived at by testing with Chrome on Ubuntu.
   // Having too many cached pages can result in having too many
   // in-flight requests, causing browser instability.
@@ -50,6 +56,7 @@ export class PageCache {
       this.onDataCacheMiss,
       this.onDataCacheEvict
     );
+    this.pdfWorker = new pdfjs.PDFWorker();
   }
 
   setFindQuery = (q?: string) => {
@@ -62,7 +69,7 @@ export class PageCache {
       signal: previewAbortController.signal,
     })
       .then((res) => res.arrayBuffer())
-      .then((buf) => renderPdfPreview(buf));
+      .then((buf) => renderPdfPreview(buf, this.pdfWorker));
 
     return {
       previewAbortController,
