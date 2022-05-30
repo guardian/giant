@@ -27,15 +27,16 @@ function scaleDimensions(before: PageDimensions): PageDimensions {
 
 function scaleHighlight(highlight: PageHighlight): PageHighlight {
     switch(highlight.type) {
-        case 'SearchResultPageHighlight':
+        case 'SearchHighlight':
             return {
                 ...highlight,
-                data: {
-                    x: ptsToPx(highlight.data.x),
-                    y: ptsToPx(highlight.data.y),
-                    width: ptsToPx(highlight.data.width),
-                    height: ptsToPx(highlight.data.height)
-                }
+                data: highlight.data.map(hls => ({
+                    x: ptsToPx(hls.x),
+                    y: ptsToPx(hls.y),
+                    width: ptsToPx(hls.width),
+                    height: ptsToPx(hls.height),
+                    rotation: hls.rotation
+                }))
             }
     }
 }

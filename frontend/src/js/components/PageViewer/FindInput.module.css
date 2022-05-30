@@ -1,0 +1,53 @@
+.container {
+  position: relative;
+  display: flex;
+  flex-direction: row;
+  gap: 5px;
+}
+
+.inputContainer {
+  position: relative;
+}
+
+.input {
+  width: 400px;
+}
+
+.count {
+  height: 50%;
+  margin: auto;
+  position: absolute;
+  top: 0;
+  bottom: 4px;
+  right: 5px;
+}
+
+.warningContainer {
+  position: absolute;
+  top: 100%;
+  visibility: hidden;
+  opacity: 0;
+  transition: visibility 0s 200ms, opacity 200ms linear;
+}
+
+.warningContainer[data-visible] {
+  visibility: visible;
+  opacity: 1;
+  transition: opacity 200ms linear;
+}
+
+.warningArrow {
+  width: 0;
+  height: 0;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+
+  border-bottom: 5px solid var(--color-primary);
+  margin-left: 175px;
+}
+
+.warning {
+  color: white;
+  background: var(--color-primary);
+  padding: 6px;
+}

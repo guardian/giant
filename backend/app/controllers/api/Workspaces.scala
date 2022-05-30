@@ -241,7 +241,7 @@ class Workspaces(override val controllerComponents: AuthControllerComponents, an
       data <- req.body.validate[MoveItemData].toAttempt
       _ = logAction(req.user, workspaceId, s"Move workspace item. Node ID: $itemId. Data: $data")
 
-      _ <- if (data.newParentId == itemId) Attempt.Left(ClientFailure("Cannot move a workspace item to be under itself")) else Attempt.Right(())
+      _ <- if (data.newParentId.contains(itemId)) Attempt.Left(ClientFailure("Cannot move a workspace item to be under itself")) else Attempt.Right(())
       result <- annotation.moveWorkspaceItem(req.user.username, workspaceId, itemId, data.newWorkspaceId, data.newParentId)
       _ <- Attempt.traverse(result.resourcesMoved) { resourceMoved =>
         updateIndex(resourceMoved, workspaceId, data.newWorkspaceId)

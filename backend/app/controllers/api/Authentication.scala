@@ -12,7 +12,6 @@ import utils.auth._
 import utils.auth.providers.UserProvider
 import utils.controller.{AuthControllerComponents, OptionalAuthApiController}
 import java.time.Clock
-
 import play.api.Configuration
 
 import scala.concurrent.ExecutionContext

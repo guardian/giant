@@ -1,7 +1,7 @@
 package utils
 
-import model.frontend.HighlightableText
-import model.index.SearchResultPageHighlight
+import model.frontend.{HighlightableText, TextHighlight}
+import model.index.{HighlightSpan, FindHighlight, PageHighlight, SearchHighlight}
 import org.apache.pdfbox.pdmodel.PDDocument
 import org.apache.pdfbox.pdmodel.common.PDRectangle
 import org.apache.pdfbox.pdmodel.graphics.color.{PDColor, PDDeviceRGB}
@@ -10,6 +10,7 @@ import org.apache.pdfbox.text.{PDFTextStripper, TextPosition}
 
 import java.util
 import scala.collection.JavaConverters._
+import scala.math.{atan2, cos, sin, sqrt}
 
 object PDFUtil {
   val highlightColour = new PDColor(Array(253f, 182f, 0f), PDDeviceRGB.INSTANCE)
@@ -58,8 +59,12 @@ object PDFUtil {
     )
   }
 
-  def getSearchResultHighlights(pageText: HighlightableText, singlePageDoc: PDDocument, pageNumber: Int): List[SearchResultPageHighlight] = {
-    val highlights = pageText.highlights
+  // Old version
+  def getSearchResultHighlights(highlights: HighlightableText, singlePageDoc: PDDocument, pageNumber: Int): List[PageHighlight] = {
+    getSearchResultHighlights(highlights.highlights, singlePageDoc, pageNumber, false)
+  }
+
+  def getSearchResultHighlights(highlights: List[TextHighlight], singlePageDoc: PDDocument, pageNumber: Int, isFind: Boolean = false): List[PageHighlight] = {
 
     var textPositions = List.empty[Either[TextPosition, NewlinePlaceholder.type]]
 
@@ -75,47 +80,61 @@ object PDFUtil {
     textStripper.getText(singlePageDoc)
 
     highlights.zipWithIndex.map { case(highlight, ix) =>
-      // TODO MRB: do we need to do more work to handle handle rotated lines (see getXDirAdj and getRot on TextPosition)
-      val startCharacter = textPositions(highlight.range.startCharacter).left.get
-      val endCharacter = textPositions(highlight.range.endCharacter - 1).left.get
+      val startIdx = highlight.range.startCharacter
+      val endIdx = highlight.range.endCharacter - 1
 
-      val x = startCharacter.getX
-      val y = startCharacter.getY - endCharacter.getHeight
+      // Split the existing text path into lines of characters
+      // TODO SC: Make a case class for this to help readability?
+      val highlightSpans: List[List[TextPosition]] = textPositions
+        .slice(startIdx, endIdx + 1)
+        .zipWithIndex
+        .foldLeft(List(List[TextPosition]()))((acc, currWithIndex) => {
+            currWithIndex._1 match {
+              // Regular character just append to the last span
+              case Left(pos) => acc.init :+ (acc.last :+ pos)
+              // If there's a newline push a new span
+              case Right(NewlinePlaceholder) => acc :+ List()
+            }
+      })
 
-      val x1 = endCharacter.getX + endCharacter.getWidth
-      val y1 = y + endCharacter.getHeight
+      val spans = highlightSpans.flatMap { span =>
+        for {
+          // Sometimes the text stripper doesn't pull out matches correctly resulting in empty spans
+          startCharacter <- span.headOption
+          endCharacter <- span.lastOption
+        } yield {
+          // This coordinate system makes my head hurt
+          val x = startCharacter.getX
+          val y = startCharacter.getY
 
-      val id = HighlightableText.searchHighlightId(ix, Some(pageNumber))
+          val x1 = endCharacter.getX
+          val y1 = endCharacter.getY
 
-      SearchResultPageHighlight(id, x, y, width = x1 - x, height = y1 - y)
-    }
-  }
+          val dX = x1 - x
+          val dY = y1 - y
 
-  // This works but PDF.js renders them directly onto the canvas (and requires a beta version)
-  def highlightSearchResultsInline(pageText: HighlightableText, singlePageDoc: PDDocument): PDDocument = {
-    for (pageNumber <- 1 to singlePageDoc.getNumberOfPages) {
-      val page = singlePageDoc.getPage(pageNumber - 1)
-      val pageHeight = page.getMediaBox.getHeight
+          val width = sqrt(dX * dX + dY * dY) + endCharacter.getWidth
+          val height = span.maxBy(_.getFontSize).getFontSize
 
-      val highlightRectangles = getSearchResultHighlights(pageText, singlePageDoc, 1)
+          val rotation = atan2(dY, dX)
 
-      highlightRectangles.foreach { case SearchResultPageHighlight(_, x, y, width, height) =>
-        val rekt = new PDRectangle(x.toFloat, pageHeight - (y.toFloat + height.toFloat), width.toFloat, height.toFloat)
-        val quadPoints = rectangleToQuadPoints(rekt)
+          // The highlight is rendered slightly off, we need to move the position by about 0.75 * the max character height
+          // while also factoring in rotation. Here were getting the x/y offsets by rotating a Y axis unit vector and then
+          // multiplying the result by the offset magnitude. The Y axis has to be negated due to the coordinate spaces.
 
-        val highlightBox = new PDAnnotationTextMarkup(PDAnnotationTextMarkup.SUB_TYPE_HIGHLIGHT)
+          val offsetMagnitude = height * 0.75
+          val offsetX = offsetMagnitude * sin(rotation)
+          val offsetY = -offsetMagnitude * cos(rotation)
 
-        // I'm not sure (and neither is the internet) why we need to set both a rectangle and quad points
-        highlightBox.setRectangle(rekt)
-        highlightBox.setQuadPoints(quadPoints)
+          HighlightSpan(x + offsetX, y + offsetY, width, height, rotation)
+        }
+      }
 
-        highlightBox.setColor(highlightColour)
-        highlightBox.setPrinted(true)
-
-        page.getAnnotations.add(highlightBox)
+      if (isFind) {
+        FindHighlight(highlight.id, spans)
+      } else {
+        SearchHighlight(highlight.id, spans)
       }
     }
-
-    singlePageDoc
   }
 }

@@ -12,7 +12,7 @@ POST          /api/collections/:collection/:ingestion/verifyFiles           cont
 
 GET           /api/blobs                                                    controllers.api.Blobs.getBlobs
 POST          /api/blobs/:id/reprocess                                      controllers.api.Blobs.reprocess(id, rerunSuccessful: Option[Boolean], rerunFailed: Option[Boolean])
-DELETE        /api/blobs/:id                                                controllers.api.Blobs.delete(id)
+DELETE        /api/blobs/:id                                                controllers.api.Blobs.delete(id, deleteFolders: Boolean, checkChildren: Boolean)
 
 GET           /api/filters                                                  controllers.api.Filters.getFilters
 
@@ -30,7 +30,12 @@ GET           /api/resources/*uri                                           cont
 DELETE        /api/comments/:commentId                                      controllers.api.Comments.deleteComment(commentId: String)
 
 GET           /api/pages/text/:uri                                          controllers.api.Resource.getTextPages(uri: model.Uri, top: Double, bottom: Double, q: Option[String], language: Option[model.Language])
-GET           /api/pages/preview/:language/:uri/:pageNumber                 controllers.api.Resource.getPagePreview(uri: model.Uri, language: model.Language, pageNumber: Int, q: Option[String])
+GET           /api/pages/preview/:language/:uri/:pageNumber                 controllers.api.Resource.getPagePreview(uri: model.Uri, language: model.Language, pageNumber: Int)
+
+GET           /api/pages2/:uri/pageCount                                    controllers.api.PagesController.getPageCount(uri: model.Uri)
+GET           /api/pages2/:uri/find                                         controllers.api.PagesController.findInDocument(uri: model.Uri, fq: String)
+GET           /api/pages2/:uri/:pageNumber/preview                          controllers.api.PagesController.getPagePreview(uri: model.Uri, pageNumber: Int)
+GET           /api/pages2/:uri/:pageNumber/text                             controllers.api.PagesController.getPageData(uri: model.Uri, pageNumber: Int, sq: Option[String], fq: Option[String])
 
 GET           /api/extractions/failures                                     controllers.api.Resource.getExtractionFailures
 POST          /api/extractions/failures/resources                           controllers.api.Resource.getResourcesForExtractionFailure(page: Int ?= 1, pageSize: Int ?= 20)
@@ -96,5 +101,5 @@ PUT           /setup                                                        cont
 
 # === Web Client ===
 GET           /                                                             controllers.frontend.App.index
-GET           /third-party/*path                                            controllers.frontend.App.thirdPartyAssets(path)
+GET           /third-party/*file                                            controllers.Assets.at(path="/public/third-party", file)
 GET           /*path                                                        controllers.frontend.App.assetOrBundle(path)

@@ -3,7 +3,6 @@ package extraction.email.msg
 import java.io.{ByteArrayInputStream, InputStream}
 import java.nio.file.{Files, StandardCopyOption}
 import java.security.DigestInputStream
-
 import cats.syntax.either._
 import com.auxilii.msgparser.OutlookMessageParser
 import com.auxilii.msgparser.model.{OutlookFileAttachment, OutlookMessage, OutlookMsgAttachment}
@@ -17,6 +16,7 @@ import services.{FingerprintServices, ScratchSpace, Tika}
 import utils.attempt.{Failure, UnknownFailure}
 import utils.{DateTimeUtils, Logging}
 
+import java.util.stream.Collectors
 import scala.collection.JavaConverters._
 
 class MsgEmailExtractor(scratch: ScratchSpace, ingestionServices: IngestionServices, tika: Tika) extends Extractor with Logging {
@@ -30,7 +30,7 @@ class MsgEmailExtractor(scratch: ScratchSpace, ingestionServices: IngestionServi
   override def priority = 4
 
   private def getHeaderValue(message: OutlookMessage, header: String): Option[String] = Option(message.getHeaders)
-    .flatMap(_.lines.find(_.startsWith(s"$header:")))
+    .flatMap(_.lines.collect(Collectors.toList[String]).asScala.find(_.startsWith(s"$header:")))
     .map(_.stripPrefix(s"$header:").trim)
     .filter(!_.isEmpty)
 

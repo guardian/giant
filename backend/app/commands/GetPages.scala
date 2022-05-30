@@ -37,9 +37,11 @@ class GetPages(uri: Uri, top: Double, bottom: Double, query: Option[String], use
         highlights <- if(metadata.hasHighlights) {
           addSearchHighlightsToPageResponse(pageNumber, pagePreviewPdf, metadata.pageText)
         } else {
+          pagePreviewPdf.close()
           Attempt.Right(List.empty)
         }
       } yield {
+        // FIXME? Why don't we just return the PDF data here? This would save the
         FrontendPage(pageNumber, metadata.language, allLanguages, page.dimensions, highlights)
       }
     }
@@ -50,7 +52,7 @@ class GetPages(uri: Uri, top: Double, bottom: Double, query: Option[String], use
   private def addSearchHighlightsToPageResponse(pageNumber: Int, pageData: InputStream, pageText: String): Attempt[List[PageHighlight]] = Attempt.catchNonFatalBlasé {
     try {
       val pagePDF = PDDocument.load(pageData)
-      val highlightableText = HighlightableText.fromString(pageText, Some(pageNumber))
+      val highlightableText = HighlightableText.fromString(pageText, Some(pageNumber), isFind = false)
 
       PDFUtil.getSearchResultHighlights(highlightableText, pagePDF, pageNumber)
     } finally {
@@ -62,6 +64,7 @@ class GetPages(uri: Uri, top: Double, bottom: Double, query: Option[String], use
 object GetPages {
   case class PagePreviewMetadata(language: Language, pageText: String, hasHighlights: Boolean)
 
+  // TODO SC/JS: This name is a bit wrong - its not simply metadata, it's language choice and *actual* data
   def getPagePreviewMetadata(uri: Uri, page: Page, userRequestedLanguage: Option[Language]): Attempt[PagePreviewMetadata] = {
     val pageNumber = page.page.toInt
     val allLanguages = page.value.keySet

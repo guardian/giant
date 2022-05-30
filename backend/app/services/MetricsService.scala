@@ -18,6 +18,7 @@ object Metrics {
   val batchesIngested = "IngestBatchesIngested"
   val batchesFailed = "IngestBatchesFailed"
   val failureToResultMapper = "ErrorsInGiantFailureToResultMapper"
+  val usageEvents = "UsageEvents"
 
 
   def metricDatum(name: String, dimensions: List[Dimension], value: Double): MetricDatum = {
@@ -30,13 +31,15 @@ object Metrics {
 }
 
 trait MetricsService {
-  def updateMetrics(metrics:List[MetricUpdate]): Unit
+  def updateMetrics(metrics: List[MetricUpdate]): Unit
   def updateMetric(metricName: String, metricValue: Double = 1): Unit
+  def recordUsageEvent(username: String): Unit
 }
 
 class NoOpMetricsService() extends MetricsService {
   def updateMetrics(metrics:List[MetricUpdate]): Unit = Unit
   def updateMetric(metricName: String, metricValue: Double = 1): Unit = Unit
+  def recordUsageEvent(username: String): Unit = Unit
 }
 
 class CloudwatchMetricsService(config: AWSDiscoveryConfig) extends MetricsService with Logging {
@@ -49,12 +52,19 @@ class CloudwatchMetricsService(config: AWSDiscoveryConfig) extends MetricsServic
 
   // These must be exactly the same as in the alarm, without any additional dimensions.
   // CloudWatch will not aggregate custom metrics
-  private val dimensions = List(
-      new Dimension().withName("Stack").withValue(config.stack),
-      new Dimension().withName("Stage").withValue(config.stage)
-    )
+  val defaultDimensions = List(("Stack", config.stack), ("Stage", config.stage))
 
   def updateMetrics(metrics:List[MetricUpdate]): Unit = {
+    val dimensions = defaultDimensions
+
+    updateMetrics(metrics, dimensions)
+  }
+
+  private def updateMetrics(metrics:List[MetricUpdate], dimensionValues: List[(String, String)] = List()): Unit = {
+    val dimensions = dimensionValues.map{
+      case (name, value) => new Dimension().withName(name).withValue(value)
+    }
+
     val metricsData = metrics.map(m => Metrics.metricDatum(m.name, dimensions, m.value))
     try {
       val request = new PutMetricDataRequest()
@@ -73,4 +83,11 @@ class CloudwatchMetricsService(config: AWSDiscoveryConfig) extends MetricsServic
 
   def updateMetric(metricName: String, metricValue: Double = 1): Unit =
     updateMetrics(List(MetricUpdate(metricName, metricValue)))
+
+  def recordUsageEvent(userEmail: String): Unit = {
+    val standardisedStage = if (config.stack == "pfi-giant") "PROD" else "CODE"
+    val dimensions = List(("App", "Giant"), ("Stage", standardisedStage), ("UserEmail", userEmail))
+
+    updateMetrics(List(MetricUpdate(Metrics.usageEvents, 1)), dimensions)
+  }
 }

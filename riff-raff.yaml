@@ -2,6 +2,8 @@
 # updating all references to `pfi-playground` in this file between each.
 stacks: [pfi-playground]
 regions: [eu-west-1]
+allowedStages:
+ - rex
 
 deployments:
   pfi-ami-update:
@@ -10,10 +12,10 @@ deployments:
     parameters:
       amiEncrypted: true
       amiTags:
-        Recipe: investigations-app
+        Recipe: investigations-giant-app-java11
         AmigoStage: PROD
         Encrypted: pfi-playground
-  
+
   pfi-neo4j-ami-update:
     type: ami-cloudformation-parameter
     app: neo4j
@@ -23,7 +25,7 @@ deployments:
         Recipe: investigations-neo4j
         AmigoStage: PROD
         Encrypted: pfi-playground
-  
+
   pfi-elasticsearch-ami-update:
     type: ami-cloudformation-parameter
     app: elasticsearch
@@ -33,7 +35,7 @@ deployments:
         Recipe: investigations-elasticsearch-7
         AmigoStage: PROD
         Encrypted: pfi-playground
-  
+
   pfi:
     type: autoscaling
     parameters:
@@ -63,4 +65,4 @@ deployments:
       bucket: investigations-public-dist
       cacheControl: private
       # This is the default but if you specify it explictly Riff-Raff issues a warning
-      # publicReadAcl: true
+      publicReadAcl: true

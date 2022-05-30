@@ -33,7 +33,7 @@ import router.Routes
 import services._
 import services.annotations.Neo4jAnnotations
 import services.events.ElasticsearchEvents
-import services.index.{ElasticsearchPages, ElasticsearchResources}
+import services.index.{ElasticsearchPages, ElasticsearchResources, Pages2}
 import services.ingestion.IngestionServices
 import services.manifest.Neo4jManifest
 import services.previewing.PreviewService
@@ -89,11 +89,13 @@ class AppComponents(context: Context, config: Config)
     val esTables = new ElasticsearchTable(esClient, config.elasticsearch.tableRowIndexName).setup().await()
     val esEvents = new ElasticsearchEvents(esClient, config.elasticsearch.eventIndexName).setup().await()
     val esPages = new ElasticsearchPages(esClient, config.elasticsearch.pageIndexNamePrefix).setup().await()
+    val pages2 = new Pages2(esClient, config.elasticsearch.pageIndexNamePrefix)
 
     val neo4jDriver = GraphDatabase.driver(config.neo4j.url, AuthTokens.basic(config.neo4j.user, config.neo4j.password))
     val manifest = Neo4jManifest.setupManifest(neo4jDriver, neo4jExecutionContext, config.neo4j.queryLogging).valueOr(failure => throw new Exception(failure.msg))
     val annotations = Neo4jAnnotations.setupAnnotations(neo4jDriver, neo4jExecutionContext, config.neo4j.queryLogging).valueOr(failure => throw new Exception(failure.msg))
     val users = Neo4jUserManagement(neo4jDriver, neo4jExecutionContext, config.neo4j.queryLogging, manifest, esResources, esPages, annotations)
+    val metricsService = config.aws.map(new CloudwatchMetricsService(_)).getOrElse(new NoOpMetricsService())
 
     val userProvider = config.auth.provider match {
       case config: DatabaseAuthConfig =>
@@ -109,7 +111,7 @@ class AppComponents(context: Context, config: Config)
         // start polling of S3 bucket for public key
         publicSettings.start()
         val getCurrentPublicKey: () => Option[pandomainauth.PublicKey] = () => publicSettings.publicKey
-        new PanDomainUserProvider(config, getCurrentPublicKey, users)
+        new PanDomainUserProvider(config, getCurrentPublicKey, users, metricsService)
     }
 
     logger.info(s"Initialised authentication provider '${config.auth.provider}'")
@@ -153,8 +155,6 @@ class AppComponents(context: Context, config: Config)
     val extractors = List(olmExtractor, zipExtractor, rarExtractor, documentBodyExtractor, pstExtractor, emlExtractor, msgExtractor, mboxExtractor, csvTableExtractor, excelTableExtractor) ++ ocrExtractors
     extractors.foreach(mimeTypeMapper.addExtractor)
 
-    val metricsService = config.aws.map(new CloudwatchMetricsService(_)).getOrElse(new NoOpMetricsService())
-
     // Common components
     val failureToResultMapper = new CloudWatchReportingFailureToResultMapper(metricsService)
     val authActionBuilder = new DefaultAuthActionBuilder(controllerComponents, failureToResultMapper, config.auth.timeouts.maxLoginAge, config.auth.timeouts.maxVerificationAge, users)(configuration, Clock.systemUTC())
@@ -170,13 +170,14 @@ class AppComponents(context: Context, config: Config)
     val filtersController = new Filters(authControllerComponents, manifest, annotations)
     val searchController = new Search(authControllerComponents, users, esResources, annotations)
     val documentsController = new Documents(authControllerComponents, manifest, esResources, blobStorage, users, annotations, config.auth.timeouts.maxDownloadAuthAge)
-    val resourceController = new Resource(authControllerComponents, manifest, esResources, esPages, annotations, previewStorage, config.preview.annotateSearchHighlightsDirectlyOnPage)
+    val resourceController = new Resource(authControllerComponents, manifest, esResources, esPages, annotations, previewStorage)
     val emailController = new Emails(authControllerComponents, manifest, esResources, annotations)
     val mimeTypesController = new MimeTypes(authControllerComponents, manifest)
     val previewController = new Previews(authControllerComponents, manifest, esResources, previewService, users, annotations, config.auth.timeouts.maxDownloadAuthAge)
     val workspacesController = new Workspaces(authControllerComponents, annotations, esResources, manifest)
     val commentsController = new Comments(authControllerComponents, manifest, esResources, annotations)
     val usersController = new Users(authControllerComponents, userProvider)
+    val pagesController = new PagesController(authControllerComponents, manifest, esResources, pages2, annotations, previewStorage)
 
     val workerControl = config.aws match {
       case Some(awsDiscoveryConfig) =>
@@ -221,6 +222,7 @@ class AppComponents(context: Context, config: Config)
       documentsController,
       commentsController,
       resourceController,
+      pagesController,
       emailController,
       mimeTypesController,
       workspacesController,
@@ -228,7 +230,8 @@ class AppComponents(context: Context, config: Config)
       usersController,
       authController,
       appController,
-      genesisController
+      genesisController,
+      assets
     )
   } catch {
     case NonFatal(e) =>

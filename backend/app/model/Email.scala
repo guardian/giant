@@ -4,7 +4,6 @@ import java.io.InputStream
 import java.security.MessageDigest
 import java.util
 import java.util.{Base64, Locale}
-
 import com.pff._
 import enumeratum.EnumEntry.Snakecase
 import enumeratum.{EnumEntry, PlayEnum}
@@ -13,6 +12,9 @@ import model.index.IndexedResource
 import org.apache.commons.io.IOUtils
 import play.api.libs.json._
 import utils.{DateTimeUtils, Logging, UriCleaner}
+
+import java.util.stream.Collectors
+import scala.collection.JavaConverters.asScalaBufferConverter
 
 object Priority {
   val NotUrgent = "not_urgent"
@@ -180,9 +182,9 @@ object Email extends Logging {
     val inReplyTo = message.getInReplyToId.hasTextOrNone().toList.flatMap(Email.cleanInReplyTo)
 
     val headers = message.getTransportMessageHeaders
-    val references = headers.lines.find(_.startsWith("References:")).map(_.stripPrefix("References:")).toList.flatMap(Email.cleanInReplyTo)
+    val references = headers.lines.collect(Collectors.toList[String]).asScala.find(_.startsWith("References:")).map(_.stripPrefix("References:")).toList.flatMap(Email.cleanInReplyTo)
 
-    val date = headers.lines.find(_.startsWith("Date:")).flatMap { date =>
+    val date = headers.lines.collect(Collectors.toList[String]).asScala.find(_.startsWith("Date:")).flatMap { date =>
       DateTimeUtils.rfc1123ToIsoDateString(date.stripPrefix("Date: ").trim())
     }
 
