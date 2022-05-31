@@ -55,7 +55,7 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
   const [midPage, setMidPage] = useState(1); // Todo hook up to URL
   const [botPage, setBotPage] = useState(1 + PRELOAD_PAGES);
 
-  const getPages = useCallback(() => {
+  const setPagesToLoad = useCallback(() => {
     if (viewport?.current) {
       const v = viewport.current;
 
@@ -78,14 +78,6 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
       setMiddlePage(newMidPage);
     }
   }, [pageHeight, setMiddlePage, totalPages]);
-
-  const onScroll = () => {
-    getPages();
-  };
-
-  useEffect(() => {
-    getPages();
-  }, [viewport, getPages]);
 
   useLayoutEffect(() => {
     if (viewport?.current && jumpToPage) {
@@ -141,7 +133,7 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
   }, [preloadPages, pageCache]);
 
   return (
-    <div ref={viewport} className={styles.scrollContainer} onScroll={onScroll}>
+    <div ref={viewport} className={styles.scrollContainer} onScroll={setPagesToLoad}>
       <div className={styles.pages} style={{ height: totalPages * pageHeight }}>
         {currentPages.map((page) => (
           <div
