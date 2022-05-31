@@ -3,6 +3,8 @@ import PropTypes from 'prop-types';
 
 const viewerLocation = '/third-party/pdfjs-2.4.456-dist/web/viewer.html';
 
+
+
 export function EmbeddedPdfViewer({ doc }: { doc: string }) {
     const url = `${viewerLocation}?file=${doc}`;
 
@@ -14,6 +16,20 @@ export function EmbeddedPdfViewer({ doc }: { doc: string }) {
                 // the configuration. We'd need a release with https://github.com/mozilla/pdf.js/pull/11837.
                 const iframeDocument = iframe.contentDocument!;
                 const toolbarToHide = iframeDocument.querySelector("#toolbarViewerRight");
+                const rotatebuttons = [
+                    iframeDocument.getElementById("pageRotateCcw"),
+                    iframeDocument.getElementById("pageRotateCw")
+                ]
+                rotatebuttons.forEach(elem => {
+                    if (elem) {
+                        // allow to be squashed onto the toolbar
+                        elem.style.minWidth = "0px";
+                        // get rid of descriptor text as there's no space in the toolbar
+                        elem.innerHTML = "";
+                        iframeDocument.getElementById("toolbarViewerLeft")?.append(elem)
+                    }
+                })
+
 
                 if(toolbarToHide) {
                     toolbarToHide.setAttribute('style', 'visibility: hidden');
