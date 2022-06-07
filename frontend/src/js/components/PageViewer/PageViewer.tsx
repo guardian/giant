@@ -152,7 +152,7 @@ export const PageViewer: FC<PageViewerProps> = () => {
           totalPages={totalPages}
           jumpToPage={jumpToPage}
           preloadPages={preloadPages}
-          setMiddlePage={setMiddlePage}
+          onMiddlePageChange={setMiddlePage}
           rotation={rotation}
         />
       ) : null}
