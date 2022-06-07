@@ -51,9 +51,7 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
     pageCache.setFindQuery(findQuery);
   }, [findQuery, pageCache]);
 
-  const [topPage, setTopPage] = useState(1);
-  const [midPage, setMidPage] = useState(1); // Todo hook up to URL
-  const [botPage, setBotPage] = useState(1 + PRELOAD_PAGES);
+  const [pages, setPages] = useState({bottom: 1, middle: 1, top: 1 + PRELOAD_PAGES});
 
   const getPages = useCallback(() => {
     if (viewport?.current) {
@@ -64,18 +62,17 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
       const topEdge = currentMid - PRELOAD_PAGES * pageHeight;
       const botEdge = currentMid + PRELOAD_PAGES * pageHeight;
 
-      const newTopPage = Math.max(Math.floor(topEdge / pageHeight), 1);
-      const newMidPage = Math.floor(currentMid / pageHeight) + 1;
-      const newBotPage = Math.min(Math.ceil(botEdge / pageHeight), totalPages);
-
-      setTopPage(newTopPage);
-      setMidPage(newMidPage);
-      setBotPage(newBotPage);
+      const newMiddle = Math.floor(currentMid / pageHeight) + 1;
+      setPages({
+        bottom: Math.min(Math.ceil(botEdge / pageHeight), totalPages),
+        middle: newMiddle,
+        top: Math.max(Math.floor(topEdge / pageHeight), 1)
+      });
 
       // Inform the parent component of the new middle page
       // This allows it to do useful things such as have a sensible "next" page
       // to go to for the find hits
-      setMiddlePage(newMidPage);
+      setMiddlePage(newMiddle);
     }
   }, [pageHeight, setMiddlePage, totalPages]);
 
@@ -96,7 +93,8 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
   }, [pageHeight, jumpToPage]);
 
   useEffect(() => {
-    const renderedPages = _.range(topPage, botPage + 1).map((pageNumber) => {
+    console.log('pages: ', pages);
+    const renderedPages = _.range(pages.top, pages.bottom + 1).map((pageNumber) => {
       const cachedPage = pageCache.getPage(pageNumber);
       return {
         pageNumber,
@@ -106,7 +104,7 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
     });
 
     setCurrentPages(renderedPages);
-  }, [botPage, midPage, topPage, pageCache, setCurrentPages]);
+  }, [pages.top, pages.bottom, pageCache, setCurrentPages]);
 
   useLayoutEffect(() => {
     if (triggerHighlightRefresh > 0) {
