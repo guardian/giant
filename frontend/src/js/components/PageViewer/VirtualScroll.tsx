@@ -58,19 +58,16 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
 
   const getPages = useCallback(() => {
     setPages(currentPages => {
-      console.log('setPages');
       if (viewport?.current) {
         const v = viewport.current;
 
         const currentMid = v.scrollTop + v.clientHeight / 2;
-
         const topEdge = currentMid - PRELOAD_PAGES * pageHeight;
         const botEdge = currentMid + PRELOAD_PAGES * pageHeight;
 
-        const newMiddle = Math.floor(currentMid / pageHeight) + 1;
         const newPages = {
           bottom: Math.min(Math.ceil(botEdge / pageHeight), totalPages),
-          middle: newMiddle,
+          middle: Math.floor(currentMid / pageHeight) + 1,
           top: Math.max(Math.floor(topEdge / pageHeight), 1)
         }
 
@@ -82,19 +79,22 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
         } else {
           // Otherwise, update the pages right away so we get a responsive experience
           // when scrolling smoothly.
+          // Cancel the debounced function first in case we've jumped and then moved
+          // a small distance within the debounce timeout.
+          debouncedSetPages.cancel();
           return newPages;
         }
       }
       return currentPages
     });
-  }, [pageHeight, onMiddlePageChange, totalPages]);
+  }, [pageHeight, totalPages, debouncedSetPages]);
 
   useEffect(() => {
     // Inform the parent component of the new middle page
     // This allows it to do useful things such as have a sensible "next" page
     // to go to for the find hits
     onMiddlePageChange(pages.middle);
-  }, [pages.middle]);
+  }, [pages.middle, onMiddlePageChange]);
 
   const onScroll = useMemo(() => throttle(getPages, 75), [getPages]);
 
