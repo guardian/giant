@@ -1,9 +1,9 @@
-import _, { debounce } from 'lodash';
+import { debounce, range } from 'lodash';
 import React, { FC, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { CachedPreview, CONTAINER_AND_MARGIN_SIZE, PageData } from './model';
-import { Page } from "./Page";
-import { PageCache } from "./PageCache";
-import styles from "./VirtualScroll.module.css";
+import { Page } from './Page';
+import { PageCache } from './PageCache';
+import styles from './VirtualScroll.module.css';
 import throttle from 'lodash/throttle';
 
 type VirtualScrollProps = {
@@ -119,7 +119,7 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
   }, [pageHeight, jumpToPage]);
 
   useEffect(() => {
-    const renderedPages = _.range(pageRange.top, pageRange.bottom + 1).map((pageNumber) => {
+    const renderedPages = range(pageRange.top, pageRange.bottom + 1).map((pageNumber) => {
       const cachedPage = pageCache.getPage(pageNumber);
       return {
         pageNumber,
