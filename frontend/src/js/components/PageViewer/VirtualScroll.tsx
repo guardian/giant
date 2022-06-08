@@ -1,9 +1,10 @@
-import _ from "lodash";
-import React, { FC, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import _, { debounce } from 'lodash';
+import React, { FC, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { CONTAINER_AND_MARGIN_SIZE } from "./model";
 import { Page } from "./Page";
 import { PageCache } from "./PageCache";
 import styles from "./VirtualScroll.module.css";
+import throttle from 'lodash/throttle';
 
 type VirtualScrollProps = {
   uri: string;
@@ -14,7 +15,8 @@ type VirtualScrollProps = {
   totalPages: number;
   jumpToPage: number | null;
   preloadPages: number[];
-  setMiddlePage: (n: number) => void;
+
+  onMiddlePageChange: (n: number) => void;
 
   rotation: number;
 };
@@ -28,7 +30,7 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
   totalPages,
   jumpToPage,
   preloadPages,
-  setMiddlePage,
+  onMiddlePageChange,
 
   rotation,
 }) => {
@@ -51,37 +53,50 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
     pageCache.setFindQuery(findQuery);
   }, [findQuery, pageCache]);
 
-  const [topPage, setTopPage] = useState(1);
-  const [midPage, setMidPage] = useState(1); // Todo hook up to URL
-  const [botPage, setBotPage] = useState(1 + PRELOAD_PAGES);
+  const [pages, setPages] = useState({bottom: 1, middle: 1, top: 1 + PRELOAD_PAGES});
+  const debouncedSetPages = useMemo(() => debounce(setPages, 150), [setPages]);
 
   const getPages = useCallback(() => {
-    if (viewport?.current) {
-      const v = viewport.current;
+    setPages(currentPages => {
+      if (viewport?.current) {
+        const v = viewport.current;
 
-      const currentMid = v.scrollTop + v.clientHeight / 2;
+        const currentMid = v.scrollTop + v.clientHeight / 2;
+        const topEdge = currentMid - PRELOAD_PAGES * pageHeight;
+        const botEdge = currentMid + PRELOAD_PAGES * pageHeight;
 
-      const topEdge = currentMid - PRELOAD_PAGES * pageHeight;
-      const botEdge = currentMid + PRELOAD_PAGES * pageHeight;
+        const newPages = {
+          bottom: Math.min(Math.ceil(botEdge / pageHeight), totalPages),
+          middle: Math.floor(currentMid / pageHeight) + 1,
+          top: Math.max(Math.floor(topEdge / pageHeight), 1)
+        }
 
-      const newTopPage = Math.max(Math.floor(topEdge / pageHeight), 1);
-      const newMidPage = Math.floor(currentMid / pageHeight) + 1;
-      const newBotPage = Math.min(Math.ceil(botEdge / pageHeight), totalPages);
+        const distanceFromPreviousPage = Math.abs(newPages.middle - currentPages.middle);
+        if (distanceFromPreviousPage > 2) {
+          // If we've jumped around, debounce the page change to avoid spamming
+          // requests and jamming things up handling server responses of pages we'll never see.
+          debouncedSetPages(newPages);
+        } else {
+          // Otherwise, update the pages right away so we get a responsive experience
+          // when scrolling smoothly.
+          // Cancel the debounced function first in case we've jumped and then moved
+          // a small distance within the debounce timeout.
+          debouncedSetPages.cancel();
+          return newPages;
+        }
+      }
+      return currentPages
+    });
+  }, [pageHeight, totalPages, debouncedSetPages]);
 
-      setTopPage(newTopPage);
-      setMidPage(newMidPage);
-      setBotPage(newBotPage);
+  useEffect(() => {
+    // Inform the parent component of the new middle page
+    // This allows it to do useful things such as have a sensible "next" page
+    // to go to for the find hits
+    onMiddlePageChange(pages.middle);
+  }, [pages.middle, onMiddlePageChange]);
 
-      // Inform the parent component of the new middle page
-      // This allows it to do useful things such as have a sensible "next" page
-      // to go to for the find hits
-      setMiddlePage(newMidPage);
-    }
-  }, [pageHeight, setMiddlePage, totalPages]);
-
-  const onScroll = () => {
-    getPages();
-  };
+  const onScroll = useMemo(() => throttle(getPages, 75), [getPages]);
 
   useEffect(() => {
     getPages();
@@ -96,7 +111,7 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
   }, [pageHeight, jumpToPage]);
 
   useEffect(() => {
-    const renderedPages = _.range(topPage, botPage + 1).map((pageNumber) => {
+    const renderedPages = _.range(pages.top, pages.bottom + 1).map((pageNumber) => {
       const cachedPage = pageCache.getPage(pageNumber);
       return {
         pageNumber,
@@ -106,7 +121,7 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
     });
 
     setCurrentPages(renderedPages);
-  }, [botPage, midPage, topPage, pageCache, setCurrentPages]);
+  }, [pages.top, pages.bottom, pageCache, setCurrentPages]);
 
   useLayoutEffect(() => {
     if (triggerHighlightRefresh > 0) {
