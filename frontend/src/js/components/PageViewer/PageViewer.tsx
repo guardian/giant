@@ -33,7 +33,7 @@ export const PageViewer: FC<PageViewerProps> = () => {
   const [findSearch, setFind] = useState("");
 
   const [triggerRefresh, setTriggerRefresh] = useState(0);
-  const [preloadPages, setPreloadPages] = useState<number[]>([]);
+  const [pageNumbersToPreload, setPageNumbersToPreload] = useState<number[]>([]);
 
   const [rotation, setRotation] = useState(0);
 
@@ -98,7 +98,7 @@ export const PageViewer: FC<PageViewerProps> = () => {
       (idx) => findSearchHits[idx]
     );
 
-    setPreloadPages(newPreloadPages);
+    setPageNumbersToPreload(newPreloadPages);
   }, [findSearchHits]);
 
   const jumpToNextFindHit = useCallback(() => {
@@ -151,7 +151,7 @@ export const PageViewer: FC<PageViewerProps> = () => {
           triggerHighlightRefresh={triggerRefresh}
           totalPages={totalPages}
           jumpToPage={jumpToPage}
-          preloadPages={preloadPages}
+          pageNumbersToPreload={pageNumbersToPreload}
           onMiddlePageChange={setMiddlePage}
           rotation={rotation}
         />
