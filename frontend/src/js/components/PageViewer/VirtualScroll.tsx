@@ -69,7 +69,7 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
   const debouncedSetPageRange = useMemo(() => debounce(setPageRange, 150), [setPageRange]);
 
   const setPageRangeFromScrollPosition = useCallback(() => {
-    setPageRange(currentPages => {
+    setPageRange(currentPageRange => {
       if (viewport?.current) {
         const v = viewport.current;
 
@@ -77,27 +77,27 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
         const topEdge = currentMid - PRELOAD_PAGES * pageHeight;
         const botEdge = currentMid + PRELOAD_PAGES * pageHeight;
 
-        const newPages = {
+        const newPageRange = {
           bottom: Math.min(Math.ceil(botEdge / pageHeight), totalPages),
           middle: Math.floor(currentMid / pageHeight) + 1,
           top: Math.max(Math.floor(topEdge / pageHeight), 1)
         }
 
-        const distanceFromPreviousPage = Math.abs(newPages.middle - currentPages.middle);
+        const distanceFromPreviousPage = Math.abs(newPageRange.middle - currentPageRange.middle);
         if (distanceFromPreviousPage > 2) {
           // If we've jumped around, debounce the page change to avoid spamming
           // requests and jamming things up handling server responses of pages we'll never see.
-          debouncedSetPageRange(newPages);
+          debouncedSetPageRange(newPageRange);
         } else {
           // Otherwise, update the pages right away so we get a responsive experience
           // when scrolling smoothly.
           // Cancel the debounced function first in case we've jumped and then moved
           // a small distance within the debounce timeout.
           debouncedSetPageRange.cancel();
-          return newPages;
+          return newPageRange;
         }
       }
-      return currentPages
+      return currentPageRange
     });
   }, [pageHeight, totalPages, debouncedSetPageRange]);
 
@@ -133,8 +133,8 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
 
   useLayoutEffect(() => {
     if (triggerHighlightRefresh > 0) {
-      setRenderedPages((oldPages) => {
-        const newPages = oldPages.map((page) => {
+      setRenderedPages((currentPages) => {
+        const newPages: RenderedPage[] = currentPages.map((page) => {
           const refreshedPage = pageCache.getPageAndRefreshHighlights(
               page.pageNumber
           );
@@ -147,11 +147,15 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
 
         // Once we've refreshed all visible pages go and refresh the cached pages too
         // Will this work inside a setState callback?? It seems so...
-        Promise.all(newPages.map((r) => r.getPageData)).then(() => {
+        Promise.all(newPages.map((page) => page.getPageData)).then(() => {
           pageCache
-              .getAllPageNumbers()
-              .filter((p) => !newPages.some((cp) => cp.pageNumber === p))
-              .forEach((p) => pageCache.getPageAndRefreshHighlights(p));
+            .getAllPageNumbers()
+            .filter((cachedPageNumber) =>
+              !newPages.some((newPage) => newPage.pageNumber === cachedPageNumber)
+            )
+            .forEach((pageNumberToRefresh) =>
+              pageCache.getPageAndRefreshHighlights(pageNumberToRefresh)
+            );
         });
 
         return newPages;
@@ -160,7 +164,7 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
   }, [triggerHighlightRefresh, pageCache]);
 
   useEffect(() => {
-    pageNumbersToPreload.forEach((p) => pageCache.getPage(p));
+    pageNumbersToPreload.forEach((pageNumber) => pageCache.getPage(pageNumber));
   }, [pageNumbersToPreload, pageCache]);
 
   return (
