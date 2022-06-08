@@ -1,6 +1,6 @@
 import _, { debounce } from 'lodash';
 import React, { FC, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { CONTAINER_AND_MARGIN_SIZE } from "./model";
+import { CachedPreview, CONTAINER_AND_MARGIN_SIZE, PageData } from './model';
 import { Page } from "./Page";
 import { PageCache } from "./PageCache";
 import styles from "./VirtualScroll.module.css";
@@ -14,11 +14,23 @@ type VirtualScrollProps = {
 
   totalPages: number;
   jumpToPage: number | null;
-  preloadPages: number[];
+  pageNumbersToPreload: number[];
 
   onMiddlePageChange: (n: number) => void;
 
   rotation: number;
+};
+
+type RenderedPage = {
+  pageNumber: number,
+  getPageData: Promise<PageData>,
+  getPagePreview: Promise<CachedPreview>
+};
+
+type PageRange = {
+  bottom: number,
+  middle: number,
+  top: number
 };
 
 export const VirtualScroll: FC<VirtualScrollProps> = ({
@@ -29,7 +41,7 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
 
   totalPages,
   jumpToPage,
-  preloadPages,
+  pageNumbersToPreload,
   onMiddlePageChange,
 
   rotation,
@@ -47,17 +59,17 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
 
   // We have a second tier cache tied to the React component lifecycle for storing
   // rendered pages which allows us to swap out stale pages without flickering pages
-  const [currentPages, setCurrentPages] = useState<any[]>([]);
+  const [renderedPages, setRenderedPages] = useState<RenderedPage[]>([]);
 
   useEffect(() => {
     pageCache.setFindQuery(findQuery);
   }, [findQuery, pageCache]);
 
-  const [pages, setPages] = useState({bottom: 1 + PRELOAD_PAGES, middle: 1, top: 1});
-  const debouncedSetPages = useMemo(() => debounce(setPages, 150), [setPages]);
+  const [pageRange, setPageRange] = useState<PageRange>({bottom: 1 + PRELOAD_PAGES, middle: 1, top: 1});
+  const debouncedSetPageRange = useMemo(() => debounce(setPageRange, 150), [setPageRange]);
 
-  const setPagesFromScrollPosition = useCallback(() => {
-    setPages(currentPages => {
+  const setPageRangeFromScrollPosition = useCallback(() => {
+    setPageRange(currentPages => {
       if (viewport?.current) {
         const v = viewport.current;
 
@@ -75,28 +87,28 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
         if (distanceFromPreviousPage > 2) {
           // If we've jumped around, debounce the page change to avoid spamming
           // requests and jamming things up handling server responses of pages we'll never see.
-          debouncedSetPages(newPages);
+          debouncedSetPageRange(newPages);
         } else {
           // Otherwise, update the pages right away so we get a responsive experience
           // when scrolling smoothly.
           // Cancel the debounced function first in case we've jumped and then moved
           // a small distance within the debounce timeout.
-          debouncedSetPages.cancel();
+          debouncedSetPageRange.cancel();
           return newPages;
         }
       }
       return currentPages
     });
-  }, [pageHeight, totalPages, debouncedSetPages]);
+  }, [pageHeight, totalPages, debouncedSetPageRange]);
 
   useEffect(() => {
     // Inform the parent component of the new middle page
     // This allows it to do useful things such as have a sensible "next" page
     // to go to for the find hits
-    onMiddlePageChange(pages.middle);
-  }, [pages.middle, onMiddlePageChange]);
+    onMiddlePageChange(pageRange.middle);
+  }, [pageRange.middle, onMiddlePageChange]);
 
-  const setPagesFromScrollPositionThrottled = useMemo(() => throttle(setPagesFromScrollPosition, 75), [setPagesFromScrollPosition]);
+  const throttledSetPageRangeFromScrollPosition = useMemo(() => throttle(setPageRangeFromScrollPosition, 75), [setPageRangeFromScrollPosition]);
 
   useLayoutEffect(() => {
     if (viewport?.current && jumpToPage) {
@@ -107,7 +119,7 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
   }, [pageHeight, jumpToPage]);
 
   useEffect(() => {
-    const renderedPages = _.range(pages.top, pages.bottom + 1).map((pageNumber) => {
+    const renderedPages = _.range(pageRange.top, pageRange.bottom + 1).map((pageNumber) => {
       const cachedPage = pageCache.getPage(pageNumber);
       return {
         pageNumber,
@@ -116,12 +128,12 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
       };
     });
 
-    setCurrentPages(renderedPages);
-  }, [pages.top, pages.bottom, pageCache, setCurrentPages]);
+    setRenderedPages(renderedPages);
+  }, [pageRange.top, pageRange.bottom, pageCache, setRenderedPages]);
 
   useLayoutEffect(() => {
     if (triggerHighlightRefresh > 0) {
-      setCurrentPages((oldPages) => {
+      setRenderedPages((oldPages) => {
         const newPages = oldPages.map((page) => {
           const refreshedPage = pageCache.getPageAndRefreshHighlights(
               page.pageNumber
@@ -148,13 +160,13 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
   }, [triggerHighlightRefresh, pageCache]);
 
   useEffect(() => {
-    preloadPages.forEach((p) => pageCache.getPage(p));
-  }, [preloadPages, pageCache]);
+    pageNumbersToPreload.forEach((p) => pageCache.getPage(p));
+  }, [pageNumbersToPreload, pageCache]);
 
   return (
-    <div ref={viewport} className={styles.scrollContainer} onScroll={setPagesFromScrollPositionThrottled}>
+    <div ref={viewport} className={styles.scrollContainer} onScroll={throttledSetPageRangeFromScrollPosition}>
       <div className={styles.pages} style={{ height: totalPages * pageHeight }}>
-        {currentPages.map((page) => (
+        {renderedPages.map((page) => (
           <div
             key={page.pageNumber}
             style={{
