@@ -53,7 +53,7 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
     pageCache.setFindQuery(findQuery);
   }, [findQuery, pageCache]);
 
-  const [pages, setPages] = useState({bottom: 1, middle: 1, top: 1 + PRELOAD_PAGES});
+  const [pages, setPages] = useState({bottom: 1 + PRELOAD_PAGES, middle: 1, top: 1});
   const debouncedSetPages = useMemo(() => debounce(setPages, 150), [setPages]);
 
   const setPagesFromScrollPosition = useCallback(() => {
