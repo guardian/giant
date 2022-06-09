@@ -9,12 +9,14 @@ type PageProps = {
   pageNumber: number;
   getPagePreview: Promise<CachedPreview>;
   getPageData: Promise<PageData>;
+  currentFindHighlight: string | null;
 };
 
 export const Page: FC<PageProps> = ({
   pageNumber,
   getPagePreview,
   getPageData,
+                                      currentFindHighlight,
 }) => {
   const [pageText, setPageText] = useState<PageData | null>(null);
   const [scale, setScale] = useState<number | null>(null);
@@ -75,7 +77,7 @@ export const Page: FC<PageProps> = ({
           <PageHighlight
             key={hl.id}
             highlight={hl}
-            focused={false}
+            focused={currentFindHighlight === hl.id}
             scale={scale}
           />
         ))}

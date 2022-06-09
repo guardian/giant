@@ -20,6 +20,8 @@ type VirtualScrollProps = {
   onMiddlePageChange: (n: number) => void;
   onFindHighlightsChange: (highlights: string[]) => void;
 
+  currentFindHighlight: string | null;
+
   rotation: number;
 };
 
@@ -44,6 +46,8 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
   totalPages,
   jumpToPage,
   pageNumbersToPreload,
+
+                                                        currentFindHighlight,
 
   onMiddlePageChange,
   onFindHighlightsChange,
@@ -199,6 +203,7 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
               pageNumber={page.pageNumber}
               getPagePreview={page.getPagePreview}
               getPageData={page.getPageData}
+              currentFindHighlight={currentFindHighlight}
             />
           </div>
         ))}

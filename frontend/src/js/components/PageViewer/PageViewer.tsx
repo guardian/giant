@@ -35,6 +35,7 @@ export const PageViewer: FC<PageViewerProps> = () => {
   }>()
 
   const [loadedFindHighlights, setLoadedFindHighlights] = useState<string[]>([]);
+  const [currentFindHighlight, setCurrentFindHighlight] = useState<string | null>(null);
 
   const [lastPageHit, setLastPageHit] = useState<number>(0);
   const [findSearchHits, setFindHits] = useState<number[]>([]);
@@ -45,6 +46,13 @@ export const PageViewer: FC<PageViewerProps> = () => {
   const [pageNumbersToPreload, setPageNumbersToPreload] = useState<number[]>([]);
 
   const [rotation, setRotation] = useState(0);
+
+  useEffect(() => {
+    console.log('currentFindHighlight: ', currentFindHighlight);
+  }, [currentFindHighlight]);
+  useEffect(() => {
+    console.log('loadedFindHighlights: ', loadedFindHighlights);
+  }, [loadedFindHighlights]);
 
   useEffect(() => {
     authFetch(`/api/pages2/${uri}/pageCount`)
@@ -112,30 +120,56 @@ export const PageViewer: FC<PageViewerProps> = () => {
 
   const jumpToNextFindHit = useCallback(() => {
     if (findSearchHits.length > 0) {
-      const maybePage = findSearchHits.find((page) => page > lastPageHit);
-      const nextPage = maybePage ? maybePage : findSearchHits[0];
-
-      preloadNextPreviousFindPages(nextPage, findSearchHits);
-      setLastPageHit(nextPage);
-      setJumpToPage(nextPage);
+      setCurrentFindHighlight(cur => {
+        const i = loadedFindHighlights.findIndex(h => h === cur);
+        // TODO wraparound
+        let next;
+        if (i === -1) {
+          next = loadedFindHighlights[0];
+        } else {
+          next = loadedFindHighlights[i+1];
+        }
+        return next;
+      });
+      // const maybePage = findSearchHits.find((page) => page > lastPageHit);
+      // const nextPage = maybePage ? maybePage : findSearchHits[0];
+      //
+      // preloadNextPreviousFindPages(nextPage, findSearchHits);
+      // setLastPageHit(nextPage);
+      // setJumpToPage(nextPage);
     }
-  }, [findSearchHits, lastPageHit, preloadNextPreviousFindPages, setLastPageHit, setJumpToPage]);
+  }, [findSearchHits, loadedFindHighlights, lastPageHit, preloadNextPreviousFindPages, setLastPageHit, setJumpToPage]);
 
   const jumpToPreviousFindHit = useCallback(() => {
     if (findSearchHits.length > 0) {
-      const maybePage = findLast(
-        findSearchHits,
-        (page) => page < lastPageHit
-      );
-      const previousPage = maybePage
-        ? maybePage
-        : findSearchHits[findSearchHits.length - 1];
-
-      preloadNextPreviousFindPages(previousPage, findSearchHits);
-      setLastPageHit(previousPage);
-      setJumpToPage(previousPage);
+      setCurrentFindHighlight(cur => {
+        const i = loadedFindHighlights.findIndex(h => h === cur);
+        // TODO wraparound
+        const prev = loadedFindHighlights[i-1];
+        return prev;
+      });
+      // const maybePage = findLast(
+      //   findSearchHits,
+      //   (page) => page < lastPageHit
+      // );
+      // const previousPage = maybePage
+      //   ? maybePage
+      //   : findSearchHits[findSearchHits.length - 1];
+      //
+      // preloadNextPreviousFindPages(previousPage, findSearchHits);
+      // setLastPageHit(previousPage);
+      // setJumpToPage(previousPage);
     }
-  }, [findSearchHits, lastPageHit, preloadNextPreviousFindPages, setLastPageHit, setJumpToPage]);
+  }, [findSearchHits, loadedFindHighlights, lastPageHit, preloadNextPreviousFindPages, setLastPageHit, setJumpToPage]);
+
+  useEffect(() => {
+    if (currentFindHighlight) {
+      const el = document.getElementById(currentFindHighlight);
+      if (el) {
+        el.scrollIntoView({inline: "center", block: "center"});
+      }
+    }
+  }, [currentFindHighlight])
 
   return (
     <main className={styles.main}>
@@ -164,6 +198,7 @@ export const PageViewer: FC<PageViewerProps> = () => {
           onMiddlePageChange={setMiddlePage}
           onFindHighlightsChange={setLoadedFindHighlights}
           rotation={rotation}
+          currentFindHighlight={currentFindHighlight}
         />
       ) : null}
     </main>
