@@ -27,6 +27,15 @@ export const PageViewer: FC<PageViewerProps> = () => {
   const [jumpToPage, setJumpToPage] = useState<number | null>(page);
 
   // Find searching...
+  const [findState, setFindState] = useState<{
+    previousPageHit: number | null,
+    loadedHighlights: string[],
+    currentHighlight: string,
+    nextPageHit: number | null;
+  }>()
+
+  const [loadedFindHighlights, setLoadedFindHighlights] = useState<string[]>([]);
+
   const [lastPageHit, setLastPageHit] = useState<number>(0);
   const [findSearchHits, setFindHits] = useState<number[]>([]);
   const [, setFindVisible] = useState(false);
@@ -153,6 +162,7 @@ export const PageViewer: FC<PageViewerProps> = () => {
           jumpToPage={jumpToPage}
           pageNumbersToPreload={pageNumbersToPreload}
           onMiddlePageChange={setMiddlePage}
+          onFindHighlightsChange={setLoadedFindHighlights}
           rotation={rotation}
         />
       ) : null}

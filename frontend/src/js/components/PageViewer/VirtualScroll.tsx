@@ -5,6 +5,7 @@ import { Page } from './Page';
 import { PageCache } from './PageCache';
 import styles from './VirtualScroll.module.css';
 import throttle from 'lodash/throttle';
+import { sort } from 'ramda';
 
 type VirtualScrollProps = {
   uri: string;
@@ -17,6 +18,7 @@ type VirtualScrollProps = {
   pageNumbersToPreload: number[];
 
   onMiddlePageChange: (n: number) => void;
+  onFindHighlightsChange: (highlights: string[]) => void;
 
   rotation: number;
 };
@@ -42,7 +44,9 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
   totalPages,
   jumpToPage,
   pageNumbersToPreload,
+
   onMiddlePageChange,
+  onFindHighlightsChange,
 
   rotation,
 }) => {
@@ -162,6 +166,18 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
       });
     }
   }, [triggerHighlightRefresh, pageCache]);
+
+  useEffect(() => {
+    Promise.all(renderedPages.map(page => page.getPageData)).then(pages => {
+      const highlights = pages
+        .flatMap(page => page.highlights)
+        .filter(h => h.type === "FindHighlight")
+        .map(h => h.id);
+
+      highlights.sort();
+      onFindHighlightsChange(highlights);
+    })
+  }, [renderedPages])
 
   useEffect(() => {
     pageNumbersToPreload.forEach((pageNumber) => pageCache.getPage(pageNumber));
