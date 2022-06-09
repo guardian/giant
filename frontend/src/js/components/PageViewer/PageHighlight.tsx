@@ -38,6 +38,7 @@ export const PageHighlight: FC<PageHighlightProps> = ({
 
         return (
           <span
+            id={id}
             className={classes.join(" ")}
             key={`${id}-${i}`}
             style={style}
