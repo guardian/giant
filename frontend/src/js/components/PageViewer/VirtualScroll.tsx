@@ -8,7 +8,7 @@ import throttle from 'lodash/throttle';
 
 type VirtualScrollProps = {
   uri: string;
-  query?: string;
+  searchQuery?: string;
   findQuery?: string;
   triggerHighlightRefresh: number;
 
@@ -35,7 +35,7 @@ type PageRange = {
 
 export const VirtualScroll: FC<VirtualScrollProps> = ({
   uri,
-  query,
+  searchQuery,
   findQuery,
   triggerHighlightRefresh,
 
@@ -55,7 +55,7 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
 
   const viewport = useRef<HTMLDivElement>(null);
 
-  const [pageCache] = useState(() => new PageCache(uri, query));
+  const [pageCache] = useState(() => new PageCache(uri, searchQuery));
 
   // We have a second tier cache tied to the React component lifecycle for storing
   // rendered pages which allows us to swap out stale pages without flickering pages

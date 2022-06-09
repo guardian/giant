@@ -146,7 +146,7 @@ export const PageViewer: FC<PageViewerProps> = () => {
       {totalPages ? (
         <VirtualScroll
           uri={uri}
-          query={query}
+          searchQuery={query}
           findQuery={findSearch}
           triggerHighlightRefresh={triggerRefresh}
           totalPages={totalPages}

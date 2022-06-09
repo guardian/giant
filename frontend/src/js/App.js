@@ -75,8 +75,8 @@ class App extends React.Component {
                     <Route path='/collections' exact component={Collections} />
                     <Route path='/collections/:uri' component={CurrentCollection} />
                     <Route path='/search' component={Search} />
-                    <Route path='/viewer/:uri' component={Viewer} />
-                    <Route path='/viewer2/:uri' component={PageViewer} />
+                    <Route path='/viewer-old/:uri' component={Viewer} />
+                    <Route path='/viewer/:uri' component={PageViewer} />
                     <Route path='/files/*' component={() => <Directory currentResource={getCurrentResource()} />} />
                     <Route path='/emails/thread/:uri' component={Thread} />
                     <Route path='/ingestions/*' component={() => <Directory currentResource={getCurrentResource()} />} />
