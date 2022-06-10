@@ -178,7 +178,16 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
         .filter(h => h.type === "FindHighlight")
         .map(h => h.id);
 
-      highlights.sort();
+      // TODO: this is a bit silly, maybe pass back something more useful from server
+      highlights.sort((a, b) => {
+        const [[aFullMatch, aPageNum, aHighlightNum]] = a.matchAll(/find-page-(\d+)-search-result-(\d+)/g);
+        const [[bFullMatch, bPageNum, bHighlightNum]] = b.matchAll(/find-page-(\d+)-search-result-(\d+)/g);
+        const pageDiff = parseInt(aPageNum) - parseInt(bPageNum);
+        if (pageDiff !== 0) {
+          return pageDiff;
+        }
+        return parseInt(aHighlightNum) - parseInt(bHighlightNum);
+      });
       onFindHighlightsChange(highlights);
     })
   }, [renderedPages])

@@ -18,7 +18,6 @@ type ControlsProps = {
   jumpToNextFindHit: () => void;
   jumpToPreviousFindHit: () => void;
   findSearchHits: number[];
-  lastPageHit: number;
 };
 
 export const Controls: FC<ControlsProps> = ({
@@ -30,7 +29,6 @@ export const Controls: FC<ControlsProps> = ({
   jumpToPreviousFindHit,
   performFind,
   findSearchHits,
-  lastPageHit,
 }) => {
   return (
     <div className={styles.bar}>
@@ -47,7 +45,6 @@ export const Controls: FC<ControlsProps> = ({
         value={findSearch}
         setValue={setFind}
         hits={findSearchHits}
-        lastPageHit={lastPageHit}
         performFind={performFind}
         jumpToNextFindHit={jumpToNextFindHit}
         jumpToPreviousFindHit={jumpToPreviousFindHit}

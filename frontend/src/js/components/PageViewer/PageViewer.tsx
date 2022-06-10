@@ -5,6 +5,7 @@ import authFetch from "../../util/auth/authFetch";
 import { Controls } from "./Controls";
 import styles from "./PageViewer.module.css";
 import { VirtualScroll } from "./VirtualScroll";
+import { getPreviewBlob } from '../../services/PreviewApi';
 
 type PageViewerProps = {
   page: number;
@@ -37,7 +38,7 @@ export const PageViewer: FC<PageViewerProps> = () => {
   const [loadedFindHighlights, setLoadedFindHighlights] = useState<string[]>([]);
   const [currentFindHighlight, setCurrentFindHighlight] = useState<string | null>(null);
 
-  const [lastPageHit, setLastPageHit] = useState<number>(0);
+  // const [lastPageHit, setLastPageHit] = useState<number>(0);
   const [findSearchHits, setFindHits] = useState<number[]>([]);
   const [, setFindVisible] = useState(false);
   const [findSearch, setFind] = useState("");
@@ -89,7 +90,6 @@ export const PageViewer: FC<PageViewerProps> = () => {
       authFetch(`/api/pages2/${uri}/find?fq="${query}"`)
         .then((res) => res.json())
         .then((searchHits) => {
-          setLastPageHit(middlePage);
           setFindHits(searchHits);
           setTriggerRefresh((t) => t + 1);
         }),
@@ -125,20 +125,31 @@ export const PageViewer: FC<PageViewerProps> = () => {
         // TODO wraparound
         let next;
         if (i === -1) {
+          // Either: cur is null, so initialise
+          // Or: somehow cur is something that's not loaded?
           next = loadedFindHighlights[0];
         } else {
           next = loadedFindHighlights[i+1];
         }
-        return next;
+        if (!next) {
+          // TODO: better
+          const matches = cur?.matchAll(/^find-page-(\d+)/g);
+          let maybePage;
+          if (matches) {
+            const [[allMatches, pageNumber]] = matches;
+            maybePage = findSearchHits.find((page) => page > parseInt(pageNumber));
+          }
+          const nextPage = maybePage ? maybePage : findSearchHits[0];
+
+          preloadNextPreviousFindPages(nextPage, findSearchHits);
+          setJumpToPage(nextPage);
+          return 'NEXT_PAGE';
+        } else {
+          return next;
+        }
       });
-      // const maybePage = findSearchHits.find((page) => page > lastPageHit);
-      // const nextPage = maybePage ? maybePage : findSearchHits[0];
-      //
-      // preloadNextPreviousFindPages(nextPage, findSearchHits);
-      // setLastPageHit(nextPage);
-      // setJumpToPage(nextPage);
     }
-  }, [findSearchHits, loadedFindHighlights, lastPageHit, preloadNextPreviousFindPages, setLastPageHit, setJumpToPage]);
+  }, [findSearchHits, loadedFindHighlights, preloadNextPreviousFindPages, setJumpToPage]);
 
   const jumpToPreviousFindHit = useCallback(() => {
     if (findSearchHits.length > 0) {
@@ -146,30 +157,44 @@ export const PageViewer: FC<PageViewerProps> = () => {
         const i = loadedFindHighlights.findIndex(h => h === cur);
         // TODO wraparound
         const prev = loadedFindHighlights[i-1];
-        return prev;
+        if (!prev) {
+          // TODO: better
+          const matches = cur?.matchAll(/^find-page-(\d+)/g);
+          let maybePage;
+          if (matches) {
+            const [[allMatches, pageNumber]] = matches;
+            maybePage = findLast(
+                findSearchHits,
+                (page) => page < parseInt(pageNumber)
+            );
+          }
+          const previousPage = maybePage
+            ? maybePage
+            : findSearchHits[findSearchHits.length - 1];
+
+          preloadNextPreviousFindPages(previousPage, findSearchHits);
+          setJumpToPage(previousPage);
+          return 'PREV_PAGE';
+        } else {
+          return prev;
+        }
       });
-      // const maybePage = findLast(
-      //   findSearchHits,
-      //   (page) => page < lastPageHit
-      // );
-      // const previousPage = maybePage
-      //   ? maybePage
-      //   : findSearchHits[findSearchHits.length - 1];
-      //
-      // preloadNextPreviousFindPages(previousPage, findSearchHits);
-      // setLastPageHit(previousPage);
-      // setJumpToPage(previousPage);
+
     }
-  }, [findSearchHits, loadedFindHighlights, lastPageHit, preloadNextPreviousFindPages, setLastPageHit, setJumpToPage]);
+  }, [findSearchHits, loadedFindHighlights, preloadNextPreviousFindPages, setJumpToPage]);
 
   useEffect(() => {
-    if (currentFindHighlight) {
-      const el = document.getElementById(currentFindHighlight);
-      if (el) {
-        el.scrollIntoView({inline: "center", block: "center"});
+    setCurrentFindHighlight((cur) => {
+      if (!loadedFindHighlights.length) return cur;
+      if (cur === 'NEXT_PAGE') {
+        return loadedFindHighlights[0];
+      } else if (cur === 'PREV_PAGE') {
+        return loadedFindHighlights[loadedFindHighlights.length-1];
+      } else {
+        return cur;
       }
-    }
-  }, [currentFindHighlight])
+    })
+  }, [loadedFindHighlights]);
 
   return (
     <main className={styles.main}>
@@ -181,7 +206,6 @@ export const PageViewer: FC<PageViewerProps> = () => {
           setFind(q);
         }}
         findSearchHits={findSearchHits}
-        lastPageHit={lastPageHit}
         performFind={performFind}
         jumpToNextFindHit={jumpToNextFindHit}
         jumpToPreviousFindHit={jumpToPreviousFindHit}

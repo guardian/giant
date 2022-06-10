@@ -17,7 +17,6 @@ type FindInputProps = {
   jumpToNextFindHit: () => void;
   jumpToPreviousFindHit: () => void;
   hits: number[];
-  lastPageHit: number;
 };
 
 // The backend will only return 500 pages of hits.
@@ -32,7 +31,6 @@ export const FindInput: FC<FindInputProps> = ({
   jumpToPreviousFindHit,
   performFind,
   hits,
-  lastPageHit,
 }) => {
   const [showWarning, setShowWarning] = useState(false);
 
@@ -57,7 +55,6 @@ export const FindInput: FC<FindInputProps> = ({
     }
   }, [hits]);
 
-  const currentHit = hits.findIndex((p) => lastPageHit === p);
   return (
     <div className={styles.container}>
       <div className={styles.inputContainer}>
@@ -72,14 +69,6 @@ export const FindInput: FC<FindInputProps> = ({
             debouncedPerformSearch(e.target.value);
           }}
         />
-        <div className={styles.count}>
-          {currentHit === -1 ? " - " : currentHit + 1}/
-          {hits.length > 0
-            ? hits.length >= MAX_HITS
-              ? ">" + MAX_HITS
-              : hits.length
-            : " - "}
-        </div>
       </div>
       <button onClick={jumpToPreviousFindHit}>
         <UpIcon />

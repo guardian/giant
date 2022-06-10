@@ -1,21 +1,28 @@
-import React, { CSSProperties, FC } from "react";
+import React, { CSSProperties, FC, useEffect, useRef } from 'react';
 import { Highlight } from "./model";
 import styles from "./PageHighlight.module.css";
 
 type PageHighlightProps = {
   highlight: Highlight;
-  focused: boolean;
+  isFocused: boolean;
   scale: number;
 };
 
 export const PageHighlight: FC<PageHighlightProps> = ({
   highlight,
-  focused,
+  isFocused,
   scale,
 }) => {
   const { id, type } = highlight;
-
+  const highlightRef = useRef<HTMLSpanElement>(null);
   const isFind = type === "FindHighlight";
+
+  useEffect(() => {
+    if (isFocused && highlightRef.current) {
+      highlightRef.current.scrollIntoView({inline: "center", block: "center"});
+    }
+  }, [isFocused]);
+
   return (
     <>
       {highlight.data.map((span, i) => {
@@ -32,12 +39,13 @@ export const PageHighlight: FC<PageHighlightProps> = ({
 
         const classes = [
           styles.highlight,
-          ...(focused ? ["pfi-page-highlight--focused"] : []),
+          ...(isFocused ? [styles.focusedHighlight] : []),
           ...(isFind ? [styles.findHighlight] : [styles.searchHighlight]),
         ];
 
         return (
           <span
+            ref={highlightRef}
             id={id}
             className={classes.join(" ")}
             key={`${id}-${i}`}

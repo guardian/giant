@@ -50,7 +50,7 @@
     }
 
     &--focused:before {
-        background-color: darken($highlightColour, 20%);
+        background-color: darken($highlightColour, 50%);
         box-shadow: 0px 2px 5px 0px rgba(0, 0, 0, 0.5);
         transition: box-shadow 0.2s;
     }

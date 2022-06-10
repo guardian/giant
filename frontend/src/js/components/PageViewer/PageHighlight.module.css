@@ -18,7 +18,11 @@
 }
 
 .findHighlight::before {
-  background-color: hotpink !important;
+  background-color: hotpink;
+}
+
+.focusedHighlight::before {
+  background-color: #007eff;
 }
 
 .searchHighlight::before {

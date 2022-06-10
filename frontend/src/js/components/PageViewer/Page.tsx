@@ -77,7 +77,7 @@ export const Page: FC<PageProps> = ({
           <PageHighlight
             key={hl.id}
             highlight={hl}
-            focused={currentFindHighlight === hl.id}
+            isFocused={currentFindHighlight === hl.id}
             scale={scale}
           />
         ))}
