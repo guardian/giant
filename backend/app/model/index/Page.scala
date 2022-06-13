@@ -2,7 +2,7 @@ package model.index
 
 import model.Language
 import model.frontend.HighlightableText
-import play.api.libs.json.{Format, JsNumber, JsString, JsValue, Json, Writes, JsArray}
+import play.api.libs.json.{Format, JsArray, JsNull, JsNumber, JsString, JsValue, Json, Writes}
 
 case class PagesSummary(numberOfPages: Long, height: Double)
 object PagesSummary {
@@ -56,6 +56,35 @@ object PageHighlight {
           "height" -> JsNumber(s.height),
           "rotation" -> JsNumber(s.rotation),
         )
+      })
+    )
+  }
+}
+
+case class HighlightForSearchNavigation(
+  pageNumber: Long,
+  highlightNumber: Long,
+  id: String,
+  firstSpan: Option[HighlightSpan]
+)
+object HighlightForSearchNavigation {
+  def fromPageHighlight(pageNumber: Long, highlightNumber: Long, pageHighlight: PageHighlight) =
+    HighlightForSearchNavigation(pageNumber, highlightNumber, pageHighlight.id, pageHighlight.spans.headOption)
+
+  implicit val writes: Writes[HighlightForSearchNavigation] = { h =>
+    Json.obj(
+      "pageNumber" -> JsNumber(h.pageNumber),
+      "highlightNumber" -> JsNumber(h.highlightNumber),
+      "id" -> JsString(h.id),
+      "firstSpan" -> (h.firstSpan match {
+        case Some(s) => Json.obj(
+          "x" -> JsNumber(s.x),
+          "y" -> JsNumber(s.y),
+          "width" -> JsNumber(s.width),
+          "height" -> JsNumber(s.height),
+          "rotation" -> JsNumber(s.rotation),
+        )
+        case None => JsNull
       })
     )
   }

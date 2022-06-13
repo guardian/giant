@@ -5,7 +5,7 @@ import commands.GetPages.PagePreviewMetadata
 import java.io.InputStream
 import commands.{GetPagePreview, GetPages, GetResource, ResourceFetchMode}
 import model.frontend.{Chips, HighlightableText, TextHighlight}
-import model.index.{FrontendPage, Page, PageHighlight, PageWithFind}
+import model.index.{FindHighlight, FrontendPage, HighlightForSearchNavigation, Page, PageHighlight, PageWithFind}
 import model.{Language, Languages, Uri}
 import org.apache.pdfbox.pdmodel.PDDocument
 import play.api.libs.json.Json
@@ -124,7 +124,12 @@ class PagesController(val controllerComponents: AuthControllerComponents, manife
       pagesWithHits <- pagesService.findInPages(uri, findQuery)
       pageData <- Attempt.sequence(pagesWithHits.map(pageData(uri, _, req.user.username, None, Some(findQuery))))
     } yield {
-      Ok(Json.toJson(pageData))
+      val highlights = pageData.flatMap { page =>
+        page.highlights.map {
+          highlight => HighlightForSearchNavigation.fromPageHighlight(page.page, highlight.index, highlight)
+        }
+      }
+      Ok(Json.toJson(highlights.sortBy(h => (h.pageNumber, h.highlightNumber))))
     }
   }
 }
