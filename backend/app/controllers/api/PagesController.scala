@@ -27,13 +27,13 @@ class PagesController(val controllerComponents: AuthControllerComponents, manife
   }
 
   // Get language and highlight data for a given page
-  def getPageData(uri: Uri, pageNumber: Int, sq: Option[String], fq: Option[String]) = ApiAction.attempt { req =>
+  private def pageData(uri: Uri, pageNumber: Int, username: String, sq: Option[String], fq: Option[String]): Attempt[FrontendPage] = {
     // Across documents
     val searchQuery = sq.map(Chips.parseQueryString)
     // Within document
     val findQuery = fq
 
-    val getResource = GetResource(uri, ResourceFetchMode.Basic, req.user.username, manifest, index, annotations, controllerComponents.users).process()
+    val getResource = GetResource(uri, ResourceFetchMode.Basic, username, manifest, index, annotations, controllerComponents.users).process()
     val getPage = pagesService.getPageGeometries(uri, pageNumber, searchQuery, findQuery)
 
     for {
@@ -44,13 +44,18 @@ class PagesController(val controllerComponents: AuthControllerComponents, manife
       // Highlighting stuff
       searchHighlights = dedupeHighlightSpans(page.page, page.value, false)
       findHighlights = page.highlightedText.map { langMap =>
-          dedupeHighlightSpans(page.page, langMap, true)
-        }.getOrElse(Map.empty)
+        dedupeHighlightSpans(page.page, langMap, true)
+      }.getOrElse(Map.empty)
       highlights <- getHighlightGeometriesForPage(uri, pageNumber, searchHighlights, findHighlights)
     } yield {
-      val response = FrontendPage(pageNumber, allLanguages.head, allLanguages, page.dimensions, highlights.flatMap(_.highlights).toList)
-      Ok(Json.toJson(response))
+      FrontendPage(pageNumber, allLanguages.head, allLanguages, page.dimensions, highlights.flatMap(_.highlights).toList)
     }
+  }
+
+  // Get language and highlight data for a given page
+  def getPageData(uri: Uri, pageNumber: Int, sq: Option[String], fq: Option[String]) = ApiAction.attempt { req =>
+    val response = pageData(uri, pageNumber, req.user.username, sq, fq)
+    response.map { r => Ok(Json.toJson(r))}
   }
 
   case class HighlightGeometries(lang: Language, highlights: List[PageHighlight])
@@ -112,10 +117,14 @@ class PagesController(val controllerComponents: AuthControllerComponents, manife
     }
   }
 
-  def findInDocument(uri: Uri, fq: String) = ApiAction.attempt {
+  def findInDocument(uri: Uri, fq: String) = ApiAction.attempt { req =>
     val findQuery = fq
-    pagesService.findInPages(uri, findQuery).map( res =>
-      Ok(Json.toJson(res))
-    )
+
+    for {
+      pagesWithHits <- pagesService.findInPages(uri, findQuery)
+      pageData <- Attempt.sequence(pagesWithHits.map(pageData(uri, _, req.user.username, None, Some(findQuery))))
+    } yield {
+      Ok(Json.toJson(pageData))
+    }
   }
 }
