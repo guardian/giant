@@ -122,7 +122,6 @@ export const PageViewer: FC<PageViewerProps> = () => {
     if (findSearchHits.length > 0) {
       setCurrentFindHighlight(cur => {
         const i = loadedFindHighlights.findIndex(h => h === cur);
-        // TODO wraparound
         let next;
         if (i === -1) {
           // Either: cur is null, so initialise
@@ -155,7 +154,6 @@ export const PageViewer: FC<PageViewerProps> = () => {
     if (findSearchHits.length > 0) {
       setCurrentFindHighlight(cur => {
         const i = loadedFindHighlights.findIndex(h => h === cur);
-        // TODO wraparound
         const prev = loadedFindHighlights[i-1];
         if (!prev) {
           // TODO: better
