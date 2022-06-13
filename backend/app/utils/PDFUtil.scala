@@ -131,9 +131,9 @@ object PDFUtil {
       }
 
       if (isFind) {
-        FindHighlight(highlight.id, spans)
+        FindHighlight(highlight.id, highlight.index, spans)
       } else {
-        SearchHighlight(highlight.id, spans)
+        SearchHighlight(highlight.id, highlight.index, spans)
       }
     }
   }

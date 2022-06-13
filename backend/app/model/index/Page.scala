@@ -18,9 +18,14 @@ object PageDimensions {
 
 case class HighlightSpan(x: Double, y: Double, width: Double, height: Double, rotation: Double)
 
-sealed abstract class PageHighlight { def id: String }
-case class SearchHighlight(id: String, spans: List[HighlightSpan]) extends PageHighlight
-case class FindHighlight(id: String, spans: List[HighlightSpan]) extends PageHighlight
+sealed abstract class PageHighlight {
+  def id: String
+  def index: Int
+  def spans: List[HighlightSpan]
+}
+// TODO: these are identical... why do we need them?
+case class SearchHighlight(id: String, index: Int, spans: List[HighlightSpan]) extends PageHighlight
+case class FindHighlight(id: String, index: Int, spans: List[HighlightSpan]) extends PageHighlight
 // Other types of highlight might include comments or Ctrl-F searches
 
 object PageHighlight {
@@ -28,6 +33,7 @@ object PageHighlight {
     case h: SearchHighlight => Json.obj(
       "type" -> JsString("SearchHighlight"),
       "id" -> JsString(h.id),
+      "index" -> JsNumber(h.index),
       "data" -> JsArray(h.spans.map  { s =>
         Json.obj(
           "x" -> JsNumber(s.x),
@@ -41,6 +47,7 @@ object PageHighlight {
     case h: FindHighlight => Json.obj(
       "type" -> JsString("FindHighlight"),
       "id" -> JsString(h.id),
+      "index" -> JsNumber(h.index),
       "data" -> JsArray(h.spans.map  { s =>
         Json.obj(
           "x" -> JsNumber(s.x),
