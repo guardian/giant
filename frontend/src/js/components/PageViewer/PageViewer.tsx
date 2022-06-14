@@ -1,10 +1,10 @@
-import { uniq, range, findLast } from "lodash";
-import React, { FC, useCallback, useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
-import authFetch from "../../util/auth/authFetch";
-import { Controls } from "./Controls";
-import styles from "./PageViewer.module.css";
-import { VirtualScroll } from "./VirtualScroll";
+import React, { FC, useCallback, useEffect, useState } from 'react';
+import { useParams } from 'react-router-dom';
+import authFetch from '../../util/auth/authFetch';
+import { Controls } from './Controls';
+import styles from './PageViewer.module.css';
+import { VirtualScroll } from './VirtualScroll';
+import { HighlightForSearchNavigation } from './model';
 
 type PageViewerProps = {
   page: number;
@@ -20,15 +20,14 @@ export const PageViewer: FC<PageViewerProps> = () => {
 
   const [totalPages, setTotalPages] = useState<number | null>(null);
 
-  const [middlePage, setMiddlePage] = useState(page);
-
-  // Used by various things to signal to the virtual scroller to scroll to a particular page
-  // Initially set to the page in the URL
-  const [jumpToPage, setJumpToPage] = useState<number | null>(page);
-
   // Find searching...
-  const [lastPageHit, setLastPageHit] = useState<number>(0);
-  const [findSearchHits, setFindHits] = useState<number[]>([]);
+
+  // TODO: maybe these should be yoked together...
+  const [focusedFindHighlightIndex, setFocusedFindHighlightIndex] = useState<number | null>(null);
+  const [focusedFindHighlight, setFocusedFindHighlight] = useState<HighlightForSearchNavigation | null>(null);
+  // END TODO
+
+  const [findHighlights, setFindHighlights] = useState<HighlightForSearchNavigation[]>([]);
   const [, setFindVisible] = useState(false);
   const [findSearch, setFind] = useState("");
 
@@ -71,62 +70,65 @@ export const PageViewer: FC<PageViewerProps> = () => {
     (query: string) =>
       authFetch(`/api/pages2/${uri}/find?fq="${query}"`)
         .then((res) => res.json())
-        .then((searchHits) => {
-          setLastPageHit(middlePage);
-          setFindHits(searchHits);
+        .then((highlights) => {
+          setFindHighlights(highlights);
+          if (highlights.length) {
+            setFocusedFindHighlightIndex(0);
+          }
           setTriggerRefresh((t) => t + 1);
         }),
-    [middlePage, uri]
+    [uri]
   );
 
-  const preloadNextPreviousFindPages = useCallback((
-    centrePage: number,
-    pageHits: number[]
-  ) => {
-    const index = pageHits.findIndex((page) => page === centrePage);
-    const length = pageHits.length;
-
-    const hitsToPreloadIndexes = uniq(
-      range(-3, 3).map((offset) => {
-        const offsetIndex = index + offset;
-        // modulo - the regular % is 'remainder' in JS which is different
-        return ((offsetIndex % length) + length) % length;
-      })
-    );
-
-    const newPreloadPages = hitsToPreloadIndexes.map(
-      (idx) => findSearchHits[idx]
-    );
-
-    setPageNumbersToPreload(newPreloadPages);
-  }, [findSearchHits]);
+  // const preloadNextPreviousFindPages = useCallback((
+  //   highlight: HighlightForSearchNavigation,
+  //   highlights: HighlightForSearchNavigation[]
+  // ) => {
+  //   const index = pageHits.findIndex((page) => page === centrePage);
+  //   const length = pageHits.length;
+  //
+  //   const hitsToPreloadIndexes = uniq(
+  //     range(-3, 3).map((offset) => {
+  //       const offsetIndex = index + offset;
+  //       // modulo - the regular % is 'remainder' in JS which is different
+  //       return ((offsetIndex % length) + length) % length;
+  //     })
+  //   );
+  //
+  //   const newPreloadPages = hitsToPreloadIndexes.map(
+  //     (idx) => findHighlights[idx]
+  //   );
+  //
+  //   setPageNumbersToPreload(newPreloadPages);
+  // }, [findHighlights]);
 
   const jumpToNextFindHit = useCallback(() => {
-    if (findSearchHits.length > 0) {
-      const maybePage = findSearchHits.find((page) => page > lastPageHit);
-      const nextPage = maybePage ? maybePage : findSearchHits[0];
+    if (findHighlights.length > 0) {
+      const nextHighlightIndex = (focusedFindHighlightIndex !== null && focusedFindHighlightIndex < (findHighlights.length - 1))
+          ? (focusedFindHighlightIndex + 1)
+          : 0;
 
-      preloadNextPreviousFindPages(nextPage, findSearchHits);
-      setLastPageHit(nextPage);
-      setJumpToPage(nextPage);
+      // preloadNextPreviousFindPages(nextHighlight, findHighlights);
+      setFocusedFindHighlightIndex(nextHighlightIndex);
     }
-  }, [findSearchHits, lastPageHit, preloadNextPreviousFindPages, setLastPageHit, setJumpToPage]);
+  }, [findHighlights, focusedFindHighlightIndex, /*preloadNextPreviousFindPages,*/ setFocusedFindHighlightIndex]);
 
   const jumpToPreviousFindHit = useCallback(() => {
-    if (findSearchHits.length > 0) {
-      const maybePage = findLast(
-        findSearchHits,
-        (page) => page < lastPageHit
-      );
-      const previousPage = maybePage
-        ? maybePage
-        : findSearchHits[findSearchHits.length - 1];
+    if (findHighlights.length > 0) {
+      const previousHighlightIndex = (focusedFindHighlightIndex !== null && focusedFindHighlightIndex > 0)
+          ? (focusedFindHighlightIndex - 1)
+          : (findHighlights.length - 1);
 
-      preloadNextPreviousFindPages(previousPage, findSearchHits);
-      setLastPageHit(previousPage);
-      setJumpToPage(previousPage);
+      // preloadNextPreviousFindPages(previousHighlight, findHighlights);
+      setFocusedFindHighlightIndex(previousHighlightIndex);
     }
-  }, [findSearchHits, lastPageHit, preloadNextPreviousFindPages, setLastPageHit, setJumpToPage]);
+  }, [findHighlights, focusedFindHighlightIndex, /*preloadNextPreviousFindPages,*/ setFocusedFindHighlightIndex]);
+
+  useEffect(() => {
+    if ((focusedFindHighlightIndex !== null) && findHighlights.length) {
+      setFocusedFindHighlight(findHighlights[focusedFindHighlightIndex]);
+    }
+  }, [focusedFindHighlightIndex, findHighlights])
 
   return (
     <main className={styles.main}>
@@ -137,8 +139,8 @@ export const PageViewer: FC<PageViewerProps> = () => {
         setFind={(q) => {
           setFind(q);
         }}
-        findSearchHits={findSearchHits}
-        lastPageHit={lastPageHit}
+        findHighlights={findHighlights}
+        focusedFindHighlightIndex={focusedFindHighlightIndex}
         performFind={performFind}
         jumpToNextFindHit={jumpToNextFindHit}
         jumpToPreviousFindHit={jumpToPreviousFindHit}
@@ -148,11 +150,10 @@ export const PageViewer: FC<PageViewerProps> = () => {
           uri={uri}
           query={query}
           findQuery={findSearch}
+          focusedFindHighlight={focusedFindHighlight}
           triggerHighlightRefresh={triggerRefresh}
           totalPages={totalPages}
-          jumpToPage={jumpToPage}
           pageNumbersToPreload={pageNumbersToPreload}
-          onMiddlePageChange={setMiddlePage}
           rotation={rotation}
         />
       ) : null}

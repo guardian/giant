@@ -9,6 +9,7 @@ import React, {
 import DownIcon from "react-icons/lib/md/arrow-downward";
 import UpIcon from "react-icons/lib/md/arrow-upward";
 import styles from "./FindInput.module.css";
+import { HighlightForSearchNavigation } from './model';
 
 type FindInputProps = {
   value: string;
@@ -16,8 +17,9 @@ type FindInputProps = {
   performFind: (query: string) => Promise<void>;
   jumpToNextFindHit: () => void;
   jumpToPreviousFindHit: () => void;
-  hits: number[];
-  lastPageHit: number;
+  // TODO: could be null?
+  highlights: HighlightForSearchNavigation[];
+  focusedFindHighlightIndex: number | null;
 };
 
 // The backend will only return 500 pages of hits.
@@ -31,8 +33,8 @@ export const FindInput: FC<FindInputProps> = ({
   jumpToNextFindHit,
   jumpToPreviousFindHit,
   performFind,
-  hits,
-  lastPageHit,
+  highlights,
+  focusedFindHighlightIndex,
 }) => {
   const [showWarning, setShowWarning] = useState(false);
 
@@ -51,13 +53,12 @@ export const FindInput: FC<FindInputProps> = ({
   };
 
   useEffect(() => {
-    if (hits.length >= MAX_HITS) {
+    if (highlights.length >= MAX_HITS) {
       setShowWarning(true);
       setTimeout(() => setShowWarning(false), 5000);
     }
-  }, [hits]);
+  }, [highlights]);
 
-  const currentHit = hits.findIndex((p) => lastPageHit === p);
   return (
     <div className={styles.container}>
       <div className={styles.inputContainer}>
@@ -73,11 +74,11 @@ export const FindInput: FC<FindInputProps> = ({
           }}
         />
         <div className={styles.count}>
-          {currentHit === -1 ? " - " : currentHit + 1}/
-          {hits.length > 0
-            ? hits.length >= MAX_HITS
+          {(focusedFindHighlightIndex !== null) ? focusedFindHighlightIndex + 1 : " - " }/
+          {highlights.length > 0
+            ? highlights.length >= MAX_HITS
               ? ">" + MAX_HITS
-              : hits.length
+              : highlights.length
             : " - "}
         </div>
       </div>
