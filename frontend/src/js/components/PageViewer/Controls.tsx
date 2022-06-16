@@ -15,6 +15,7 @@ type ControlsProps = {
   setFind: (v: string) => void;
 
   performFind: (query: string) => Promise<void>;
+  isPending: boolean;
 
   jumpToNextFindHit: () => void;
   jumpToPreviousFindHit: () => void;
@@ -30,6 +31,7 @@ export const Controls: FC<ControlsProps> = ({
   jumpToNextFindHit,
   jumpToPreviousFindHit,
   performFind,
+  isPending,
   findHighlights,
   focusedFindHighlightIndex,
 }) => {
@@ -50,6 +52,7 @@ export const Controls: FC<ControlsProps> = ({
         highlights={findHighlights}
         focusedFindHighlightIndex={focusedFindHighlightIndex}
         performFind={performFind}
+        isPending={isPending}
         jumpToNextFindHit={jumpToNextFindHit}
         jumpToPreviousFindHit={jumpToPreviousFindHit}
       />

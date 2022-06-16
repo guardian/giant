@@ -1,20 +1,22 @@
-import _ from "lodash";
+import _, { uniq } from 'lodash';
 import React, {
   FC,
   KeyboardEventHandler,
   useCallback,
-  useEffect,
+  useEffect, useMemo,
   useState,
-} from "react";
+} from 'react';
 import DownIcon from "react-icons/lib/md/arrow-downward";
 import UpIcon from "react-icons/lib/md/arrow-upward";
 import styles from "./FindInput.module.css";
 import { HighlightForSearchNavigation } from './model';
+import { Loader } from 'semantic-ui-react';
 
 type FindInputProps = {
   value: string;
   setValue: (v: string) => void;
   performFind: (query: string) => Promise<void>;
+  isPending: boolean;
   jumpToNextFindHit: () => void;
   jumpToPreviousFindHit: () => void;
   // TODO: could be null?
@@ -25,7 +27,7 @@ type FindInputProps = {
 // The backend will only return 500 pages of hits.
 // If we get that many then we need to inform the user that there could be missing values.
 // In the future we can make a paging system for find search hits.
-const MAX_HITS = 500;
+const MAX_PAGE_HITS = 500;
 
 export const FindInput: FC<FindInputProps> = ({
   value,
@@ -33,12 +35,13 @@ export const FindInput: FC<FindInputProps> = ({
   jumpToNextFindHit,
   jumpToPreviousFindHit,
   performFind,
+  isPending,
   highlights,
   focusedFindHighlightIndex,
 }) => {
   const [showWarning, setShowWarning] = useState(false);
 
-  const debouncedPerformSearch = useCallback(_.debounce(performFind, 300), [
+    const debouncedPerformSearch = useMemo(() => _.debounce(performFind, 500), [
     performFind,
   ]);
 
@@ -53,11 +56,19 @@ export const FindInput: FC<FindInputProps> = ({
   };
 
   useEffect(() => {
-    if (highlights.length >= MAX_HITS) {
+    if (uniq(highlights.map(h => h.pageNumber)).length >= MAX_PAGE_HITS) {
       setShowWarning(true);
       setTimeout(() => setShowWarning(false), 5000);
     }
   }, [highlights]);
+
+  const renderFindCount = useCallback(() => {
+    const current = (focusedFindHighlightIndex !== null) ? focusedFindHighlightIndex + 1 : " - ";
+    const total = highlights.length > 0
+        ? `${showWarning ? ">" : ""}${highlights.length}`
+        : " - ";
+    return `${current}/${total}`
+  }, [focusedFindHighlightIndex, highlights, showWarning])
 
   return (
     <div className={styles.container}>
@@ -74,12 +85,7 @@ export const FindInput: FC<FindInputProps> = ({
           }}
         />
         <div className={styles.count}>
-          {(focusedFindHighlightIndex !== null) ? focusedFindHighlightIndex + 1 : " - " }/
-          {highlights.length > 0
-            ? highlights.length >= MAX_HITS
-              ? ">" + MAX_HITS
-              : highlights.length
-            : " - "}
+          {isPending ? <Loader active inline="centered" size="tiny" /> : renderFindCount()}
         </div>
       </div>
       <button onClick={jumpToPreviousFindHit}>
