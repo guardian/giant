@@ -62,12 +62,16 @@ export const FindInput: FC<FindInputProps> = ({
   }, [highlights]);
 
   const renderFindCount = useCallback(() => {
+    if (!value) {
+      return '';
+    }
+
     const current = (focusedFindHighlightIndex !== null) ? focusedFindHighlightIndex + 1 : " - ";
     const total = highlights.length > 0
         ? `${showWarning ? ">" : ""}${highlights.length}`
         : " - ";
     return `${current}/${total}`
-  }, [focusedFindHighlightIndex, highlights, showWarning])
+  }, [value, focusedFindHighlightIndex, highlights, showWarning])
 
   return (
     <div className={styles.container}>
