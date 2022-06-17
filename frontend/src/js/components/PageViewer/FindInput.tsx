@@ -19,7 +19,6 @@ type FindInputProps = {
   isPending: boolean;
   jumpToNextFindHit: () => void;
   jumpToPreviousFindHit: () => void;
-  // TODO: could be null?
   highlights: HighlightForSearchNavigation[];
   focusedFindHighlightIndex: number | null;
 };
