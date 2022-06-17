@@ -79,6 +79,8 @@ export const PageViewer: FC<PageViewerProps> = () => {
           setFindHighlights(highlights);
           if (highlights.length) {
             setFocusedFindHighlightIndex(0);
+          } else {
+            setFocusedFindHighlightIndex(null);
           }
           setTriggerRefresh((t) => t + 1);
         })

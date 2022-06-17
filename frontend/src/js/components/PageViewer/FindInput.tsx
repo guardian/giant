@@ -66,10 +66,8 @@ export const FindInput: FC<FindInputProps> = ({
       return '';
     }
 
-    const current = (focusedFindHighlightIndex !== null) ? focusedFindHighlightIndex + 1 : " - ";
-    const total = highlights.length > 0
-        ? `${showWarning ? ">" : ""}${highlights.length}`
-        : " - ";
+    const current = (focusedFindHighlightIndex !== null) ? focusedFindHighlightIndex + 1 : 0;
+    const total = `${showWarning ? ">" : ""}${highlights.length}`;
     return `${current}/${total}`
   }, [value, focusedFindHighlightIndex, highlights, showWarning])
 
