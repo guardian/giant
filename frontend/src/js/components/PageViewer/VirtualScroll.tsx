@@ -108,26 +108,21 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
   // TODO: try just useEffect
   useLayoutEffect(() => {
     if (viewport?.current) {
-      const v = viewport.current;
       if (jumpToPage) {
-        // TODO: page jump should go to middle?
         const scrollTo = (jumpToPage - 1) * pageHeight;
-        v.scrollTop = scrollTo;
+        viewport.current.scrollTop = scrollTo;
       }
       if (jumpToScrollPosition) {
-        const scrollTo = jumpToScrollPosition + (v.clientHeight / 2);
-        v.scrollTop = scrollTo;
+        const scrollTo = jumpToScrollPosition + (viewport.current.clientHeight / 2);
+        viewport.current.scrollTop = scrollTo;
       }
     }
   }, [pageHeight, jumpToPage, jumpToScrollPosition]);
 
   useLayoutEffect(() => {
     if (viewport?.current && focusedFindHighlight) {
-      const v = viewport.current;
       const topOfHighlightPage = (pageHeight * (focusedFindHighlight.pageNumber - 1));
-      // const highlight = topOfHighlightPage + (focusedFindHighlight.firstSpan?.y ?? 0);
-      // v.scrollTop = highlight + (v.clientHeight / 2);
-      v.scrollTop = topOfHighlightPage;
+      viewport.current.scrollTop = topOfHighlightPage;
     }
   }, [pageHeight, focusedFindHighlight]);
 
