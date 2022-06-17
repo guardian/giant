@@ -41,7 +41,7 @@ export const FindInput: FC<FindInputProps> = ({
 }) => {
   const [showWarning, setShowWarning] = useState(false);
 
-    const debouncedPerformSearch = useMemo(() => _.debounce(performFind, 500), [
+  const debouncedPerformSearch = useMemo(() => _.debounce(performFind, 500), [
     performFind,
   ]);
 
