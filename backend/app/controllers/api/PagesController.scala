@@ -124,12 +124,15 @@ class PagesController(val controllerComponents: AuthControllerComponents, manife
       pagesWithHits <- pagesService.findInPages(uri, findQuery)
       pageData <- Attempt.sequence(pagesWithHits.map(pageData(uri, _, req.user.username, None, Some(findQuery))))
     } yield {
-      val highlights = pageData.flatMap { page =>
-        page.highlights.map {
-          highlight => HighlightForSearchNavigation.fromPageHighlight(page.page, highlight.index, highlight)
-        }
+      val highlights = for {
+        page <- pageData
+        highlight <- page.highlights
+      } yield {
+        HighlightForSearchNavigation.fromPageHighlight(page.page, highlight.index, highlight)
       }
-      Ok(Json.toJson(highlights.sortBy(h => (h.pageNumber, h.highlightNumber))))
+
+      val sortedHighlights = highlights.sortBy(h => (h.pageNumber, h.highlightNumber))
+      Ok(Json.toJson(sortedHighlights))
     }
   }
 }
