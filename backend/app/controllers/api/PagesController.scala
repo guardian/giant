@@ -27,7 +27,7 @@ class PagesController(val controllerComponents: AuthControllerComponents, manife
   }
 
   // Get language and highlight data for a given page
-  private def pageData(uri: Uri, pageNumber: Int, username: String, sq: Option[String], fq: Option[String]): Attempt[FrontendPage] = {
+  private def frontendPageFromQuery(uri: Uri, pageNumber: Int, username: String, sq: Option[String], fq: Option[String]): Attempt[FrontendPage] = {
     // Across documents
     val searchQuery = sq.map(Chips.parseQueryString)
     // Within document
@@ -54,8 +54,11 @@ class PagesController(val controllerComponents: AuthControllerComponents, manife
 
   // Get language and highlight data for a given page
   def getPageData(uri: Uri, pageNumber: Int, sq: Option[String], fq: Option[String]) = ApiAction.attempt { req =>
-    val response = pageData(uri, pageNumber, req.user.username, sq, fq)
-    response.map { r => Ok(Json.toJson(r))}
+    for {
+      response <- frontendPageFromQuery(uri, pageNumber, req.user.username, sq, fq)
+    } yield {
+      Ok(Json.toJson(response))
+    }
   }
 
   case class HighlightGeometries(lang: Language, highlights: List[PageHighlight])
@@ -122,7 +125,9 @@ class PagesController(val controllerComponents: AuthControllerComponents, manife
 
     for {
       pagesWithHits <- pagesService.findInPages(uri, findQuery)
-      pageData <- Attempt.sequence(pagesWithHits.map(pageData(uri, _, req.user.username, None, Some(findQuery))))
+      pageData <- Attempt.sequence(
+        pagesWithHits.map(frontendPageFromQuery(uri, _, req.user.username, None, Some(findQuery)))
+      )
     } yield {
       val highlights = for {
         page <- pageData
