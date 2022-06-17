@@ -67,6 +67,8 @@ export const PageViewer: FC<PageViewerProps> = () => {
   const performFind = useCallback(
     (query: string) => {
       const params = new URLSearchParams();
+      // The backend will respect quotes and do an exact search,
+      // but if quotes are unbalanced elasticsearch will error
       params.set("fq", removeLastUnmatchedQuote(query));
 
       setIsFindPending(true);

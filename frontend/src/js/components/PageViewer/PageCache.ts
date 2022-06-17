@@ -85,6 +85,8 @@ export class PageCache {
   private onDataCacheMiss = (pageNumber: number): CachedPageData => {
     const dataAbortController = new AbortController();
     const textParams = new URLSearchParams();
+    // The backend will respect quotes and do an exact search,
+    // but if quotes are unbalanced elasticsearch will error
     if (this.searchQuery) {
       textParams.set("sq", removeLastUnmatchedQuote(this.searchQuery));
     }
