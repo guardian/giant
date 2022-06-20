@@ -8,11 +8,16 @@ import throttle from 'lodash/throttle';
 
 type VirtualScrollProps = {
   uri: string;
+  query?: string;
+  findQuery?: string;
   focusedFindHighlight: HighlightForSearchNavigation | null;
   triggerHighlightRefresh: number;
-  pageCache: PageCache;
+
   totalPages: number;
+  pageNumbersToPreload: number[];
+
   jumpToPage?: number | null;
+
   rotation: number;
 };
 
@@ -30,11 +35,15 @@ type PageRange = {
 
 export const VirtualScroll: FC<VirtualScrollProps> = ({
   uri,
+  query,
+  findQuery,
   focusedFindHighlight,
   triggerHighlightRefresh,
-  pageCache,
+
   totalPages,
   jumpToPage,
+  pageNumbersToPreload,
+
   rotation,
 }) => {
   // Tweaked this and 2 seems to be a good amount on a regular monitor
@@ -46,9 +55,16 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
 
   const viewport = useRef<HTMLDivElement>(null);
 
+  // TODO: move pageCache up?
+  const [pageCache] = useState(() => new PageCache(uri, query));
+
   // We have a second tier cache tied to the React component lifecycle for storing
   // rendered pages which allows us to swap out stale pages without flickering pages
   const [renderedPages, setRenderedPages] = useState<RenderedPage[]>([]);
+
+  useEffect(() => {
+    pageCache.setFindQuery(findQuery);
+  }, [findQuery, pageCache]);
 
   const [pageRange, setPageRange] = useState<PageRange>({bottom: 1 + PRELOAD_PAGES, middle: 1, top: 1});
   const debouncedSetPageRange = useMemo(() => debounce(setPageRange, 150), [setPageRange]);
@@ -151,6 +167,10 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
       });
     }
   }, [triggerHighlightRefresh, pageCache]);
+
+  useEffect(() => {
+    pageNumbersToPreload.forEach((pageNumber) => pageCache.getPage(pageNumber));
+  }, [pageNumbersToPreload, pageCache]);
 
   return (
     <div ref={viewport} className={styles.scrollContainer} onScroll={throttledSetPageRangeFromScrollPosition}>

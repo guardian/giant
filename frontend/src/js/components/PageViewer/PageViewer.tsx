@@ -7,7 +7,6 @@ import { VirtualScroll } from './VirtualScroll';
 import { HighlightForSearchNavigation } from './model';
 import { range, uniq } from 'lodash';
 import { removeLastUnmatchedQuote } from '../../util/stringUtils';
-import { PageCache } from './PageCache';
 
 type PageViewerProps = {
   page: number;
@@ -20,8 +19,6 @@ export const PageViewer: FC<PageViewerProps> = () => {
 
   const { uri } = useParams<{ uri: string }>();
 
-  const [pageCache] = useState(() => new PageCache(uri, query));
-
   const [totalPages, setTotalPages] = useState<number | null>(null);
 
   // Finding (within document)
@@ -33,6 +30,13 @@ export const PageViewer: FC<PageViewerProps> = () => {
   const [findQuery, setFindQuery] = useState("");
   const [isFindPending, setIsFindPending] = useState<boolean>(false);
 
+  // Searching (from main Giant cross-document search)
+  const [focusedSearchHighlightIndex, setFocusedSearchHighlightIndex] = useState<number | null>(null);
+  const [focusedSearchHighlight, setFocusedSearchHighlight] = useState<HighlightForSearchNavigation | null>(null);
+  const [searchHighlights, setSearchHighlights] = useState<HighlightForSearchNavigation[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [isSearchPending, setIsSearchPending] = useState<boolean>(false);
+
   const [triggerRefresh, setTriggerRefresh] = useState(0);
   const [pageNumbersToPreload, setPageNumbersToPreload] = useState<number[]>([]);
 
@@ -43,16 +47,6 @@ export const PageViewer: FC<PageViewerProps> = () => {
       .then((res) => res.json())
       .then((obj) => setTotalPages(obj.pageCount));
   }, [uri]);
-
-  // TODO: move into Controls
-  useEffect(() => {
-    pageCache.setFindQuery(findQuery);
-  }, [findQuery, pageCache]);
-
-  // TODO: move into Controls
-  useEffect(() => {
-    pageNumbersToPreload.forEach((pageNumber) => pageCache.getPage(pageNumber));
-  }, [pageNumbersToPreload, pageCache]);
 
   // Keypress overrides
   const handleUserKeyPress = useCallback((e) => {
@@ -170,10 +164,12 @@ export const PageViewer: FC<PageViewerProps> = () => {
       {totalPages ? (
         <VirtualScroll
           uri={uri}
-          pageCache={pageCache}
+          query={query}
+          findQuery={findQuery}
           focusedFindHighlight={focusedFindHighlight}
           triggerHighlightRefresh={triggerRefresh}
           totalPages={totalPages}
+          pageNumbersToPreload={pageNumbersToPreload}
           rotation={rotation}
         />
       ) : null}
