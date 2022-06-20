@@ -11,8 +11,8 @@ type ControlsProps = {
   rotateAnticlockwise: () => void;
 
   // Find Search Input
-  findSearch: string;
-  setFind: (v: string) => void;
+  query: string;
+  setQuery: (v: string) => void;
 
   performFind: (query: string) => Promise<void>;
   isPending: boolean;
@@ -26,8 +26,8 @@ type ControlsProps = {
 export const Controls: FC<ControlsProps> = ({
   rotateClockwise,
   rotateAnticlockwise,
-  findSearch,
-  setFind,
+  query,
+  setQuery,
   jumpToNextFindHit,
   jumpToPreviousFindHit,
   performFind,
@@ -47,8 +47,8 @@ export const Controls: FC<ControlsProps> = ({
       </div>
 
       <FindInput
-        value={findSearch}
-        setValue={setFind}
+        value={query}
+        setValue={setQuery}
         highlights={findHighlights}
         focusedFindHighlightIndex={focusedFindHighlightIndex}
         performFind={performFind}

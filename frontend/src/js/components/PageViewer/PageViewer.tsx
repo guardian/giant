@@ -21,13 +21,21 @@ export const PageViewer: FC<PageViewerProps> = () => {
 
   const [totalPages, setTotalPages] = useState<number | null>(null);
 
-  // Find searching...
+  // Finding (within document)
   const [focusedFindHighlightIndex, setFocusedFindHighlightIndex] = useState<number | null>(null);
   const [focusedFindHighlight, setFocusedFindHighlight] = useState<HighlightForSearchNavigation | null>(null);
   const [findHighlights, setFindHighlights] = useState<HighlightForSearchNavigation[]>([]);
+  // TODO: should we use ths?
   const [, setFindVisible] = useState(false);
-  const [findSearch, setFind] = useState("");
+  const [findQuery, setFindQuery] = useState("");
   const [isFindPending, setIsFindPending] = useState<boolean>(false);
+
+  // Searching (from main Giant cross-document search)
+  const [focusedSearchHighlightIndex, setFocusedSearchHighlightIndex] = useState<number | null>(null);
+  const [focusedSearchHighlight, setFocusedSearchHighlight] = useState<HighlightForSearchNavigation | null>(null);
+  const [searchHighlights, setSearchHighlights] = useState<HighlightForSearchNavigation[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [isSearchPending, setIsSearchPending] = useState<boolean>(false);
 
   const [triggerRefresh, setTriggerRefresh] = useState(0);
   const [pageNumbersToPreload, setPageNumbersToPreload] = useState<number[]>([]);
@@ -142,9 +150,9 @@ export const PageViewer: FC<PageViewerProps> = () => {
       <Controls
         rotateAnticlockwise={() => setRotation((r) => r - 90)}
         rotateClockwise={() => setRotation((r) => r + 90)}
-        findSearch={findSearch}
-        setFind={(q) => {
-          setFind(q);
+        query={findQuery}
+        setQuery={(q) => {
+          setFindQuery(q);
         }}
         findHighlights={findHighlights}
         focusedFindHighlightIndex={focusedFindHighlightIndex}
@@ -157,7 +165,7 @@ export const PageViewer: FC<PageViewerProps> = () => {
         <VirtualScroll
           uri={uri}
           query={query}
-          findQuery={findSearch}
+          findQuery={findQuery}
           focusedFindHighlight={focusedFindHighlight}
           triggerHighlightRefresh={triggerRefresh}
           totalPages={totalPages}

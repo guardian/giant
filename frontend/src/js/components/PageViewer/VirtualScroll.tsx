@@ -57,6 +57,7 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
 
   const viewport = useRef<HTMLDivElement>(null);
 
+  // TODO: move pageCache up?
   const [pageCache] = useState(() => new PageCache(uri, query));
 
   // We have a second tier cache tied to the React component lifecycle for storing
