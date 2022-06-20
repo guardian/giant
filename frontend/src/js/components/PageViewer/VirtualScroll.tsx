@@ -17,7 +17,6 @@ type VirtualScrollProps = {
   pageNumbersToPreload: number[];
 
   jumpToPage?: number | null;
-  jumpToScrollPosition?: number;
 
   rotation: number;
 };
@@ -43,7 +42,6 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
 
   totalPages,
   jumpToPage,
-  jumpToScrollPosition,
   pageNumbersToPreload,
 
   rotation,
@@ -112,12 +110,8 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
         const scrollTo = (jumpToPage - 1) * pageHeight;
         viewport.current.scrollTop = scrollTo;
       }
-      if (jumpToScrollPosition) {
-        const scrollTo = jumpToScrollPosition + (viewport.current.clientHeight / 2);
-        viewport.current.scrollTop = scrollTo;
-      }
     }
-  }, [pageHeight, jumpToPage, jumpToScrollPosition]);
+  }, [pageHeight, jumpToPage]);
 
   useLayoutEffect(() => {
     if (viewport?.current && focusedFindHighlight) {
