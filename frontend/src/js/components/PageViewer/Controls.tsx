@@ -3,6 +3,7 @@ import RotateLeft from "react-icons/lib/md/rotate-left";
 import RotateRight from "react-icons/lib/md/rotate-right";
 import styles from "./Controls.module.css";
 import { FindInput } from "./FindInput";
+import { HighlightForSearchNavigation } from './model';
 
 type ControlsProps = {
   // Rotation
@@ -14,11 +15,12 @@ type ControlsProps = {
   setFind: (v: string) => void;
 
   performFind: (query: string) => Promise<void>;
+  isPending: boolean;
 
   jumpToNextFindHit: () => void;
   jumpToPreviousFindHit: () => void;
-  findSearchHits: number[];
-  lastPageHit: number;
+  findHighlights: HighlightForSearchNavigation[];
+  focusedFindHighlightIndex: number | null;
 };
 
 export const Controls: FC<ControlsProps> = ({
@@ -29,8 +31,9 @@ export const Controls: FC<ControlsProps> = ({
   jumpToNextFindHit,
   jumpToPreviousFindHit,
   performFind,
-  findSearchHits,
-  lastPageHit,
+  isPending,
+  findHighlights,
+  focusedFindHighlightIndex,
 }) => {
   return (
     <div className={styles.bar}>
@@ -46,9 +49,10 @@ export const Controls: FC<ControlsProps> = ({
       <FindInput
         value={findSearch}
         setValue={setFind}
-        hits={findSearchHits}
-        lastPageHit={lastPageHit}
+        highlights={findHighlights}
+        focusedFindHighlightIndex={focusedFindHighlightIndex}
         performFind={performFind}
+        isPending={isPending}
         jumpToNextFindHit={jumpToNextFindHit}
         jumpToPreviousFindHit={jumpToPreviousFindHit}
       />

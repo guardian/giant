@@ -18,7 +18,7 @@ export const PageHighlight: FC<PageHighlightProps> = ({
   const isFind = type === "FindHighlight";
   return (
     <>
-      {highlight.data.map((span, i) => {
+      {highlight.data.map(span => {
         const style: CSSProperties = {
           position: "absolute",
           left: span.x * scale,
@@ -32,14 +32,15 @@ export const PageHighlight: FC<PageHighlightProps> = ({
 
         const classes = [
           styles.highlight,
-          ...(focused ? ["pfi-page-highlight--focused"] : []),
+          ...(focused ? [styles.focused] : []),
           ...(isFind ? [styles.findHighlight] : [styles.searchHighlight]),
         ];
 
         return (
           <span
+            id={id}
+            key={id}
             className={classes.join(" ")}
-            key={`${id}-${i}`}
             style={style}
           />
         );

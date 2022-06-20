@@ -1,6 +1,6 @@
 import { debounce, range } from 'lodash';
 import React, { FC, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { CachedPreview, CONTAINER_AND_MARGIN_SIZE, PageData } from './model';
+import { CachedPreview, CONTAINER_AND_MARGIN_SIZE, HighlightForSearchNavigation, PageData } from './model';
 import { Page } from './Page';
 import { PageCache } from './PageCache';
 import styles from './VirtualScroll.module.css';
@@ -10,13 +10,13 @@ type VirtualScrollProps = {
   uri: string;
   query?: string;
   findQuery?: string;
+  focusedFindHighlight: HighlightForSearchNavigation | null;
   triggerHighlightRefresh: number;
 
   totalPages: number;
-  jumpToPage: number | null;
   pageNumbersToPreload: number[];
 
-  onMiddlePageChange: (n: number) => void;
+  jumpToPage?: number | null;
 
   rotation: number;
 };
@@ -37,12 +37,12 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
   uri,
   query,
   findQuery,
+  focusedFindHighlight,
   triggerHighlightRefresh,
 
   totalPages,
   jumpToPage,
   pageNumbersToPreload,
-  onMiddlePageChange,
 
   rotation,
 }) => {
@@ -101,27 +101,30 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
     });
   }, [pageHeight, totalPages, debouncedSetPageRange]);
 
-  useEffect(() => {
-    // Inform the parent component of the new middle page
-    // This allows it to do useful things such as have a sensible "next" page
-    // to go to for the find hits
-    onMiddlePageChange(pageRange.middle);
-  }, [pageRange.middle, onMiddlePageChange]);
-
   const throttledSetPageRangeFromScrollPosition = useMemo(() => throttle(setPageRangeFromScrollPosition, 75), [setPageRangeFromScrollPosition]);
 
+  // TODO: try just useEffect
   useLayoutEffect(() => {
-    if (viewport?.current && jumpToPage) {
-      const v = viewport.current;
-      const scrollTo = (jumpToPage - 1) * pageHeight;
-      v.scrollTop = scrollTo;
+    if (viewport?.current) {
+      if (jumpToPage) {
+        const scrollTo = (jumpToPage - 1) * pageHeight;
+        viewport.current.scrollTop = scrollTo;
+      }
     }
   }, [pageHeight, jumpToPage]);
+
+  useLayoutEffect(() => {
+    if (viewport?.current && focusedFindHighlight) {
+      const topOfHighlightPage = (pageHeight * (focusedFindHighlight.pageNumber - 1));
+      viewport.current.scrollTop = topOfHighlightPage;
+    }
+  }, [pageHeight, focusedFindHighlight]);
 
   useEffect(() => {
     const renderedPages = range(pageRange.top, pageRange.bottom + 1).map((pageNumber) => {
       const cachedPage = pageCache.getPage(pageNumber);
       return {
+
         pageNumber,
         getPagePreview: cachedPage.preview,
         getPageData: cachedPage.data,
@@ -131,6 +134,7 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
     setRenderedPages(renderedPages);
   }, [pageRange.top, pageRange.bottom, pageCache, setRenderedPages]);
 
+  // TODO: try use useEffect
   useLayoutEffect(() => {
     if (triggerHighlightRefresh > 0) {
       setRenderedPages((currentPages) => {
@@ -180,6 +184,7 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
             className={styles.pageContainer}
           >
             <Page
+              focusedFindHighlightId={focusedFindHighlight?.id}
               pageNumber={page.pageNumber}
               getPagePreview={page.getPagePreview}
               getPageData={page.getPageData}

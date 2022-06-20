@@ -3,6 +3,7 @@ import { LruCache } from "../../util/LruCache";
 import { CachedPreview, PageData } from "./model";
 import { renderPdfPreview } from "./PdfHelpers";
 import * as pdfjs from 'pdfjs-dist';
+import { removeLastUnmatchedQuote } from '../../util/stringUtils';
 
 export type CachedPage = {
   previewAbortController: AbortController;
@@ -84,11 +85,13 @@ export class PageCache {
   private onDataCacheMiss = (pageNumber: number): CachedPageData => {
     const dataAbortController = new AbortController();
     const textParams = new URLSearchParams();
+    // The backend will respect quotes and do an exact search,
+    // but if quotes are unbalanced elasticsearch will error
     if (this.searchQuery) {
-      textParams.set("sq", this.searchQuery);
+      textParams.set("sq", removeLastUnmatchedQuote(this.searchQuery));
     }
     if (this.findQuery) {
-      textParams.set("fq", this.findQuery);
+      textParams.set("fq", removeLastUnmatchedQuote(this.findQuery));
     }
     const data = authFetch(
       `/api/pages2/${this.uri}/${pageNumber}/text?${textParams.toString()}`,

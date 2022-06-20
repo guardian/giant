@@ -1,10 +1,12 @@
-import { uniq, range, findLast } from "lodash";
-import React, { FC, useCallback, useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
-import authFetch from "../../util/auth/authFetch";
-import { Controls } from "./Controls";
-import styles from "./PageViewer.module.css";
-import { VirtualScroll } from "./VirtualScroll";
+import React, { FC, useCallback, useEffect, useState } from 'react';
+import { useParams } from 'react-router-dom';
+import authFetch from '../../util/auth/authFetch';
+import { Controls } from './Controls';
+import styles from './PageViewer.module.css';
+import { VirtualScroll } from './VirtualScroll';
+import { HighlightForSearchNavigation } from './model';
+import { range, uniq } from 'lodash';
+import { removeLastUnmatchedQuote } from '../../util/stringUtils';
 
 type PageViewerProps = {
   page: number;
@@ -14,23 +16,18 @@ export const PageViewer: FC<PageViewerProps> = () => {
   const params = new URLSearchParams(document.location.search);
 
   const query = params.get("sq") ?? undefined;
-  const page = Number(params.get("page"));
 
   const { uri } = useParams<{ uri: string }>();
 
   const [totalPages, setTotalPages] = useState<number | null>(null);
 
-  const [middlePage, setMiddlePage] = useState(page);
-
-  // Used by various things to signal to the virtual scroller to scroll to a particular page
-  // Initially set to the page in the URL
-  const [jumpToPage, setJumpToPage] = useState<number | null>(page);
-
   // Find searching...
-  const [lastPageHit, setLastPageHit] = useState<number>(0);
-  const [findSearchHits, setFindHits] = useState<number[]>([]);
+  const [focusedFindHighlightIndex, setFocusedFindHighlightIndex] = useState<number | null>(null);
+  const [focusedFindHighlight, setFocusedFindHighlight] = useState<HighlightForSearchNavigation | null>(null);
+  const [findHighlights, setFindHighlights] = useState<HighlightForSearchNavigation[]>([]);
   const [, setFindVisible] = useState(false);
   const [findSearch, setFind] = useState("");
+  const [isFindPending, setIsFindPending] = useState<boolean>(false);
 
   const [triggerRefresh, setTriggerRefresh] = useState(0);
   const [pageNumbersToPreload, setPageNumbersToPreload] = useState<number[]>([]);
@@ -68,65 +65,77 @@ export const PageViewer: FC<PageViewerProps> = () => {
   }, [handleUserKeyPress]);
 
   const performFind = useCallback(
-    (query: string) =>
-      authFetch(`/api/pages2/${uri}/find?fq="${query}"`)
+    (query: string) => {
+      const params = new URLSearchParams();
+      // The backend will respect quotes and do an exact search,
+      // but if quotes are unbalanced elasticsearch will error
+      params.set("fq", removeLastUnmatchedQuote(query));
+
+      setIsFindPending(true);
+      return authFetch(`/api/pages2/${uri}/find?${params.toString()}`)
         .then((res) => res.json())
-        .then((searchHits) => {
-          setLastPageHit(middlePage);
-          setFindHits(searchHits);
+        .then((highlights) => {
+          setIsFindPending(false);
+          setFindHighlights(highlights);
+          if (highlights.length) {
+            setFocusedFindHighlightIndex(0);
+          } else {
+            setFocusedFindHighlightIndex(null);
+          }
           setTriggerRefresh((t) => t + 1);
-        }),
-    [middlePage, uri]
+        })
+    },
+    [uri]
   );
 
   const preloadNextPreviousFindPages = useCallback((
-    centrePage: number,
-    pageHits: number[]
+    focusedFindHighlightIndex: number,
+    findHighlights: HighlightForSearchNavigation[]
   ) => {
-    const index = pageHits.findIndex((page) => page === centrePage);
-    const length = pageHits.length;
+    const length = findHighlights.length;
 
-    const hitsToPreloadIndexes = uniq(
+    const indexesOfHighlightsToPreload = uniq(
       range(-3, 3).map((offset) => {
-        const offsetIndex = index + offset;
+        const offsetIndex = focusedFindHighlightIndex + offset;
         // modulo - the regular % is 'remainder' in JS which is different
         return ((offsetIndex % length) + length) % length;
       })
     );
 
-    const newPreloadPages = hitsToPreloadIndexes.map(
-      (idx) => findSearchHits[idx]
-    );
+    const newPreloadPages = uniq(indexesOfHighlightsToPreload.map(
+      (idx) => findHighlights[idx].pageNumber
+    ));
 
     setPageNumbersToPreload(newPreloadPages);
-  }, [findSearchHits]);
+  }, []);
 
   const jumpToNextFindHit = useCallback(() => {
-    if (findSearchHits.length > 0) {
-      const maybePage = findSearchHits.find((page) => page > lastPageHit);
-      const nextPage = maybePage ? maybePage : findSearchHits[0];
+    if (findHighlights.length > 0) {
+      const nextHighlightIndex = (focusedFindHighlightIndex !== null && focusedFindHighlightIndex < (findHighlights.length - 1))
+          ? (focusedFindHighlightIndex + 1)
+          : 0;
 
-      preloadNextPreviousFindPages(nextPage, findSearchHits);
-      setLastPageHit(nextPage);
-      setJumpToPage(nextPage);
+      preloadNextPreviousFindPages(nextHighlightIndex, findHighlights);
+      setFocusedFindHighlightIndex(nextHighlightIndex);
     }
-  }, [findSearchHits, lastPageHit, preloadNextPreviousFindPages, setLastPageHit, setJumpToPage]);
+  }, [findHighlights, focusedFindHighlightIndex, preloadNextPreviousFindPages, setFocusedFindHighlightIndex]);
 
   const jumpToPreviousFindHit = useCallback(() => {
-    if (findSearchHits.length > 0) {
-      const maybePage = findLast(
-        findSearchHits,
-        (page) => page < lastPageHit
-      );
-      const previousPage = maybePage
-        ? maybePage
-        : findSearchHits[findSearchHits.length - 1];
+    if (findHighlights.length > 0) {
+      const previousHighlightIndex = (focusedFindHighlightIndex !== null && focusedFindHighlightIndex > 0)
+          ? (focusedFindHighlightIndex - 1)
+          : (findHighlights.length - 1);
 
-      preloadNextPreviousFindPages(previousPage, findSearchHits);
-      setLastPageHit(previousPage);
-      setJumpToPage(previousPage);
+      preloadNextPreviousFindPages(previousHighlightIndex, findHighlights);
+      setFocusedFindHighlightIndex(previousHighlightIndex);
     }
-  }, [findSearchHits, lastPageHit, preloadNextPreviousFindPages, setLastPageHit, setJumpToPage]);
+  }, [findHighlights, focusedFindHighlightIndex, preloadNextPreviousFindPages, setFocusedFindHighlightIndex]);
+
+  useEffect(() => {
+    if ((focusedFindHighlightIndex !== null) && findHighlights.length) {
+      setFocusedFindHighlight(findHighlights[focusedFindHighlightIndex]);
+    }
+  }, [focusedFindHighlightIndex, findHighlights])
 
   return (
     <main className={styles.main}>
@@ -137,9 +146,10 @@ export const PageViewer: FC<PageViewerProps> = () => {
         setFind={(q) => {
           setFind(q);
         }}
-        findSearchHits={findSearchHits}
-        lastPageHit={lastPageHit}
+        findHighlights={findHighlights}
+        focusedFindHighlightIndex={focusedFindHighlightIndex}
         performFind={performFind}
+        isPending={isFindPending}
         jumpToNextFindHit={jumpToNextFindHit}
         jumpToPreviousFindHit={jumpToPreviousFindHit}
       />
@@ -148,11 +158,10 @@ export const PageViewer: FC<PageViewerProps> = () => {
           uri={uri}
           query={query}
           findQuery={findSearch}
+          focusedFindHighlight={focusedFindHighlight}
           triggerHighlightRefresh={triggerRefresh}
           totalPages={totalPages}
-          jumpToPage={jumpToPage}
           pageNumbersToPreload={pageNumbersToPreload}
-          onMiddlePageChange={setMiddlePage}
           rotation={rotation}
         />
       ) : null}

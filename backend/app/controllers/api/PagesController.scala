@@ -5,7 +5,7 @@ import commands.GetPages.PagePreviewMetadata
 import java.io.InputStream
 import commands.{GetPagePreview, GetPages, GetResource, ResourceFetchMode}
 import model.frontend.{Chips, HighlightableText, TextHighlight}
-import model.index.{FrontendPage, Page, PageHighlight, PageWithFind}
+import model.index.{FindHighlight, FrontendPage, HighlightForSearchNavigation, Page, PageHighlight, PageWithFind}
 import model.{Language, Languages, Uri}
 import org.apache.pdfbox.pdmodel.PDDocument
 import play.api.libs.json.Json
@@ -27,13 +27,13 @@ class PagesController(val controllerComponents: AuthControllerComponents, manife
   }
 
   // Get language and highlight data for a given page
-  def getPageData(uri: Uri, pageNumber: Int, sq: Option[String], fq: Option[String]) = ApiAction.attempt { req =>
+  private def frontendPageFromQuery(uri: Uri, pageNumber: Int, username: String, sq: Option[String], fq: Option[String]): Attempt[FrontendPage] = {
     // Across documents
     val searchQuery = sq.map(Chips.parseQueryString)
     // Within document
     val findQuery = fq
 
-    val getResource = GetResource(uri, ResourceFetchMode.Basic, req.user.username, manifest, index, annotations, controllerComponents.users).process()
+    val getResource = GetResource(uri, ResourceFetchMode.Basic, username, manifest, index, annotations, controllerComponents.users).process()
     val getPage = pagesService.getPageGeometries(uri, pageNumber, searchQuery, findQuery)
 
     for {
@@ -44,11 +44,19 @@ class PagesController(val controllerComponents: AuthControllerComponents, manife
       // Highlighting stuff
       searchHighlights = dedupeHighlightSpans(page.page, page.value, false)
       findHighlights = page.highlightedText.map { langMap =>
-          dedupeHighlightSpans(page.page, langMap, true)
-        }.getOrElse(Map.empty)
+        dedupeHighlightSpans(page.page, langMap, true)
+      }.getOrElse(Map.empty)
       highlights <- getHighlightGeometriesForPage(uri, pageNumber, searchHighlights, findHighlights)
     } yield {
-      val response = FrontendPage(pageNumber, allLanguages.head, allLanguages, page.dimensions, highlights.flatMap(_.highlights).toList)
+      FrontendPage(pageNumber, allLanguages.head, allLanguages, page.dimensions, highlights.flatMap(_.highlights).toList)
+    }
+  }
+
+  // Get language and highlight data for a given page
+  def getPageData(uri: Uri, pageNumber: Int, sq: Option[String], fq: Option[String]) = ApiAction.attempt { req =>
+    for {
+      response <- frontendPageFromQuery(uri, pageNumber, req.user.username, sq, fq)
+    } yield {
       Ok(Json.toJson(response))
     }
   }
@@ -112,10 +120,24 @@ class PagesController(val controllerComponents: AuthControllerComponents, manife
     }
   }
 
-  def findInDocument(uri: Uri, fq: String) = ApiAction.attempt {
+  def findInDocument(uri: Uri, fq: String) = ApiAction.attempt { req =>
     val findQuery = fq
-    pagesService.findInPages(uri, findQuery).map( res =>
-      Ok(Json.toJson(res))
-    )
+
+    for {
+      pagesWithHits <- pagesService.findInPages(uri, findQuery)
+      pageData <- Attempt.sequence(
+        pagesWithHits.map(frontendPageFromQuery(uri, _, req.user.username, None, Some(findQuery)))
+      )
+    } yield {
+      val highlights = for {
+        page <- pageData
+        highlight <- page.highlights
+      } yield {
+        HighlightForSearchNavigation.fromPageHighlight(page.page, highlight.index, highlight)
+      }
+
+      val sortedHighlights = highlights.sortBy(h => (h.pageNumber, h.highlightNumber))
+      Ok(Json.toJson(sortedHighlights))
+    }
   }
 }

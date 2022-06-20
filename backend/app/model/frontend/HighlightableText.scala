@@ -19,7 +19,7 @@ object HighlightRange {
   implicit val format: Format[HighlightRange] = Json.format[HighlightRange]
 }
 
-case class TextHighlight(id: String, `type`: HighlightRangeType, range: HighlightRange)
+case class TextHighlight(id: String, index: Int, `type`: HighlightRangeType, range: HighlightRange)
 object TextHighlight {
   implicit val format: Format[TextHighlight] = Json.format[TextHighlight]
 }
@@ -51,6 +51,7 @@ object HighlightableText {
 
       val highlight = TextHighlight(
         id = searchHighlightId(acc.highlights.length, page, isFind),
+        index = acc.highlights.length,
         HighlightRangeType.SearchResult,
         HighlightRange(
           startOfTag + acc.contents.length,
