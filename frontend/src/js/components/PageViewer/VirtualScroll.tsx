@@ -11,7 +11,7 @@ type VirtualScrollProps = {
   query?: string;
   findQuery?: string;
   focusedFindHighlight: HighlightForSearchNavigation | null;
-  triggerHighlightRefresh: number;
+  // triggerHighlightRefresh: number;
 
   totalPages: number;
   pageNumbersToPreload: number[];
@@ -38,7 +38,7 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
   query,
   findQuery,
   focusedFindHighlight,
-  triggerHighlightRefresh,
+  // triggerHighlightRefresh,
 
   totalPages,
   jumpToPage,
@@ -64,6 +64,33 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
 
   useEffect(() => {
     pageCache.setFindQuery(findQuery);
+    setRenderedPages((currentPages) => {
+      const newPages: RenderedPage[] = currentPages.map((page) => {
+        const refreshedPage = pageCache.getPageAndRefreshHighlights(
+            page.pageNumber
+        );
+        return {
+          pageNumber: page.pageNumber,
+          getPagePreview: page.getPagePreview,
+          getPageData: refreshedPage.data,
+        }
+      });
+
+      // Once we've refreshed all visible pages go and refresh the cached pages too
+      // Will this work inside a setState callback?? It seems so...
+      Promise.all(newPages.map((page) => page.getPageData)).then(() => {
+        pageCache
+            .getAllPageNumbers()
+            .filter((cachedPageNumber) =>
+                !newPages.some((newPage) => newPage.pageNumber === cachedPageNumber)
+            )
+            .forEach((pageNumberToRefresh) =>
+                pageCache.getPageAndRefreshHighlights(pageNumberToRefresh)
+            );
+      });
+
+      return newPages;
+    });
   }, [findQuery, pageCache]);
 
   const [pageRange, setPageRange] = useState<PageRange>({bottom: 1 + PRELOAD_PAGES, middle: 1, top: 1});
@@ -136,37 +163,11 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
   }, [pageRange.top, pageRange.bottom, pageCache, setRenderedPages]);
 
   // TODO: try use useEffect
-  useLayoutEffect(() => {
-    if (triggerHighlightRefresh > 0) {
-      setRenderedPages((currentPages) => {
-        const newPages: RenderedPage[] = currentPages.map((page) => {
-          const refreshedPage = pageCache.getPageAndRefreshHighlights(
-              page.pageNumber
-          );
-          return {
-            pageNumber: page.pageNumber,
-            getPagePreview: page.getPagePreview,
-            getPageData: refreshedPage.data,
-          }
-        });
-
-        // Once we've refreshed all visible pages go and refresh the cached pages too
-        // Will this work inside a setState callback?? It seems so...
-        Promise.all(newPages.map((page) => page.getPageData)).then(() => {
-          pageCache
-            .getAllPageNumbers()
-            .filter((cachedPageNumber) =>
-              !newPages.some((newPage) => newPage.pageNumber === cachedPageNumber)
-            )
-            .forEach((pageNumberToRefresh) =>
-              pageCache.getPageAndRefreshHighlights(pageNumberToRefresh)
-            );
-        });
-
-        return newPages;
-      });
-    }
-  }, [triggerHighlightRefresh, pageCache]);
+  // useLayoutEffect(() => {
+  //   if (triggerHighlightRefresh > 0) {
+  //
+  //   }
+  // }, [triggerHighlightRefresh, pageCache]);
 
   useEffect(() => {
     pageNumbersToPreload.forEach((pageNumber) => pageCache.getPage(pageNumber));
