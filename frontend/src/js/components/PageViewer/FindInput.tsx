@@ -15,7 +15,7 @@ import { Loader } from 'semantic-ui-react';
 type FindInputProps = {
   value: string;
   setValue: (v: string) => void;
-  performFind: (query: string) => Promise<void>;
+  performFind: (query: string) => Promise<void> | undefined;
   isPending: boolean;
   jumpToNextFindHit: () => void;
   jumpToPreviousFindHit: () => void;

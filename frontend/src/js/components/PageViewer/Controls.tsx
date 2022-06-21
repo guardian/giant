@@ -42,7 +42,13 @@ export const Controls: FC<ControlsProps> = ({
 
 
   const performFind = useCallback((query: string) => {
-   const params = new URLSearchParams();
+    if (!query) {
+      setFocusedFindHighlightIndex(null);
+      setFindHighlights([]);
+      return;
+    }
+
+    const params = new URLSearchParams();
     // The backend will respect quotes and do an exact search,
     // but if quotes are unbalanced elasticsearch will error
     // TODO: change to "q"
