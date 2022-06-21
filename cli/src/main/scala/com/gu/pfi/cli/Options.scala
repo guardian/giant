@@ -1,8 +1,8 @@
 package com.gu.pfi.cli
 
 import java.io.File
-
-import _root_.model.{Language, Languages, English}
+import _root_.model.{English, Language, Languages}
+import com.gu.pfi.cli.model.{ConflictBehaviour, Delete, Skip, Stop}
 import enumeratum.{Enum, EnumEntry}
 import org.rogach.scallop.{DefaultConverters, ScallopConf, Subcommand, ValueConverter}
 
@@ -152,6 +152,20 @@ class Options(args: Seq[String]) extends ScallopConf(args) {
     def ingestionUris: List[(String, String)] = ingestionUrisOpt().map { uri =>
       val parts = uri.split("/")
       (parts.head, parts.last)
+    }
+
+    val conflictBehaviourOpt = opt[String](
+      name = "conflictBehaviour",
+      descr =
+        """
+          |What to do when a blob in the ingest is also included in another ingest. Valid options: delete,skip,stop.
+          |Note that if you select 'delete' the blob will be deleted from all ingestions in giant.
+        """.stripMargin,
+      noshort = true)
+    def conflictBehaviour: Option[ConflictBehaviour] = conflictBehaviourOpt.toOption.map {
+      case Skip.name => Skip
+      case Delete.name => Delete
+      case Stop.name => Stop
     }
   }
 
