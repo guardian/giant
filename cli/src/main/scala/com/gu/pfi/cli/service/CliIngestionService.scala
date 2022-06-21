@@ -72,7 +72,8 @@ class CliIngestionService(http: CliHttpClient)(implicit ec: ExecutionContext) ex
   }
 
   def deleteBlob(id: String): Attempt[Unit] = {
-    http.delete(s"/api/blobs/$id?deleteFolders=false&checkChildren=false").map { r =>
+
+    http.delete(s"/api/blobs/${URLEncoder.encode(id, "UTF-8")}?deleteFolders=false&checkChildren=false").map { r =>
       if(r.code() == 204) {
         Attempt.Right(())
       } else {
