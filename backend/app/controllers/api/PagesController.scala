@@ -120,8 +120,8 @@ class PagesController(val controllerComponents: AuthControllerComponents, manife
     }
   }
 
-  def findInDocument(uri: Uri, fq: String) = ApiAction.attempt { req =>
-    val findQuery = fq
+  def findInDocument(uri: Uri, q: String) = ApiAction.attempt { req =>
+    val findQuery = q
 
     for {
       pagesWithHits <- pagesService.findInPages(uri, findQuery)

@@ -51,8 +51,7 @@ export const Controls: FC<ControlsProps> = ({
     const params = new URLSearchParams();
     // The backend will respect quotes and do an exact search,
     // but if quotes are unbalanced elasticsearch will error
-    // TODO: change to "q"
-    params.set("fq", removeLastUnmatchedQuote(query));
+    params.set("q", removeLastUnmatchedQuote(query));
 
     // In order to use same debounce on communicating query change to parent
     onQueryChange(query);
