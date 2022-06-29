@@ -139,7 +139,6 @@ export class PageCache {
   getPageAndWipeHighlights = (pageNumber: number): CachedPage => {
     const preview = this.previewCache.get(pageNumber);
     const data = this.dataCache.get(pageNumber);
-    // TODO: Is it a good idea to mutate??
     data.data = data.data.then(d => ({...d, highlights: []}));
 
     return {
