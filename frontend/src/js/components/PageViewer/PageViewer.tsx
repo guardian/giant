@@ -45,7 +45,6 @@ export const PageViewer: FC<PageViewerProps> = () => {
   }, [uri]);
 
   useEffect(() => {
-    // TODO: better way of handling null? so it doesn't cause bugs that escape type checker
     if (findHighlightsState.focusedIndex !== null && findHighlightsState.highlights.length) {
       const length = findHighlightsState.highlights.length;
 
