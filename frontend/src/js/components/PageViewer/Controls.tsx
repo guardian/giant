@@ -66,7 +66,7 @@ export const Controls: FC<ControlsProps> = ({
           setFocusedFindHighlightIndex(null);
         }
       })
-  },   [uri]);
+  },   [uri, onQueryChange]);
 
 
   const jumpToNextFindHit = useCallback(() => {
