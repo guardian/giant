@@ -12,6 +12,7 @@ type PageViewerProps = {
 };
 
 export type HighlightsState = {
+  // Beware !focusedIndex for checking null, since it can be 0
   focusedIndex: number | null,
   highlights: HighlightForSearchNavigation[]
 };
@@ -30,6 +31,7 @@ export const PageViewer: FC<PageViewerProps> = () => {
   // by <VirtualScroll /> to refresh highlights and preload pages with hits.
   const [findQuery, setFindQuery] = useState('');
   const [findHighlightsState, setFindHighlightsState] = useState<HighlightsState>({
+    // Beware !focusedIndex for checking null, since it can be 0
     focusedIndex: null,
     highlights: []
   });
