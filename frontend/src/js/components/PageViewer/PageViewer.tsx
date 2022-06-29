@@ -32,17 +32,7 @@ export const PageViewer: FC<PageViewerProps> = () => {
     highlights: []
   });
 
-  // const [triggerRefresh, setTriggerRefresh] = useState(0);
-
   const [pageNumbersToPreload, setPageNumbersToPreload] = useState<number[]>([]);
-
-  // useEffect(() => {
-  //   // setTriggerRefresh(current => current + 1);
-  // }, [findHighlightsState.highlights])
-
-  // useEffect(() => {
-  //   setTriggerRefresh(current => current + 1);
-  // }, [findQuery]);
 
   const [rotation, setRotation] = useState(0);
 
@@ -53,7 +43,6 @@ export const PageViewer: FC<PageViewerProps> = () => {
   }, [uri]);
 
   useEffect(() => {
-    console.log('findHighlightsState.focusedIndex: ', findHighlightsState.focusedIndex);
     // TODO: better way of handling null? so it doesn't cause bugs that escape type checker
     if (findHighlightsState.focusedIndex !== null && findHighlightsState.highlights.length) {
       const length = findHighlightsState.highlights.length;
@@ -66,9 +55,6 @@ export const PageViewer: FC<PageViewerProps> = () => {
             return ((offsetIndex % length) + length) % length;
           })
       );
-
-      console.log('indexesOfHighlightsToPreload: ', indexesOfHighlightsToPreload);
-      console.log('findHighlightsState.highlights: ', findHighlightsState.highlights);
 
       const newPreloadPages = uniq(indexesOfHighlightsToPreload.map(
           (idx) => findHighlightsState.highlights[idx].pageNumber
@@ -103,7 +89,6 @@ export const PageViewer: FC<PageViewerProps> = () => {
           query={query}
           findQuery={findQuery}
           focusedFindHighlight={focusedFindHighlight}
-          // triggerHighlightRefresh={triggerRefresh}
           totalPages={totalPages}
           pageNumbersToPreload={pageNumbersToPreload}
           rotation={rotation}

@@ -29,7 +29,6 @@ export const Controls: FC<ControlsProps> = ({
   const [findHighlights, setFindHighlights] = useState<HighlightForSearchNavigation[]>([]);
   // TODO: should we use ths?
   const [, setFindVisible] = useState(false);
-  const [findQuery, setFindQuery] = useState("");
   const [isFindPending, setIsFindPending] = useState<boolean>(false);
 
   useEffect(() => {

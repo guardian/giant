@@ -11,7 +11,6 @@ type VirtualScrollProps = {
   query?: string;
   findQuery?: string;
   focusedFindHighlight: HighlightForSearchNavigation | null;
-  // triggerHighlightRefresh: number;
 
   totalPages: number;
   pageNumbersToPreload: number[];
@@ -38,7 +37,6 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
   query,
   findQuery,
   focusedFindHighlight,
-  // triggerHighlightRefresh,
 
   totalPages,
   jumpToPage,
@@ -63,7 +61,6 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
   const [renderedPages, setRenderedPages] = useState<RenderedPage[]>([]);
 
   useEffect(() => {
-    console.log('findQuery: ', findQuery);
     pageCache.setFindQuery(findQuery);
     setRenderedPages((currentPages) => {
       const newPages: RenderedPage[] = currentPages.map((page) => {
@@ -162,13 +159,6 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
 
     setRenderedPages(renderedPages);
   }, [pageRange.top, pageRange.bottom, pageCache, setRenderedPages]);
-
-  // TODO: try use useEffect
-  // useLayoutEffect(() => {
-  //   if (triggerHighlightRefresh > 0) {
-  //
-  //   }
-  // }, [triggerHighlightRefresh, pageCache]);
 
   useEffect(() => {
     pageNumbersToPreload.forEach((pageNumber) => pageCache.getPage(pageNumber));
