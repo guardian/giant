@@ -32,7 +32,6 @@ export const Controls: FC<ControlsProps> = ({
   const [isFindPending, setIsFindPending] = useState<boolean>(false);
 
   useEffect(() => {
-    console.log('focusedFindHighlightIndex: ', focusedFindHighlightIndex);
     onHighlightStateChange({
       focusedIndex: focusedFindHighlightIndex,
       highlights: findHighlights
@@ -62,7 +61,6 @@ export const Controls: FC<ControlsProps> = ({
         setIsFindPending(false);
         setFindHighlights(highlights);
         if (highlights.length) {
-          console.log('setFocusedFindHighlightIndex to 0');
           setFocusedFindHighlightIndex(0);
         } else {
           setFocusedFindHighlightIndex(null);
