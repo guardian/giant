@@ -25,8 +25,10 @@ export const PageViewer: FC<PageViewerProps> = () => {
 
   const [totalPages, setTotalPages] = useState<number | null>(null);
 
+  // The below are stored here because they are set (debounced) by
+  // <Controls /> when the user types in the find query box, and are used
+  // by <VirtualScroll /> to refresh highlights and preload pages with hits.
   const [findQuery, setFindQuery] = useState('');
-
   const [findHighlightsState, setFindHighlightsState] = useState<HighlightsState>({
     focusedIndex: null,
     highlights: []
