@@ -23,7 +23,7 @@ export const Controls: FC<ControlsProps> = ({
   rotateAnticlockwise,
   uri,
   onHighlightStateChange,
-    onQueryChange
+  onQueryChange
 }) => {
   const [focusedFindHighlightIndex, setFocusedFindHighlightIndex] = useState<number | null>(null);
   const [findHighlights, setFindHighlights] = useState<HighlightForSearchNavigation[]>([]);
@@ -45,6 +45,7 @@ export const Controls: FC<ControlsProps> = ({
     if (!query) {
       setFocusedFindHighlightIndex(null);
       setFindHighlights([]);
+      onQueryChange(query);
       return;
     }
 
@@ -127,8 +128,6 @@ export const Controls: FC<ControlsProps> = ({
       </div>
 
       <FindInput
-        value={findQuery}
-        setValue={setFindQuery}
         highlights={findHighlights}
         focusedFindHighlightIndex={focusedFindHighlightIndex}
         performFind={performFind}

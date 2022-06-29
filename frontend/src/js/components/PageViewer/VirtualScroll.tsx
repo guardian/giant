@@ -63,6 +63,7 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
   const [renderedPages, setRenderedPages] = useState<RenderedPage[]>([]);
 
   useEffect(() => {
+    console.log('findQuery: ', findQuery);
     pageCache.setFindQuery(findQuery);
     setRenderedPages((currentPages) => {
       const newPages: RenderedPage[] = currentPages.map((page) => {
