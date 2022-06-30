@@ -68,7 +68,8 @@ export const PageViewer: FC<PageViewerProps> = () => {
     highlights: []
   });
 
-  const [focusedHighlight, setFocusedHighlight] = useState<HighlightForSearchNavigation | null>(null);
+  const [focusedFindHighlight, setFocusedFindHighlight] = useState<HighlightForSearchNavigation | null>(null);
+  const [focusedSearchHighlight, setFocusedSearchHighlight] = useState<HighlightForSearchNavigation | null>(null);
 
   const [pageNumbersToPreload, setPageNumbersToPreload] = useState<number[]>([]);
   const [rotation, setRotation] = useState(0);
@@ -90,7 +91,7 @@ export const PageViewer: FC<PageViewerProps> = () => {
 
   const onFindHighlightStateChange = useCallback((newState) => {
     setFindHighlightsState(newState);
-    setFocusedHighlight((newState.focusedIndex !== null)
+    setFocusedFindHighlight((newState.focusedIndex !== null)
         ? newState.highlights[newState.focusedIndex]
         : null
     );
@@ -98,7 +99,7 @@ export const PageViewer: FC<PageViewerProps> = () => {
 
   const onSearchHighlightStateChange = useCallback((newState) => {
     setSearchHighlightsState(newState);
-    setFocusedHighlight((newState.focusedIndex !== null)
+    setFocusedSearchHighlight((newState.focusedIndex !== null)
         ? newState.highlights[newState.focusedIndex]
         : null
     );
@@ -136,7 +137,8 @@ export const PageViewer: FC<PageViewerProps> = () => {
           uri={uri}
           searchQuery={searchQuery}
           findQuery={findQuery}
-          focusedHighlight={focusedHighlight}
+          focusedFindHighlight={focusedFindHighlight}
+          focusedSearchHighlight={focusedSearchHighlight}
           totalPages={totalPages}
           pageNumbersToPreload={pageNumbersToPreload}
           rotation={rotation}

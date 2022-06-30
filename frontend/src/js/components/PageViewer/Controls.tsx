@@ -50,9 +50,16 @@ export const Controls: FC<ControlsProps> = ({
     }
 
     const params = new URLSearchParams();
-    // The backend will respect quotes and do an exact search,
-    // but if quotes are unbalanced elasticsearch will error
-    params.set("q", removeLastUnmatchedQuote(query));
+
+    // Behaviour of the backend is the same whether sq or fq,
+    // except in the highlight ids which will be prefixed differently
+    if (fixedQuery === undefined) {
+      // The backend will respect quotes and do an exact search,
+      // but if quotes are unbalanced elasticsearch will error
+      params.set("fq", removeLastUnmatchedQuote(query));
+    } else {
+      params.set("sq", removeLastUnmatchedQuote(query));
+    }
 
     // In order to use same debounce on communicating query change to parent
     onQueryChange(query);
@@ -69,7 +76,7 @@ export const Controls: FC<ControlsProps> = ({
           setFocusedFindHighlightIndex(null);
         }
       })
-  },   [uri, onQueryChange]);
+  },   [uri, onQueryChange, fixedQuery]);
 
 
   const jumpToNextFindHit = useCallback(() => {

@@ -10,7 +10,8 @@ type VirtualScrollProps = {
   uri: string;
   searchQuery?: string;
   findQuery?: string;
-  focusedHighlight: HighlightForSearchNavigation | null;
+  focusedFindHighlight: HighlightForSearchNavigation | null;
+  focusedSearchHighlight: HighlightForSearchNavigation | null;
 
   totalPages: number;
   pageNumbersToPreload: number[];
@@ -36,7 +37,8 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
   uri,
   searchQuery,
   findQuery,
-  focusedHighlight,
+  focusedFindHighlight,
+  focusedSearchHighlight,
 
   totalPages,
   jumpToPage,
@@ -140,11 +142,17 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
   }, [pageHeight, jumpToPage]);
 
   useLayoutEffect(() => {
-    if (viewport?.current && focusedHighlight) {
-      const topOfHighlightPage = (pageHeight * (focusedHighlight.pageNumber - 1));
+    if (viewport?.current && focusedFindHighlight) {
+      const topOfHighlightPage = (pageHeight * (focusedFindHighlight.pageNumber - 1));
       viewport.current.scrollTop = topOfHighlightPage;
     }
-  }, [pageHeight, focusedHighlight]);
+  }, [pageHeight, focusedFindHighlight]);
+  useLayoutEffect(() => {
+    if (viewport?.current && focusedSearchHighlight) {
+      const topOfHighlightPage = (pageHeight * (focusedSearchHighlight.pageNumber - 1));
+      viewport.current.scrollTop = topOfHighlightPage;
+    }
+  }, [pageHeight, focusedSearchHighlight]);
 
   useEffect(() => {
     const renderedPages = range(pageRange.top, pageRange.bottom + 1).map((pageNumber) => {
@@ -177,7 +185,8 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
             className={styles.pageContainer}
           >
             <Page
-              focusedHighlightId={focusedHighlight?.id}
+              focusedFindHighlightId={focusedFindHighlight?.id}
+              focusedSearchHighlightId={focusedSearchHighlight?.id}
               pageNumber={page.pageNumber}
               getPagePreview={page.getPagePreview}
               getPageData={page.getPageData}

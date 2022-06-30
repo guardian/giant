@@ -125,13 +125,14 @@ class PagesController(val controllerComponents: AuthControllerComponents, manife
   // This endpoint is used for both "find in document" on-demand queries,
   // and for getting highlights for the "search across documents" query which
   // should be fixed for the lifetime of the page viewer of a given document.
-  def findInDocument(uri: Uri, q: String) = ApiAction.attempt { req =>
-    val findQuery = q
+  def findInDocument(uri: Uri, sq: Option[String], fq: Option[String]) = ApiAction.attempt { req =>
+    // TODO: fix! either this should explicitly only except one of fq or sq, or it should handle both/neither
+    val query = fq.orElse(sq).getOrElse("")
 
     for {
-      pagesWithHits <- pagesService.findInPages(uri, findQuery)
+      pagesWithHits <- pagesService.findInPages(uri, query)
       pageData <- Attempt.sequence(
-        pagesWithHits.map(frontendPageFromQuery(uri, _, req.user.username, None, Some(findQuery)))
+        pagesWithHits.map(frontendPageFromQuery(uri, _, req.user.username, sq, fq))
       )
     } yield {
       val highlights = for {
