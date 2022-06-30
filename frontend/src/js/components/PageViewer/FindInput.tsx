@@ -47,7 +47,7 @@ export const FindInput: FC<FindInputProps> = ({
     if (fixedQuery !== undefined) {
       performFind(fixedQuery);
     }
-  }, [fixedQuery]);
+  }, [fixedQuery, performFind]);
 
   const onKeyDown: KeyboardEventHandler = (event) => {
     if (event.key === "Enter") {

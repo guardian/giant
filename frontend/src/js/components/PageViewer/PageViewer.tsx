@@ -17,6 +17,31 @@ export type HighlightsState = {
   highlights: HighlightForSearchNavigation[]
 };
 
+
+function getPreloadPages(highlightState: HighlightsState): number[] {
+  if (highlightState.focusedIndex === null || highlightState.highlights.length === 0) {
+    return [];
+  }
+
+  const length = highlightState.highlights.length;
+
+  // From three highlights before to three highlights after,
+  // wrapping if we hit an edge. If there are fewer than seven highlights,
+  // we'll get them all, the uniq() call will prevent duplicates.
+  const indexesOfHighlightsToPreload = uniq(
+      range(-3, 3).map((offset) => {
+        // type guard does not extend into .map() it seems
+        const offsetIndex = (highlightState.focusedIndex ?? 0) + offset;
+        // modulo - the regular % is 'remainder' in JS which is different
+        return ((offsetIndex % length) + length) % length;
+      })
+  );
+
+  return uniq(indexesOfHighlightsToPreload.map(
+      (idx) => highlightState.highlights[idx].pageNumber
+  ));
+}
+
 export const PageViewer: FC<PageViewerProps> = () => {
   const params = new URLSearchParams(document.location.search);
 
@@ -55,28 +80,13 @@ export const PageViewer: FC<PageViewerProps> = () => {
   }, [uri]);
 
   useEffect(() => {
-    if (findHighlightsState.focusedIndex !== null && findHighlightsState.highlights.length) {
-      const length = findHighlightsState.highlights.length;
-
-      // From three highlights before to three highlights after,
-      // wrapping if we hit an edge. If there are fewer than seven highlights,
-      // we'll get them all, the uniq() call will prevent duplicates.
-      const indexesOfHighlightsToPreload = uniq(
-          range(-3, 3).map((offset) => {
-            // type guard does not extend into .map() it seems
-            const offsetIndex = (findHighlightsState.focusedIndex ?? 0) + offset;
-            // modulo - the regular % is 'remainder' in JS which is different
-            return ((offsetIndex % length) + length) % length;
-          })
-      );
-
-      const newPreloadPages = uniq(indexesOfHighlightsToPreload.map(
-          (idx) => findHighlightsState.highlights[idx].pageNumber
-      ));
-
-      setPageNumbersToPreload(newPreloadPages);
-    }
-  }, [findHighlightsState]);
+    const findHighlightsPreloadPages = getPreloadPages(findHighlightsState);
+    const searchHighlightsPreloadPages = getPreloadPages(searchHighlightsState);
+    setPageNumbersToPreload(uniq([
+      ...findHighlightsPreloadPages,
+      ...searchHighlightsPreloadPages
+    ]));
+  }, [findHighlightsState, searchHighlightsState]);
 
   const onFindHighlightStateChange = useCallback((newState) => {
     setFindHighlightsState(newState);
@@ -98,17 +108,19 @@ export const PageViewer: FC<PageViewerProps> = () => {
     setFindQuery(newQuery);
   }, []);
 
+  const onSearchQueryChange = useCallback(() => {}, []);
+
   return (
     <main className={styles.main}>
       <div className={styles.controls}>
         {searchQuery !== undefined &&
           <Controls
-              rotateAnticlockwise={() => setRotation((r) => r - 90)}
-              rotateClockwise={() => setRotation((r) => r + 90)}
-              uri={uri}
-              onHighlightStateChange={onSearchHighlightStateChange}
-              onQueryChange={() => {}}
-              fixedQuery={searchQuery}
+            rotateAnticlockwise={() => setRotation((r) => r - 90)}
+            rotateClockwise={() => setRotation((r) => r + 90)}
+            uri={uri}
+            onHighlightStateChange={onSearchHighlightStateChange}
+            onQueryChange={onSearchQueryChange}
+            fixedQuery={searchQuery}
           />
         }
         <Controls
