@@ -6,14 +6,14 @@ import { PageOverlayText } from './PageOverlayText';
 import { renderTextOverlays } from './PdfHelpers';
 
 type PageProps = {
-  focusedFindHighlightId: string | undefined;
+  focusedHighlightId: string | undefined;
   pageNumber: number;
   getPagePreview: Promise<CachedPreview>;
   getPageData: Promise<PageData>;
 };
 
 export const Page: FC<PageProps> = ({
-  focusedFindHighlightId,
+  focusedHighlightId,
   pageNumber,
   getPagePreview,
   getPageData,
@@ -77,7 +77,7 @@ export const Page: FC<PageProps> = ({
           <PageHighlight
             key={hl.id}
             highlight={hl}
-            focused={hl.id === focusedFindHighlightId}
+            focused={hl.id === focusedHighlightId}
             scale={scale}
           />
         ))}

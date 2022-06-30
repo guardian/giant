@@ -177,7 +177,7 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
             className={styles.pageContainer}
           >
             <Page
-              focusedFindHighlightId={focusedHighlight?.id}
+              focusedHighlightId={focusedHighlight?.id}
               pageNumber={page.pageNumber}
               getPagePreview={page.getPagePreview}
               getPageData={page.getPageData}
