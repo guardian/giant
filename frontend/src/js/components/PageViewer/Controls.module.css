@@ -1,10 +1,6 @@
 .bar {
-  position: absolute;
-  top: 0;
-  right: 20px;
   display: flex;
   flex-direction: row;
-  z-index: 1000;
   justify-content: space-between;
   background: var(--color-primary);
   padding: 6px;

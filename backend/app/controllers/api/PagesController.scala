@@ -29,7 +29,9 @@ class PagesController(val controllerComponents: AuthControllerComponents, manife
   // Get language and highlight data for a given page
   private def frontendPageFromQuery(uri: Uri, pageNumber: Int, username: String, sq: Option[String], fq: Option[String]): Attempt[FrontendPage] = {
     // Across documents
-    val searchQuery = sq.map(Chips.parseQueryString)
+    // TODO: wtf why do we get horrific error when parsing chips?
+//     val searchQuery = sq.map(Chips.parseQueryString)
+    val searchQuery = sq
     // Within document
     val findQuery = fq
 

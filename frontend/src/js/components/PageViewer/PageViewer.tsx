@@ -20,7 +20,7 @@ export type HighlightsState = {
 export const PageViewer: FC<PageViewerProps> = () => {
   const params = new URLSearchParams(document.location.search);
 
-  const query = params.get("sq") ?? undefined;
+  const searchQuery = params.get("sq") ?? undefined;
 
   const { uri } = useParams<{ uri: string }>();
 
@@ -35,9 +35,17 @@ export const PageViewer: FC<PageViewerProps> = () => {
     focusedIndex: null,
     highlights: []
   });
+  // For search highlights, the query is fixed so no need to store it in state.
+  // But we do need to keep track of the highlights and our position within them.
+  const [searchHighlightsState, setSearchHighlightsState] = useState<HighlightsState>({
+    // Beware !focusedIndex for checking null, since it can be 0
+    focusedIndex: null,
+    highlights: []
+  });
+
+  const [focusedHighlight, setFocusedHighlight] = useState<HighlightForSearchNavigation | null>(null);
 
   const [pageNumbersToPreload, setPageNumbersToPreload] = useState<number[]>([]);
-
   const [rotation, setRotation] = useState(0);
 
   useEffect(() => {
@@ -67,31 +75,53 @@ export const PageViewer: FC<PageViewerProps> = () => {
     }
   }, [findHighlightsState]);
 
-  const focusedFindHighlight = (findHighlightsState.focusedIndex !== null) ? findHighlightsState.highlights[findHighlightsState.focusedIndex] : null;
-
-  const onHighlightStateChange = useCallback((newState) => {
-    setFindHighlightsState(newState)
+  const onFindHighlightStateChange = useCallback((newState) => {
+    setFindHighlightsState(newState);
+    setFocusedHighlight((newState.focusedIndex !== null)
+        ? newState.highlights[newState.focusedIndex]
+        : null
+    );
   }, []);
 
-  const onQueryChange = useCallback((newQuery) => {
+  const onSearchHighlightStateChange = useCallback((newState) => {
+    setSearchHighlightsState(newState);
+    setFocusedHighlight((newState.focusedIndex !== null)
+        ? newState.highlights[newState.focusedIndex]
+        : null
+    );
+  }, []);
+
+  const onFindQueryChange = useCallback((newQuery) => {
     setFindQuery(newQuery);
   }, []);
 
   return (
     <main className={styles.main}>
-      <Controls
-        rotateAnticlockwise={() => setRotation((r) => r - 90)}
-        rotateClockwise={() => setRotation((r) => r + 90)}
-        uri={uri}
-        onHighlightStateChange={onHighlightStateChange}
-        onQueryChange={onQueryChange}
-      />
+      <div className={styles.controls}>
+        {searchQuery !== undefined &&
+          <Controls
+              rotateAnticlockwise={() => setRotation((r) => r - 90)}
+              rotateClockwise={() => setRotation((r) => r + 90)}
+              uri={uri}
+              onHighlightStateChange={onSearchHighlightStateChange}
+              onQueryChange={() => {}}
+              fixedQuery={searchQuery}
+          />
+        }
+        <Controls
+          rotateAnticlockwise={() => setRotation((r) => r - 90)}
+          rotateClockwise={() => setRotation((r) => r + 90)}
+          uri={uri}
+          onHighlightStateChange={onFindHighlightStateChange}
+          onQueryChange={onFindQueryChange}
+        />
+      </div>
       {totalPages ? (
         <VirtualScroll
           uri={uri}
-          query={query}
+          searchQuery={searchQuery}
           findQuery={findQuery}
-          focusedFindHighlight={focusedFindHighlight}
+          focusedHighlight={focusedHighlight}
           totalPages={totalPages}
           pageNumbersToPreload={pageNumbersToPreload}
           rotation={rotation}

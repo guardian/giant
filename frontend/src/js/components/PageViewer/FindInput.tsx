@@ -13,6 +13,7 @@ import { HighlightForSearchNavigation } from './model';
 import { Loader } from 'semantic-ui-react';
 
 type FindInputProps = {
+  fixedQuery?: string;
   performFind: (query: string) => Promise<void> | undefined;
   isPending: boolean;
   jumpToNextFindHit: () => void;
@@ -27,6 +28,7 @@ type FindInputProps = {
 const MAX_PAGE_HITS = 500;
 
 export const FindInput: FC<FindInputProps> = ({
+  fixedQuery,
   jumpToNextFindHit,
   jumpToPreviousFindHit,
   performFind,
@@ -40,7 +42,12 @@ export const FindInput: FC<FindInputProps> = ({
     performFind,
   ]);
 
-  const [value, setValue] = useState('');
+  const [value, setValue] = useState(fixedQuery ?? '');
+  useEffect(() => {
+    if (fixedQuery !== undefined) {
+      performFind(fixedQuery);
+    }
+  }, [fixedQuery]);
 
   const onKeyDown: KeyboardEventHandler = (event) => {
     if (event.key === "Enter") {
@@ -67,7 +74,7 @@ export const FindInput: FC<FindInputProps> = ({
     const current = (focusedFindHighlightIndex !== null) ? focusedFindHighlightIndex + 1 : 0;
     const total = `${showWarning ? ">" : ""}${highlights.length}`;
     return `${current}/${total}`
-  }, [value, focusedFindHighlightIndex, highlights, showWarning])
+  }, [value, focusedFindHighlightIndex, highlights, showWarning]);
 
   return (
     <div className={styles.container}>
@@ -75,12 +82,15 @@ export const FindInput: FC<FindInputProps> = ({
         <input
           id="find-search-input"
           autoComplete="off"
+          disabled={fixedQuery !== undefined}
           value={value}
           placeholder="Search document..."
           onKeyDown={onKeyDown}
           onChange={(e) => {
-            setValue(e.target.value);
-            debouncedPerformSearch(e.target.value);
+            if (fixedQuery === undefined) {
+              setValue(e.target.value);
+              debouncedPerformSearch(e.target.value);
+            }
           }}
         />
         <div className={styles.count}>

@@ -13,6 +13,7 @@ type ControlsProps = {
   rotateClockwise: () => void;
   rotateAnticlockwise: () => void;
 
+  fixedQuery?: string;
   uri: string;
   onHighlightStateChange: (newState: HighlightsState) => void;
   onQueryChange: (newQuery: string) => void;
@@ -21,6 +22,7 @@ type ControlsProps = {
 export const Controls: FC<ControlsProps> = ({
   rotateClockwise,
   rotateAnticlockwise,
+  fixedQuery,
   uri,
   onHighlightStateChange,
   onQueryChange
@@ -43,7 +45,7 @@ export const Controls: FC<ControlsProps> = ({
     if (!query) {
       setFocusedFindHighlightIndex(null);
       setFindHighlights([]);
-      onQueryChange(query);
+      onQueryChange('');
       return;
     }
 
@@ -124,6 +126,7 @@ export const Controls: FC<ControlsProps> = ({
       </div>
 
       <FindInput
+        fixedQuery={fixedQuery}
         highlights={findHighlights}
         focusedFindHighlightIndex={focusedFindHighlightIndex}
         performFind={performFind}
