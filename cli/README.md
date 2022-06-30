@@ -57,3 +57,17 @@ need to make sure you tell pfi-cli to use minio rather than uploading stuff to S
 ./pfi-cli create-ingestion --uri http://localhost:9001 --ingestionUri testfolder/test
 ./pfi-cli ingest --path ~/stufftoingest --languages english --ingestionUri testfolder/test --minioAccessKey minio-user --minioEndpoint http://localhost:9090 --minioSecretKey reallyverysecret
 ```
+
+### Deleting data with the CLI
+If a blob exists in multiple ingestions, you need to either delete the blob in the Giant UI, or pass all of the relevant ingestions to `delete-ingestion`.
+
+Here's an example command to delete from two ingestions, running as a background task detached from the terminal.
+
+**This assumes you're running on a Giant instance where the URI is localhost. To run locally, supply a `--uri` param**
+
+```bash
+(nohup ./pfi-cli delete-ingestion --ingestionUri \
+  'Collection/ingestion' \
+  'Collection/ingestion2' \
+    >>output.log 2>errors.log &)
+```
