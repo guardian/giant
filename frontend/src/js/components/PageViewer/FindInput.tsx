@@ -13,9 +13,7 @@ import { HighlightForSearchNavigation } from './model';
 import { Loader } from 'semantic-ui-react';
 
 type FindInputProps = {
-  value: string;
-  setValue: (v: string) => void;
-  performFind: (query: string) => Promise<void>;
+  performFind: (query: string) => Promise<void> | undefined;
   isPending: boolean;
   jumpToNextFindHit: () => void;
   jumpToPreviousFindHit: () => void;
@@ -29,8 +27,6 @@ type FindInputProps = {
 const MAX_PAGE_HITS = 500;
 
 export const FindInput: FC<FindInputProps> = ({
-  value,
-  setValue,
   jumpToNextFindHit,
   jumpToPreviousFindHit,
   performFind,
@@ -43,6 +39,8 @@ export const FindInput: FC<FindInputProps> = ({
   const debouncedPerformSearch = useMemo(() => _.debounce(performFind, 500), [
     performFind,
   ]);
+
+  const [value, setValue] = useState('');
 
   const onKeyDown: KeyboardEventHandler = (event) => {
     if (event.key === "Enter") {

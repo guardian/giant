@@ -123,12 +123,27 @@ export class PageCache {
   };
 
   getPageAndRefreshHighlights = (pageNumber: number): CachedPage => {
+    if (this.findQuery) {
+      const preview = this.previewCache.get(pageNumber);
+      const data = this.dataCache.getAndForceRefresh(pageNumber);
+
+      return {
+        ...preview,
+        ...data,
+      };
+    } else {
+      return this.getPageAndWipeHighlights(pageNumber);
+    }
+  };
+
+  getPageAndWipeHighlights = (pageNumber: number): CachedPage => {
     const preview = this.previewCache.get(pageNumber);
-    const data = this.dataCache.getAndForceRefresh(pageNumber);
+    const data = this.dataCache.get(pageNumber);
+    data.data = data.data.then(d => ({...d, highlights: []}));
 
     return {
       ...preview,
       ...data,
     };
-  };
+  }
 }

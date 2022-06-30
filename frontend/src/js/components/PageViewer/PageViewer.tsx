@@ -6,10 +6,15 @@ import styles from './PageViewer.module.css';
 import { VirtualScroll } from './VirtualScroll';
 import { HighlightForSearchNavigation } from './model';
 import { range, uniq } from 'lodash';
-import { removeLastUnmatchedQuote } from '../../util/stringUtils';
 
 type PageViewerProps = {
   page: number;
+};
+
+export type HighlightsState = {
+  // Beware !focusedIndex for checking null, since it can be 0
+  focusedIndex: number | null,
+  highlights: HighlightForSearchNavigation[]
 };
 
 export const PageViewer: FC<PageViewerProps> = () => {
@@ -21,15 +26,16 @@ export const PageViewer: FC<PageViewerProps> = () => {
 
   const [totalPages, setTotalPages] = useState<number | null>(null);
 
-  // Find searching...
-  const [focusedFindHighlightIndex, setFocusedFindHighlightIndex] = useState<number | null>(null);
-  const [focusedFindHighlight, setFocusedFindHighlight] = useState<HighlightForSearchNavigation | null>(null);
-  const [findHighlights, setFindHighlights] = useState<HighlightForSearchNavigation[]>([]);
-  const [, setFindVisible] = useState(false);
-  const [findSearch, setFind] = useState("");
-  const [isFindPending, setIsFindPending] = useState<boolean>(false);
+  // The below are stored here because they are set (debounced) by
+  // <Controls /> when the user types in the find query box, and are used
+  // by <VirtualScroll /> to refresh highlights and preload pages with hits.
+  const [findQuery, setFindQuery] = useState('');
+  const [findHighlightsState, setFindHighlightsState] = useState<HighlightsState>({
+    // Beware !focusedIndex for checking null, since it can be 0
+    focusedIndex: null,
+    highlights: []
+  });
 
-  const [triggerRefresh, setTriggerRefresh] = useState(0);
   const [pageNumbersToPreload, setPageNumbersToPreload] = useState<number[]>([]);
 
   const [rotation, setRotation] = useState(0);
@@ -40,126 +46,52 @@ export const PageViewer: FC<PageViewerProps> = () => {
       .then((obj) => setTotalPages(obj.pageCount));
   }, [uri]);
 
-  // Keypress overrides
-  const handleUserKeyPress = useCallback((e) => {
-    if ((e.ctrlKey || e.metaKey) && e.keyCode === 70) {
-      e.preventDefault();
-      setFindVisible(true);
+  useEffect(() => {
+    if (findHighlightsState.focusedIndex !== null && findHighlightsState.highlights.length) {
+      const length = findHighlightsState.highlights.length;
 
-      const maybeInput = document.getElementById(
-        "find-search-input"
-      ) as HTMLInputElement;
-      if (maybeInput) {
-        maybeInput.focus();
-        maybeInput.setSelectionRange(0, maybeInput.value.length);
-      }
+      const indexesOfHighlightsToPreload = uniq(
+          range(-3, 3).map((offset) => {
+            // type guard does not extend into .map() it seems
+            const offsetIndex = (findHighlightsState.focusedIndex ?? 0) + offset;
+            // modulo - the regular % is 'remainder' in JS which is different
+            return ((offsetIndex % length) + length) % length;
+          })
+      );
+
+      const newPreloadPages = uniq(indexesOfHighlightsToPreload.map(
+          (idx) => findHighlightsState.highlights[idx].pageNumber
+      ));
+
+      setPageNumbersToPreload(newPreloadPages);
     }
+  }, [findHighlightsState]);
+
+  const focusedFindHighlight = (findHighlightsState.focusedIndex !== null) ? findHighlightsState.highlights[findHighlightsState.focusedIndex] : null;
+
+  const onHighlightStateChange = useCallback((newState) => {
+    setFindHighlightsState(newState)
   }, []);
 
-  // Register keypress overrides
-  useEffect(() => {
-    window.addEventListener("keydown", handleUserKeyPress);
-    return () => {
-      window.removeEventListener("keydown", handleUserKeyPress);
-    };
-  }, [handleUserKeyPress]);
-
-  const performFind = useCallback(
-    (query: string) => {
-      const params = new URLSearchParams();
-      // The backend will respect quotes and do an exact search,
-      // but if quotes are unbalanced elasticsearch will error
-      params.set("fq", removeLastUnmatchedQuote(query));
-
-      setIsFindPending(true);
-      return authFetch(`/api/pages2/${uri}/find?${params.toString()}`)
-        .then((res) => res.json())
-        .then((highlights) => {
-          setIsFindPending(false);
-          setFindHighlights(highlights);
-          if (highlights.length) {
-            setFocusedFindHighlightIndex(0);
-          } else {
-            setFocusedFindHighlightIndex(null);
-          }
-          setTriggerRefresh((t) => t + 1);
-        })
-    },
-    [uri]
-  );
-
-  const preloadNextPreviousFindPages = useCallback((
-    focusedFindHighlightIndex: number,
-    findHighlights: HighlightForSearchNavigation[]
-  ) => {
-    const length = findHighlights.length;
-
-    const indexesOfHighlightsToPreload = uniq(
-      range(-3, 3).map((offset) => {
-        const offsetIndex = focusedFindHighlightIndex + offset;
-        // modulo - the regular % is 'remainder' in JS which is different
-        return ((offsetIndex % length) + length) % length;
-      })
-    );
-
-    const newPreloadPages = uniq(indexesOfHighlightsToPreload.map(
-      (idx) => findHighlights[idx].pageNumber
-    ));
-
-    setPageNumbersToPreload(newPreloadPages);
+  const onQueryChange = useCallback((newQuery) => {
+    setFindQuery(newQuery);
   }, []);
-
-  const jumpToNextFindHit = useCallback(() => {
-    if (findHighlights.length > 0) {
-      const nextHighlightIndex = (focusedFindHighlightIndex !== null && focusedFindHighlightIndex < (findHighlights.length - 1))
-          ? (focusedFindHighlightIndex + 1)
-          : 0;
-
-      preloadNextPreviousFindPages(nextHighlightIndex, findHighlights);
-      setFocusedFindHighlightIndex(nextHighlightIndex);
-    }
-  }, [findHighlights, focusedFindHighlightIndex, preloadNextPreviousFindPages, setFocusedFindHighlightIndex]);
-
-  const jumpToPreviousFindHit = useCallback(() => {
-    if (findHighlights.length > 0) {
-      const previousHighlightIndex = (focusedFindHighlightIndex !== null && focusedFindHighlightIndex > 0)
-          ? (focusedFindHighlightIndex - 1)
-          : (findHighlights.length - 1);
-
-      preloadNextPreviousFindPages(previousHighlightIndex, findHighlights);
-      setFocusedFindHighlightIndex(previousHighlightIndex);
-    }
-  }, [findHighlights, focusedFindHighlightIndex, preloadNextPreviousFindPages, setFocusedFindHighlightIndex]);
-
-  useEffect(() => {
-    if ((focusedFindHighlightIndex !== null) && findHighlights.length) {
-      setFocusedFindHighlight(findHighlights[focusedFindHighlightIndex]);
-    }
-  }, [focusedFindHighlightIndex, findHighlights])
 
   return (
     <main className={styles.main}>
       <Controls
         rotateAnticlockwise={() => setRotation((r) => r - 90)}
         rotateClockwise={() => setRotation((r) => r + 90)}
-        findSearch={findSearch}
-        setFind={(q) => {
-          setFind(q);
-        }}
-        findHighlights={findHighlights}
-        focusedFindHighlightIndex={focusedFindHighlightIndex}
-        performFind={performFind}
-        isPending={isFindPending}
-        jumpToNextFindHit={jumpToNextFindHit}
-        jumpToPreviousFindHit={jumpToPreviousFindHit}
+        uri={uri}
+        onHighlightStateChange={onHighlightStateChange}
+        onQueryChange={onQueryChange}
       />
       {totalPages ? (
         <VirtualScroll
           uri={uri}
           query={query}
-          findQuery={findSearch}
+          findQuery={findQuery}
           focusedFindHighlight={focusedFindHighlight}
-          triggerHighlightRefresh={triggerRefresh}
           totalPages={totalPages}
           pageNumbersToPreload={pageNumbersToPreload}
           rotation={rotation}

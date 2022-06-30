@@ -120,8 +120,11 @@ class PagesController(val controllerComponents: AuthControllerComponents, manife
     }
   }
 
-  def findInDocument(uri: Uri, fq: String) = ApiAction.attempt { req =>
-    val findQuery = fq
+  // This endpoint is used for both "find in document" on-demand queries,
+  // and for getting highlights for the "search across documents" query which
+  // should be fixed for the lifetime of the page viewer of a given document.
+  def findInDocument(uri: Uri, q: String) = ApiAction.attempt { req =>
+    val findQuery = q
 
     for {
       pagesWithHits <- pagesService.findInPages(uri, findQuery)
