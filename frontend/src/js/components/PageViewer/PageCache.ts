@@ -132,14 +132,17 @@ export class PageCache {
         ...data,
       };
     } else {
-      return this.getPageAndWipeHighlights(pageNumber);
+      return this.getPageAndWipeFindHighlights(pageNumber);
     }
   };
 
-  getPageAndWipeHighlights = (pageNumber: number): CachedPage => {
+  getPageAndWipeFindHighlights = (pageNumber: number): CachedPage => {
     const preview = this.previewCache.get(pageNumber);
     const data = this.dataCache.get(pageNumber);
-    data.data = data.data.then(d => ({...d, highlights: []}));
+    data.data = data.data.then(d => ({
+      ...d,
+      highlights: d.highlights.filter(h => h.type === "SearchHighlight")
+    }));
 
     return {
       ...preview,
