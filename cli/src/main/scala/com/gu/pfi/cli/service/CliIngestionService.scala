@@ -73,6 +73,11 @@ class CliIngestionService(http: CliHttpClient)(implicit ec: ExecutionContext) ex
 
   def deleteBlob(id: String): Attempt[Unit] = {
 
+    // delete the blob. deleteFolders=false is a very confusing param which should be fixed in a future pr. It means
+    // "don't search for the parent of the blob and delete that" - which we don't need to do in this context as everything
+    // is being deleted. Likewise checkChildren is a fairly silly name - setting it to false means that we delete this blob
+    // regardless of whether or not it has children. Both of these params need better names following their introduction
+    // in https://github.com/guardian/giant/pull/42
     http.delete(s"/api/blobs/${URLEncoder.encode(id, "UTF-8")}?deleteFolders=false&checkChildren=false").map { r =>
       if(r.code() == 204) {
         Attempt.Right(())
