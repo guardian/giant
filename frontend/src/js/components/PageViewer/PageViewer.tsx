@@ -58,6 +58,9 @@ export const PageViewer: FC<PageViewerProps> = () => {
     if (findHighlightsState.focusedIndex !== null && findHighlightsState.highlights.length) {
       const length = findHighlightsState.highlights.length;
 
+      // From three highlights before to three highlights after,
+      // wrapping if we hit an edge. If there are fewer than seven highlights,
+      // we'll get them all, the uniq() call will prevent duplicates.
       const indexesOfHighlightsToPreload = uniq(
           range(-3, 3).map((offset) => {
             // type guard does not extend into .map() it seems

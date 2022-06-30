@@ -62,7 +62,7 @@ export const Controls: FC<ControlsProps> = ({
       .then((highlights) => {
         setIsFindPending(false);
         setFindHighlights(highlights);
-        if (highlights.length) {
+        if (highlights.length > 0) {
           setFocusedFindHighlightIndex(0);
         } else {
           setFocusedFindHighlightIndex(null);
@@ -92,6 +92,7 @@ export const Controls: FC<ControlsProps> = ({
   }, [findHighlights, focusedFindHighlightIndex, setFocusedFindHighlightIndex]);
 
   const handleUserKeyPress = useCallback((e) => {
+    // Cmd + F
     if ((e.ctrlKey || e.metaKey) && e.keyCode === 70) {
       e.preventDefault();
       setFindVisible(true);
