@@ -134,7 +134,7 @@ object Main extends App with Logging {
 
     case Some(cmd @ options.deleteIngestions) =>
       run("Delete ingestions", cmd) { services =>
-        val command = new DeleteIngestions(cmd.ingestionUris, services.ingestion)
+        val command = new DeleteIngestions(cmd.ingestionUris, services.ingestion, cmd.conflictBehaviour)
         command.run()
       }
 
