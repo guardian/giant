@@ -57,6 +57,7 @@ export const Controls: FC<ControlsProps> = ({
     // In order to use same debounce on communicating query change to parent
     onQueryChange(query);
     setIsFindPending(true);
+    // TODO: handle error
     return authFetch(`/api/pages2/${uri}/find?${params.toString()}`)
       .then((res) => res.json())
       .then((highlights) => {
