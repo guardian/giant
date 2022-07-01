@@ -1,7 +1,7 @@
 .bar {
   display: flex;
   flex-direction: row;
-  justify-content: space-between;
+  justify-content: flex-end;
   background: var(--color-primary);
   padding: 6px;
   gap: 6px;
