@@ -33,7 +33,8 @@ GET           /api/pages/text/:uri                                          cont
 GET           /api/pages/preview/:language/:uri/:pageNumber                 controllers.api.Resource.getPagePreview(uri: model.Uri, language: model.Language, pageNumber: Int)
 
 GET           /api/pages2/:uri/pageCount                                    controllers.api.PagesController.getPageCount(uri: model.Uri)
-GET           /api/pages2/:uri/find                                         controllers.api.PagesController.findInDocument(uri: model.Uri, sq: Option[String], fq: Option[String])
+GET           /api/pages2/:uri/find                                         controllers.api.PagesController.findInDocument(uri: model.Uri, q: String)
+GET           /api/pages2/:uri/search                                       controllers.api.PagesController.searchInDocument(uri: model.Uri, q: String)
 GET           /api/pages2/:uri/:pageNumber/preview                          controllers.api.PagesController.getPagePreview(uri: model.Uri, pageNumber: Int)
 GET           /api/pages2/:uri/:pageNumber/text                             controllers.api.PagesController.getPageData(uri: model.Uri, pageNumber: Int, sq: Option[String], fq: Option[String])
 

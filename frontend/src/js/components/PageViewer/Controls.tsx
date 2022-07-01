@@ -51,21 +51,17 @@ export const Controls: FC<ControlsProps> = ({
 
     const params = new URLSearchParams();
 
-    // Behaviour of the backend is the same whether sq or fq,
-    // except in the highlight ids which will be prefixed differently
-    if (fixedQuery === undefined) {
-      // The backend will respect quotes and do an exact search,
-      // but if quotes are unbalanced elasticsearch will error
-      params.set("fq", removeLastUnmatchedQuote(query));
-    } else {
-      params.set("sq", removeLastUnmatchedQuote(query));
-    }
+    // The backend will respect quotes and do an exact search,
+    // but if quotes are unbalanced elasticsearch will error
+    params.set("q", removeLastUnmatchedQuote(query));
+
+    const endpoint = fixedQuery === undefined ? "find" : "search";
 
     // In order to use same debounce on communicating query change to parent
     onQueryChange(query);
     setIsFindPending(true);
     // TODO: handle error
-    return authFetch(`/api/pages2/${uri}/find?${params.toString()}`)
+    return authFetch(`/api/pages2/${uri}/${endpoint}?${params.toString()}`)
       .then((res) => res.json())
       .then((highlights) => {
         setIsFindPending(false);

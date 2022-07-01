@@ -14,9 +14,6 @@ export const PageHighlight: FC<PageHighlightProps> = ({
   scale,
 }) => {
   const { id, type } = highlight;
-  if (focused) {
-    console.log('focused: ', highlight);
-  }
 
   const isFind = type === "FindHighlight";
   return (
