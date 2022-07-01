@@ -1,17 +1,21 @@
-import React, { FC, useEffect, useRef, useState } from "react";
-import { CachedPreview, PageData, PdfText } from "./model";
-import styles from "./Page.module.css";
-import { PageHighlight } from "./PageHighlight";
-import { PageOverlayText } from "./PageOverlayText";
-import { renderTextOverlays } from "./PdfHelpers";
+import React, { FC, useEffect, useRef, useState } from 'react';
+import { CachedPreview, PageData, PdfText } from './model';
+import styles from './Page.module.css';
+import { PageHighlight } from './PageHighlight';
+import { PageOverlayText } from './PageOverlayText';
+import { renderTextOverlays } from './PdfHelpers';
 
 type PageProps = {
+  focusedFindHighlightId: string | undefined;
+  focusedSearchHighlightId: string | undefined;
   pageNumber: number;
   getPagePreview: Promise<CachedPreview>;
   getPageData: Promise<PageData>;
 };
 
 export const Page: FC<PageProps> = ({
+  focusedFindHighlightId,
+  focusedSearchHighlightId,
   pageNumber,
   getPagePreview,
   getPageData,
@@ -75,7 +79,7 @@ export const Page: FC<PageProps> = ({
           <PageHighlight
             key={hl.id}
             highlight={hl}
-            focused={false}
+            focused={hl.id === focusedFindHighlightId || hl.id === focusedSearchHighlightId}
             scale={scale}
           />
         ))}

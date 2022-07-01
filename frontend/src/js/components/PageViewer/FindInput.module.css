@@ -9,16 +9,12 @@
   position: relative;
 }
 
-.input {
-  width: 400px;
-}
-
 .count {
   height: 50%;
   margin: auto;
   position: absolute;
   top: 0;
-  bottom: 4px;
+  bottom: 2px;
   right: 5px;
 }
 

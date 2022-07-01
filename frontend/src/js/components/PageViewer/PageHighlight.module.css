@@ -18,9 +18,25 @@
 }
 
 .findHighlight::before {
-  background-color: hotpink !important;
+  background-color: #ff68ff;
+  opacity: 0.2;
+}
+
+.findHighlight.focused::before {
+  opacity: 1 !important;
 }
 
 .searchHighlight::before {
-  background-color: #fdb600;
+  background-color: #d6fdf3;
 }
+
+.searchHighlight.focused::before {
+  background-color: #00ffc2;
+}
+
+.findHighlight.focused::before,
+.searchHighlight.focused::before {
+  box-shadow: 0px 2px 5px 0px rgba(0, 0, 0, 0.5);
+  transition: box-shadow 0.2s;
+}
+

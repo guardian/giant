@@ -1,6 +1,6 @@
 import { debounce, range } from 'lodash';
 import React, { FC, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { CachedPreview, CONTAINER_AND_MARGIN_SIZE, PageData } from './model';
+import { CachedPreview, CONTAINER_AND_MARGIN_SIZE, HighlightForSearchNavigation, PageData } from './model';
 import { Page } from './Page';
 import { PageCache } from './PageCache';
 import styles from './VirtualScroll.module.css';
@@ -10,13 +10,13 @@ type VirtualScrollProps = {
   uri: string;
   searchQuery?: string;
   findQuery?: string;
-  triggerHighlightRefresh: number;
+  focusedFindHighlight: HighlightForSearchNavigation | null;
+  focusedSearchHighlight: HighlightForSearchNavigation | null;
 
   totalPages: number;
-  jumpToPage: number | null;
   pageNumbersToPreload: number[];
 
-  onMiddlePageChange: (n: number) => void;
+  jumpToPage?: number | null;
 
   rotation: number;
 };
@@ -37,12 +37,12 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
   uri,
   searchQuery,
   findQuery,
-  triggerHighlightRefresh,
+  focusedFindHighlight,
+  focusedSearchHighlight,
 
   totalPages,
   jumpToPage,
   pageNumbersToPreload,
-  onMiddlePageChange,
 
   rotation,
 }) => {
@@ -55,6 +55,7 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
 
   const viewport = useRef<HTMLDivElement>(null);
 
+  // TODO: move pageCache up?
   const [pageCache] = useState(() => new PageCache(uri, searchQuery));
 
   // We have a second tier cache tied to the React component lifecycle for storing
@@ -63,6 +64,33 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
 
   useEffect(() => {
     pageCache.setFindQuery(findQuery);
+    setRenderedPages((currentPages) => {
+      const newPages: RenderedPage[] = currentPages.map((page) => {
+        const refreshedPage = pageCache.getPageAndRefreshHighlights(
+            page.pageNumber
+        );
+        return {
+          pageNumber: page.pageNumber,
+          getPagePreview: page.getPagePreview,
+          getPageData: refreshedPage.data,
+        }
+      });
+
+      // Once we've refreshed all visible pages go and refresh the cached pages too
+      // Will this work inside a setState callback?? It seems so...
+      Promise.all(newPages.map((page) => page.getPageData)).then(() => {
+        pageCache
+            .getAllPageNumbers()
+            .filter((cachedPageNumber) =>
+                !newPages.some((newPage) => newPage.pageNumber === cachedPageNumber)
+            )
+            .forEach((pageNumberToRefresh) =>
+                pageCache.getPageAndRefreshHighlights(pageNumberToRefresh)
+            );
+      });
+
+      return newPages;
+    });
   }, [findQuery, pageCache]);
 
   const [pageRange, setPageRange] = useState<PageRange>({bottom: 1 + PRELOAD_PAGES, middle: 1, top: 1});
@@ -101,27 +129,36 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
     });
   }, [pageHeight, totalPages, debouncedSetPageRange]);
 
-  useEffect(() => {
-    // Inform the parent component of the new middle page
-    // This allows it to do useful things such as have a sensible "next" page
-    // to go to for the find hits
-    onMiddlePageChange(pageRange.middle);
-  }, [pageRange.middle, onMiddlePageChange]);
-
   const throttledSetPageRangeFromScrollPosition = useMemo(() => throttle(setPageRangeFromScrollPosition, 75), [setPageRangeFromScrollPosition]);
 
+  // TODO: try just useEffect
   useLayoutEffect(() => {
-    if (viewport?.current && jumpToPage) {
-      const v = viewport.current;
-      const scrollTo = (jumpToPage - 1) * pageHeight;
-      v.scrollTop = scrollTo;
+    if (viewport?.current) {
+      if (jumpToPage) {
+        const scrollTo = (jumpToPage - 1) * pageHeight;
+        viewport.current.scrollTop = scrollTo;
+      }
     }
   }, [pageHeight, jumpToPage]);
+
+  useLayoutEffect(() => {
+    if (viewport?.current && focusedFindHighlight) {
+      const topOfHighlightPage = (pageHeight * (focusedFindHighlight.pageNumber - 1));
+      viewport.current.scrollTop = topOfHighlightPage;
+    }
+  }, [pageHeight, focusedFindHighlight]);
+  useLayoutEffect(() => {
+    if (viewport?.current && focusedSearchHighlight) {
+      const topOfHighlightPage = (pageHeight * (focusedSearchHighlight.pageNumber - 1));
+      viewport.current.scrollTop = topOfHighlightPage;
+    }
+  }, [pageHeight, focusedSearchHighlight]);
 
   useEffect(() => {
     const renderedPages = range(pageRange.top, pageRange.bottom + 1).map((pageNumber) => {
       const cachedPage = pageCache.getPage(pageNumber);
       return {
+
         pageNumber,
         getPagePreview: cachedPage.preview,
         getPageData: cachedPage.data,
@@ -130,38 +167,6 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
 
     setRenderedPages(renderedPages);
   }, [pageRange.top, pageRange.bottom, pageCache, setRenderedPages]);
-
-  useLayoutEffect(() => {
-    if (triggerHighlightRefresh > 0) {
-      setRenderedPages((currentPages) => {
-        const newPages: RenderedPage[] = currentPages.map((page) => {
-          const refreshedPage = pageCache.getPageAndRefreshHighlights(
-              page.pageNumber
-          );
-          return {
-            pageNumber: page.pageNumber,
-            getPagePreview: page.getPagePreview,
-            getPageData: refreshedPage.data,
-          }
-        });
-
-        // Once we've refreshed all visible pages go and refresh the cached pages too
-        // Will this work inside a setState callback?? It seems so...
-        Promise.all(newPages.map((page) => page.getPageData)).then(() => {
-          pageCache
-            .getAllPageNumbers()
-            .filter((cachedPageNumber) =>
-              !newPages.some((newPage) => newPage.pageNumber === cachedPageNumber)
-            )
-            .forEach((pageNumberToRefresh) =>
-              pageCache.getPageAndRefreshHighlights(pageNumberToRefresh)
-            );
-        });
-
-        return newPages;
-      });
-    }
-  }, [triggerHighlightRefresh, pageCache]);
 
   useEffect(() => {
     pageNumbersToPreload.forEach((pageNumber) => pageCache.getPage(pageNumber));
@@ -180,6 +185,8 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
             className={styles.pageContainer}
           >
             <Page
+              focusedFindHighlightId={focusedFindHighlight?.id}
+              focusedSearchHighlightId={focusedSearchHighlight?.id}
               pageNumber={page.pageNumber}
               getPagePreview={page.getPagePreview}
               getPageData={page.getPageData}

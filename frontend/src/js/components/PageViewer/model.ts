@@ -61,3 +61,10 @@ export type CachedPreview = {
   // text overlays *after* the first paint which should imporove snappiness.
   pdfPage: PDFPageProxy;
 };
+
+export type HighlightForSearchNavigation = {
+  pageNumber: number,
+  highlightNumber: number,
+  id: string,
+  firstSpan: {x: number, y: number, height: number, rotation: number, width: number} | null,
+};

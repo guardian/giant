@@ -1,40 +1,77 @@
-import { uniq, range, findLast } from "lodash";
-import React, { FC, useCallback, useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
-import authFetch from "../../util/auth/authFetch";
-import { Controls } from "./Controls";
-import styles from "./PageViewer.module.css";
-import { VirtualScroll } from "./VirtualScroll";
+import React, { FC, useCallback, useEffect, useState } from 'react';
+import { useParams } from 'react-router-dom';
+import authFetch from '../../util/auth/authFetch';
+import { Controls } from './Controls';
+import styles from './PageViewer.module.css';
+import { VirtualScroll } from './VirtualScroll';
+import { HighlightForSearchNavigation } from './model';
+import { range, uniq } from 'lodash';
 
 type PageViewerProps = {
   page: number;
 };
 
+export type HighlightsState = {
+  // Beware !focusedIndex for checking null, since it can be 0
+  focusedIndex: number | null,
+  highlights: HighlightForSearchNavigation[]
+};
+
+
+function getPreloadPages(highlightState: HighlightsState): number[] {
+  if (highlightState.focusedIndex === null || highlightState.highlights.length === 0) {
+    return [];
+  }
+
+  const length = highlightState.highlights.length;
+
+  // From three highlights before to three highlights after,
+  // wrapping if we hit an edge. If there are fewer than seven highlights,
+  // we'll get them all, the uniq() call will prevent duplicates.
+  const indexesOfHighlightsToPreload = uniq(
+      range(-3, 3).map((offset) => {
+        // type guard does not extend into .map() it seems
+        const offsetIndex = (highlightState.focusedIndex ?? 0) + offset;
+        // modulo - the regular % is 'remainder' in JS which is different
+        return ((offsetIndex % length) + length) % length;
+      })
+  );
+
+  return uniq(indexesOfHighlightsToPreload.map(
+      (idx) => highlightState.highlights[idx].pageNumber
+  ));
+}
+
 export const PageViewer: FC<PageViewerProps> = () => {
   const params = new URLSearchParams(document.location.search);
 
-  const query = params.get("sq") ?? undefined;
-  const page = Number(params.get("page"));
+  const searchQuery = params.get("sq") ?? undefined;
 
   const { uri } = useParams<{ uri: string }>();
 
   const [totalPages, setTotalPages] = useState<number | null>(null);
 
-  const [middlePage, setMiddlePage] = useState(page);
+  // The below are stored here because they are set (debounced) by
+  // <Controls /> when the user types in the find query box, and are used
+  // by <VirtualScroll /> to refresh highlights and preload pages with hits.
+  const [findQuery, setFindQuery] = useState('');
+  const [findHighlightsState, setFindHighlightsState] = useState<HighlightsState>({
+    // Beware !focusedIndex for checking null, since it can be 0
+    focusedIndex: null,
+    highlights: []
+  });
+  // For search highlights, the query is fixed so no need to store it in state.
+  // But we do need to keep track of the highlights and our position within them.
+  const [searchHighlightsState, setSearchHighlightsState] = useState<HighlightsState>({
+    // Beware !focusedIndex for checking null, since it can be 0
+    focusedIndex: null,
+    highlights: []
+  });
 
-  // Used by various things to signal to the virtual scroller to scroll to a particular page
-  // Initially set to the page in the URL
-  const [jumpToPage, setJumpToPage] = useState<number | null>(page);
+  const [focusedFindHighlight, setFocusedFindHighlight] = useState<HighlightForSearchNavigation | null>(null);
+  const [focusedSearchHighlight, setFocusedSearchHighlight] = useState<HighlightForSearchNavigation | null>(null);
 
-  // Find searching...
-  const [lastPageHit, setLastPageHit] = useState<number>(0);
-  const [findSearchHits, setFindHits] = useState<number[]>([]);
-  const [, setFindVisible] = useState(false);
-  const [findSearch, setFind] = useState("");
-
-  const [triggerRefresh, setTriggerRefresh] = useState(0);
   const [pageNumbersToPreload, setPageNumbersToPreload] = useState<number[]>([]);
-
   const [rotation, setRotation] = useState(0);
 
   useEffect(() => {
@@ -43,116 +80,67 @@ export const PageViewer: FC<PageViewerProps> = () => {
       .then((obj) => setTotalPages(obj.pageCount));
   }, [uri]);
 
-  // Keypress overrides
-  const handleUserKeyPress = useCallback((e) => {
-    if ((e.ctrlKey || e.metaKey) && e.keyCode === 70) {
-      e.preventDefault();
-      setFindVisible(true);
+  useEffect(() => {
+    const findHighlightsPreloadPages = getPreloadPages(findHighlightsState);
+    const searchHighlightsPreloadPages = getPreloadPages(searchHighlightsState);
+    setPageNumbersToPreload(uniq([
+      ...findHighlightsPreloadPages,
+      ...searchHighlightsPreloadPages
+    ]));
+  }, [findHighlightsState, searchHighlightsState]);
 
-      const maybeInput = document.getElementById(
-        "find-search-input"
-      ) as HTMLInputElement;
-      if (maybeInput) {
-        maybeInput.focus();
-        maybeInput.setSelectionRange(0, maybeInput.value.length);
-      }
-    }
+  const onFindHighlightStateChange = useCallback((newState) => {
+    setFindHighlightsState(newState);
+    setFocusedFindHighlight((newState.focusedIndex !== null)
+        ? newState.highlights[newState.focusedIndex]
+        : null
+    );
   }, []);
 
-  // Register keypress overrides
-  useEffect(() => {
-    window.addEventListener("keydown", handleUserKeyPress);
-    return () => {
-      window.removeEventListener("keydown", handleUserKeyPress);
-    };
-  }, [handleUserKeyPress]);
-
-  const performFind = useCallback(
-    (query: string) =>
-      authFetch(`/api/pages2/${uri}/find?fq="${query}"`)
-        .then((res) => res.json())
-        .then((searchHits) => {
-          setLastPageHit(middlePage);
-          setFindHits(searchHits);
-          setTriggerRefresh((t) => t + 1);
-        }),
-    [middlePage, uri]
-  );
-
-  const preloadNextPreviousFindPages = useCallback((
-    centrePage: number,
-    pageHits: number[]
-  ) => {
-    const index = pageHits.findIndex((page) => page === centrePage);
-    const length = pageHits.length;
-
-    const hitsToPreloadIndexes = uniq(
-      range(-3, 3).map((offset) => {
-        const offsetIndex = index + offset;
-        // modulo - the regular % is 'remainder' in JS which is different
-        return ((offsetIndex % length) + length) % length;
-      })
+  const onSearchHighlightStateChange = useCallback((newState) => {
+    setSearchHighlightsState(newState);
+    setFocusedSearchHighlight((newState.focusedIndex !== null)
+        ? newState.highlights[newState.focusedIndex]
+        : null
     );
+  }, []);
 
-    const newPreloadPages = hitsToPreloadIndexes.map(
-      (idx) => findSearchHits[idx]
-    );
+  const onFindQueryChange = useCallback((newQuery) => {
+    setFindQuery(newQuery);
+  }, []);
 
-    setPageNumbersToPreload(newPreloadPages);
-  }, [findSearchHits]);
-
-  const jumpToNextFindHit = useCallback(() => {
-    if (findSearchHits.length > 0) {
-      const maybePage = findSearchHits.find((page) => page > lastPageHit);
-      const nextPage = maybePage ? maybePage : findSearchHits[0];
-
-      preloadNextPreviousFindPages(nextPage, findSearchHits);
-      setLastPageHit(nextPage);
-      setJumpToPage(nextPage);
-    }
-  }, [findSearchHits, lastPageHit, preloadNextPreviousFindPages, setLastPageHit, setJumpToPage]);
-
-  const jumpToPreviousFindHit = useCallback(() => {
-    if (findSearchHits.length > 0) {
-      const maybePage = findLast(
-        findSearchHits,
-        (page) => page < lastPageHit
-      );
-      const previousPage = maybePage
-        ? maybePage
-        : findSearchHits[findSearchHits.length - 1];
-
-      preloadNextPreviousFindPages(previousPage, findSearchHits);
-      setLastPageHit(previousPage);
-      setJumpToPage(previousPage);
-    }
-  }, [findSearchHits, lastPageHit, preloadNextPreviousFindPages, setLastPageHit, setJumpToPage]);
+  const onSearchQueryChange = useCallback(() => {}, []);
 
   return (
     <main className={styles.main}>
-      <Controls
-        rotateAnticlockwise={() => setRotation((r) => r - 90)}
-        rotateClockwise={() => setRotation((r) => r + 90)}
-        findSearch={findSearch}
-        setFind={(q) => {
-          setFind(q);
-        }}
-        findSearchHits={findSearchHits}
-        lastPageHit={lastPageHit}
-        performFind={performFind}
-        jumpToNextFindHit={jumpToNextFindHit}
-        jumpToPreviousFindHit={jumpToPreviousFindHit}
-      />
+      <div className={styles.controls}>
+        {searchQuery !== undefined &&
+          <Controls
+            rotateAnticlockwise={() => setRotation((r) => r - 90)}
+            rotateClockwise={() => setRotation((r) => r + 90)}
+            uri={uri}
+            onHighlightStateChange={onSearchHighlightStateChange}
+            onQueryChange={onSearchQueryChange}
+            fixedQuery={searchQuery}
+          />
+        }
+        <Controls
+          rotateAnticlockwise={() => setRotation((r) => r - 90)}
+          rotateClockwise={() => setRotation((r) => r + 90)}
+          uri={uri}
+          onHighlightStateChange={onFindHighlightStateChange}
+          onQueryChange={onFindQueryChange}
+        />
+      </div>
       {totalPages ? (
         <VirtualScroll
           uri={uri}
-          searchQuery={query}
-          findQuery={findSearch}
-          triggerHighlightRefresh={triggerRefresh}
+          searchQuery={searchQuery}
+          findQuery={findQuery}
+          focusedFindHighlight={focusedFindHighlight}
+          focusedSearchHighlight={focusedSearchHighlight}
           totalPages={totalPages}
-          jumpToPage={jumpToPage}
           pageNumbersToPreload={pageNumbersToPreload}
-          onMiddlePageChange={setMiddlePage}
           rotation={rotation}
         />
       ) : null}

@@ -1,44 +1,53 @@
-import _ from "lodash";
+import _, { uniq } from 'lodash';
 import React, {
   FC,
   KeyboardEventHandler,
   useCallback,
-  useEffect,
+  useEffect, useMemo,
   useState,
-} from "react";
+} from 'react';
 import DownIcon from "react-icons/lib/md/arrow-downward";
 import UpIcon from "react-icons/lib/md/arrow-upward";
 import styles from "./FindInput.module.css";
+import { HighlightForSearchNavigation } from './model';
+import { Loader } from 'semantic-ui-react';
 
 type FindInputProps = {
-  value: string;
-  setValue: (v: string) => void;
-  performFind: (query: string) => Promise<void>;
+  fixedQuery?: string;
+  performFind: (query: string) => Promise<void> | undefined;
+  isPending: boolean;
   jumpToNextFindHit: () => void;
   jumpToPreviousFindHit: () => void;
-  hits: number[];
-  lastPageHit: number;
+  highlights: HighlightForSearchNavigation[];
+  focusedFindHighlightIndex: number | null;
 };
 
 // The backend will only return 500 pages of hits.
 // If we get that many then we need to inform the user that there could be missing values.
 // In the future we can make a paging system for find search hits.
-const MAX_HITS = 500;
+const MAX_PAGE_HITS = 500;
 
 export const FindInput: FC<FindInputProps> = ({
-  value,
-  setValue,
+  fixedQuery,
   jumpToNextFindHit,
   jumpToPreviousFindHit,
   performFind,
-  hits,
-  lastPageHit,
+  isPending,
+  highlights,
+  focusedFindHighlightIndex,
 }) => {
   const [showWarning, setShowWarning] = useState(false);
 
-  const debouncedPerformSearch = useCallback(_.debounce(performFind, 300), [
+  const debouncedPerformSearch = useMemo(() => _.debounce(performFind, 500), [
     performFind,
   ]);
+
+  const [value, setValue] = useState(fixedQuery ?? '');
+  useEffect(() => {
+    if (fixedQuery !== undefined) {
+      performFind(fixedQuery);
+    }
+  }, [fixedQuery, performFind]);
 
   const onKeyDown: KeyboardEventHandler = (event) => {
     if (event.key === "Enter") {
@@ -51,34 +60,41 @@ export const FindInput: FC<FindInputProps> = ({
   };
 
   useEffect(() => {
-    if (hits.length >= MAX_HITS) {
+    if (uniq(highlights.map(h => h.pageNumber)).length >= MAX_PAGE_HITS) {
       setShowWarning(true);
       setTimeout(() => setShowWarning(false), 5000);
     }
-  }, [hits]);
+  }, [highlights]);
 
-  const currentHit = hits.findIndex((p) => lastPageHit === p);
+  const renderFindCount = useCallback(() => {
+    if (!value) {
+      return '';
+    }
+
+    const current = (focusedFindHighlightIndex !== null) ? focusedFindHighlightIndex + 1 : 0;
+    const total = `${showWarning ? ">" : ""}${highlights.length}`;
+    return `${current}/${total}`
+  }, [value, focusedFindHighlightIndex, highlights, showWarning]);
+
   return (
     <div className={styles.container}>
       <div className={styles.inputContainer}>
         <input
           id="find-search-input"
           autoComplete="off"
+          disabled={fixedQuery !== undefined}
           value={value}
           placeholder="Search document..."
           onKeyDown={onKeyDown}
           onChange={(e) => {
-            setValue(e.target.value);
-            debouncedPerformSearch(e.target.value);
+            if (fixedQuery === undefined) {
+              setValue(e.target.value);
+              debouncedPerformSearch(e.target.value);
+            }
           }}
         />
         <div className={styles.count}>
-          {currentHit === -1 ? " - " : currentHit + 1}/
-          {hits.length > 0
-            ? hits.length >= MAX_HITS
-              ? ">" + MAX_HITS
-              : hits.length
-            : " - "}
+          {isPending ? <Loader active inline="centered" size="tiny" /> : renderFindCount()}
         </div>
       </div>
       <button onClick={jumpToPreviousFindHit}>

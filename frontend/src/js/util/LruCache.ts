@@ -83,4 +83,8 @@ export class LruCache<K extends string | number, V> {
 
     return newValue;
   };
+
+  replace = (k: K, v: V): void => {
+    this.addToCache(k, v);
+  }
 }
