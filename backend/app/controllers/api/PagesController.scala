@@ -29,9 +29,7 @@ class PagesController(val controllerComponents: AuthControllerComponents, manife
   // Get language and highlight data for a given page
   private def frontendPageFromQuery(uri: Uri, pageNumber: Int, username: String, sq: Option[String], fq: Option[String]): Attempt[FrontendPage] = {
     // Across documents
-    // TODO: wtf why do we get horrific error when parsing chips?
-//     val searchQuery = sq.map(Chips.parseQueryString)
-    val searchQuery = sq
+     val searchQuery = sq.map(Chips.parseQueryString)
     // Within document
     val findQuery = fq
 
@@ -127,7 +125,7 @@ class PagesController(val controllerComponents: AuthControllerComponents, manife
   // should be fixed for the lifetime of the page viewer of a given document.
   def findInDocument(uri: Uri, sq: Option[String], fq: Option[String]) = ApiAction.attempt { req =>
     // TODO: fix! either this should explicitly only except one of fq or sq, or it should handle both/neither
-    val query = fq.orElse(sq).getOrElse("")
+    val query = fq.orElse(sq.map(Chips.parseQueryString)).getOrElse("")
 
     for {
       pagesWithHits <- pagesService.findInPages(uri, query)
