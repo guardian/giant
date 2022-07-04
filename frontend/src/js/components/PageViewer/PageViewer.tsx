@@ -45,7 +45,7 @@ function getPreloadPages(highlightState: HighlightsState): number[] {
 export const PageViewer: FC<PageViewerProps> = () => {
   const params = new URLSearchParams(document.location.search);
 
-  const searchQuery = params.get("sq") ?? undefined;
+  const searchQuery = params.get("q") ?? undefined;
 
   const { uri } = useParams<{ uri: string }>();
 
