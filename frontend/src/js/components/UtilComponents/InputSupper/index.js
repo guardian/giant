@@ -14,6 +14,7 @@ export default class InputSupper extends React.Component {
         className: PropTypes.string,
         chips: PropTypes.array.isRequired,
         onChange: PropTypes.func.isRequired,
+        disabled: PropTypes.bool,
         updateSearchText: PropTypes.func
     }
 
@@ -343,6 +344,7 @@ export default class InputSupper extends React.Component {
                 return (
                         <InlineInput
                             key={index}
+                            disabled={this.props.disabled}
                             ref={r => this.state.currentElement === index ? this.currentRef = r : undefined}
                             index={index}
                             onUpdate={this.inputUpdated}
