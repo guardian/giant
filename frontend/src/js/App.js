@@ -43,6 +43,7 @@ import DatasetPermissions from './components/Settings/DatasetPermissions';
 import { getCurrentResource } from './util/resourceUtils';
 
 import GiantEuiApp from './eui-components/GiantEuiApp';
+import { PageViewerOrFallback } from './components/PageViewerOrFallback';
 
 class App extends React.Component {
     static propTypes = {
@@ -76,7 +77,7 @@ class App extends React.Component {
                     <Route path='/collections/:uri' component={CurrentCollection} />
                     <Route path='/search' component={Search} />
                     <Route path='/viewer-old/:uri' component={Viewer} />
-                    <Route path='/viewer/:uri' component={PageViewer} />
+                    <Route path='/viewer/:uri' component={PageViewerOrFallback} />
                     <Route path='/files/*' component={() => <Directory currentResource={getCurrentResource()} />} />
                     <Route path='/emails/thread/:uri' component={Thread} />
                     <Route path='/ingestions/*' component={() => <Directory currentResource={getCurrentResource()} />} />

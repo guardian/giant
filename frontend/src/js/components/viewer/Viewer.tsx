@@ -4,7 +4,6 @@ import history from '../../util/history';
 import buildLink from '../../util/buildLink';
 
 import { HighlightableText, Resource } from '../../types/Resource';
-import { Match } from '../../types/Match';
 
 import { TablePreview } from './TablePreview';
 import StatusBar from './StatusBar';
@@ -39,7 +38,7 @@ import { loadPages } from '../../actions/pages/loadPages';
 import { resetPages } from '../../actions/pages/resetPages';
 
 type Props = {
-    match: Match,
+    match: { params: { uri: string } },
     auth: Auth,
     pages: PagesState,
     preferences: any,

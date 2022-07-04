@@ -5,8 +5,7 @@ import Viewer from './viewer/Viewer';
 import { PageViewer } from './PageViewer/PageViewer';
 import React from 'react';
 
-type PageViewerOrFallback = {
-}
+type PageViewerOrFallback = {}
 
 export const PageViewerOrFallback: FC<PageViewerOrFallback> = () => {
     const { uri } = useParams<{ uri: string }>();
@@ -22,8 +21,8 @@ export const PageViewerOrFallback: FC<PageViewerOrFallback> = () => {
     if (totalPages === null) {
         return null;
     } else if (totalPages === 0) {
-        return <Viewer />;
+        return <Viewer match={{params: { uri }}} />;
     } else {
-        return <PageViewer totalPages={totalPages} />;
+        return <PageViewer uri={uri} totalPages={totalPages} />;
     }
 }

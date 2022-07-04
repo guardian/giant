@@ -8,6 +8,7 @@ import { HighlightForSearchNavigation } from './model';
 import { range, uniq } from 'lodash';
 
 type PageViewerProps = {
+  uri: string,
   totalPages: number;
 };
 
@@ -42,13 +43,10 @@ function getPreloadPages(highlightState: HighlightsState): number[] {
   ));
 }
 
-export const PageViewer: FC<PageViewerProps> = ({totalPages}) => {
+export const PageViewer: FC<PageViewerProps> = ({uri, totalPages}) => {
   const params = new URLSearchParams(document.location.search);
 
   const searchQuery = params.get("q") ?? undefined;
-
-  const { uri } = useParams<{ uri: string }>();
-
 
   // The below are stored here because they are set (debounced) by
   // <Controls /> when the user types in the find query box, and are used
