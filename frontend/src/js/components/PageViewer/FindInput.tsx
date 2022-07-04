@@ -81,6 +81,7 @@ export const FindInput: FC<FindInputProps> = ({
       <div className={styles.inputContainer}>
         <input
           id="find-search-input"
+          className={styles.input}
           autoComplete="off"
           disabled={fixedQuery !== undefined}
           value={value}

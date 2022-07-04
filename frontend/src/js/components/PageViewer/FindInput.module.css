@@ -2,11 +2,17 @@
   position: relative;
   display: flex;
   flex-direction: row;
+  flex-grow: 1;
   gap: 5px;
 }
 
 .inputContainer {
   position: relative;
+  flex-grow: 1;
+}
+
+.input {
+  width: 100%;
 }
 
 .count {
