@@ -13,6 +13,7 @@ type ControlsProps = {
   rotateClockwise: () => void;
   rotateAnticlockwise: () => void;
 
+  fixedQuery?: string;
   uri: string;
   onHighlightStateChange: (newState: HighlightsState) => void;
   onQueryChange: (newQuery: string) => void;
@@ -21,6 +22,7 @@ type ControlsProps = {
 export const Controls: FC<ControlsProps> = ({
   rotateClockwise,
   rotateAnticlockwise,
+  fixedQuery,
   uri,
   onHighlightStateChange,
   onQueryChange
@@ -43,30 +45,34 @@ export const Controls: FC<ControlsProps> = ({
     if (!query) {
       setFocusedFindHighlightIndex(null);
       setFindHighlights([]);
-      onQueryChange(query);
+      onQueryChange('');
       return;
     }
 
     const params = new URLSearchParams();
+
     // The backend will respect quotes and do an exact search,
     // but if quotes are unbalanced elasticsearch will error
     params.set("q", removeLastUnmatchedQuote(query));
 
+    const endpoint = fixedQuery === undefined ? "find" : "search";
+
     // In order to use same debounce on communicating query change to parent
     onQueryChange(query);
     setIsFindPending(true);
-    return authFetch(`/api/pages2/${uri}/find?${params.toString()}`)
+    // TODO: handle error
+    return authFetch(`/api/pages2/${uri}/${endpoint}?${params.toString()}`)
       .then((res) => res.json())
       .then((highlights) => {
         setIsFindPending(false);
         setFindHighlights(highlights);
-        if (highlights.length) {
+        if (highlights.length > 0) {
           setFocusedFindHighlightIndex(0);
         } else {
           setFocusedFindHighlightIndex(null);
         }
       })
-  },   [uri, onQueryChange]);
+  },   [uri, onQueryChange, fixedQuery]);
 
 
   const jumpToNextFindHit = useCallback(() => {
@@ -90,6 +96,7 @@ export const Controls: FC<ControlsProps> = ({
   }, [findHighlights, focusedFindHighlightIndex, setFocusedFindHighlightIndex]);
 
   const handleUserKeyPress = useCallback((e) => {
+    // Cmd + F
     if ((e.ctrlKey || e.metaKey) && e.keyCode === 70) {
       e.preventDefault();
       setFindVisible(true);
@@ -114,16 +121,19 @@ export const Controls: FC<ControlsProps> = ({
 
   return (
     <div className={styles.bar}>
-      <div>
-        <button onClick={rotateAnticlockwise}>
-          <RotateLeft />
-        </button>
-        <button onClick={rotateClockwise}>
-          <RotateRight />
-        </button>
-      </div>
+      {fixedQuery === undefined &&
+        <div>
+          <button onClick={rotateAnticlockwise}>
+            <RotateLeft />
+          </button>
+          <button onClick={rotateClockwise}>
+            <RotateRight />
+          </button>
+        </div>
+      }
 
       <FindInput
+        fixedQuery={fixedQuery}
         highlights={findHighlights}
         focusedFindHighlightIndex={focusedFindHighlightIndex}
         performFind={performFind}

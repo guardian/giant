@@ -2,15 +2,21 @@
   position: relative;
   display: flex;
   flex-direction: row;
+  flex-grow: 1;
   gap: 5px;
 }
 
 .inputContainer {
   position: relative;
+  flex-grow: 1;
+}
+
+.chipsContainer {
+  background-color: rgba(239, 239, 239, 0.7);
 }
 
 .input {
-  width: 400px;
+  width: 100%;
 }
 
 .count {

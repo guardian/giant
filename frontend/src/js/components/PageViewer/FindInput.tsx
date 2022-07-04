@@ -11,8 +11,10 @@ import UpIcon from "react-icons/lib/md/arrow-upward";
 import styles from "./FindInput.module.css";
 import { HighlightForSearchNavigation } from './model';
 import { Loader } from 'semantic-ui-react';
+import InputSupper from '../UtilComponents/InputSupper';
 
 type FindInputProps = {
+  fixedQuery?: string;
   performFind: (query: string) => Promise<void> | undefined;
   isPending: boolean;
   jumpToNextFindHit: () => void;
@@ -27,6 +29,7 @@ type FindInputProps = {
 const MAX_PAGE_HITS = 500;
 
 export const FindInput: FC<FindInputProps> = ({
+  fixedQuery,
   jumpToNextFindHit,
   jumpToPreviousFindHit,
   performFind,
@@ -40,7 +43,12 @@ export const FindInput: FC<FindInputProps> = ({
     performFind,
   ]);
 
-  const [value, setValue] = useState('');
+  const [value, setValue] = useState(fixedQuery ?? '');
+  useEffect(() => {
+    if (fixedQuery !== undefined) {
+      performFind(fixedQuery);
+    }
+  }, [fixedQuery, performFind]);
 
   const onKeyDown: KeyboardEventHandler = (event) => {
     if (event.key === "Enter") {
@@ -67,22 +75,26 @@ export const FindInput: FC<FindInputProps> = ({
     const current = (focusedFindHighlightIndex !== null) ? focusedFindHighlightIndex + 1 : 0;
     const total = `${showWarning ? ">" : ""}${highlights.length}`;
     return `${current}/${total}`
-  }, [value, focusedFindHighlightIndex, highlights, showWarning])
+  }, [value, focusedFindHighlightIndex, highlights, showWarning]);
 
+  const input = <input
+      id="find-search-input"
+      className={styles.input}
+      autoComplete="off"
+      value={value}
+      placeholder="Search document..."
+      onKeyDown={onKeyDown}
+      onChange={(e) => {
+        if (fixedQuery === undefined) {
+          setValue(e.target.value);
+          debouncedPerformSearch(e.target.value);
+        }
+      }}
+  />
   return (
     <div className={styles.container}>
       <div className={styles.inputContainer}>
-        <input
-          id="find-search-input"
-          autoComplete="off"
-          value={value}
-          placeholder="Search document..."
-          onKeyDown={onKeyDown}
-          onChange={(e) => {
-            setValue(e.target.value);
-            debouncedPerformSearch(e.target.value);
-          }}
-        />
+        {fixedQuery === undefined ? input : <InputSupper disabled={true} value={value} className={styles.chipsContainer} chips={[]} onChange={() => {}} updateSearchText={() => {}}/> }
         <div className={styles.count}>
           {isPending ? <Loader active inline="centered" size="tiny" /> : renderFindCount()}
         </div>
