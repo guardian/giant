@@ -20,7 +20,6 @@ import {ResourceHandler} from './components/ResourceHandler/ResourceHandler';
 import Directory from './components/Directory/Directory';
 import Thread from './components/EmailBrowser/Thread';
 import Viewer from './components/viewer/Viewer';
-import {PageViewer} from './components/PageViewer/PageViewer';
 import ViewerSidebar from './components/viewer/ViewerSidebar';
 import {ErrorBar} from './components/UtilComponents/ErrorBar';
 import Login from './components/Login/Login';

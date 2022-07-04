@@ -1,6 +1,4 @@
 import React, { FC, useCallback, useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
-import authFetch from '../../util/auth/authFetch';
 import { Controls } from './Controls';
 import styles from './PageViewer.module.css';
 import { VirtualScroll } from './VirtualScroll';
