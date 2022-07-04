@@ -369,7 +369,6 @@ class Viewer extends React.Component<Props, State> {
     }
 
     render() {
-        console.log('this.props.match: ', this.props.match);
         if (!this.props.resource) {
             return false;
         }
