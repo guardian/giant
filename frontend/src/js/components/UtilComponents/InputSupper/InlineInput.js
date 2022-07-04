@@ -7,6 +7,7 @@ export default class InlineInput extends React.Component {
         index: PropTypes.number.isRequired,
         value: PropTypes.string.isRequired,
 
+        disabled: PropTypes.bool,
         lastInput: PropTypes.bool.isRequired,
 
         renderSuggestions: PropTypes.func.isRequired,
@@ -127,6 +128,7 @@ export default class InlineInput extends React.Component {
         return (
             <span className='input-supper__input-wrapper' onClick={this.onClickWrapper} onDoubleClick={this.onDoubleClickWrapper}>
                 <AutosizeInput
+                    disabled={this.props.disabled}
                     ref={(input) => {this.textInput = input; }}
                     inputClassName='input-supper__inline-input'
                     type='text'

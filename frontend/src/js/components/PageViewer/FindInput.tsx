@@ -11,6 +11,7 @@ import UpIcon from "react-icons/lib/md/arrow-upward";
 import styles from "./FindInput.module.css";
 import { HighlightForSearchNavigation } from './model';
 import { Loader } from 'semantic-ui-react';
+import InputSupper from '../UtilComponents/InputSupper';
 
 type FindInputProps = {
   fixedQuery?: string;
@@ -76,24 +77,24 @@ export const FindInput: FC<FindInputProps> = ({
     return `${current}/${total}`
   }, [value, focusedFindHighlightIndex, highlights, showWarning]);
 
+  const input = <input
+      id="find-search-input"
+      className={styles.input}
+      autoComplete="off"
+      value={value}
+      placeholder="Search document..."
+      onKeyDown={onKeyDown}
+      onChange={(e) => {
+        if (fixedQuery === undefined) {
+          setValue(e.target.value);
+          debouncedPerformSearch(e.target.value);
+        }
+      }}
+  />
   return (
     <div className={styles.container}>
       <div className={styles.inputContainer}>
-        <input
-          id="find-search-input"
-          className={styles.input}
-          autoComplete="off"
-          disabled={fixedQuery !== undefined}
-          value={value}
-          placeholder="Search document..."
-          onKeyDown={onKeyDown}
-          onChange={(e) => {
-            if (fixedQuery === undefined) {
-              setValue(e.target.value);
-              debouncedPerformSearch(e.target.value);
-            }
-          }}
-        />
+        {fixedQuery === undefined ? input : <InputSupper disabled={true} value={value} className={styles.chipsContainer} chips={[]} onChange={() => {}} updateSearchText={() => {}}/> }
         <div className={styles.count}>
           {isPending ? <Loader active inline="centered" size="tiny" /> : renderFindCount()}
         </div>

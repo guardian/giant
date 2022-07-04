@@ -11,6 +11,10 @@
   flex-grow: 1;
 }
 
+.chipsContainer {
+  background-color: rgba(239, 239, 239, 0.7);
+}
+
 .input {
   width: 100%;
 }
