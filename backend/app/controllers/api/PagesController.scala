@@ -69,13 +69,17 @@ class PagesController(val controllerComponents: AuthControllerComponents, manife
         try {
           val pdf = PDDocument.load(pdfData)
 
-          val highlightSpans = highlights.getOrElse(lang, Nil)
-          val findHighlightSpans = findHighlights.getOrElse(lang, Nil)
+          try {
+            val highlightSpans = highlights.getOrElse(lang, Nil)
+            val findHighlightSpans = findHighlights.getOrElse(lang, Nil)
 
-          val highlightGeometries = PDFUtil.getSearchResultHighlights(highlightSpans, pdf, pageNumber, false)
-          val findHighlightGeometries = PDFUtil.getSearchResultHighlights(findHighlightSpans, pdf, pageNumber, true)
+            val highlightGeometries = PDFUtil.getSearchResultHighlights(highlightSpans, pdf, pageNumber, false)
+            val findHighlightGeometries = PDFUtil.getSearchResultHighlights(findHighlightSpans, pdf, pageNumber, true)
 
-          HighlightGeometries(lang, highlightGeometries ++ findHighlightGeometries)
+            HighlightGeometries(lang, highlightGeometries ++ findHighlightGeometries)
+          } finally {
+            pdf.close()
+          }
         } finally {
           pdfData.close()
         }
