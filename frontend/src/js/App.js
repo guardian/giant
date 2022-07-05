@@ -65,7 +65,7 @@ class App extends React.Component {
             <div className='app__page'>
                 <Route path='/collections' component={CollectionsSidebar} />
                 <Route path='/search' component={SearchSidebar} />
-                <Route path='/viewer/:uri' component={ViewerSidebar} />
+                <Route path={['/viewer-old/:uri', '/viewer/:uri']} component={ViewerSidebar} />
                 <Route path='/settings' component={SettingsSidebar} />
                 <Route path='/workspaces/:id?' component={WorkspacesSidebar} />
 
