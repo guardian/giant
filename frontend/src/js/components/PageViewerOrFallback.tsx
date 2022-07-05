@@ -5,9 +5,7 @@ import Viewer from './viewer/Viewer';
 import { PageViewer } from './PageViewer/PageViewer';
 import React from 'react';
 
-type PageViewerOrFallback = {}
-
-export const PageViewerOrFallback: FC<PageViewerOrFallback> = () => {
+export const PageViewerOrFallback: FC<{}> = () => {
     const { uri } = useParams<{ uri: string }>();
 
     const [totalPages, setTotalPages] = useState<number | null>(null);
