@@ -99,7 +99,7 @@ export class DocumentMetadata extends React.Component {
         url.href = url.href.replace('viewer', 'viewer-old');
         url.searchParams.set('view', 'text');
 
-        return <a className="btn" target="_blank" href={url.toString()}>
+        return <a className="btn" target="_blank" rel="noopener noreferrer" href={url.toString()}>
             View as text
         </a>
     }
