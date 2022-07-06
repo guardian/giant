@@ -56,9 +56,10 @@ lazy val buildInfoSettings = Seq(
 lazy val riffRaffUploadWithIntegrationTests = taskKey[Unit]("Perform riffRaffUpload after running tests or integration tests")
 
 lazy val root = (project in file("."))
-  .enablePlugins(RiffRaffArtifact)
+  .enablePlugins(RiffRaffArtifact, SbtWeb )
   .aggregate(common, backend, cli)
   .settings(
+    pipelineStages := Seq(digest),
     riffRaffUploadWithIntegrationTests := Def.sequential(
       common / Test / test,
       cli / Test / test,
@@ -76,6 +77,7 @@ lazy val root = (project in file("."))
       file("riff-raff.yaml") -> "riff-raff.yaml"
     )
   )
+
 
 lazy val common = (project in file("common"))
   .settings(
