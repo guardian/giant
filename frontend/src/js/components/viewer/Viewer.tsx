@@ -352,16 +352,11 @@ class Viewer extends React.Component<Props, State> {
     }
 
     renderResource(resource: Resource) {
-        const { view, q } = this.props.urlParams;
-        const { uri } = resource;
-        const { featurePageViewer } = this.props.preferences;
-
-        if (featurePageViewer && this.props.pages.doc?.summary.numberOfPages) {
-            return <PageViewer
-                uri={uri}
-                q={q}
-            />;
-        }
+        const { view } = this.props.urlParams;
+        const throwAway = <PageViewer
+            uri="blah"
+            q="blurgh"
+        />;
 
         return <div className='viewer__main'>
             {this.renderFullResource(resource, view || 'text')}
