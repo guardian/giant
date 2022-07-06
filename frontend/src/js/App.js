@@ -20,7 +20,6 @@ import {ResourceHandler} from './components/ResourceHandler/ResourceHandler';
 import Directory from './components/Directory/Directory';
 import Thread from './components/EmailBrowser/Thread';
 import Viewer from './components/viewer/Viewer';
-import {PageViewer} from './components/PageViewer/PageViewer';
 import ViewerSidebar from './components/viewer/ViewerSidebar';
 import {ErrorBar} from './components/UtilComponents/ErrorBar';
 import Login from './components/Login/Login';
@@ -43,6 +42,7 @@ import DatasetPermissions from './components/Settings/DatasetPermissions';
 import { getCurrentResource } from './util/resourceUtils';
 
 import GiantEuiApp from './eui-components/GiantEuiApp';
+import { PageViewerOrFallback } from './components/PageViewerOrFallback';
 
 class App extends React.Component {
     static propTypes = {
@@ -65,7 +65,7 @@ class App extends React.Component {
             <div className='app__page'>
                 <Route path='/collections' component={CollectionsSidebar} />
                 <Route path='/search' component={SearchSidebar} />
-                <Route path='/viewer/:uri' component={ViewerSidebar} />
+                <Route path={['/viewer-old/:uri', '/viewer/:uri']} component={ViewerSidebar} />
                 <Route path='/settings' component={SettingsSidebar} />
                 <Route path='/workspaces/:id?' component={WorkspacesSidebar} />
 
@@ -75,8 +75,8 @@ class App extends React.Component {
                     <Route path='/collections' exact component={Collections} />
                     <Route path='/collections/:uri' component={CurrentCollection} />
                     <Route path='/search' component={Search} />
-                    <Route path='/viewer/:uri' component={Viewer} />
-                    <Route path='/viewer2/:uri' component={PageViewer} />
+                    <Route path='/viewer-old/:uri' component={Viewer} />
+                    <Route path='/viewer/:uri' component={PageViewerOrFallback} />
                     <Route path='/files/*' component={() => <Directory currentResource={getCurrentResource()} />} />
                     <Route path='/emails/thread/:uri' component={Thread} />
                     <Route path='/ingestions/*' component={() => <Directory currentResource={getCurrentResource()} />} />

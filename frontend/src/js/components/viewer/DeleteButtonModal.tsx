@@ -36,6 +36,7 @@ export function DeleteButtonModal({ resource }: { resource: Resource | null }) {
         <Modal
             isOpen={modalOpen}
             isDismissable={false}
+            dismiss={() => {}}
         >
             <div className="form form-full-width">
                 <h2 className='modal__title'>

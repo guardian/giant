@@ -1,6 +1,4 @@
 import React, { FC, useCallback, useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
-import authFetch from '../../util/auth/authFetch';
 import { Controls } from './Controls';
 import styles from './PageViewer.module.css';
 import { VirtualScroll } from './VirtualScroll';
@@ -8,7 +6,8 @@ import { HighlightForSearchNavigation } from './model';
 import { range, uniq } from 'lodash';
 
 type PageViewerProps = {
-  page: number;
+  uri: string,
+  totalPages: number;
 };
 
 export type HighlightsState = {
@@ -42,14 +41,10 @@ function getPreloadPages(highlightState: HighlightsState): number[] {
   ));
 }
 
-export const PageViewer: FC<PageViewerProps> = () => {
+export const PageViewer: FC<PageViewerProps> = ({uri, totalPages}) => {
   const params = new URLSearchParams(document.location.search);
 
-  const searchQuery = params.get("sq") ?? undefined;
-
-  const { uri } = useParams<{ uri: string }>();
-
-  const [totalPages, setTotalPages] = useState<number | null>(null);
+  const searchQuery = params.get("q") ?? undefined;
 
   // The below are stored here because they are set (debounced) by
   // <Controls /> when the user types in the find query box, and are used
@@ -73,12 +68,6 @@ export const PageViewer: FC<PageViewerProps> = () => {
 
   const [pageNumbersToPreload, setPageNumbersToPreload] = useState<number[]>([]);
   const [rotation, setRotation] = useState(0);
-
-  useEffect(() => {
-    authFetch(`/api/pages2/${uri}/pageCount`)
-      .then((res) => res.json())
-      .then((obj) => setTotalPages(obj.pageCount));
-  }, [uri]);
 
   useEffect(() => {
     const findHighlightsPreloadPages = getPreloadPages(findHighlightsState);

@@ -3,12 +3,13 @@ import DownloadButton from './DownloadButton';
 import DeleteButton from './DeleteButtonModal';
 import AddToWorkspaceModal from './AddToWorkspaceModal';
 import { resourcePropType } from '../../types/Resource';
+import PropTypes from 'prop-types';
 
 export default class ViewerActions extends React.Component {
     static propTypes = {
         resource: resourcePropType,
-        isAdmin: Boolean,
-        disableDelete: Boolean,
+        isAdmin: PropTypes.bool,
+        disableDelete: PropTypes.bool,
     }
 
     state = {

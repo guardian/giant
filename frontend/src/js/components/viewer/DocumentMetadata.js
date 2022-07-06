@@ -90,6 +90,20 @@ export class DocumentMetadata extends React.Component {
         </React.Fragment>;
     }
 
+    renderTextViewLink() {
+        if (!window.location.href.includes('viewer/')) {
+            return null;
+        }
+
+        const url = new URL(window.location);
+        url.href = url.href.replace('viewer', 'viewer-old');
+        url.searchParams.set('view', 'text');
+
+        return <a className="btn" target="_blank" rel="noopener noreferrer" href={url.toString()}>
+            View as text
+        </a>
+    }
+
     render () {
         const metadata = Object.keys(this.props.resource.metadata || {})
             .map(k => ({key: k, value: this.props.resource.metadata[k]}));
@@ -108,6 +122,7 @@ export class DocumentMetadata extends React.Component {
 
                 <div className='sidebar__title'>
                     Locations
+                    {this.renderTextViewLink()}
                 </div>
 
                 <ResourceBreadcrumbs childClass='sidebar__list-item' resource={this.props.resource} showParents={true} />

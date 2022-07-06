@@ -7,9 +7,7 @@ export const partialUser = PropTypes.shape({
     displayName: PropTypes.string.isRequired
 });
 
-export const permissionsPropType = PropTypes.shape({
-    granted: PropTypes.arrayOf(PropTypes.string).isRequired,
-}).isRequired;
+export const permissionsPropType = PropTypes.arrayOf(PropTypes.string).isRequired;
 
 export const user = PropTypes.shape({
     username: PropTypes.string.isRequired,
