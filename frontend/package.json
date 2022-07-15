@@ -37,7 +37,8 @@
     "semantic-ui-css": "^2.4.1",
     "semantic-ui-react": "^0.87.3",
     "typescript": "3.9.6",
-    "uuid": "^3.4.0"
+    "uuid": "^3.4.0",
+    "@snyk/protect": "latest"
   },
   "devDependencies": {
     "@types/filesize": "^4.2.0",
@@ -59,7 +60,9 @@
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "eject": "react-scripts eject",
+    "prepare": "npm run snyk-protect",
+    "snyk-protect": "snyk-protect"
   },
   "eslintConfig": {
     "extends": "react-app"
@@ -75,5 +78,6 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
-  }
+  },
+  "snyk": true
 }
