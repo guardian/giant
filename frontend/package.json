@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
-    "@data-ui/histogram": "0.0.62",
+    "@data-ui/histogram": "0.0.70",
     "@elastic/datemath": "^5.0.3",
     "@elastic/eui": "^27.1.0",
     "@types/pdfjs-dist": "^2.1.6",
