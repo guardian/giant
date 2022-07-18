@@ -1,7 +1,7 @@
 package utils
 
 import org.jsoup.Jsoup
-import org.jsoup.helper.StringUtil
+import org.jsoup.internal.StringUtil
 import org.jsoup.nodes.{Element, Node, TextNode}
 import org.jsoup.select.NodeFilter.FilterResult
 import org.jsoup.select.{NodeFilter, NodeTraversor}
