@@ -21,7 +21,10 @@ class Pages2(val client: ElasticClient, indexNamePrefix: String)(implicit val ex
   def getPageCount(uri: Uri): Attempt[Long] = {
     execute {
       count(textIndexName).query(
-        termQuery(PagesFields.resourceId, uri.value),
+        boolQuery().must(
+          termQuery(PagesFields.resourceId, uri.value),
+          prefixQuery("_id", s"${uri.value}")
+        )
       )
     }.map { resp =>
       resp.count

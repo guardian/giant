@@ -20,6 +20,7 @@ class PagesController(val controllerComponents: AuthControllerComponents, manife
     index: Index, pagesService: Pages2, annotations: Annotations, previewStorage: ObjectStorage) extends AuthApiController {
 
   def getPageCount(uri: Uri) = ApiAction.attempt { req =>
+
     pagesService.getPageCount(uri).map(count => Ok(Json.obj("pageCount" -> count)))
   }
 
