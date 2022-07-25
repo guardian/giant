@@ -18,13 +18,39 @@ class Pages2(val client: ElasticClient, indexNamePrefix: String)(implicit val ex
   extends ElasticsearchSyntax with Logging {
   val textIndexName = s"$indexNamePrefix-text"
 
-  def getPageCount(uri: Uri): Attempt[Long] = {
+  private def firstPageExistsInNewIdFormat(uri: Uri): Attempt[Boolean] = {
+    // Only count documents whose id is of the format `{documentHash}-{pageNumber}`,
+    // to avoid telling the frontend to try and render documents that were uploaded before
+    // the id format changed in https://github.com/guardian/pfi/pull/884 and https://github.com/guardian/pfi/pull/886
     execute {
       count(textIndexName).query(
-        termQuery(PagesFields.resourceId, uri.value),
+        termQuery("_id", s"${uri.value}-1")
+      )
+    }.map { resp =>
+      resp.count > 0
+    }
+  }
+
+  private def pageCount(uri: Uri): Attempt[Long] = {
+    execute {
+      count(textIndexName).query(
+        termQuery(PagesFields.resourceId, uri.value)
       )
     }.map { resp =>
       resp.count
+    }
+  }
+
+  def getPageCount(uri: Uri): Attempt[Long] = {
+    for {
+      hasPages <- firstPageExistsInNewIdFormat(uri)
+      count <- pageCount(uri)
+    } yield {
+      if (!hasPages) {
+        0
+      } else {
+        count
+      }
     }
   }
 
