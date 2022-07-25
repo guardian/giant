@@ -23,6 +23,9 @@ class Pages2(val client: ElasticClient, indexNamePrefix: String)(implicit val ex
       count(textIndexName).query(
         boolQuery().must(
           termQuery(PagesFields.resourceId, uri.value),
+          // Only count documents whose id is of the format `{documentHash}-{pageNumber}`,
+          // to avoid telling the frontend to try and render documents that were uploaded before
+          // the id format changed in https://github.com/guardian/pfi/pull/884 and https://github.com/guardian/pfi/pull/886
           prefixQuery("_id", s"${uri.value}")
         )
       )
