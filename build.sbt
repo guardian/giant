@@ -128,6 +128,7 @@ lazy val backend = (project in file("backend"))
       "com.amazonaws" % "aws-java-sdk-ssm" % awsVersion,
       "com.amazonaws" % "aws-java-sdk-autoscaling" % awsVersion,
       "com.amazonaws" % "aws-java-sdk-cloudwatch" % awsVersion,
+      "com.amazonaws" % "aws-java-sdk-cloudwatchmetrics" % awsVersion,
       "com.beachape" %% "enumeratum-play" % "1.6.1",
       "com.iheart" %% "ficus" % "1.4.4",
       "com.sun.mail" % "javax.mail" % "1.6.2",
@@ -170,6 +171,7 @@ lazy val backend = (project in file("backend"))
 
     Universal / javaOptions ++= Seq(
       "-Dpidfile.path=/dev/null",
+      "-Dcom.amazonaws.sdk.enableDefaultMetrics=cloudwatchRegion=eu-west-1",
       "-J-XX:MaxRAMFraction=2",
       "-J-XX:InitialRAMFraction=2",
       "-J-XX:MaxMetaspaceSize=500m",
