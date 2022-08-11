@@ -15,7 +15,7 @@ class HtmlPreviewGenerator(binary: String, workspace: Path) extends PreviewGener
   }
 
   override def buildCommand(workspace: String, input: String, output: String): Seq[String] = {
-    Seq("wkhtmltopdf", "--enable-local-file-access", input, output)
+    Seq(binary, "--enable-local-file-access", input, output)
   }
 }
 

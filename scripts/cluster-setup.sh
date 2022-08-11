@@ -55,7 +55,6 @@ fi
 case "$OSTYPE" in
     darwin*)
         SOFFICE_BIN="/Applications/LibreOffice.app/Contents/MacOS/soffice"
-        CHROMIUM_BIN="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
         ;;
 esac
 
@@ -71,15 +70,6 @@ preview.libreOfficeBinary = "${SOFFICE_BIN}"
 EOF
 else
     echo "Unable to find Open Office. Please set preview.libreOfficeBinary to point to 'soffice' in your installation"
-fi
-
-if [ -f "$CHROMIUM_BIN" ]
-then
-    cat << EOF >> "$SITECONFDIR/site.conf"
-preview.chromiumBinary = "${CHROMIUM_BIN}"
-EOF
-else
-    echo "Unable to find Chromium/Google Chrome. Please set preview.chromiumBinary in site.conf"
 fi
 
 echo "Finished cluster setup"

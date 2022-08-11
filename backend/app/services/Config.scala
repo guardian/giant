@@ -123,7 +123,7 @@ case class IngestConfig(
 
 case class PreviewConfig(
   libreOfficeBinary: String,
-  chromiumBinary: String,
+  wkhtmltopdfBinary: String,
   workspace: String
 )
 
