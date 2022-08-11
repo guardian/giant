@@ -6,7 +6,7 @@ const viewerLocation = '/third-party/pdfjs-2.4.456-dist/web/viewer.html';
 
 
 export function EmbeddedPdfViewer({ doc }: { doc: string }) {
-    const url = `${viewerLocation}?file=${doc}`;
+    const url = `${viewerLocation}?file=${encodeURIComponent(doc)}`;
 
     const iframeRef = useCallback((iframe: HTMLIFrameElement | null) => {
         if(iframe) {
