@@ -1,0 +1,2 @@
+brew "tesseract"
+cask "libreoffice"
