@@ -10,13 +10,13 @@ export NVM_DIR="$HOME/.nvm"
 nvm install
 nvm use
 
-pushd frontend
+cd frontend
 
 npm install
 npm run build
 CI=true npm run test
 
-popd
+cd ..
 
 cp -r frontend/build/* backend/public
 # Replace the symbolic link we use in dev with the actual file.
