@@ -73,12 +73,6 @@ class AppComponents(context: Context, config: Config)
     val s3ExecutionContext = actorSystem.dispatchers.lookup("s3-context")
     val ingestionExecutionContext = actorSystem.dispatchers.lookup("ingestion-context")
 
-    config.aws foreach { awsDiscoveryConfig =>
-      AwsSdkMetrics.enableDefaultMetrics()
-      AwsSdkMetrics.setCredentialProvider(AwsCredentials())
-      AwsSdkMetrics.setMetricNameSpace(s"${awsDiscoveryConfig.stack}-${awsDiscoveryConfig.app}-${awsDiscoveryConfig.stage}")
-    }
-
     val s3Client = new S3Client(config.s3)(s3ExecutionContext)
 
     val workerName = config.worker.name.getOrElse(InetAddress.getLocalHost.getHostName)
