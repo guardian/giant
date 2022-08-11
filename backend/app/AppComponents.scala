@@ -1,8 +1,3 @@
-import java.net.InetAddress
-import java.nio.file.Paths
-import java.security.Security
-import java.time.Clock
-
 import akka.actor.CoordinatedShutdown
 import akka.actor.CoordinatedShutdown.Reason
 import cats.syntax.either._
@@ -39,14 +34,18 @@ import services.manifest.Neo4jManifest
 import services.previewing.PreviewService
 import services.table.ElasticsearchTable
 import services.users.Neo4jUserManagement
+import utils._
 import utils.attempt.AttemptAwait._
+import utils.auth.providers.{DatabaseUserProvider, PanDomainUserProvider}
 import utils.auth.totp.{SecureSecretGenerator, Totp}
 import utils.auth.{DefaultAuthActionBuilder, PasswordHashing, PasswordValidator}
 import utils.aws.S3Client
-import utils._
-import utils.auth.providers.{DatabaseUserProvider, PanDomainUserProvider}
-import utils.controller.{AuthControllerComponents, CloudWatchReportingFailureToResultMapper, DefaultFailureToResultMapper}
+import utils.controller.{AuthControllerComponents, CloudWatchReportingFailureToResultMapper}
 
+import java.net.InetAddress
+import java.nio.file.Paths
+import java.security.Security
+import java.time.Clock
 import scala.concurrent.Await
 import scala.concurrent.duration._
 import scala.language.postfixOps
