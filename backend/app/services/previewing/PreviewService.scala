@@ -171,7 +171,7 @@ object PreviewService {
     val workspace = Paths.get(preview.workspace)
     Files.createDirectories(workspace)
 
-    val html = new HtmlPreviewGenerator(preview.chromiumBinary, workspace)
+    val html = new HtmlPreviewGenerator(preview.wkhtmltopdfBinary, workspace)
     val libreOffice = new LibreOfficePreviewGenerator(preview.libreOfficeBinary, workspace)
 
     new DefaultPreviewService(index, blobStorage, previewStorage, html, libreOffice)

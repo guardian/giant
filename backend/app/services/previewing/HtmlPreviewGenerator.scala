@@ -15,7 +15,7 @@ class HtmlPreviewGenerator(binary: String, workspace: Path) extends PreviewGener
   }
 
   override def buildCommand(workspace: String, input: String, output: String): Seq[String] = {
-    Seq(binary, "--headless", "--disable-gpu", s"--print-to-pdf=$output", s"file://$input")
+    Seq(binary, "--enable-local-file-access", input, output)
   }
 }
 

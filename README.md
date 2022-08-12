@@ -40,6 +40,9 @@ There are two optional dependencies:
   - `brew install tesseract`
 - [Libre Office](https://www.libreoffice.org/)
   - To convert and preview Microsoft Office documents in the UI
+- [wkhtmltopdf](https://wkhtmltopdf.org/)
+  - To preview html files (such as emails)
+  - `brew install wkhtmltopdf`
 
 Elasticsearch requires Docker to have at least 4GB of memory from the preferences menu otherwise
 it will exit with no log output and error 137.
