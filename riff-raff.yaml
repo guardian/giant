@@ -4,6 +4,7 @@ stacks: [pfi-playground]
 regions: [eu-west-1]
 allowedStages:
  - rex
+ - DEV
 
 deployments:
   pfi-ami-update:
