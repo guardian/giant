@@ -37,3 +37,12 @@ sbt -DPFI_STACK=pfi-giant riffRaffUpload
 
 # Avoid problems in case we re-use this checkout again
 sed -i -e "s/pfi-giant/pfi-playground/g" riff-raff.yaml
+
+# Upload DEV stack
+mv riff-raff.yaml riff-raff-PROD.yaml
+cp util/riff-raff-DEV.yaml riff-raff.yaml
+sbt -DPFI_STACK=pfi-playground-DEV riffRaffUpload
+
+# Revert DEV changes to riffraff config
+rm riff-raff.yaml
+mv riff-raff-PROD.yaml riff-raff.yaml

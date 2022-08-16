@@ -1,0 +1,25 @@
+# This configuration is used solely to update DEV stack components running in AWS
+# See teamcity.sh for details
+
+stacks: [pfi-playground]
+regions: [eu-west-1]
+allowedStages:
+  - DEV
+
+deployments:
+  pfi-neo4j-ami-update:
+    type: ami-cloudformation-parameter
+    app: neo4j
+    parameters:
+      amiEncrypted: true
+      amiTags:
+        Recipe: investigations-neo4j
+        AmigoStage: PROD
+        Encrypted: pfi-playground
+
+  pfi:
+    type: aws-s3
+    parameters:
+      bucket: pfi-playground-dist
+      cacheControl: private
+      publicReadAcl: false
