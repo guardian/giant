@@ -1,7 +1,7 @@
 version: '3'
 services:
   neo4j:
-    image: neo4j:3.4.0
+    image: neo4j/neo4j-arm64-experimental:3.5
     container_name: pfi-neo4j
     environment:
       NEO4J_AUTH: neo4j/bob
