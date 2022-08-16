@@ -4,6 +4,7 @@ SCRIPTPATH=$( cd $(dirname $0) ; pwd -P )
 ARCHITECTURE=$(uname -m)
 
 if [ "$ARCHITECTURE" == "arm64" ]; then
+  echo "Running on arm64 architecture - docker neo4j not supported and will not be run. See README for further instructions."
   docker-compose up -f docker-compose.no-neo4j.yml -d
 else
   docker-compose up -d
