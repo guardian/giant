@@ -1,7 +1,13 @@
 #!/usr/bin/env bash
 SCRIPTPATH=$( cd $(dirname $0) ; pwd -P )
 
-docker compose up -d
+ARCHITECTURE=$(uname -m)
+
+if [ "$ARCHITECTURE" == "arm64" ]; then
+  docker-compose up -f docker-compose.no-neo4j.yml -d
+else
+  docker-compose up -d
+fi
 
 AVAILABLE_MEMORY=$( docker stats --format "{{.MemUsage}}" --no-stream \
 | head -1 \

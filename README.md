@@ -33,6 +33,10 @@ Giant uses three databases, run locally in Docker through [docker-compose.yaml](
 - [Elasticsearch](https://www.elastic.co/elasticsearch/)
 - [minio](https://min.io/) (for S3 compatibility)
 
+NOTE: If you are using a laptop with an arm64 architecture (e.g. Macbook with an M1 processor) then you won't currently 
+be able to run neo4j via docker. Guardian employees can use a remote neo4j DEV instance. Everyone else - sorry, we hope
+to move to Neo4j 4 and get docker support back soon.
+
 There are two optional dependencies:
 
 - [Tesseract](https://github.com/tesseract-ocr/tesseract)
@@ -69,6 +73,9 @@ Seed the configuration:
 ```
 ./scripts/cluster-setup.sh
 ```
+
+If you are using a laptop with arm64 architecture (e.g. Apple M1) then you can't use the neo4j docker container. Instead
+you can connect to a remote neo4j instance using [this script](https://github.com/guardian/investigations-platform/blob/main/util/setup_neo4j_dev_ssh_tunnel.sh)
 
 Run the Scala backend:
 

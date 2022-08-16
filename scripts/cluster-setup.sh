@@ -72,4 +72,12 @@ else
     echo "Unable to find Open Office. Please set preview.libreOfficeBinary to point to 'soffice' in your installation"
 fi
 
+
+echo "Fetching password for remote neo4j database"
+
+NEO4j_PASSWORD=$(aws ssm get-parameter --name "/pfi/pfi-playground/DEV/neo4j/password" --with-decryption --profile investigations | jq -r '.Parameter.Value')
+cat << EOF >> "$SITECONFDIR/site.conf"
+neo4j.password = "${NEO4j_PASSWORD}"
+EOF
+
 echo "Finished cluster setup"
