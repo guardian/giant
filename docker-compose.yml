@@ -1,7 +1,7 @@
 version: '3'
 services:
   neo4j:
-    image: neo4j:3.4.0
+    image: ${NEO4J_IMAGE_OVERRIDE:-neo4j:3.4.0}
     container_name: pfi-neo4j
     environment:
       NEO4J_AUTH: neo4j/bob
@@ -21,6 +21,7 @@ services:
       - bootstrap.memory_lock=true
       - "ES_JAVA_OPTS=-Xms4g -Xmx4g"
       - xpack.security.enabled=false
+      - bootstrap.system_call_filter=false
     ulimits:
       memlock:
         soft: -1

@@ -1,6 +1,13 @@
 #!/usr/bin/env bash
 SCRIPTPATH=$( cd $(dirname $0) ; pwd -P )
 
+
+ARCHITECTURE=$(uname -m)
+
+if [ "$ARCHITECTURE" == "arm64" ]; then
+  echo "Running on arm64 architecture - using experimental neo4j arm64 image."
+  export NEO4J_IMAGE_OVERRIDE=neo4j/neo4j-arm64-experimental:3.5.30
+fi
 docker compose up -d
 
 AVAILABLE_MEMORY=$( docker stats --format "{{.MemUsage}}" --no-stream \
