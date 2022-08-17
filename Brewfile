@@ -1,3 +1,4 @@
 brew "tesseract"
 cask "libreoffice"
-brew "wkhtmltopdf"
+cask "wkhtmltopdf"
+brew "ocrmypdf"
