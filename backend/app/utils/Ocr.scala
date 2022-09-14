@@ -72,7 +72,7 @@ object Ocr {
   // OCRmyPDF is a wrapper for Tesseract that we use to overlay the OCR as a text layer in the resulting PDF
   def invokeOcrMyPdf(lang: String, inputFilePath: Path, dpi: Option[Int], stderr: OcrStderrLogger, tmpDir: Path): Path = {
     val tempFile = tmpDir.resolve(s"${inputFilePath.getFileName}.ocr.pdf")
-    val cmd = s"ocrmypdf --skip-text -l $lang ${dpi.map(dpi => s"--image-dpi $dpi").getOrElse("")} ${inputFilePath.toAbsolutePath} ${tempFile.toAbsolutePath}"
+    val cmd = s"ocrmypdf --redo-ocr -l $lang ${dpi.map(dpi => s"--image-dpi $dpi").getOrElse("")} ${inputFilePath.toAbsolutePath} ${tempFile.toAbsolutePath}"
 
     val stdout = mutable.Buffer.empty[String]
     val process = Process(cmd, cwd = None, extraEnv = "TMPDIR" -> tmpDir.toAbsolutePath.toString)
