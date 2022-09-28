@@ -8,6 +8,20 @@ if [ "$ARCHITECTURE" == "arm64" ]; then
   echo "Running on arm64 architecture - using experimental neo4j arm64 image."
   export NEO4J_IMAGE_OVERRIDE=neo4j/neo4j-arm64-experimental:3.5.30
 fi
+
+if (! docker stats --no-stream 1>/dev/null 2>&1); then
+  echo "Starting docker..."
+  # On Mac OS this would be the terminal command to launch Docker
+  open /Applications/Docker.app
+  # Wait until Docker daemon is running and has completed initialisation
+  while (! docker stats --no-stream 1>/dev/null 2>&1); do
+    # Docker takes a few seconds to initialize
+    echo "Docker not initialised yet, waiting 1 second..."
+    sleep 1
+  done
+  echo "Docker started!"
+fi
+
 docker compose up -d
 
 AVAILABLE_MEMORY=$( docker stats --format "{{.MemUsage}}" --no-stream \
