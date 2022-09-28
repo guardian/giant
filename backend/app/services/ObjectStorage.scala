@@ -48,7 +48,13 @@ class S3ObjectStorage private(client: S3Client, bucket: String) extends ObjectSt
       .withBucketName(bucket)
       .withPrefix(prefix)
 
-    run(client.aws.listObjects(request).getObjectSummaries.asScala.toList.map(_.getKey))
+    run {
+      client.aws.listObjects(request)
+        .getObjectSummaries
+        .asScala
+        .toList
+        .map(_.getKey)
+    }
   }
 
   private def run[T](fn: => T): Either[Failure, T] = try {

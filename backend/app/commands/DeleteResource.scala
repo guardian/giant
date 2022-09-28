@@ -13,18 +13,17 @@ import utils.attempt.{Attempt, DeleteFailure, IllegalStateFailure}
 import scala.concurrent.ExecutionContext
 
 
-class DeleteResource( manifest: Manifest, index: Index, previewStorage: ObjectStorage, objectStorage: ObjectStorage, previewService: PreviewService)  (implicit ec: ExecutionContext)
-   {
+class DeleteResource( manifest: Manifest, index: Index, previewStorage: ObjectStorage, objectStorage: ObjectStorage)  (implicit ec: ExecutionContext)
+   extends Logging {
 
-     private def deletePagePreviews(uri: Uri, languages: List[Language]): Attempt[List[Unit]] = {
-       val pagePreviewPrefixes = languages.map(PreviewService.getPageStoragePrefix(uri, _))
-       val listOfPagePreviewObjectsAttempts = pagePreviewPrefixes.map { prefix =>
-         Attempt.fromEither(previewStorage.list(prefix))
-       }
-       val pagePreviewObjectsAttempt = Attempt.sequence(listOfPagePreviewObjectsAttempts).map(_.flatten)
-
-       pagePreviewObjectsAttempt.flatMap { pagePreviewObjects =>
-         val deletionAttempts = pagePreviewObjects
+     private def deletePagePreviewObjects(s3Objects: List[String], s3Prefixes: List[String]): Attempt[List[Unit]] = {
+       if (s3Objects.length < s3Prefixes.length) {
+         // If this sanity check fails, we will bail out of the entire delete
+         // operation to avoid leaving things in a partially deleted state.
+         Attempt.Left(IllegalStateFailure(s"Only found ${s3Objects.length} object(s) under ${s3Prefixes.length} prefixes"))
+       } else {
+         logger.info(s"Deleting objects: ${s3Objects.mkString(", ")}")
+         val deletionAttempts = s3Objects
            .map(previewStorage.delete)
            .map(Attempt.fromEither)
 
@@ -32,12 +31,34 @@ class DeleteResource( manifest: Manifest, index: Index, previewStorage: ObjectSt
        }
      }
 
+     private def deletePagePreviews(uri: Uri, ocrLanguages: List[Language]): Attempt[List[Unit]] = {
+       if (ocrLanguages.isEmpty) {
+         // This typically means the blob was not processed by the OcrMyPdfExtractor,
+         // either because it's not a PDF or because it was processed before
+         // we introduced the OcrMyPdfExtractor.
+         logger.info(s"No OCR languages found for blob ${uri.value}")
+       } else {
+         logger.info(s"Deleting page previews for ${uri.value} in languages: ${ocrLanguages.map(_.key).mkString(", ")}")
+       }
+
+       val pagePreviewPrefixes = ocrLanguages.map(PreviewService.getPageStoragePrefix(uri, _))
+       logger.info(s"Deleting prefixes: ${pagePreviewPrefixes.mkString(", ")}")
+
+       val listOfPagePreviewObjectsAttempts = pagePreviewPrefixes.map { prefix =>
+         Attempt.fromEither(previewStorage.list(prefix))
+       }
+       val pagePreviewObjectsAttempt = Attempt.sequence(listOfPagePreviewObjectsAttempts).map(_.flatten)
+
+       pagePreviewObjectsAttempt.flatMap(deletePagePreviewObjects(_, pagePreviewPrefixes))
+     }
+
      private def deleteResource(uri: Uri, deleteFolders: Boolean): Attempt[Unit] = {
        val successAttempt = Attempt.Right(())
        for {
-         languages <- manifest.getOcrLanguages(uri)
+         // For blobs not processed by the OcrMyPdfExtractor, ocrLanguages will be an empty list
+         ocrLanguages <- manifest.getLanguagesProcessedByOcrMyPdf(uri)
          // Not everything has a preview but S3 returns success for deleting an object that doesn't exist so we're fine
-         _ <- deletePagePreviews(uri, languages)
+         _ <- deletePagePreviews(uri, ocrLanguages)
          _ <- Attempt.fromEither(previewStorage.delete(uri.toStoragePath))
          _ <- Attempt.fromEither(objectStorage.delete(uri.toStoragePath))
          _ <- index.delete(uri.value)

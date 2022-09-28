@@ -947,11 +947,11 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
     Right(WorkCounts(inProgress, outstanding))
   }
 
-  override def getOcrLanguages(uri: Uri): Attempt[List[Language]] = attemptTransaction { tx =>
+  override def getLanguagesProcessedByOcrMyPdf(uri: Uri): Attempt[List[Language]] = attemptTransaction { tx =>
     val queryResult = tx.run(
       """
-        |MATCH (r: Resource { uri: {uri} )<-[p:PROCESSED]-(e :Extractor {name: "OcrMyPdfExtractor"})
-        |RETURN p.languages
+        |MATCH (r: Resource { uri: {uri} } )<-[p:PROCESSED]-(e :Extractor {name: "OcrMyPdfExtractor"})
+        |RETURN p.languages as languages
       """.stripMargin,
       parameters(
         "uri", uri.value
