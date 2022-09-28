@@ -1,11 +1,13 @@
 package services
 
+import com.amazonaws.services.s3.model.{DeleteObjectsRequest, ListObjectsRequest, ObjectListing, S3ObjectSummary}
+
 import java.io.InputStream
 import java.nio.file.Path
-
 import model.ObjectMetadata
 import utils.attempt.{Failure, IllegalStateFailure, UnknownFailure}
 import utils.aws.{AwsErrors, S3Client}
+import scala.collection.JavaConverters._
 
 import scala.util.control.NonFatal
 
@@ -14,6 +16,7 @@ trait ObjectStorage {
   def get(key: String): Either[Failure, InputStream]
   def getMetadata(key: String): Either[Failure, ObjectMetadata]
   def delete(key: String): Either[Failure, Unit]
+  def list(prefix: String): Either[Failure, List[String]]
 }
 
 class S3ObjectStorage private(client: S3Client, bucket: String) extends ObjectStorage {
@@ -33,6 +36,19 @@ class S3ObjectStorage private(client: S3Client, bucket: String) extends ObjectSt
 
   def delete(key: String): Either[Failure, Unit] = {
     run(client.aws.deleteObject(bucket, key))
+  }
+
+  def delete(keys: List[String]): Either[Failure, Unit] = {
+    val request = new DeleteObjectsRequest(bucket).withKeys(keys: _*)
+    run(client.aws.deleteObjects(request))
+  }
+
+  def list(prefix: String): Either[Failure, List[String]] = {
+    val request = new ListObjectsRequest()
+      .withBucketName(bucket)
+      .withPrefix(prefix)
+
+    run(client.aws.listObjects(request).getObjectSummaries.asScala.toList.map(_.getKey))
   }
 
   private def run[T](fn: => T): Either[Failure, T] = try {
