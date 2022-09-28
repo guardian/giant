@@ -35,7 +35,7 @@ services:
     image: lmenezes/cerebro:0.9.3
     container_name: pfi-cerebro
     ports:
-      - 9091:9000
+      - 9092:9000
     command: '-Dconfig.file=/opt/cerebro/conf/cerebro.conf'
     volumes:
       - ${PWD}/util/local-cerebro.conf:/opt/cerebro/conf/cerebro.conf
@@ -50,10 +50,11 @@ services:
       - minio:/export
     ports:
       - 9090:9000
+      - 9091:9001
     entrypoint:
       sh
     command:
-      -c 'mkdir -p /export/ingest-data && mkdir -p /export/data && mkdir -p /export/preview && minio server /export'
+      -c 'mkdir -p /export/ingest-data && mkdir -p /export/data && mkdir -p /export/preview && minio server /export --console-address ":9001"'
 
 volumes:
   neo4j:
