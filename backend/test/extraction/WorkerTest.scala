@@ -87,6 +87,7 @@ class WorkerTest extends AnyFlatSpec with Matchers with EitherValues {
       override def getMetadata(key: String): Either[Failure, ObjectMetadata] = ???
       override def create(key: String, path: Path, mimeType: Option[String]): Either[Failure, Unit] = ???
       override def delete(key: String): Either[Failure, Unit] = ???
+      override def list(prefix: String): Either[Failure, List[String]] = ???
     }
 
     new Worker("test", manifest, blobStorage, extractors, new NoOpMetricsService)(scala.concurrent.ExecutionContext.global)
