@@ -31,7 +31,7 @@ class OcrStderrLogger(setProgressNote: Option[String => Either[Failure, Unit]]) 
   }
 }
 
-object Ocr {
+object Ocr extends Logging {
   class OcrSubprocessCrashedException(exitCode: Int, stderr: String) extends Exception(s"Exit code: $exitCode: ${stderr}")
   object OcrSubprocessInterruptedException extends Exception("Ocr subprocess terminated externally")
 
@@ -68,15 +68,26 @@ object Ocr {
     }
   }
 
+
+
   // TODO MRB: allow OcrMyPdf to read DPI if set in metadata
   // OCRmyPDF is a wrapper for Tesseract that we use to overlay the OCR as a text layer in the resulting PDF
   def invokeOcrMyPdf(lang: String, inputFilePath: Path, dpi: Option[Int], stderr: OcrStderrLogger, tmpDir: Path): Path = {
     val tempFile = tmpDir.resolve(s"${inputFilePath.getFileName}.ocr.pdf")
-    val cmd = s"ocrmypdf --redo-ocr -l $lang ${dpi.map(dpi => s"--image-dpi $dpi").getOrElse("")} ${inputFilePath.toAbsolutePath} ${tempFile.toAbsolutePath}"
-
     val stdout = mutable.Buffer.empty[String]
-    val process = Process(cmd, cwd = None, extraEnv = "TMPDIR" -> tmpDir.toAbsolutePath.toString)
-    val exitCode = process.!(ProcessLogger(stdout.append(_), stderr.append))
+
+    def process(redoOcr: Boolean): Int = {
+      val redoOcrOrSkipText = if(redoOcr) "--redo ocr" else "--skip-text"
+      val cmd = s"ocrmypdf $redoOcrOrSkipText -l $lang ${dpi.map(dpi => s"--image-dpi $dpi").getOrElse("")} ${inputFilePath.toAbsolutePath} ${tempFile.toAbsolutePath}"
+      val process = Process(cmd, cwd = None, extraEnv = "TMPDIR" -> tmpDir.toAbsolutePath.toString)
+      process.!(ProcessLogger(stdout.append(_), stderr.append))
+    }
+
+    val redoOcrExitCode = process(redoOcr=true)
+    val exitCode = if (redoOcrExitCode == 2) {
+      logger.info(s"Got input file error from ocrmypdf with --redo-ocr for ${inputFilePath.getFileName}, attempting with --skip-text")
+      process(redoOcr=false)
+    } else redoOcrExitCode
 
     exitCode match {
       // 0: success
