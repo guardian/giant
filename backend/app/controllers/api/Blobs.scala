@@ -8,13 +8,14 @@ import play.api.mvc.{Action, AnyContent, Request, Result}
 import services.ObjectStorage
 import services.index.Index
 import services.manifest.Manifest
+import services.previewing.PreviewService
 import utils.Logging
 import utils.attempt.{Attempt, DeleteFailure}
 import utils.controller.{AuthApiController, AuthControllerComponents, FailureToResultMapper}
 
 
 class Blobs(override val controllerComponents: AuthControllerComponents, manifest: Manifest, index: Index,
-            objectStorage: ObjectStorage, previewStorage: ObjectStorage)
+            objectStorage: ObjectStorage, previewStorage: ObjectStorage, previewService: PreviewService)
   extends AuthApiController with Logging {
 
   def param(name: String, req: Request[AnyContent]): Option[String] = req.queryString.get(name).flatMap(_.headOption)

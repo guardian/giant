@@ -947,6 +947,30 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
     Right(WorkCounts(inProgress, outstanding))
   }
 
+  // Swallows errors if blob has not been processed with OcrMyPdfExtractor
+  // (simply returns an empty list)
+  override def getLanguagesProcessedByOcrMyPdf(uri: Uri): Attempt[List[Language]] = attemptTransaction { tx =>
+    tx.run(
+      """
+        |MATCH (r: Resource { uri: {uri} } )<-[p:PROCESSED]-(e :Extractor {name: "OcrMyPdfExtractor"})
+        |RETURN p.languages as languages
+      """.stripMargin,
+      parameters(
+        "uri", uri.value
+      )
+    ).map { queryResultSummary =>
+      val results = queryResultSummary.list().asScala.toList
+
+      results.headOption.toList.flatMap(r =>
+        r.get("languages")
+          .asList((v: Value) => v.asString())
+          .asScala
+          .toList
+          .flatMap(Languages.getByKey)
+      )
+    }
+  }
+
   private def processDelete(uri: Uri, query: String, correctResultsCount: Int => Boolean, errorText: String): Attempt[Unit] = attemptTransaction { tx =>
     tx.run(
       query,
