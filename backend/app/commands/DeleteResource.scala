@@ -16,19 +16,13 @@ import scala.concurrent.ExecutionContext
 class DeleteResource( manifest: Manifest, index: Index, previewStorage: ObjectStorage, objectStorage: ObjectStorage)  (implicit ec: ExecutionContext)
    extends Logging {
 
-     private def deletePagePreviewObjects(s3Objects: List[String], s3Prefixes: List[String]): Attempt[List[Unit]] = {
-       if (s3Objects.length < s3Prefixes.length) {
-         // If this sanity check fails, we will bail out of the entire delete
-         // operation to avoid leaving things in a partially deleted state.
-         Attempt.Left(IllegalStateFailure(s"Only found ${s3Objects.length} object(s) under ${s3Prefixes.length} prefixes"))
-       } else {
-         logger.info(s"Deleting objects: ${s3Objects.mkString(", ")}")
-         val deletionAttempts = s3Objects
-           .map(previewStorage.delete)
-           .map(Attempt.fromEither)
+     private def deletePagePreviewObjects(s3Objects: List[String]): Attempt[List[Unit]] = {
+       logger.info(s"Deleting objects: ${s3Objects.mkString(", ")}")
+       val deletionAttempts = s3Objects
+         .map(previewStorage.delete)
+         .map(Attempt.fromEither)
 
-         Attempt.sequence(deletionAttempts)
-       }
+       Attempt.sequence(deletionAttempts)
      }
 
      private def deletePagePreviews(uri: Uri, ocrLanguages: List[Language]): Attempt[List[Unit]] = {
@@ -41,15 +35,20 @@ class DeleteResource( manifest: Manifest, index: Index, previewStorage: ObjectSt
          logger.info(s"Deleting page previews for ${uri.value} in languages: ${ocrLanguages.map(_.key).mkString(", ")}")
        }
 
+       // Try and delete from these legacy paths as well.
+       // If there's nothing under them, we just won't find any objects and there will be nothing extra to delete.
+       // We can delete this code once we've delete or reprocessed everything under these folders.
+       val legacyPagePreviewPrefixes = List("ocr.english", "text").map(folder => s"pages/${folder}/${uri.toStoragePath}")
        val pagePreviewPrefixes = ocrLanguages.map(PreviewService.getPageStoragePrefix(uri, _))
-       logger.info(s"Deleting prefixes: ${pagePreviewPrefixes.mkString(", ")}")
+       val prefixesToDelete = legacyPagePreviewPrefixes ::: pagePreviewPrefixes
+       logger.info(s"Deleting prefixes: ${prefixesToDelete.mkString(", ")}")
 
-       val listOfPagePreviewObjectsAttempts = pagePreviewPrefixes.map { prefix =>
+       val listOfPagePreviewObjectsAttempts = prefixesToDelete.map { prefix =>
          Attempt.fromEither(previewStorage.list(prefix))
        }
        val pagePreviewObjectsAttempt = Attempt.sequence(listOfPagePreviewObjectsAttempts).map(_.flatten)
 
-       pagePreviewObjectsAttempt.flatMap(deletePagePreviewObjects(_, pagePreviewPrefixes))
+       pagePreviewObjectsAttempt.flatMap(deletePagePreviewObjects)
      }
 
      private def deleteResource(uri: Uri, deleteFolders: Boolean): Attempt[Unit] = {

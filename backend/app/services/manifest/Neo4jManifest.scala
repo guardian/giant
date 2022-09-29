@@ -960,7 +960,7 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
       )
     ).map { queryResultSummary =>
       val results = queryResultSummary.list().asScala.toList
-      
+
       results.headOption.toList.flatMap(r =>
         r.get("languages")
           .asList((v: Value) => v.asString())
