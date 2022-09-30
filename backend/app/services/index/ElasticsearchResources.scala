@@ -442,13 +442,18 @@ class ElasticsearchResources(override val client: ElasticClient, indexName: Stri
 
   }
 
-  def getBlobs(collection: String, ingestion: Option[String], size: Int): Attempt[Iterable[IndexedBlob]] = {
+  def getBlobs(collection: String, maybeIngestion: Option[String], size: Int): Attempt[Iterable[IndexedBlob]] = {
+    val query = maybeIngestion match {
+      case Some(ingestion) => matchQuery(IndexFields.ingestionRaw, s"$collection/$ingestion")
+      case _ => matchQuery(IndexFields.collectionRaw, collection)
+    }
+
     execute {
       search(indexName)
         .sourceInclude(IndexFields.ingestion)
         .size(size)
         .bool(
-          must(matchQuery(IndexFields.ingestionRaw, s"$collection/${ingestion.getOrElse("")}"))
+          must(query)
         )
     }.map { response =>
       response.to[IndexedBlob]
