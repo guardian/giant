@@ -77,7 +77,7 @@ object Ocr extends Logging {
     val stdout = mutable.Buffer.empty[String]
 
     def process(redoOcr: Boolean): Int = {
-      val redoOcrOrSkipText = if(redoOcr) "--redo ocr" else "--skip-text"
+      val redoOcrOrSkipText = if(redoOcr) "--redo-ocr" else "--skip-text"
       val cmd = s"ocrmypdf $redoOcrOrSkipText -l $lang ${dpi.map(dpi => s"--image-dpi $dpi").getOrElse("")} ${inputFilePath.toAbsolutePath} ${tempFile.toAbsolutePath}"
       val process = Process(cmd, cwd = None, extraEnv = "TMPDIR" -> tmpDir.toAbsolutePath.toString)
       process.!(ProcessLogger(stdout.append(_), stderr.append))
