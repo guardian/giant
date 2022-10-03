@@ -23,21 +23,14 @@ class Blobs(override val controllerComponents: AuthControllerComponents, manifes
   def getBlobs = ApiAction.attempt { req =>
     checkPermission(CanPerformAdminOperations, req) {
       (param("collection", req), param("ingestion", req)) match {
-        case (Some(collection), Some(ingestion)) =>
-          val uri = Uri(collection).chain(ingestion)
+        case (Some(collection), maybeIngestion) =>
           val size = param("size", req).map(_.toInt).getOrElse(500)
 
-          for {
-            _ <- manifest.getIngestion(uri)
-            blobs <- index.getBlobs(collection, ingestion, size)
-          } yield {
-            Ok(Json.obj(
-              "blobs" -> blobs
-            ))
-          }
-
+          index.getBlobs(collection, maybeIngestion, size).map(blobs =>
+            Ok(Json.obj("blobs" -> blobs))
+          )
         case _ =>
-          Attempt.Right(BadRequest("Missing collection or ingestion query parameter"))
+          Attempt.Right(BadRequest("Missing collection query parameter"))
       }
     }
   }
