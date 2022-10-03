@@ -67,9 +67,7 @@ object Ocr extends Logging {
         throw new OcrSubprocessCrashedException(exitCode, stderr.getOutput)
     }
   }
-
-
-
+  
   // TODO MRB: allow OcrMyPdf to read DPI if set in metadata
   // OCRmyPDF is a wrapper for Tesseract that we use to overlay the OCR as a text layer in the resulting PDF
   def invokeOcrMyPdf(lang: String, inputFilePath: Path, dpi: Option[Int], stderr: OcrStderrLogger, tmpDir: Path): Path = {
@@ -85,6 +83,9 @@ object Ocr extends Logging {
 
     val redoOcrExitCode = process(redoOcr=true)
     val exitCode = if (redoOcrExitCode == 2) {
+      // Exit code 2 from ocrmypdf is an input file error, we've noticed that this can be an error with --redo-ocr, and that
+      // running with --skip-text instead results in success. For example, if a PDF has a user fillable form then it can't
+      // be ocrd with --redo-ocr set. See https://github.com/guardian/giant/pull/68 for details of --skip-text vs --redo-ocr
       logger.info(s"Got input file error from ocrmypdf with --redo-ocr for ${inputFilePath.getFileName}, attempting with --skip-text")
       process(redoOcr=false)
     } else redoOcrExitCode
