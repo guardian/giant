@@ -24,7 +24,7 @@ class Blobs(override val controllerComponents: AuthControllerComponents, manifes
     checkPermission(CanPerformAdminOperations, req) {
       (param("collection", req), param("ingestion", req)) match {
         case (Some(collection), maybeIngestion) =>
-          val size = param("size", req).map(_.toInt).getOrElse(500)
+          val size = param("size", req).map(_.toInt)
 
           index.getBlobs(collection, maybeIngestion, size).map(blobs =>
             Ok(Json.obj("blobs" -> blobs))
