@@ -33,7 +33,7 @@ object HitReaders {
     def optLongField(name: String): Option[Long] = if(fields.contains(name)) { Some(longField(name)) } else { None }
     def listField[T](name: String): List[T] = optField[List[T]](name).getOrElse(Nil)
     def setField[T](name: String): Set[T] = optField[List[T]](name).map(_.toSet).getOrElse(Set.empty)
-    def optEnumField[T <: EnumEntry](name: String, enum: PlayEnum[T]): Option[T] = optField(name).flatMap(enum.withNameOption)
+    def optEnumField[T <: EnumEntry](name: String, playEnum: PlayEnum[T]): Option[T] = optField(name).flatMap(playEnum.withNameOption)
     def objectField(name: String): FieldMap = field[FieldMap](name)
     def nestedField(name: String): Map[String, Seq[String]] = {
       val base = Map.empty[String, Seq[String]]
