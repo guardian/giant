@@ -309,7 +309,7 @@ class Neo4jHelper(driver: Driver, executionContext: ExecutionContext, queryLoggi
 }
 
 object Neo4jHelper {
-  implicit class RichRecords[T <: mutable.Buffer[Record]](result: T) {
+  implicit class RichRecords[T <: Iterable[Record]](result: T) {
     def hasKeyOrFailure(expectedKey: String, errorMessage: String): Either[Failure, T] = {
       if (!result.exists(x => x.containsKey(expectedKey))) {
         Left(NotFoundFailure(errorMessage))
