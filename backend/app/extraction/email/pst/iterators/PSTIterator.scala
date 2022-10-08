@@ -6,7 +6,7 @@ import com.pff._
 abstract class PSTIterator[T](val attachmentCount: Int, getAtIndex: Int => T) extends Iterator[T] {
   private var currentIdx = 0
 
-  override def hasNext(): Boolean = currentIdx < attachmentCount
+  override def hasNext: Boolean = currentIdx < attachmentCount
 
   override def next(): T = {
     val c = getAtIndex(currentIdx)
