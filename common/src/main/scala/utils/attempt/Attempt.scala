@@ -135,7 +135,7 @@ object Attempt {
     *
     * This implementation returns the first failure in the list, or the successful result.
     */
-  def sequence[A, M[X] <: TraversableOnce[X]](in: M[Attempt[A]])(implicit cbf: BuildFrom[M[Attempt[A]], A, M[A]], executor: ExecutionContext): Attempt[M[A]] = {
+  def sequence[A, M[X] <: IterableOnce[X]](in: M[Attempt[A]])(implicit cbf: BuildFrom[M[Attempt[A]], A, M[A]], executor: ExecutionContext): Attempt[M[A]] = {
     traverse(in)(identity)
   }
 
