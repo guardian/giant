@@ -23,7 +23,7 @@ import utils.Logging
 import utils.attempt.{Failure, UnknownFailure}
 
 import scala.util.Try
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 
 trait TypeDetector {
   def detectType(path: Path): Either[Failure, MediaType]

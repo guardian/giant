@@ -14,7 +14,7 @@ import utils.attempt.{Attempt, Failure, Neo4JFailure, Neo4JTransientFailure, Not
 import scala.collection.mutable
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 import utils.Logging
 
 class Neo4jHelper(driver: Driver, executionContext: ExecutionContext, queryLoggingConfig: Neo4jQueryLoggingConfig) extends Logging {

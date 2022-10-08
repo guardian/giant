@@ -8,7 +8,7 @@ import org.neo4j.driver.v1.Value
 import play.api.libs.json._
 import services.previewing.{PreviewService, PreviewStatus}
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 
 case class RelatedResource(uri: String, `type`: String, display: Option[String], isExpandable: Boolean)
 

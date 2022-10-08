@@ -7,7 +7,7 @@ import java.nio.file.Path
 import model.ObjectMetadata
 import utils.attempt.{Failure, IllegalStateFailure, UnknownFailure}
 import utils.aws.{AwsErrors, S3Client}
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 
 import scala.util.control.NonFatal
 

@@ -7,7 +7,7 @@ import play.api.mvc.{Filter, RequestHeader, Result}
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 import net.logstash.logback.marker.Markers.appendEntries
 import net.logstash.logback.marker.LogstashMarker
 import play.api.mvc.Results.InternalServerError

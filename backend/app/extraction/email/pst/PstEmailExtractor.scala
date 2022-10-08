@@ -19,7 +19,7 @@ import services.{FingerprintServices, ScratchSpace}
 import utils.Logging
 import utils.attempt.{Failure, UnknownFailure}
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 import scala.util.control.NonFatal
 
 class PstEmailExtractor(scratch: ScratchSpace, ingestionServices: IngestionServices) extends FileExtractor(scratch) with Logging {

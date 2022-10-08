@@ -6,7 +6,7 @@ import model.{Language, Uri}
 import model.ingestion.{IngestionFile, OnDiskFileContext}
 import utils.Logging
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 import scala.util.Try
 
 class CliFileWalker(enrich: Path => IngestionFile) extends Logging {

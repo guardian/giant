@@ -17,7 +17,7 @@ import utils.attempt.{Failure, UnknownFailure}
 import utils.{DateTimeUtils, Logging}
 
 import java.util.stream.Collectors
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 
 class MsgEmailExtractor(scratch: ScratchSpace, ingestionServices: IngestionServices, tika: Tika) extends Extractor with Logging {
   val mimeTypes = Set(
