@@ -170,7 +170,7 @@ object DocumentResource {
       parents = basic.parents,
       children = basic.children,
       text = HighlightableText.fromString(document.text, page = None),
-      ocr = document.ocr.map(ocrMap => ocrMap.mapValues { v => HighlightableText.fromString(v, page = None) }),
+      ocr = document.ocr.map(ocrMap => ocrMap.view.mapValues { v => HighlightableText.fromString(v, page = None) }.toMap),
       metadata = document.metadata,
       enrichedMetadata = document.enrichedMetadata,
       previewStatus = PreviewService.previewStatus(document.mimeTypes),
