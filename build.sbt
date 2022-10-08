@@ -79,6 +79,7 @@ lazy val root = (project in file("."))
 lazy val common = (project in file("common"))
   .settings(
     name := "common",
+    scalacOptions := compilerFlags,
     libraryDependencies ++= Seq(
       "org.typelevel" %% "cats-core" % "2.2.0",
       "com.typesafe.play" %% "play-json" % "2.9.0",
