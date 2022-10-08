@@ -37,9 +37,9 @@ trait MetricsService {
 }
 
 class NoOpMetricsService() extends MetricsService {
-  def updateMetrics(metrics:List[MetricUpdate]): Unit = Unit
-  def updateMetric(metricName: String, metricValue: Double = 1): Unit = Unit
-  def recordUsageEvent(username: String): Unit = Unit
+  def updateMetrics(metrics:List[MetricUpdate]): Unit = ()
+  def updateMetric(metricName: String, metricValue: Double = 1): Unit = ()
+  def recordUsageEvent(username: String): Unit = ()
 }
 
 class CloudwatchMetricsService(config: AWSDiscoveryConfig) extends MetricsService with Logging {
