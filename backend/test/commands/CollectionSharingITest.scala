@@ -389,7 +389,7 @@ class CollectionSharingITest extends AnyFunSuite with Neo4jTestService with Elas
       await(futureFirstResponse)
       await(futureSecondResponse)
 
-      val collections = contentAsJson(controllers.collections.listCollections.apply(FakeRequest())).as[List[Collection]]
+      val collections = contentAsJson(controllers.collections.listCollections().apply(FakeRequest())).as[List[Collection]]
       val uris = collections.map(_.uri.value)
 
       uris should contain only("e2e-test-rapid-two")
