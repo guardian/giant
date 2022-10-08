@@ -15,6 +15,7 @@ import scala.collection.mutable
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
 import scala.collection.JavaConverters._
+import utils.Logging
 
 class Neo4jHelper(driver: Driver, executionContext: ExecutionContext, queryLoggingConfig: Neo4jQueryLoggingConfig) extends Logging {
 
