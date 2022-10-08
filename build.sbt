@@ -148,8 +148,8 @@ lazy val backend = (project in file("backend"))
 
       "org.scalacheck" %% "scalacheck" % "1.14.0" % Test,
       "org.scalatestplus.play" %% "scalatestplus-play" % "5.1.0" % Test,
-      "com.whisk" %% "docker-testkit-scalatest" % "0.11.0" % Test,
-      "com.whisk" %% "docker-testkit-impl-spotify" % "0.11.0-beta1" % Test,
+      "com.whisk" %% "docker-testkit-scalatest" % "0.9.9" % Test,
+      "com.whisk" %% "docker-testkit-impl-spotify" % "0.9.9" % Test,
       "org.scalamock" %% "scalamock" % "4.4.0" % Test
     ),
 
