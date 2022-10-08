@@ -351,7 +351,7 @@ class Neo4JManifestITest extends AnyFreeSpec with Matchers with Neo4jTestService
         manifest.insert(blobs, collection).isRight should be(true)
 
         val rawResults = manifest.fetchWork("test", maxBatchSize = 3, maxCost = 10000).toOption.get
-        val results = rawResults.map { case WorkItem(blob, _, _,  ingestion, List(English), _) => blob.uri -> ingestion }
+        val results = rawResults.map { case WorkItem(blob, _, _,  ingestion, _, _) => blob.uri -> ingestion }
 
         results should contain allOf(
           blobs(0).blobUri -> ingestions(0).value,
