@@ -492,7 +492,7 @@ object Helpers extends Matchers with Logging with OptionValues with Inside {
   }
 
   def listCollections()(implicit controllers: Controllers, timeout: Timeout): List[String] = {
-    contentAsJson(controllers.collections.listCollections.apply(FakeRequest()))
+    contentAsJson(controllers.collections.listCollections().apply(FakeRequest()))
       .as[List[Collection]].map(_.uri.value)
   }
 
