@@ -51,7 +51,7 @@ class DeleteIngestions(ingestions: List[(String, String)], ingestionService: Cli
           logger.warn(
             s"""${b.uri} in [${b.ingestion.mkString(", ")}] is also present in [${conflictingIngestions.mkString(" ")}].
            Skipping for now.""".stripMargin)
-          Attempt.Right(Unit)
+          Attempt.Right(())
         case Delete =>
               logger.warn(
                 s"""${b.uri} in [${b.ingestion.mkString(", ")}] is also present in [${conflictingIngestions.mkString(" ")}].
