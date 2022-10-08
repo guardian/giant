@@ -30,7 +30,7 @@ object AwsAsyncHandler {
   def awsToScala[R <: AmazonWebServiceRequest, T](sdkMethod: (R, AsyncHandler[R, T]) => java.util.concurrent.Future[T])
                                                  (req: R)
                                                  (implicit ec: ExecutionContext): Attempt[T] = {
-    val p = Promise[Either[Failure, T]]
+    val p = Promise[Either[Failure, T]]()
     sdkMethod(req, new AwsAsyncPromiseHandler(p))
     Attempt(p.future)
   }
