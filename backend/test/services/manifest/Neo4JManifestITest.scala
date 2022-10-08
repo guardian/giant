@@ -168,7 +168,7 @@ class Neo4JManifestITest extends AnyFreeSpec with Matchers with Neo4jTestService
 
       def fetchWork(worker: String, maxBatchSize: Int, maxCost: Int = 10000): List[(Uri, String)] = {
         val result = manifest.fetchWork(worker, maxBatchSize, maxCost)
-        result.toOption.get.map { case WorkItem(blob, _, extractor, _, List(English), _) => blob.uri -> extractor }
+        result.toOption.get.map { case WorkItem(blob, _, extractor, _, _, _) => blob.uri -> extractor }
       }
 
       def buildBlobs(collection: String, ingestion: String) = List(
