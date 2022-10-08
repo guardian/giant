@@ -54,7 +54,7 @@ class TesseractPdfOcrExtractor(config: OcrConfig, scratch: ScratchSpace, index: 
 
         // TODO MRB: does RGB colour help or hinder here?
         val imageFileName = s"${file.getAbsolutePath}-$pageNumber.png"
-        val image = renderer.renderImageWithDPI(pageNumber, config.dpi, ImageType.RGB)
+        val image = renderer.renderImageWithDPI(pageNumber, config.dpi.toFloat, ImageType.RGB)
         ImageIOUtil.writeImage(image, imageFileName, config.dpi)
 
         val dimensions = PageDimensions(
