@@ -67,7 +67,7 @@ class DeleteResource( manifest: Manifest, index: Index, previewStorage: ObjectSt
          _ <- manifest.deleteBlob(uri)
          _ <- successAttempt
        } yield {
-         Unit
+         ()
        }
      }
 
