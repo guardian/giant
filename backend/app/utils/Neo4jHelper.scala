@@ -38,29 +38,29 @@ class Neo4jHelper(driver: Driver, executionContext: ExecutionContext, queryLoggi
     */
   class AttemptWrappedTransaction(underlying: StatementRunner, executionContext: ExecutionContext) {
     def run(statementTemplate: String, statementParameters: Record): Attempt[StatementResult] =
-      attemptNeo4J {
+      attemptNeo4J({
         underlying.run(statementTemplate, statementParameters)
-      }
+      })()
 
     def run(statementTemplate: String): Attempt[StatementResult] =
-      attemptNeo4J {
+      attemptNeo4J({
         underlying.run(statementTemplate)
-      }
+      })()
 
     def run(statementTemplate: String, parameters: Value): Attempt[StatementResult] =
-      attemptNeo4J {
+      attemptNeo4J({
         underlying.run(statementTemplate, parameters)
-      }
+      })()
 
     def run(statementTemplate: String, statementParameters: java.util.Map[String, AnyRef]): Attempt[StatementResult] =
-      attemptNeo4J {
+      attemptNeo4J({
         underlying.run(statementTemplate, statementParameters)
-      }
+      })()
 
     def run(statement: Statement): Attempt[StatementResult] =
-      attemptNeo4J {
+      attemptNeo4J({
         underlying.run(statement)
-      }
+      })()
 
     def run(statementTemplate: String, parameters: (String, AnyRef)*): Attempt[StatementResult] = {
       val flattenedParameters = parameters.flatten { case (k, v) => Vector(k,v) }
