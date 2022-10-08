@@ -55,7 +55,7 @@ trait ElasticsearchSyntax { this: Logging =>
 
   def multiLanguageValue(languages: List[Language], value: Any): Map[String, Any] = languages.map { lang =>
     lang.key -> value
-  }(scala.collection.breakOut)
+  }.toMap
 
   implicit def attemptExecutor(implicit ec: ExecutionContext): Executor[Attempt] =
     (client: HttpClient, request: ElasticRequest) => {
