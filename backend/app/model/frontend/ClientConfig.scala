@@ -10,7 +10,7 @@ case class ClientConfig(label: Option[String],
                         userProvider: String,
                         authConfig: Map[String, JsValue],
                         hideDownloadButton: Boolean,
-                        buildInfo: Map[String, String] = BuildInfo.toMap.mapValues(_.toString))
+                        buildInfo: Map[String, String] = BuildInfo.toMap.view.mapValues(_.toString).toMap)
 
 object ClientConfig {
   implicit val format = Json.format[ClientConfig]
