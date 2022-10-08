@@ -17,7 +17,7 @@ import scala.concurrent.duration.Duration
 object Main extends App with Logging {
   import scala.language.reflectiveCalls
 
-  val options = new Options(args)
+  val options = new Options(args.toIndexedSeq)
 
   options.subcommand match {
     case Some(options.hashCmd) =>
