@@ -46,7 +46,7 @@ class Neo4jUserManagementITest extends AnyFreeSpec with Matchers with Neo4jTestS
   }
 
   class TestSetup {
-    val manifest = Neo4jManifest.setupManifest(neo4jDriver, global, neo4jQueryLoggingConfig).right.value
+    val manifest = Neo4jManifest.setupManifest(neo4jDriver, global, neo4jQueryLoggingConfig).toOption.get
 
     val index = stub[Index]
     val pages = stub[Pages]

@@ -97,7 +97,7 @@ class Neo4JManifestITest extends AnyFreeSpec with Matchers with Neo4jTestService
       "Can insert emails" in {
         val result = manifest.insert(emails, Uri("test-collection/test-ingestion"))
         if (result.isLeft) {
-          val value = result.left.get
+          val value = result.swap.toOption.get
           logger.warn(value.toString, value.cause.get)
         }
         result.isRight shouldBe true
@@ -403,7 +403,7 @@ class Neo4JManifestITest extends AnyFreeSpec with Matchers with Neo4jTestService
         Files.write(fileToUpload, "This is a test".getBytes(StandardCharsets.UTF_8))
 
         val command = new IngestFile(collectionUri, ingestionUri, "test", None, "someoneElse", fileToUpload, originalFilePath, None, manifest, esEvents, ingestionServices, null)(global)
-        command.process().eitherValue.left.get shouldBe a [MissingPermissionFailure]
+        command.process().eitherValue.swap.toOption.get shouldBe a [MissingPermissionFailure]
       }
 
       "Cannot upload to a fixed ingestion" in {
@@ -419,7 +419,7 @@ class Neo4JManifestITest extends AnyFreeSpec with Matchers with Neo4jTestService
         Files.write(fileToUpload, "This is a test".getBytes(StandardCharsets.UTF_8))
 
         val command = new IngestFile(collectionUri, ingestionUri, "test", None, "someoneElse", fileToUpload, originalFilePath, None, manifest, esEvents, ingestionServices, null)(global)
-        command.process().eitherValue.left.get shouldBe a [MissingPermissionFailure]
+        command.process().eitherValue.swap.toOption.get shouldBe a [MissingPermissionFailure]
       }
 
       "Upload" in {

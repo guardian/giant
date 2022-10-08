@@ -55,7 +55,7 @@ trait Neo4jTestService
 
   def deleteAllNeo4jNodes(): Unit = {
     // Abort the test if this operation failed (see scalatest EitherValues)
-    deleteNodes().right.value
+    deleteNodes().toOption.get
   }
 
   override def afterAll(): Unit = {

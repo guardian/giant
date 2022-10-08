@@ -157,7 +157,7 @@ class AuthActionBuilderTest extends AnyFreeSpec with Matchers with BaseOneAppPer
         val requestTime = now.plusMinutes(10)
         val futureResult = authActionBuilder.invokeBlockWithTime(request, block, requestTime.getMillis)
         val resultEither = Helpers.await(futureResult)
-        val result = resultEither.right.value
+        val result = resultEither.toOption.get
 
         val newToken = tokenFromResult(result)
         newToken.user shouldBe token.user
@@ -178,7 +178,7 @@ class AuthActionBuilderTest extends AnyFreeSpec with Matchers with BaseOneAppPer
         val requestTime = now.plusMinutes(10)
         val futureResult = authActionBuilder.invokeBlockWithTime(request, block, requestTime.getMillis)
         val resultEither = Helpers.await(futureResult)
-        val result = resultEither.right.value
+        val result = resultEither.toOption.get
 
         val newToken = tokenFromResult(result)
         newToken.user shouldBe token.user
@@ -248,7 +248,7 @@ class AuthActionBuilderTest extends AnyFreeSpec with Matchers with BaseOneAppPer
         val futureResult = authActionBuilderWithInvalidatedUser.
           invokeBlockWithTime(request, block, now.getMillis)
         val resultOrFailure = Helpers.await(futureResult)
-        val result = resultOrFailure.right.value
+        val result = resultOrFailure.toOption.get
         result.header.status shouldBe 200
       }
     }

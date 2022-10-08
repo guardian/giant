@@ -229,8 +229,8 @@ object Helpers extends Matchers with Logging with OptionValues with Inside {
     (implicit ec: ExecutionContext): Map[String, Controllers] = {
 
     val queryLoggingConfig = new Neo4jQueryLoggingConfig(1.second, logAllQueries = false)
-    val manifest = Neo4jManifest.setupManifest(neo4jDriver, ec, queryLoggingConfig).right.get
-    val annotations = Neo4jAnnotations.setupAnnotations(neo4jDriver, ec, queryLoggingConfig).right.get
+    val manifest = Neo4jManifest.setupManifest(neo4jDriver, ec, queryLoggingConfig).toOption.get
+    val annotations = Neo4jAnnotations.setupAnnotations(neo4jDriver, ec, queryLoggingConfig).toOption.get
 
     val typeDetector = new TestTypeDetector("application/pdf")
 
