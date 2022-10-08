@@ -104,8 +104,8 @@ object Attempt {
     * This implementation returns the first failure in the resulting list,
     * or the successful result.
     */
-  def traverse[A, B, M[X] <: TraversableOnce[X]](as: M[A])(f: A => Attempt[B])(implicit cbf: BuildFrom[M[A], B, M[B]], ec: ExecutionContext): Attempt[M[B]] = {
-    as.foldLeft(Right(cbf(as))) {
+  def traverse[A, B, M[X] <: IterableOnce[X]](as: M[A])(f: A => Attempt[B])(implicit cbf: BuildFrom[M[A], B, M[B]], ec: ExecutionContext): Attempt[M[B]] = {
+    as.iterator.foldLeft(Right(cbf(as))) {
       (attempt, a) => attempt.zipWith(f(a))(_ += _)
     }.map(_.result())
   }
