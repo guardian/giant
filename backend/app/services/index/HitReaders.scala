@@ -252,7 +252,7 @@ object HitReaders {
 
   private def readOcr(fields: FieldMap): Option[Map[String, String]] = {
     fields.optField[FieldMap](ocr).map { languages =>
-      languages.mapValues(_.asInstanceOf[String])
+      languages.view.mapValues(_.asInstanceOf[String]).toMap
     }
   }
 
