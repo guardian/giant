@@ -9,9 +9,8 @@ import org.neo4j.driver.v1._
 import org.neo4j.driver.v1.types.TypeSystem
 import play.api.Logger
 import services.Neo4jQueryLoggingConfig
-import utils.attempt.{Attempt, Failure, Neo4JFailure, Neo4JTransientFailure, NotFoundFailure, TransactionFailure, UnknownFailure}
+import utils.attempt.{Attempt, Failure, Neo4JFailure, Neo4JTransientFailure, NotFoundFailure, UnknownFailure}
 
-import scala.annotation.tailrec
 import scala.collection.mutable
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
@@ -309,7 +308,7 @@ class Neo4jHelper(driver: Driver, executionContext: ExecutionContext, queryLoggi
 }
 
 object Neo4jHelper {
-  implicit class RichRecords[T <: Seq[Record]](result: T) {
+  implicit class RichRecords[T <: mutable.Buffer[Record]](result: T) {
     def hasKeyOrFailure(expectedKey: String, errorMessage: String): Either[Failure, T] = {
       if (!result.exists(x => x.containsKey(expectedKey))) {
         Left(NotFoundFailure(errorMessage))
