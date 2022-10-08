@@ -5,6 +5,8 @@ import java.io.{PrintWriter, StringWriter}
 import cats.kernel.Semigroup
 import play.api.libs.json._
 
+import scala.collection.Seq
+
 sealed trait Failure {
   def msg: String
   def cause: Option[Throwable] = None

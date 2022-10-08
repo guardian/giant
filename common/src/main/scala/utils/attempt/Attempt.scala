@@ -1,10 +1,8 @@
 package utils.attempt
 
 import cats.data.EitherT
-
-import scala.collection.generic.CanBuildFrom
+import scala.collection.BuildFrom
 import scala.concurrent.{ExecutionContext, Future}
-import scala.language.higherKinds
 import scala.util.control.NonFatal
 
 /**
@@ -106,7 +104,7 @@ object Attempt {
     * This implementation returns the first failure in the resulting list,
     * or the successful result.
     */
-  def traverse[A, B, M[X] <: TraversableOnce[X]](as: M[A])(f: A => Attempt[B])(implicit cbf: CanBuildFrom[M[A], B, M[B]], ec: ExecutionContext): Attempt[M[B]] = {
+  def traverse[A, B, M[X] <: TraversableOnce[X]](as: M[A])(f: A => Attempt[B])(implicit cbf: BuildFrom[M[A], B, M[B]], ec: ExecutionContext): Attempt[M[B]] = {
     as.foldLeft(Right(cbf(as))) {
       (attempt, a) => attempt.zipWith(f(a))(_ += _)
     }.map(_.result())
@@ -137,7 +135,7 @@ object Attempt {
     *
     * This implementation returns the first failure in the list, or the successful result.
     */
-  def sequence[A, M[X] <: TraversableOnce[X]](in: M[Attempt[A]])(implicit cbf: CanBuildFrom[M[Attempt[A]], A, M[A]], executor: ExecutionContext): Attempt[M[A]] = {
+  def sequence[A, M[X] <: TraversableOnce[X]](in: M[Attempt[A]])(implicit cbf: BuildFrom[M[Attempt[A]], A, M[A]], executor: ExecutionContext): Attempt[M[A]] = {
     traverse(in)(identity)
   }
 
