@@ -1,7 +1,5 @@
 package services
 
-import org.apache.commons.codec.digest.DigestUtils
-
 import java.io.{File, InputStream, OutputStream}
 import java.nio.file.Files
 import java.security.{DigestInputStream, MessageDigest}
