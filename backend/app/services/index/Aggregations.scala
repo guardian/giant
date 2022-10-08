@@ -19,7 +19,7 @@ object Aggregations {
         mediaType,
         buckets.foldLeft(0L)((a, i) => a + i.docCount),
         Some(buckets.map(b => SearchAggregationBucket(b.key, b.docCount, None)).toList))
-    }(collection.breakOut).toList
+    }.toList
 
     SearchAggregation(IndexAggNames.mimeTypes, aggs)
   }
