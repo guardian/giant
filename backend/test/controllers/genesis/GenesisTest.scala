@@ -62,7 +62,7 @@ class GenesisTest extends AnyFreeSpec with Matchers with Results with AttemptVal
           val json = contentAsJson(result)
           json.as[PartialUser] shouldBe PartialUser("bob", "Spongebob")
 
-          val dbUsers = userManagement.listUsers().asFuture.futureValue.right.get
+          val dbUsers = userManagement.listUsers().asFuture.futureValue.toOption.get
           dbUsers should have length 1
           dbUsers.head._1.registered should not be false
         }

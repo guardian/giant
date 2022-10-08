@@ -105,7 +105,7 @@ class UsersTest extends AnyFreeSpec with Matchers with Results with ScalaFutures
 
         status(controller.createUser("test").apply(req)) should be(200)
 
-        val users = db.listUsers().asFuture.futureValue.right.get
+        val users = db.listUsers().asFuture.futureValue.toOption.get
         users.find(_._1.username == "test").map(_._1.registered) should contain(false)
       }
     }
