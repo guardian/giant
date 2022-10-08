@@ -69,7 +69,7 @@ class OcrMyPdfExtractor(scratch: ScratchSpace, index: Index, pageService: Pages,
         )
 
         val textByLanguage = pdDocuments.map { case (lang, (_, doc)) =>
-          assert(doc.getNumberOfPages == numberOfPages, s"Number of pages mismatch across languages: ${pdDocuments.mapValues(_._2.getNumberOfPages)}")
+          assert(doc.getNumberOfPages == numberOfPages, s"Number of pages mismatch across languages: ${pdDocuments.view.mapValues(_._2.getNumberOfPages).toMap}")
 
           val reader = new PDFTextStripper()
           reader.setStartPage(pageNumber)
