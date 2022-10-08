@@ -141,7 +141,7 @@ class CliIngestionPipeline(ingestionService: CliIngestionService, s3Client: Inge
   }
 
   private def filesIterator(rootPath: Path, rootUri: Uri, languages: List[Language]): Iterator[OnDiskFileContext] = {
-    val walker = new CliFileWalker(path ⇒
+    val walker = new CliFileWalker(path =>
       CliIngestionPipeline.makeRelativeFile(path, rootPath, rootUri, Files.readAttributes(path, "*", LinkOption.NOFOLLOW_LINKS))
     )
     walker.walk(rootPath, rootUri, languages).toIterator
