@@ -61,9 +61,6 @@ class DeleteResource( manifest: Manifest, index: Index, previewStorage: ObjectSt
          _ <- Attempt.fromEither(previewStorage.delete(uri.toStoragePath))
          _ <- Attempt.fromEither(objectStorage.delete(uri.toStoragePath))
          _ <- index.delete(uri.value)
-         _ <- manifest.deleteBlobFileParent(uri)
-         // not all blobs are in workspaces so ignore failures here
-         _ <- manifest.deleteBlobWorkspaceNode(uri).recoverWith{ case _ => successAttempt}
          _ <- manifest.deleteBlob(uri)
          _ <- successAttempt
        } yield {
