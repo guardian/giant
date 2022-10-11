@@ -171,8 +171,25 @@ class Collections(override val controllerComponents: AuthControllerComponents, m
       val uri = Uri(collection).chain(ingestion)
 
       for {
+        // Confirm this thing is actually an ingestion first,
+        // since the delete operation operates on any :Resource
         _ <- manifest.getIngestion(uri)
-        _ <- manifest.deleteIngestion(uri)
+        _ <- manifest.deleteResourceAndDescendants(uri)
+      } yield {
+        NoContent
+      }
+    }
+  }
+
+  def deleteCollection(collection: String) = ApiAction.attempt { req =>
+    checkPermission(CanPerformAdminOperations, req) {
+      val uri = Uri(collection)
+
+      for {
+        // Confirm this thing is actually a collection first,
+        // since the delete operation operates on any :Resource
+        _ <- manifest.getCollection(uri)
+        _ <- manifest.deleteResourceAndDescendants(uri)
       } yield {
         NoContent
       }

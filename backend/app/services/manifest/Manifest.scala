@@ -84,5 +84,5 @@ trait Manifest extends WorkerManifest {
 
   def deleteBlob(uri: Uri): Attempt[Unit]
 
-  def deleteIngestion(uri: Uri): Attempt[Unit]
+  def deleteResourceAndDescendants(uri: Uri): Attempt[Unit]
 }
