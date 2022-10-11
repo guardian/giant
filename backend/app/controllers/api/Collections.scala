@@ -181,15 +181,13 @@ class Collections(override val controllerComponents: AuthControllerComponents, m
     }
   }
 
-  def deleteCollection(collection: String) = ApiAction.attempt { req =>
+  def deleteCollection(collection: Uri) = ApiAction.attempt { req =>
     checkPermission(CanPerformAdminOperations, req) {
-      val uri = Uri(collection)
-
       for {
         // Confirm this thing is actually a collection first,
         // since the delete operation operates on any :Resource
-        _ <- manifest.getCollection(uri)
-        _ <- manifest.deleteResourceAndDescendants(uri)
+        _ <- manifest.getCollection(collection)
+        _ <- manifest.deleteResourceAndDescendants(collection)
       } yield {
         NoContent
       }
