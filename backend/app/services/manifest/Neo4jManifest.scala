@@ -1002,9 +1002,9 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
     """
       |OPTIONAL MATCH (w: WorkspaceNode { uri: { uri }})
       |OPTIONAL MATCH (b: Blob:Resource { uri: { uri }})-[:PARENT]->(f: File)
-      |OPTIONAL MATCH (children :Resource)
-      |  WHERE r.uri STARTS WITH {uri}
-      |DETACH DELETE b, f, w, children
+      |OPTIONAL MATCH (descendant :Resource)
+      |  WHERE descendant.uri STARTS WITH {uri}
+      |DETACH DELETE b, f, w, descendant
       """.stripMargin,
     // We consider the deletion a success even if nothing has been deleted since the deletion may have been triggered
     // from a list of results coming back from Elasticsearch (which is eventually consistent so doesn't immediately
