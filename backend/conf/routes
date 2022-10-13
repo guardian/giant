@@ -5,6 +5,7 @@ GET           /api/collections                                              cont
 GET           /api/collections/:collection                                  controllers.api.Collections.getCollection(collection: model.Uri)
 
 POST          /api/collections                                              controllers.api.Collections.newCollection
+DELETE        /api/collections/:collection                                  controllers.api.Collections.deleteCollection(collection: model.Uri)
 POST          /api/collections/:collection                                  controllers.api.Collections.newIngestion(collection: model.Uri)
 POST          /api/collections/:collection/:ingestion                       controllers.api.Collections.uploadIngestionFile(collection, ingestion)
 DELETE        /api/collections/:collection/:ingestion                       controllers.api.Collections.deleteIngestion(collection, ingestion)

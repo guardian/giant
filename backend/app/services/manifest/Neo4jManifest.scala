@@ -1003,7 +1003,9 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
     count => count == 0 || count == 1,
     "Error deleting blob")
 
-  def deleteIngestion(uri: Uri): Attempt[Unit] = attemptTransaction { tx =>
+  // This will delete descendants down to the next blobs,
+  // at which point the URL pattern starts again.
+  def deleteResourceAndDescendants(uri: Uri): Attempt[Unit] = attemptTransaction { tx =>
     tx.run(
       """
         |MATCH (r: Resource)
