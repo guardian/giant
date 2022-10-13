@@ -1006,10 +1006,15 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
       |  WHERE descendant.uri STARTS WITH {uri}
       |DETACH DELETE b, f, w, descendant
       """.stripMargin,
-    // We consider the deletion a success even if nothing has been deleted since the deletion may have been triggered
-    // from a list of results coming back from Elasticsearch (which is eventually consistent so doesn't immediately
-    // show that the delete happened). TODO MRB: handle this more gracefully at a higher level, it's a hack down here
-    count => count == 0 || count == 1,
+    // Always consider the deletion a success.
+    // We can't set a lower bound, because if nothing has been deleted,
+    // the deletion may have been triggered from a list of results coming
+    // back from Elasticsearch (which is eventually consistent so doesn't
+    // immediately show that the delete happened).
+    // TODO MRB: handle the above more gracefully at a higher level, it's a hack down here
+    // And we can't set an upper bound, because there will be an indeterminate
+    // number of descendants deleted.
+    count => true,
     "Error deleting blob")
 
   def deleteIngestion(uri: Uri): Attempt[Unit] = attemptTransaction { tx =>
