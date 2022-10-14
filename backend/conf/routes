@@ -5,6 +5,7 @@ GET           /api/collections                                              cont
 GET           /api/collections/:collection                                  controllers.api.Collections.getCollection(collection: model.Uri)
 
 POST          /api/collections                                              controllers.api.Collections.newCollection()
+DELETE        /api/collections/:collection                                  controllers.api.Collections.deleteCollection(collection: model.Uri)
 POST          /api/collections/:collection                                  controllers.api.Collections.newIngestion(collection: model.Uri)
 POST          /api/collections/:collection/:ingestion                       controllers.api.Collections.uploadIngestionFile(collection, ingestion)
 DELETE        /api/collections/:collection/:ingestion                       controllers.api.Collections.deleteIngestion(collection, ingestion)
@@ -12,7 +13,7 @@ POST          /api/collections/:collection/:ingestion/verifyFiles           cont
 
 GET           /api/blobs                                                    controllers.api.Blobs.getBlobs()
 POST          /api/blobs/:id/reprocess                                      controllers.api.Blobs.reprocess(id, rerunSuccessful: Option[Boolean], rerunFailed: Option[Boolean])
-DELETE        /api/blobs/:id                                                controllers.api.Blobs.delete(id, deleteFolders: Boolean, checkChildren: Boolean)
+DELETE        /api/blobs/:id                                                controllers.api.Blobs.delete(id, checkChildren: Boolean)
 
 GET           /api/filters                                                  controllers.api.Filters.getFilters()
 

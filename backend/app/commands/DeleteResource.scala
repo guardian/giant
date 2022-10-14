@@ -51,7 +51,7 @@ class DeleteResource( manifest: Manifest, index: Index, previewStorage: ObjectSt
        pagePreviewObjectsAttempt.flatMap(deletePagePreviewObjects)
      }
 
-     private def deleteResource(uri: Uri, deleteFolders: Boolean): Attempt[Unit] = {
+     private def deleteResource(uri: Uri): Attempt[Unit] = {
        val successAttempt = Attempt.Right(())
        for {
          // For blobs not processed by the OcrMyPdfExtractor, ocrLanguages will be an empty list
@@ -61,9 +61,6 @@ class DeleteResource( manifest: Manifest, index: Index, previewStorage: ObjectSt
          _ <- Attempt.fromEither(previewStorage.delete(uri.toStoragePath))
          _ <- Attempt.fromEither(objectStorage.delete(uri.toStoragePath))
          _ <- index.delete(uri.value)
-         _ <- if (deleteFolders) manifest.deleteBlobFileParent(uri) else successAttempt
-         // not all blobs are in workspaces so ignore failures here
-         _ <- if (deleteFolders) manifest.deleteBlobWorkspaceNode(uri).recoverWith{ case _ => successAttempt} else successAttempt
          _ <- manifest.deleteBlob(uri)
          _ <- successAttempt
        } yield {
@@ -72,20 +69,20 @@ class DeleteResource( manifest: Manifest, index: Index, previewStorage: ObjectSt
      }
 
      // Deletes resource after checking it has no child nodes
-     def deleteBlobCheckChildren(id: String, deleteFolders: Boolean): Attempt[_ <: Unit] = {
+     def deleteBlobCheckChildren(id: String): Attempt[_ <: Unit] = {
        val uri = Uri(id)
 
        // casting to an option here because Attempt[Resource] and Attempt[Unit] are incompatible - so can't use a for comprehension with toAttempt
        val deleteResult = manifest.getResource(uri).toOption map { resource =>
-         if (resource.children.isEmpty) deleteResource(uri, deleteFolders)
+         if (resource.children.isEmpty) deleteResource(uri)
          else Attempt.Left(IllegalStateFailure(s"Cannot delete $uri as it has child nodes"))
        }
        deleteResult.getOrElse(Attempt.Left(DeleteFailure("Failed to fetch resource")))
      }
 
-     def deleteBlob(id: String, deleteFolders: Boolean): Attempt[Unit] = {
+     def deleteBlob(id: String): Attempt[Unit] = {
        val uri = Uri(id)
-       deleteResource(uri, deleteFolders)
+       deleteResource(uri)
      }
 
    }

@@ -987,26 +987,15 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
     }
   }
 
-  def deleteBlobWorkspaceNode(uri: Uri): Attempt[Unit] = processDelete(
-    uri,
-    """
-        |MATCH (w: WorkspaceNode:Resource { uri: { uri }})  DETACH DELETE w
-      """.stripMargin,
-    count => count == 1,
-    "Error deleting workspace node")
-
-  def deleteBlobFileParent(uri: Uri): Attempt[Unit] = processDelete(
-    uri,
-    """
-      |MATCH (: Blob:Resource { uri: { uri }}) -->(f: File) DETACH DELETE f
-      """.stripMargin,
-    count => count > 0,
-    "Error deleting file parent")
-
   def deleteBlob(uri: Uri): Attempt[Unit] = processDelete(
     uri,
+    // OPTIONAL MATCH so if there's no Workspace node pointing to it,
+    // we still delete the blob, and vice versa. (The vice versa would be
+    // unexpected but maybe you're clearing up a blob that was only partially deleted before).
     """
-      |MATCH (b: Blob:Resource { uri: { uri }}) DETACH DELETE b
+      |OPTIONAL MATCH (w: WorkspaceNode { uri: { uri }})
+      |OPTIONAL MATCH (b: Blob:Resource { uri: { uri }})-[:PARENT]->(f: File)
+      |DETACH DELETE b, f, w
       """.stripMargin,
     // We consider the deletion a success even if nothing has been deleted since the deletion may have been triggered
     // from a list of results coming back from Elasticsearch (which is eventually consistent so doesn't immediately
@@ -1014,7 +1003,9 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
     count => count == 0 || count == 1,
     "Error deleting blob")
 
-  def deleteIngestion(uri: Uri): Attempt[Unit] = attemptTransaction { tx =>
+  // This will delete descendants down to the next blobs,
+  // at which point the URL pattern starts again.
+  def deleteResourceAndDescendants(uri: Uri): Attempt[Unit] = attemptTransaction { tx =>
     tx.run(
       """
         |MATCH (r: Resource)

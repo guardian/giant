@@ -83,9 +83,6 @@ lazy val common = (project in file("common"))
     libraryDependencies ++= Seq(
       "org.typelevel" %% "cats-core" % "2.2.0",
       "com.typesafe.play" %% "play-json" % "2.9.0",
-      // This version has been chosen the match the transitive dependency from Play.
-      // Do not upgrade! Unless maybe you're upgrading Play...
-      "com.google.guava" % "guava" % "28.2-jre",
       "com.amazonaws" % "aws-java-sdk-s3" % awsVersion,
       "org.slf4j" % "slf4j-api" % "1.7.25",
       "org.scalatest" %% "scalatest" % scalatestVersion
@@ -197,6 +194,7 @@ lazy val cli = (project in file("cli"))
       "com.auth0" % "java-jwt" % "3.3.0",
       "ch.qos.logback" % "logback-classic" % "1.2.3",
       "org.slf4j" % "jcl-over-slf4j" % "1.7.25",
+      "com.google.guava" % "guava" % "28.2-jre",
       "org.scalatest" %% "scalatest" % scalatestVersion
     ),
     run / fork := true,

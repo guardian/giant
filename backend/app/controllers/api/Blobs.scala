@@ -67,12 +67,12 @@ class Blobs(override val controllerComponents: AuthControllerComponents, manifes
   }
 
 
-  def delete(id: String, deleteFolders: Boolean, checkChildren: Boolean): Action[AnyContent] = ApiAction.attempt { req =>
+  def delete(id: String, checkChildren: Boolean): Action[AnyContent] = ApiAction.attempt { req =>
     import scala.language.existentials
     val deleteResource = new DeleteResource(manifest, index, previewStorage, objectStorage)
     checkPermission(CanPerformAdminOperations, req) {
-      val result = if (checkChildren) deleteResource.deleteBlobCheckChildren(id, deleteFolders)
-      else deleteResource.deleteBlob(id, deleteFolders)
+      val result = if (checkChildren) deleteResource.deleteBlobCheckChildren(id)
+      else deleteResource.deleteBlob(id)
       result.map(_ => NoContent)
     }
   }
