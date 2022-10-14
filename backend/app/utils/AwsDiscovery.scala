@@ -11,7 +11,7 @@ import com.typesafe.config.ConfigValueFactory.fromAnyRef
 import org.apache.commons.lang3.StringUtils
 import services.{AWSDiscoveryConfig, BucketConfig, Config, DatabaseAuthConfig}
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 
 case class DiscoveryResult(updatedConfig: Config, jsonLoggingProperties: Map[String, String])
 

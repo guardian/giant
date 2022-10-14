@@ -14,7 +14,7 @@ import utils.attempt.AttemptAwait._
 import utils.attempt._
 import utils.{IngestionVerification, Logging}
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 import scala.concurrent.ExecutionContext
 
 class CliIngestionService(http: CliHttpClient)(implicit ec: ExecutionContext) extends Logging {

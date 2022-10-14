@@ -115,7 +115,7 @@ class Pages2(val client: ElasticClient, indexNamePrefix: String)(implicit val ex
         )
     }.flatMap { response =>
       // TODO should really be a map of language -> page matches
-      val matchingPages: Seq[Int] = response.hits.hits.map(_.field[Int](PagesFields.page)).distinct.sorted
+      val matchingPages: Seq[Int] = response.hits.hits.map(_.field[Int](PagesFields.page)).distinct.sorted.toIndexedSeq
 
       Attempt.Right(matchingPages)
     }

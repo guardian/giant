@@ -100,9 +100,9 @@ class PagesController(val controllerComponents: AuthControllerComponents, manife
       hlText.highlights.map(span => (lang, span))
     }.groupBy(_._2).toList.map { case (lang, commonSpans) =>
       commonSpans.head
-    }.groupBy(_._1).mapValues(_.map(_._2)).filter { case (k, v) =>
+    }.groupBy(_._1).view.mapValues(_.map(_._2)).filter { case (k, v) =>
       v.nonEmpty
-    }
+    }.toMap
   }
 
   def getPagePreview(uri: Uri, pageNumber: Int) = ApiAction.attempt { req =>

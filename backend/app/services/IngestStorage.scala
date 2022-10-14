@@ -12,7 +12,7 @@ import utils.Logging
 import utils.attempt.{Failure, IllegalStateFailure, JsonParseFailure, UnknownFailure}
 import utils.aws.S3Client
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 import scala.util.control.NonFatal
 
 trait IngestStorage {

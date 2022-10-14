@@ -11,7 +11,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 
 object TestUserManagement {
   def apply(initialUsers: List[user.DBUser]): TestUserManagement = {
-    val withPermissions: Map[String, (user.DBUser, user.UserPermissions, List[Collection])] = initialUsers.map(user => user.username -> (user, UserPermissions.default, List.empty))(scala.collection.breakOut)
+    val withPermissions: Map[String, (user.DBUser, user.UserPermissions, List[Collection])] = initialUsers.map(user => user.username -> (user, UserPermissions.default, List.empty)).toMap
     new TestUserManagement(withPermissions)
   }
 

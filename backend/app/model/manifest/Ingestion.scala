@@ -6,7 +6,7 @@ import model._
 import org.neo4j.driver.v1.Value
 import play.api.libs.json.Json
 import utils.Time._
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 
 case class Ingestion(display: String,
                      uri: String,

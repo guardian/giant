@@ -12,7 +12,7 @@ import services.table.Tables
 import utils.attempt.{Attempt, Failure}
 import utils.attempt.AttemptAwait._
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 import scala.concurrent.ExecutionContext
 
 class CsvTableExtractor(scratch: ScratchSpace, tableOps: Tables)(implicit ec: ExecutionContext) extends FileExtractor(scratch) {

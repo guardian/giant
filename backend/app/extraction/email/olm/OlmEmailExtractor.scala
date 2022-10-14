@@ -17,7 +17,7 @@ import services.{FingerprintServices, ScratchSpace}
 import utils.Logging
 import utils.attempt.Failure
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 import scala.collection.mutable.{Set => MutableSet}
 import scala.xml.XML
 

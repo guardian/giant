@@ -14,7 +14,7 @@ import play.api.libs.json._
 import utils.{DateTimeUtils, Logging, UriCleaner}
 
 import java.util.stream.Collectors
-import scala.collection.JavaConverters.asScalaBufferConverter
+import scala.jdk.CollectionConverters._
 
 object Priority {
   val NotUrgent = "not_urgent"

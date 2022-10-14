@@ -39,7 +39,7 @@ class UsersTest extends AnyFreeSpec with Matchers with Results with ScalaFutures
 
   "UsersController" - {
     "list partial user information to punters" in {
-      TestSetup(users + (paul -> (UserPermissions.bigBoss, List.empty), barry -> (UserPermissions.default, List.empty)), barry) { (controller, _) =>
+      TestSetup(Map(paul -> (UserPermissions.bigBoss, List.empty), barry -> (UserPermissions.default, List.empty)), barry) { (controller, _) =>
         val result = controller.listUsers.apply(FakeRequest())
         val json = contentAsJson(result)
 
@@ -53,7 +53,7 @@ class UsersTest extends AnyFreeSpec with Matchers with Results with ScalaFutures
     }
 
     "list full user information to admins" in {
-      TestSetup(users + (paul -> (UserPermissions.bigBoss, List.empty)), paul) { (controller, _) =>
+      TestSetup(Map(paul -> (UserPermissions.bigBoss, List.empty)), paul) { (controller, _) =>
         val result = controller.listUsers.apply(FakeRequest())
         val json = contentAsJson(result)
 
@@ -67,14 +67,14 @@ class UsersTest extends AnyFreeSpec with Matchers with Results with ScalaFutures
     }
 
     "get user permissions" in {
-      TestSetup(users + (paul -> (UserPermissions.bigBoss, List.empty)), paul) { (controller, _) =>
+      TestSetup(Map(paul -> (UserPermissions.bigBoss, List.empty)), paul) { (controller, _) =>
         val result = controller.getMyPermissions.apply(FakeRequest())
         val json = contentAsJson(result)
 
         json.as[UserPermissions] should be(UserPermissions.bigBoss)
       }
 
-      TestSetup(users + (paul -> (UserPermissions.default, List.empty)), barry) { (controller, _) =>
+      TestSetup(Map(paul -> (UserPermissions.default, List.empty)), barry) { (controller, _) =>
         val result = controller.getMyPermissions.apply(FakeRequest())
         val json = contentAsJson(result)
 
@@ -100,12 +100,12 @@ class UsersTest extends AnyFreeSpec with Matchers with Results with ScalaFutures
     }
 
     "create user that is flagged as not registered" in {
-      TestSetup(users + (paul -> (UserPermissions.bigBoss, List.empty)), paul) { (controller, db) =>
+      TestSetup(Map(paul -> (UserPermissions.bigBoss, List.empty)), paul) { (controller, db) =>
         val req = FakeRequest().withBody(Json.toJson(NewUser("test", "biglongpassword1234")))
 
         status(controller.createUser("test").apply(req)) should be(200)
 
-        val users = db.listUsers().asFuture.futureValue.right.get
+        val users = db.listUsers().asFuture.futureValue.toOption.get
         users.find(_._1.username == "test").map(_._1.registered) should contain(false)
       }
     }
@@ -177,7 +177,7 @@ class UsersTest extends AnyFreeSpec with Matchers with Results with ScalaFutures
       val dbAuthConfig = DatabaseAuthConfig(12, require2FA = false, "pfi")
       val hashing = new PasswordHashing
       val validator = new PasswordValidator(dbAuthConfig.minPasswordLength)
-      val userManagement = TestUserManagement(initialUsers)
+      val userManagement = TestUserManagement(users ++ initialUsers)
 
       val controllerComponents = stubControllerComponentsAsUser(reqUser.username, userManagement)
       val userProvider = new DatabaseUserProvider(dbAuthConfig, hashing, userManagement, Totp.googleAuthenticatorInstance(), generator, validator)

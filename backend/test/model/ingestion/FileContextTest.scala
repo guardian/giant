@@ -35,7 +35,7 @@ class FileContextTest extends AnyFunSuite with Matchers {
       Uri("collection/ingestion")
     )
 
-    val actual = FileContext.fromIngestMetadata(input).right.get.parents
+    val actual = FileContext.fromIngestMetadata(input).toOption.get.parents
     actual must be(expected)
   }
 
@@ -53,7 +53,7 @@ class FileContextTest extends AnyFunSuite with Matchers {
       Uri("collection/ingestion")
     )
 
-    val actual = FileContext.fromIngestMetadata(input).right.get.parents
+    val actual = FileContext.fromIngestMetadata(input).toOption.get.parents
     actual must be(expected)
   }
 
@@ -68,7 +68,7 @@ class FileContextTest extends AnyFunSuite with Matchers {
       Uri("collection/ingestion")
     )
 
-    val actual = FileContext.fromIngestMetadata(input).right.get.parents
+    val actual = FileContext.fromIngestMetadata(input).toOption.get.parents
     actual must be(expected)
   }
 

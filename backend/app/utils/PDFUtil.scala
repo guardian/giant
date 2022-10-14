@@ -9,7 +9,7 @@ import org.apache.pdfbox.pdmodel.interactive.annotation.PDAnnotationTextMarkup
 import org.apache.pdfbox.text.{PDFTextStripper, TextPosition}
 
 import java.util
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 import scala.math.{atan2, cos, sin, sqrt}
 
 object PDFUtil {

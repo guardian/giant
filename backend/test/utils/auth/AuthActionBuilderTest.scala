@@ -30,7 +30,7 @@ import org.scalatest.matchers.should.Matchers
 class AuthActionBuilderTest extends AnyFreeSpec with Matchers with BaseOneAppPerSuite with FakeApplicationFactory
   with EitherValues with Results with Inside {
 
-  override def fakeApplication: Application = {
+  override def fakeApplication(): Application = {
     val env = Environment.simple(new File("."))
     val initialSettings: Map[String, AnyRef] = Map(
       "play.http.secret.key" -> "TestKey",
@@ -45,13 +45,13 @@ class AuthActionBuilderTest extends AnyFreeSpec with Matchers with BaseOneAppPer
   }
 
   // To appease jwt-scala
-  implicit val configuration: Configuration = fakeApplication.configuration
+  implicit val configuration: Configuration = fakeApplication().configuration
   implicit val clock: Clock = Clock.systemUTC()
 
   val fakeUsers = TestUserManagement(List(user.DBUser("mickey", Some("Mickey Mouse"), Some(BCryptPassword("invalid")), None, registered = true, None)))
 
   "AuthActionBuilder" - {
-    val authActionBuilder = new DefaultAuthActionBuilder(Helpers.stubControllerComponents(), new DefaultFailureToResultMapper, 8 hours, 15 minutes, fakeUsers)(fakeApplication.configuration, Clock.systemUTC())
+    val authActionBuilder = new DefaultAuthActionBuilder(Helpers.stubControllerComponents(), new DefaultFailureToResultMapper, 8 hours, 15 minutes, fakeUsers)(fakeApplication().configuration, Clock.systemUTC())
     val userMickey = User("mickey", "Mickey Mouse")
     val now = new DateTime(2017, 1, 5, 16, 0, 0)
 
@@ -157,7 +157,7 @@ class AuthActionBuilderTest extends AnyFreeSpec with Matchers with BaseOneAppPer
         val requestTime = now.plusMinutes(10)
         val futureResult = authActionBuilder.invokeBlockWithTime(request, block, requestTime.getMillis)
         val resultEither = Helpers.await(futureResult)
-        val result = resultEither.right.value
+        val result = resultEither.toOption.get
 
         val newToken = tokenFromResult(result)
         newToken.user shouldBe token.user
@@ -178,7 +178,7 @@ class AuthActionBuilderTest extends AnyFreeSpec with Matchers with BaseOneAppPer
         val requestTime = now.plusMinutes(10)
         val futureResult = authActionBuilder.invokeBlockWithTime(request, block, requestTime.getMillis)
         val resultEither = Helpers.await(futureResult)
-        val result = resultEither.right.value
+        val result = resultEither.toOption.get
 
         val newToken = tokenFromResult(result)
         newToken.user shouldBe token.user
@@ -248,7 +248,7 @@ class AuthActionBuilderTest extends AnyFreeSpec with Matchers with BaseOneAppPer
         val futureResult = authActionBuilderWithInvalidatedUser.
           invokeBlockWithTime(request, block, now.getMillis)
         val resultOrFailure = Helpers.await(futureResult)
-        val result = resultOrFailure.right.value
+        val result = resultOrFailure.toOption.get
         result.header.status shouldBe 200
       }
     }

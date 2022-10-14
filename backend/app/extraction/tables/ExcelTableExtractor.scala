@@ -50,7 +50,7 @@ class ExcelTableExtractor(scratch: ScratchSpace, tableOps: Tables)(implicit ec: 
       breakable {
         while (xmlReader.hasNext) {
           result :+= readRows(1000, xmlReader, stringsTable, stylesTable, sheetName, blob)
-          if (xmlReader.isStartElement && xmlReader.getLocalName.equals("sheetData")) break
+          if (xmlReader.isStartElement && xmlReader.getLocalName.equals("sheetData")) break()
         }
       }
     }
@@ -69,7 +69,7 @@ class ExcelTableExtractor(scratch: ScratchSpace, tableOps: Tables)(implicit ec: 
               val dataRow = getDataRow(xmlReader, stringsTable, sheetName, stylesTable)
               dataRows :+= dataRow
             }
-          if (dataRows.size == batchSize) break
+          if (dataRows.size == batchSize) break()
         }
       }
     }
@@ -92,7 +92,7 @@ class ExcelTableExtractor(scratch: ScratchSpace, tableOps: Tables)(implicit ec: 
             val cellValue = getCellValue(cellType, xmlReader, stringsTable, stylesTable, cellStyleStr)
             rowValues :+= cellValue
           }
-        if (xmlReader.isEndElement && xmlReader.getLocalName.equals("row")) break
+        if (xmlReader.isEndElement && xmlReader.getLocalName.equals("row")) break()
       }
     }
     TableRow(Some(sheetName), cellReference.getRow, rowValues.zipWithIndex.map{ case (cell, index) => index.toString -> cell }.toMap)
@@ -120,7 +120,7 @@ class ExcelTableExtractor(scratch: ScratchSpace, tableOps: Tables)(implicit ec: 
           }
         }
 
-        if (xmlReader.isEndElement && xmlReader.getLocalName.equals("c")) break
+        if (xmlReader.isEndElement && xmlReader.getLocalName.equals("c")) break()
       }
     }
     value
