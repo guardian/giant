@@ -39,14 +39,16 @@ deployments:
   pfi:
     type: autoscaling
     parameters:
-      bucket: pfi-playground-dist
+      bucketSsmKey: /pfi-playground/artifact.bucket
+      bucketSsmLookup: true
     dependencies:
       - pfi-ami-update
 
   pfi-worker:
     type: autoscaling
     parameters:
-      bucket: pfi-playground-dist
+      bucketSsmKey: /pfi-playground/artifact.bucket
+      bucketSsmLookup: true
     actions:
       - deploy
     dependencies:
@@ -55,14 +57,16 @@ deployments:
   pfi-cli:
     type: aws-s3
     parameters:
-      bucket: pfi-playground-dist
+      bucketSsmKey: /pfi-playground/artifact.bucket
+      bucketSsmLookup: true
       cacheControl: private
       publicReadAcl: false
 
   pfi-public-downloads:
     type: aws-s3
     parameters:
-      bucket: investigations-public-dist
+      bucketSsmKey: /account/services/public.download.bucket
+      bucketSsmLookup: true
       cacheControl: private
       # This is the default but if you specify it explictly Riff-Raff issues a warning
       publicReadAcl: true
