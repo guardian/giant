@@ -442,18 +442,25 @@ class ElasticsearchResources(override val client: ElasticClient, indexName: Stri
 
   }
 
-  def getBlobs(collection: String, maybeIngestion: Option[String], size: Int): Attempt[Iterable[IndexedBlob]] = {
-    val query = maybeIngestion match {
+  def getBlobs(collection: String, maybeIngestion: Option[String], size: Int, inMultiple: Boolean): Attempt[Iterable[IndexedBlob]] = {
+    val matchCollectionIngestionQuery = maybeIngestion match {
       case Some(ingestion) => matchQuery(IndexFields.ingestionRaw, s"$collection/$ingestion")
       case _ => matchQuery(IndexFields.collectionRaw, collection)
     }
 
+    val mustQuery = must(matchCollectionIngestionQuery)
+    val field = maybeIngestion.map(_ => "ingestion").getOrElse("collection")
+    val boolQuery = if (inMultiple)
+      mustQuery.filter(scriptQuery(script(s"doc['${field}.keyword'].length > 1")))
+    else
+      mustQuery
+
     execute {
       search(indexName)
-        .sourceInclude(IndexFields.ingestion)
+        .sourceInclude(IndexFields.ingestion, IndexFields.collection)
         .size(size)
         .bool(
-          must(query)
+          boolQuery
         )
     }.map { response =>
       response.to[IndexedBlob]

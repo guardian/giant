@@ -20,15 +20,21 @@ class Blobs(override val controllerComponents: AuthControllerComponents, manifes
 
   def param(name: String, req: Request[AnyContent]): Option[String] = req.queryString.get(name).flatMap(_.headOption)
 
-  def getBlobs = ApiAction.attempt { req =>
+  // inMultiple means only return blobs that are also in other collections/ingestions than those supplied.
+  // For instance:
+  //   ?collection=c&inMultiple=true
+  //   returns blobs in collection c and at least one other collection
+  //
+  //   ?collection=c&ingestion=i&inMultiple=true
+  //   returns blobs in ingestion c/i and at least one other ingestion
+  def getBlobs(collection: Option[String], ingestion: Option[String], inMultiple: Option[Boolean], size: Option[Int]) = ApiAction.attempt { req =>
     checkPermission(CanPerformAdminOperations, req) {
-      (param("collection", req), param("ingestion", req)) match {
-        case (Some(collection), maybeIngestion) =>
-          val size = param("size", req).map(_.toInt).getOrElse(500)
-
-          index.getBlobs(collection, maybeIngestion, size).map(blobs =>
+      (collection, ingestion, inMultiple) match {
+        case (Some(collection), maybeIngestion, maybeInMultiple) =>
+          index.getBlobs(collection, maybeIngestion, size.getOrElse(500), maybeInMultiple.getOrElse(false)).map(blobs =>
             Ok(Json.obj("blobs" -> blobs))
           )
+
         case _ =>
           Attempt.Right(BadRequest("Missing collection query parameter"))
       }

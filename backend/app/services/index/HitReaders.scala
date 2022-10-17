@@ -146,7 +146,8 @@ object HitReaders {
   implicit object IndexedBlobHitReader extends HitReader[IndexedBlob] {
     override def read(hit: Hit): Try[IndexedBlob] = try {
       val ingestion = hit.setField[String](IndexFields.ingestion)
-      Success(IndexedBlob(hit.id, ingestion))
+      val collection = hit.setField[String](IndexFields.collection)
+      Success(IndexedBlob(uri = hit.id, collections = collection, ingestions = ingestion))
     } catch {
       case NonFatal(e) => Failure(e)
     }
