@@ -987,6 +987,13 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
     }
   }
 
+  // If this blob has children, the neo4j structure beneath it (down to
+  // the next :Blob descendant) will be deleted. This leaves orphaned blobs
+  // in neo4j, elasticsearch and S3, but it is expected that it will be called either:
+  //   1. from the UI, in which case the operation is disallowed if it has children
+  //   2. as part of deleting an ingestion or collection, in which case those
+  //      orphaned blobs will have been returned from the initial getBlobs ES query
+  //      and will therefore be deleted separately as we loop through them.
   def deleteBlob(uri: Uri): Attempt[Unit] = processDelete(
     uri,
     // OPTIONAL MATCH so if there's no Workspace node pointing to it,
@@ -995,12 +1002,19 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
     """
       |OPTIONAL MATCH (w: WorkspaceNode { uri: { uri }})
       |OPTIONAL MATCH (b: Blob:Resource { uri: { uri }})-[:PARENT]->(f: File)
-      |DETACH DELETE b, f, w
+      |OPTIONAL MATCH (descendant :Resource)
+      |  WHERE descendant.uri STARTS WITH {uri}
+      |DETACH DELETE b, f, w, descendant
       """.stripMargin,
-    // We consider the deletion a success even if nothing has been deleted since the deletion may have been triggered
-    // from a list of results coming back from Elasticsearch (which is eventually consistent so doesn't immediately
-    // show that the delete happened). TODO MRB: handle this more gracefully at a higher level, it's a hack down here
-    count => count == 0 || count == 1,
+    // Always consider the deletion a success.
+    // We can't set a lower bound, because if nothing has been deleted,
+    // the deletion may have been triggered from a list of results coming
+    // back from Elasticsearch (which is eventually consistent so doesn't
+    // immediately show that the delete happened).
+    // TODO MRB: handle the above more gracefully at a higher level, it's a hack down here
+    // And we can't set an upper bound, because there will be an indeterminate
+    // number of descendants deleted.
+    count => true,
     "Error deleting blob")
 
   // This will delete descendants down to the next blobs,
