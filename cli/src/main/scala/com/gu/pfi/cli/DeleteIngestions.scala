@@ -38,7 +38,7 @@ class DeleteIngestions(ingestions: List[(String, String)], ingestionService: Cli
   }
 
   private def deleteBlob(b: IndexedBlob): Attempt[Unit] = {
-    val conflictingIngestions = b.ingestion.filterNot(ingestionUris.contains)
+    val conflictingIngestions = b.ingestions.filterNot(ingestionUris.contains)
 
     if(conflictingIngestions.nonEmpty) {
       conflictBehaviour.getOrElse(Stop) match {
@@ -49,17 +49,17 @@ class DeleteIngestions(ingestions: List[(String, String)], ingestionService: Cli
           )
         case Skip =>
           logger.warn(
-            s"""${b.uri} in [${b.ingestion.mkString(", ")}] is also present in [${conflictingIngestions.mkString(" ")}].
+            s"""${b.uri} in [${b.ingestions.mkString(", ")}] is also present in [${conflictingIngestions.mkString(" ")}].
            Skipping for now.""".stripMargin)
           Attempt.Right(())
         case Delete =>
               logger.warn(
-                s"""${b.uri} in [${b.ingestion.mkString(", ")}] is also present in [${conflictingIngestions.mkString(" ")}].
+                s"""${b.uri} in [${b.ingestions.mkString(", ")}] is also present in [${conflictingIngestions.mkString(" ")}].
                    Deleting it from all locations.""".stripMargin)
               ingestionService.deleteBlob(b.uri)
       }
     } else {
-      logger.info(s"Deleting ${b.uri} from [${b.ingestion.mkString(", ")}]")
+      logger.info(s"Deleting ${b.uri} from [${b.ingestions.mkString(", ")}]")
       ingestionService.deleteBlob(b.uri)
     }
   }

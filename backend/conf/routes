@@ -11,7 +11,7 @@ POST          /api/collections/:collection/:ingestion                       cont
 DELETE        /api/collections/:collection/:ingestion                       controllers.api.Collections.deleteIngestion(collection, ingestion)
 POST          /api/collections/:collection/:ingestion/verifyFiles           controllers.api.Collections.verifyFiles(collection, ingestion)
 
-GET           /api/blobs                                                    controllers.api.Blobs.getBlobs()
+GET           /api/blobs                                                    controllers.api.Blobs.getBlobs(collection: Option[String], ingestion: Option[String], inMultiple: Option[Boolean], size: Option[Int])
 POST          /api/blobs/:id/reprocess                                      controllers.api.Blobs.reprocess(id, rerunSuccessful: Option[Boolean], rerunFailed: Option[Boolean])
 DELETE        /api/blobs/:id                                                controllers.api.Blobs.delete(id, checkChildren: Boolean)
 
