@@ -60,8 +60,14 @@ class DeleteResource( manifest: Manifest, index: Index, previewStorage: ObjectSt
          _ <- deletePagePreviews(uri, ocrLanguages)
          _ <- Attempt.fromEither(previewStorage.delete(uri.toStoragePath))
          _ <- Attempt.fromEither(objectStorage.delete(uri.toStoragePath))
-         _ <- index.delete(uri.value)
          _ <- manifest.deleteBlob(uri)
+         // We use the index to determine what blobs are in a collection.
+         // So we should delete from the index last, so that if any of the above
+         // operations fails, we are still able to clear things up
+         // by restarting the delete collection operation. (Otherwise,
+         // it would think the blob no longer exists even though there may
+         // be traces in neo4j or S3).
+         _ <- index.delete(uri.value)
          _ <- successAttempt
        } yield {
          Unit
