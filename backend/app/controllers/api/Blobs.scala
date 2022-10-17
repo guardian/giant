@@ -41,6 +41,20 @@ class Blobs(override val controllerComponents: AuthControllerComponents, manifes
     }
   }
 
+  def countBlobs(collection: Option[String], ingestion: Option[String], inMultiple: Option[Boolean]) = ApiAction.attempt { req =>
+    checkPermission(CanPerformAdminOperations, req) {
+      (collection, ingestion, inMultiple) match {
+        case (Some(collection), maybeIngestion, maybeInMultiple) =>
+          index.countBlobs(collection, maybeIngestion, maybeInMultiple.getOrElse(false)).map(count =>
+            Ok(Json.obj("count" -> count))
+          )
+
+        case _ =>
+          Attempt.Right(BadRequest("Missing collection query parameter"))
+      }
+    }
+  }
+
   def reprocess(id: String, rerunSuccessfulParam: Option[Boolean], rerunFailedParam: Option[Boolean]) = ApiAction.attempt { req =>
     checkPermission(CanPerformAdminOperations, req) {
       val uri = Uri(id)
