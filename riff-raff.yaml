@@ -39,14 +39,16 @@ deployments:
   pfi:
     type: autoscaling
     parameters:
-      bucket: pfi-playground-dist
+      bucketSsmKey: /pfi-playground/artifact.bucket
+      bucketSsmLookup: true
     dependencies:
       - pfi-ami-update
 
   pfi-worker:
     type: autoscaling
     parameters:
-      bucket: pfi-playground-dist
+      bucketSsmKey: /pfi-playground/artifact.bucket
+      bucketSsmLookup: true
     actions:
       - deploy
     dependencies:
