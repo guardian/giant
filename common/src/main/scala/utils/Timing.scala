@@ -13,7 +13,7 @@ trait Timing extends Logging {
     val elapsedMinutes = (elapsedSeconds / 60).toInt
     logger.info(s"${name}: took ${elapsedMinutes} minutes ${elapsedSeconds} seconds ${elapsedMilliseconds} milliseconds ${elapsedNanoseconds} nanoseconds")
   }
-  def timeAsync[T](name: String, attempt: Attempt[T])(implicit ec: ExecutionContext): Attempt[T] = {
+  def timeAsync[T](name: String, attempt: => Attempt[T])(implicit ec: ExecutionContext): Attempt[T] = {
     val start = System.nanoTime()
 
     attempt.map { result =>
