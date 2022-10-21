@@ -17,7 +17,7 @@ class DeleteResource( manifest: Manifest, index: Index, previewStorage: ObjectSt
    extends Timing {
 
      private def deletePagePreviewObjects(s3Objects: List[String]): Attempt[List[Unit]] = {
-       // logger.info(s"Deleting objects: ${s3Objects.mkString(", ")}")
+        logger.info(s"Deleting objects: ${s3Objects.mkString(", ")}")
        val deletionAttempts = s3Objects
          .map(previewStorage.delete)
          .map(Attempt.fromEither)
@@ -32,7 +32,7 @@ class DeleteResource( manifest: Manifest, index: Index, previewStorage: ObjectSt
          // we introduced the OcrMyPdfExtractor.
          logger.info(s"No OCR languages found for blob ${uri.value}")
        } else {
-         // logger.info(s"Deleting page previews for ${uri.value} in languages: ${ocrLanguages.map(_.key).mkString(", ")}")
+          logger.info(s"Deleting page previews for ${uri.value} in languages: ${ocrLanguages.map(_.key).mkString(", ")}")
        }
 
        // Try and delete from these legacy paths as well.
@@ -41,7 +41,7 @@ class DeleteResource( manifest: Manifest, index: Index, previewStorage: ObjectSt
        val legacyPagePreviewPrefixes = List("ocr.english", "text").map(folder => s"pages/${folder}/${uri.toStoragePath}")
        val pagePreviewPrefixes = ocrLanguages.map(PreviewService.getPageStoragePrefix(uri, _))
        val prefixesToDelete = legacyPagePreviewPrefixes ::: pagePreviewPrefixes
-       // logger.info(s"Deleting prefixes: ${prefixesToDelete.mkString(", ")}")
+        logger.info(s"Deleting prefixes: ${prefixesToDelete.mkString(", ")}")
 
        val listOfPagePreviewObjectsAttempts = prefixesToDelete.map { prefix =>
          Attempt.fromEither(previewStorage.list(prefix))
