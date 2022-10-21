@@ -28,7 +28,7 @@ Double click the files to view:
 
 ![Screenshot of a file uploaded to a workspace](images/user_quickstart/06_uploaded_file.png)
 
-The “Text” tab shows machine readable text that was present in the document originally. The "OCR" tab shows text that Giant has extracted using OCR. "Preview" shows the original document.
+If you came to the file from search, the first hit will be highlighted. You can also search within the document using the in-document search field.
 
 ## Searching documents in a workspace
 
