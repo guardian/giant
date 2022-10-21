@@ -7,17 +7,17 @@ import services.ObjectStorage
 import services.index.Index
 import services.manifest.Manifest
 import services.previewing.PreviewService
-import utils.Logging
+import utils.{Logging, Timing}
 import utils.attempt.{Attempt, DeleteFailure, IllegalStateFailure}
 
 import scala.concurrent.ExecutionContext
 
 
 class DeleteResource( manifest: Manifest, index: Index, previewStorage: ObjectStorage, objectStorage: ObjectStorage)  (implicit ec: ExecutionContext)
-   extends Logging {
+   extends Timing {
 
      private def deletePagePreviewObjects(s3Objects: List[String]): Attempt[List[Unit]] = {
-       logger.info(s"Deleting objects: ${s3Objects.mkString(", ")}")
+        logger.info(s"Deleting objects: ${s3Objects.mkString(", ")}")
        val deletionAttempts = s3Objects
          .map(previewStorage.delete)
          .map(Attempt.fromEither)
@@ -32,7 +32,7 @@ class DeleteResource( manifest: Manifest, index: Index, previewStorage: ObjectSt
          // we introduced the OcrMyPdfExtractor.
          logger.info(s"No OCR languages found for blob ${uri.value}")
        } else {
-         logger.info(s"Deleting page previews for ${uri.value} in languages: ${ocrLanguages.map(_.key).mkString(", ")}")
+          logger.info(s"Deleting page previews for ${uri.value} in languages: ${ocrLanguages.map(_.key).mkString(", ")}")
        }
 
        // Try and delete from these legacy paths as well.
@@ -41,7 +41,7 @@ class DeleteResource( manifest: Manifest, index: Index, previewStorage: ObjectSt
        val legacyPagePreviewPrefixes = List("ocr.english", "text").map(folder => s"pages/${folder}/${uri.toStoragePath}")
        val pagePreviewPrefixes = ocrLanguages.map(PreviewService.getPageStoragePrefix(uri, _))
        val prefixesToDelete = legacyPagePreviewPrefixes ::: pagePreviewPrefixes
-       logger.info(s"Deleting prefixes: ${prefixesToDelete.mkString(", ")}")
+        logger.info(s"Deleting prefixes: ${prefixesToDelete.mkString(", ")}")
 
        val listOfPagePreviewObjectsAttempts = prefixesToDelete.map { prefix =>
          Attempt.fromEither(previewStorage.list(prefix))
@@ -51,28 +51,28 @@ class DeleteResource( manifest: Manifest, index: Index, previewStorage: ObjectSt
        pagePreviewObjectsAttempt.flatMap(deletePagePreviewObjects)
      }
 
-     private def deleteResource(uri: Uri): Attempt[Unit] = {
+     private def deleteResource(uri: Uri): Attempt[Unit] = timeAsync("Total to delete resource", {
        val successAttempt = Attempt.Right(())
        for {
          // For blobs not processed by the OcrMyPdfExtractor, ocrLanguages will be an empty list
-         ocrLanguages <- manifest.getLanguagesProcessedByOcrMyPdf(uri)
+         ocrLanguages <- timeAsync("Getting langs from neo4j", manifest.getLanguagesProcessedByOcrMyPdf(uri))
          // Not everything has a preview but S3 returns success for deleting an object that doesn't exist so we're fine
-         _ <- deletePagePreviews(uri, ocrLanguages)
-         _ <- Attempt.fromEither(previewStorage.delete(uri.toStoragePath))
-         _ <- Attempt.fromEither(objectStorage.delete(uri.toStoragePath))
-         _ <- manifest.deleteBlob(uri)
+         _ <- timeAsync("Delete page previews", deletePagePreviews(uri, ocrLanguages))
+         _ <- Attempt.fromEither(timeSync("Preview S3 delete", previewStorage.delete(uri.toStoragePath)))
+         _ <- Attempt.fromEither(timeSync("Ingest S3 delete", objectStorage.delete(uri.toStoragePath)))
+         _ <- timeAsync("Delete blob from neo4j", manifest.deleteBlob(uri))
          // We use the index to determine what blobs are in a collection.
          // So we should delete from the index last, so that if any of the above
          // operations fails, we are still able to clear things up
          // by restarting the delete collection operation. (Otherwise,
          // it would think the blob no longer exists even though there may
          // be traces in neo4j or S3).
-         _ <- index.delete(uri.value)
+         _ <- timeAsync("Delete blob from elasticsearch", index.delete(uri.value))
          _ <- successAttempt
        } yield {
          ()
        }
-     }
+     })
 
      // Deletes resource after checking it has no child nodes
      def deleteBlobCheckChildren(id: String): Attempt[_ <: Unit] = {
