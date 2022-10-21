@@ -9,13 +9,13 @@ import org.neo4j.driver.v1._
 import org.neo4j.driver.v1.types.TypeSystem
 import play.api.Logger
 import services.Neo4jQueryLoggingConfig
-import utils.attempt.{Attempt, Failure, Neo4JFailure, Neo4JTransientFailure, NotFoundFailure, TransactionFailure, UnknownFailure}
+import utils.attempt.{Attempt, Failure, Neo4JFailure, Neo4JTransientFailure, NotFoundFailure, UnknownFailure}
 
-import scala.annotation.tailrec
 import scala.collection.mutable
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
+import utils.Logging
 
 class Neo4jHelper(driver: Driver, executionContext: ExecutionContext, queryLoggingConfig: Neo4jQueryLoggingConfig) extends Logging {
 
@@ -38,29 +38,29 @@ class Neo4jHelper(driver: Driver, executionContext: ExecutionContext, queryLoggi
     */
   class AttemptWrappedTransaction(underlying: StatementRunner, executionContext: ExecutionContext) {
     def run(statementTemplate: String, statementParameters: Record): Attempt[StatementResult] =
-      attemptNeo4J {
+      attemptNeo4J({
         underlying.run(statementTemplate, statementParameters)
-      }
+      })()
 
     def run(statementTemplate: String): Attempt[StatementResult] =
-      attemptNeo4J {
+      attemptNeo4J({
         underlying.run(statementTemplate)
-      }
+      })()
 
     def run(statementTemplate: String, parameters: Value): Attempt[StatementResult] =
-      attemptNeo4J {
+      attemptNeo4J({
         underlying.run(statementTemplate, parameters)
-      }
+      })()
 
     def run(statementTemplate: String, statementParameters: java.util.Map[String, AnyRef]): Attempt[StatementResult] =
-      attemptNeo4J {
+      attemptNeo4J({
         underlying.run(statementTemplate, statementParameters)
-      }
+      })()
 
     def run(statement: Statement): Attempt[StatementResult] =
-      attemptNeo4J {
+      attemptNeo4J({
         underlying.run(statement)
-      }
+      })()
 
     def run(statementTemplate: String, parameters: (String, AnyRef)*): Attempt[StatementResult] = {
       val flattenedParameters = parameters.flatten { case (k, v) => Vector(k,v) }
@@ -309,7 +309,7 @@ class Neo4jHelper(driver: Driver, executionContext: ExecutionContext, queryLoggi
 }
 
 object Neo4jHelper {
-  implicit class RichRecords[T <: Seq[Record]](result: T) {
+  implicit class RichRecords[T <: Iterable[Record]](result: T) {
     def hasKeyOrFailure(expectedKey: String, errorMessage: String): Either[Failure, T] = {
       if (!result.exists(x => x.containsKey(expectedKey))) {
         Left(NotFoundFailure(errorMessage))

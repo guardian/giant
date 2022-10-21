@@ -14,7 +14,7 @@ import services.{AWSDiscoveryConfig, IngestStorage, WorkerConfig}
 import utils.AWSWorkerControl.{AddNewWorker, RemoveWorker}
 import utils.attempt.{Attempt, Failure, IllegalStateFailure}
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 import scala.concurrent.{ExecutionContext, Future}
 
 case class WorkerDetails(nodes: Set[String], thisNode: String)

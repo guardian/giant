@@ -2,7 +2,7 @@ name := "giant"
 description := "Tool for journalists to search, analyse and categorise unstructured data, often during an investigation"
 version := "0.1.0"
 
-scalaVersion in ThisBuild := "2.12.15"
+ThisBuild / scalaVersion := "2.13.9"
 
 import com.gu.riffraff.artifact.BuildInfo
 import play.sbt.PlayImport.PlayKeys._
@@ -12,8 +12,7 @@ val compilerFlags = Seq(
   "-unchecked",
   "-deprecation",
   "-feature",
-  "-Xfatal-warnings",
-  "-Ypartial-unification"
+  "-Xfatal-warnings"
 )
 
 val awsVersion = "1.11.566"
@@ -80,6 +79,7 @@ lazy val root = (project in file("."))
 lazy val common = (project in file("common"))
   .settings(
     name := "common",
+    scalacOptions := compilerFlags,
     libraryDependencies ++= Seq(
       "org.typelevel" %% "cats-core" % "2.2.0",
       "com.typesafe.play" %% "play-json" % "2.9.0",
@@ -109,7 +109,6 @@ lazy val backend = (project in file("backend"))
       "org.elasticsearch.client" % "elasticsearch-rest-client-sniffer" % "7.9.2",
       "com.typesafe.akka" %% "akka-cluster-typed" % "2.6.5", // should match what we get transitively from Play
       "org.neo4j.driver" % "neo4j-java-driver" % "1.6.3",
-      "org.scala-lang.modules" %% "scala-java8-compat" % "0.9.1",
       "com.pff" % "java-libpst" % "0.9.3",
       // NOTE: When you update tika you need to check if there are any updates required to be made to the
       // conf/org/apache/tika/mimecustom-mimetypes.xml file
@@ -127,10 +126,10 @@ lazy val backend = (project in file("backend"))
       "com.amazonaws" % "aws-java-sdk-cloudwatch" % awsVersion,
       "com.amazonaws" % "aws-java-sdk-cloudwatchmetrics" % awsVersion,
       "com.beachape" %% "enumeratum-play" % "1.6.1",
-      "com.iheart" %% "ficus" % "1.4.4",
+      "com.iheart" %% "ficus" % "1.5.2",
       "com.sun.mail" % "javax.mail" % "1.6.2",
       "org.jsoup" % "jsoup" % "1.11.3",
-      "com.gu" %% "pan-domain-auth-verification" % "0.8.0",
+      "com.gu" %% "pan-domain-auth-verification" % "1.2.0",
 
       // Libraries whose use are potentially contentious
 
@@ -146,9 +145,9 @@ lazy val backend = (project in file("backend"))
 
       "org.scalacheck" %% "scalacheck" % "1.14.0" % Test,
       "org.scalatestplus.play" %% "scalatestplus-play" % "5.1.0" % Test,
-      "com.whisk" %% "docker-testkit-scalatest" % "0.9.8" % Test,
-      "com.whisk" %% "docker-testkit-impl-spotify" % "0.9.8" % Test,
-      "org.scalamock" %% "scalamock" % "4.1.0" % Test
+      "com.whisk" %% "docker-testkit-scalatest" % "0.9.9" % Test,
+      "com.whisk" %% "docker-testkit-impl-spotify" % "0.9.9" % Test,
+      "org.scalamock" %% "scalamock" % "4.4.0" % Test
     ),
 
     // set up separate tests and integration tests - http://www.scala-sbt.org/0.13.1/docs/Detailed-Topics/Testing.html#custom-test-configuration
@@ -188,7 +187,7 @@ lazy val cli = (project in file("cli"))
     name := "pfi-cli",
     scalacOptions := compilerFlags,
     libraryDependencies ++= Seq(
-      "org.rogach" %% "scallop" % "3.1.3",
+      "org.rogach" %% "scallop" % "3.5.1",
       "com.beachape" %% "enumeratum" % "1.5.13",
       "com.squareup.okhttp3" % "okhttp" % "3.10.0",
       "com.amazonaws" % "aws-java-sdk-s3" % awsVersion,

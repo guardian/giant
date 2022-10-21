@@ -3,7 +3,7 @@ package test.integration
 import com.whisk.docker.{DockerContainer, DockerKit, DockerReadyChecker}
 import org.neo4j.driver.v1.{AuthTokens, GraphDatabase}
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 import scala.concurrent.duration._
 import scala.language.postfixOps
 import scala.util.Try

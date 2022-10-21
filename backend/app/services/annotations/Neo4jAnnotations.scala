@@ -15,7 +15,7 @@ import services.annotations.Annotations.{AffectedResource, DeleteItemResult, Mov
 import utils._
 import utils.attempt.{Attempt, ClientFailure, Failure, IllegalStateFailure, NotFoundFailure}
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 import scala.concurrent.ExecutionContext
 
 object Neo4jAnnotations {

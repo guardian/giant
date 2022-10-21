@@ -8,7 +8,7 @@ import org.neo4j.driver.v1.Value
 import play.api.libs.json._
 import services.previewing.{PreviewService, PreviewStatus}
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 
 case class RelatedResource(uri: String, `type`: String, display: Option[String], isExpandable: Boolean)
 
@@ -170,7 +170,7 @@ object DocumentResource {
       parents = basic.parents,
       children = basic.children,
       text = HighlightableText.fromString(document.text, page = None),
-      ocr = document.ocr.map(ocrMap => ocrMap.mapValues { v => HighlightableText.fromString(v, page = None) }),
+      ocr = document.ocr.map(ocrMap => ocrMap.view.mapValues { v => HighlightableText.fromString(v, page = None) }.toMap),
       metadata = document.metadata,
       enrichedMetadata = document.enrichedMetadata,
       previewStatus = PreviewService.previewStatus(document.mimeTypes),

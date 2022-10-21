@@ -19,7 +19,7 @@ import utils.attempt.{Attempt, Failure, IllegalStateFailure, NotFoundFailure}
 
 import java.nio.file.Path
 import java.time.Instant
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 import scala.concurrent.ExecutionContext
 
 object Neo4jManifest {

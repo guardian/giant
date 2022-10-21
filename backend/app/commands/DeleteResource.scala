@@ -70,7 +70,7 @@ class DeleteResource( manifest: Manifest, index: Index, previewStorage: ObjectSt
          _ <- index.delete(uri.value)
          _ <- successAttempt
        } yield {
-         Unit
+         ()
        }
      }
 

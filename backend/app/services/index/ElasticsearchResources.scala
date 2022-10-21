@@ -18,7 +18,7 @@ import services.index.HitReaders._
 import utils._
 import utils.attempt._
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 import scala.concurrent.ExecutionContext
 
 class ElasticsearchResources(override val client: ElasticClient, indexName: String)(implicit executionContext: ExecutionContext) extends Index with Logging with ElasticsearchSyntax {

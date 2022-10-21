@@ -88,7 +88,7 @@ class IngestStorePolling(
       )
       pollCompleteFuture.onComplete {
         case Success(pollDuration) => schedulePoll(pollDuration)
-        case SFailure(NonFatal(t)) =>
+        case SFailure(t) =>
           logger.error("Exception whilst processing ingestion batch", t)
           metricsService.updateMetric(Metrics.batchesFailed)
           schedulePoll(maximumWait)

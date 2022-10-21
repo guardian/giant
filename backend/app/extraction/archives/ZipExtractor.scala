@@ -17,7 +17,7 @@ import services.{FingerprintServices, ScratchSpace}
 import utils.Logging
 import utils.attempt.{Failure, UnknownFailure}
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 
 class ZipExtractor(scratch: ScratchSpace, ingestionServices: IngestionServices) extends FileExtractor(scratch) with Logging {
   val mimeTypes = Set(

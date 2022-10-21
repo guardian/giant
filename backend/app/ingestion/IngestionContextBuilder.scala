@@ -8,7 +8,7 @@ import extraction.ExtractionParams
 import model.ingestion.{EmailContext, FileContext, IngestionFile, WorkspaceItemContext}
 import model.{Email, Language, Uri}
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 
 // The manifests resource graph is build piecemeal as paths of the overall graph which begin and end with a RootUri
 // This class is a helper to build those while walking some structure (file system, email store, etc.)

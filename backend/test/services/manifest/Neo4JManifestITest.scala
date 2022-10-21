@@ -35,7 +35,7 @@ class Neo4JManifestITest extends AnyFreeSpec with Matchers with Neo4jTestService
   val ingestionServices: IngestionServices = stub[IngestionServices]
 
   lazy val manifest = {
-    Neo4jManifest.setupManifest(neo4jDriver, global, neo4jQueryLoggingConfig).right.value
+    Neo4jManifest.setupManifest(neo4jDriver, global, neo4jQueryLoggingConfig).toOption.get
   }
 
   def insertIngestion(collection: Uri, maybeIngestion: Option[Uri] = None, maybePath: Option[Path] = None, fixed: Boolean = true) = {
@@ -97,13 +97,13 @@ class Neo4JManifestITest extends AnyFreeSpec with Matchers with Neo4jTestService
       "Can insert emails" in {
         val result = manifest.insert(emails, Uri("test-collection/test-ingestion"))
         if (result.isLeft) {
-          val value = result.left.get
+          val value = result.swap.toOption.get
           logger.warn(value.toString, value.cause.get)
         }
         result.isRight shouldBe true
-        manifest.getResource(Uri("a")).right.value.`type` shouldBe "email"
-        manifest.getResource(Uri("b")).right.value.`type` shouldBe "email"
-        manifest.getResource(Uri("c")).right.value.`type` shouldBe "email"
+        manifest.getResource(Uri("a")).toOption.get.`type` shouldBe "email"
+        manifest.getResource(Uri("b")).toOption.get.`type` shouldBe "email"
+        manifest.getResource(Uri("c")).toOption.get.`type` shouldBe "email"
       }
 
       "Can retrieve a thread" in {
@@ -168,7 +168,7 @@ class Neo4JManifestITest extends AnyFreeSpec with Matchers with Neo4jTestService
 
       def fetchWork(worker: String, maxBatchSize: Int, maxCost: Int = 10000): List[(Uri, String)] = {
         val result = manifest.fetchWork(worker, maxBatchSize, maxCost)
-        result.right.get.map { case WorkItem(blob, _, extractor, _, List(English), _) => blob.uri -> extractor }
+        result.toOption.get.map { case WorkItem(blob, _, extractor, _, _, _) => blob.uri -> extractor }
       }
 
       def buildBlobs(collection: String, ingestion: String) = List(
@@ -350,8 +350,8 @@ class Neo4JManifestITest extends AnyFreeSpec with Matchers with Neo4jTestService
 
         manifest.insert(blobs, collection).isRight should be(true)
 
-        val rawResults = manifest.fetchWork("test", maxBatchSize = 3, maxCost = 10000).right.get
-        val results = rawResults.map { case WorkItem(blob, _, _,  ingestion, List(English), _) => blob.uri -> ingestion }
+        val rawResults = manifest.fetchWork("test", maxBatchSize = 3, maxCost = 10000).toOption.get
+        val results = rawResults.map { case WorkItem(blob, _, _,  ingestion, _, _) => blob.uri -> ingestion }
 
         results should contain allOf(
           blobs(0).blobUri -> ingestions(0).value,
@@ -378,13 +378,13 @@ class Neo4JManifestITest extends AnyFreeSpec with Matchers with Neo4jTestService
 
         manifest.insert(List(blobs(0)), collection).isRight should be(true)
 
-        val firstItem = manifest.fetchWork("test", maxBatchSize = 1, maxCost = 10000).right.get.head
+        val firstItem = manifest.fetchWork("test", maxBatchSize = 1, maxCost = 10000).toOption.get.head
         firstItem.blob.uri should be(blobs(0).blobUri)
 
         val wut = manifest.insert(List(blobs(1), blobs(2)), collection)
         wut.isRight should be(true)
 
-        val secondItem = manifest.fetchWork("test", maxBatchSize = 1, maxCost = 10000).right.get.head
+        val secondItem = manifest.fetchWork("test", maxBatchSize = 1, maxCost = 10000).toOption.get.head
         secondItem.blob.uri should be(blobs(2).blobUri)
       }
     }
@@ -403,7 +403,7 @@ class Neo4JManifestITest extends AnyFreeSpec with Matchers with Neo4jTestService
         Files.write(fileToUpload, "This is a test".getBytes(StandardCharsets.UTF_8))
 
         val command = new IngestFile(collectionUri, ingestionUri, "test", None, "someoneElse", fileToUpload, originalFilePath, None, manifest, esEvents, ingestionServices, null)(global)
-        command.process().eitherValue.left.get shouldBe a [MissingPermissionFailure]
+        command.process().eitherValue.swap.toOption.get shouldBe a [MissingPermissionFailure]
       }
 
       "Cannot upload to a fixed ingestion" in {
@@ -419,7 +419,7 @@ class Neo4JManifestITest extends AnyFreeSpec with Matchers with Neo4jTestService
         Files.write(fileToUpload, "This is a test".getBytes(StandardCharsets.UTF_8))
 
         val command = new IngestFile(collectionUri, ingestionUri, "test", None, "someoneElse", fileToUpload, originalFilePath, None, manifest, esEvents, ingestionServices, null)(global)
-        command.process().eitherValue.left.get shouldBe a [MissingPermissionFailure]
+        command.process().eitherValue.swap.toOption.get shouldBe a [MissingPermissionFailure]
       }
 
       "Upload" in {
@@ -445,7 +445,7 @@ class Neo4JManifestITest extends AnyFreeSpec with Matchers with Neo4jTestService
         val result = command.process().eitherValue
         result.isRight should be(true)
 
-        manifest.getResource(Uri("upload/test/wut/up")).right.value.children(0).`type` shouldBe "blob"
+        manifest.getResource(Uri("upload/test/wut/up")).toOption.get.children(0).`type` shouldBe "blob"
       }
     }
   }

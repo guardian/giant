@@ -17,7 +17,7 @@ import services.ingestion.IngestionServices
 import services.{FingerprintServices, ScratchSpace}
 import utils.{HtmlToPlainText, DateTimeUtils, Logging}
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 import scala.util.control.NonFatal
 
 class EmlParser(val scratch: ScratchSpace, val ingestionServices: IngestionServices) extends Logging {

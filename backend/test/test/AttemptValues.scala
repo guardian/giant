@@ -28,7 +28,7 @@ trait AttemptValues extends EitherValues with ScalaFutures with SomePatience {
     def failureValue(implicit patienceConfig: PatienceConfig, pos: Position): Failure = {
       val underlyingEither: Either[Failure, A] = eitherValue
       try {
-        underlyingEither.left.get
+        underlyingEither.swap.toOption.get
       } catch {
         case cause: NoSuchElementException =>
           throw new TestFailedException((_: StackDepthException) => Some(s"Expected Attempt to have failed, but was successful: $underlyingEither"), Some(cause), pos)
@@ -38,7 +38,7 @@ trait AttemptValues extends EitherValues with ScalaFutures with SomePatience {
     def successValue(implicit patienceConfig: PatienceConfig, pos: Position): A = {
       val underlyingEither: Either[Failure, A] = eitherValue(patienceConfig, pos)
       try {
-        underlyingEither.right.get
+        underlyingEither.toOption.get
       } catch {
         case cause: NoSuchElementException =>
           throw new TestFailedException((_: StackDepthException) => Some(s"Expected Attempt to have succeeded, but failed: $underlyingEither"), Some(cause), pos)
