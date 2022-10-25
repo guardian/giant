@@ -16,6 +16,7 @@ trait ObjectStorage {
   def get(key: String): Either[Failure, InputStream]
   def getMetadata(key: String): Either[Failure, ObjectMetadata]
   def delete(key: String): Either[Failure, Unit]
+  def deleteMultiple(key: Set[String]): Either[Failure, Unit]
   def list(prefix: String): Either[Failure, List[String]]
 }
 
@@ -38,8 +39,8 @@ class S3ObjectStorage private(client: S3Client, bucket: String) extends ObjectSt
     run(client.aws.deleteObject(bucket, key))
   }
 
-  def delete(keys: List[String]): Either[Failure, Unit] = {
-    val request = new DeleteObjectsRequest(bucket).withKeys(keys: _*)
+  def deleteMultiple(keys: Set[String]): Either[Failure, Unit] = {
+    val request = new DeleteObjectsRequest(bucket).withKeys(keys.toSeq: _*)
     run(client.aws.deleteObjects(request))
   }
 

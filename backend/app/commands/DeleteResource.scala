@@ -16,16 +16,12 @@ import scala.concurrent.ExecutionContext
 class DeleteResource( manifest: Manifest, index: Index, previewStorage: ObjectStorage, objectStorage: ObjectStorage)  (implicit ec: ExecutionContext)
    extends Timing {
 
-     private def deletePagePreviewObjects(s3Objects: List[String]): Attempt[List[Unit]] = {
-        logger.info(s"Deleting objects: ${s3Objects.mkString(", ")}")
-       val deletionAttempts = s3Objects
-         .map(previewStorage.delete)
-         .map(Attempt.fromEither)
-
-       Attempt.sequence(deletionAttempts)
+     private def deletePagePreviewObjects(s3Objects: Set[String]): Attempt[Iterator[Unit]] = {
+       logger.info(s"Deleting ${s3Objects.size} objects")
+       Attempt.traverse(s3Objects.grouped(500))(x => Attempt.fromEither(previewStorage.deleteMultiple(x)))
      }
 
-     private def deletePagePreviews(uri: Uri, ocrLanguages: List[Language]): Attempt[List[Unit]] = {
+     private def deletePagePreviews(uri: Uri, ocrLanguages: List[Language]): Attempt[_] = {
        if (ocrLanguages.isEmpty) {
          // This typically means the blob was not processed by the OcrMyPdfExtractor,
          // either because it's not a PDF or because it was processed before
@@ -46,7 +42,7 @@ class DeleteResource( manifest: Manifest, index: Index, previewStorage: ObjectSt
        val listOfPagePreviewObjectsAttempts = prefixesToDelete.map { prefix =>
          Attempt.fromEither(previewStorage.list(prefix))
        }
-       val pagePreviewObjectsAttempt = Attempt.sequence(listOfPagePreviewObjectsAttempts).map(_.flatten)
+       val pagePreviewObjectsAttempt = Attempt.sequence(listOfPagePreviewObjectsAttempts).map(_.flatten.toSet)
 
        pagePreviewObjectsAttempt.flatMap(deletePagePreviewObjects)
      }
