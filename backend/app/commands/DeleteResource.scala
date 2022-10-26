@@ -21,7 +21,9 @@ class DeleteResource( manifest: Manifest, index: Index, previewStorage: ObjectSt
        val keys = pagePreviewKeys + blobUri.toStoragePath
        logger.info(s"Deleting ${keys.size} objects from preview storage")
 
-       // Group, just in case we have thousands of pages
+       // Group, just in case we have thousands of pages.
+       // 1000 objects is the limit for a batch:
+       // https://docs.aws.amazon.com/AmazonS3/latest/API/API_DeleteObjects.html
        Attempt.traverse(keys.grouped(500)) { batchOfS3Keys =>
          Attempt.fromEither(previewStorage.deleteMultiple(batchOfS3Keys))
        }
