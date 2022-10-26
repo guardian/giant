@@ -16,16 +16,20 @@ import scala.concurrent.ExecutionContext
 class DeleteResource( manifest: Manifest, index: Index, previewStorage: ObjectStorage, objectStorage: ObjectStorage)  (implicit ec: ExecutionContext)
    extends Timing {
 
-     private def deletePagePreviewObjects(s3Objects: List[String]): Attempt[List[Unit]] = {
-        logger.info(s"Deleting objects: ${s3Objects.mkString(", ")}")
-       val deletionAttempts = s3Objects
-         .map(previewStorage.delete)
-         .map(Attempt.fromEither)
+     private def deleteFromS3Preview(blobUri: Uri, pagePreviewKeys: Set[String]): Attempt[Iterator[Unit]] = {
+       // The full-document preview, as well as all the previews of individual pages
+       val keys = pagePreviewKeys + blobUri.toStoragePath
+       logger.info(s"Deleting ${keys.size} objects from preview storage")
 
-       Attempt.sequence(deletionAttempts)
+       // Group, just in case we have thousands of pages.
+       // 1000 objects is the limit for a batch:
+       // https://docs.aws.amazon.com/AmazonS3/latest/API/API_DeleteObjects.html
+       Attempt.traverse(keys.grouped(500)) { batchOfS3Keys =>
+         Attempt.fromEither(previewStorage.deleteMultiple(batchOfS3Keys))
+       }
      }
 
-     private def deletePagePreviews(uri: Uri, ocrLanguages: List[Language]): Attempt[List[Unit]] = {
+     private def getPagePreviewS3Keys(uri: Uri, ocrLanguages: List[Language]): Attempt[Set[String]] = {
        if (ocrLanguages.isEmpty) {
          // This typically means the blob was not processed by the OcrMyPdfExtractor,
          // either because it's not a PDF or because it was processed before
@@ -43,12 +47,9 @@ class DeleteResource( manifest: Manifest, index: Index, previewStorage: ObjectSt
        val prefixesToDelete = legacyPagePreviewPrefixes ::: pagePreviewPrefixes
         logger.info(s"Deleting prefixes: ${prefixesToDelete.mkString(", ")}")
 
-       val listOfPagePreviewObjectsAttempts = prefixesToDelete.map { prefix =>
+       Attempt.traverse(prefixesToDelete) { prefix =>
          Attempt.fromEither(previewStorage.list(prefix))
-       }
-       val pagePreviewObjectsAttempt = Attempt.sequence(listOfPagePreviewObjectsAttempts).map(_.flatten)
-
-       pagePreviewObjectsAttempt.flatMap(deletePagePreviewObjects)
+       }.map(_.flatten.toSet)
      }
 
      private def deleteResource(uri: Uri): Attempt[Unit] = timeAsync("Total to delete resource", {
@@ -57,9 +58,9 @@ class DeleteResource( manifest: Manifest, index: Index, previewStorage: ObjectSt
          // For blobs not processed by the OcrMyPdfExtractor, ocrLanguages will be an empty list
          ocrLanguages <- timeAsync("Getting langs from neo4j", manifest.getLanguagesProcessedByOcrMyPdf(uri))
          // Not everything has a preview but S3 returns success for deleting an object that doesn't exist so we're fine
-         _ <- timeAsync("Delete page previews", deletePagePreviews(uri, ocrLanguages))
-         _ <- Attempt.fromEither(timeSync("Preview S3 delete", previewStorage.delete(uri.toStoragePath)))
-         _ <- Attempt.fromEither(timeSync("Ingest S3 delete", objectStorage.delete(uri.toStoragePath)))
+         pagePreviewS3Keys <- timeAsync("Get page preview S3 keys", getPagePreviewS3Keys(uri, ocrLanguages))
+         _ <- timeAsync("Preview storage S3 delete", deleteFromS3Preview(uri, pagePreviewS3Keys))
+         _ <- Attempt.fromEither(timeSync("Ingest storage S3 delete", objectStorage.delete(uri.toStoragePath)))
          _ <- timeAsync("Delete blob from neo4j", manifest.deleteBlob(uri))
          // We use the index to determine what blobs are in a collection.
          // So we should delete from the index last, so that if any of the above
