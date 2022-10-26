@@ -47,10 +47,9 @@ class DeleteResource( manifest: Manifest, index: Index, previewStorage: ObjectSt
        val prefixesToDelete = legacyPagePreviewPrefixes ::: pagePreviewPrefixes
         logger.info(s"Deleting prefixes: ${prefixesToDelete.mkString(", ")}")
 
-       val listOfPagePreviewObjectsAttempts = prefixesToDelete.map { prefix =>
+       Attempt.traverse(prefixesToDelete) { prefix =>
          Attempt.fromEither(previewStorage.list(prefix))
-       }
-       Attempt.sequence(listOfPagePreviewObjectsAttempts).map(_.flatten.toSet)
+       }.map(_.flatten.toSet)
      }
 
      private def deleteResource(uri: Uri): Attempt[Unit] = timeAsync("Total to delete resource", {
