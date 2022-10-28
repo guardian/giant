@@ -176,7 +176,7 @@ class AppComponents(context: Context, config: Config)
     val workspacesController = new Workspaces(authControllerComponents, annotations, esResources, manifest)
     val commentsController = new Comments(authControllerComponents, manifest, esResources, annotations)
     val usersController = new Users(authControllerComponents, userProvider)
-    val pagesController = new PagesController(authControllerComponents, manifest, esResources, pages2, annotations, previewStorage)
+    val pagesController = new PagesController(authControllerComponents, manifest, esResources, pages2, annotations, previewStorage, materializer)
 
     val workerControl = config.aws match {
       case Some(awsDiscoveryConfig) =>

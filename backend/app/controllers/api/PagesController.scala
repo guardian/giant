@@ -1,10 +1,17 @@
 package controllers.api
 
+import akka.NotUsed
+import akka.actor.{ActorSystem, ClassicActorSystemProvider}
+import akka.stream.scaladsl.SourceQueueWithComplete
+import akka.stream.{Materializer, OverflowStrategy}
+import akka.stream.scaladsl.Source
 import commands.{GetPagePreview, GetResource, ResourceFetchMode}
 import model.frontend.{Chips, HighlightableText, TextHighlight}
 import model.index.{FrontendPage, HighlightForSearchNavigation, PageHighlight}
 import model.{Language, Languages, Uri}
 import org.apache.pdfbox.pdmodel.PDDocument
+import play.api.http.ContentTypes
+import play.api.libs.EventSource
 import play.api.libs.json.Json
 import play.api.mvc.{ResponseHeader, Result}
 import services.ObjectStorage
@@ -16,8 +23,10 @@ import utils.PDFUtil
 import utils.attempt.Attempt
 import utils.controller.{AuthApiController, AuthControllerComponents}
 
+import scala.concurrent.Future
+
 class PagesController(val controllerComponents: AuthControllerComponents, manifest: Manifest,
-    index: Index, pagesService: Pages2, annotations: Annotations, previewStorage: ObjectStorage) extends AuthApiController {
+    index: Index, pagesService: Pages2, annotations: Annotations, previewStorage: ObjectStorage, materializer: Materializer) extends AuthApiController {
 
   def getPageCount(uri: Uri) = ApiAction.attempt { req =>
 
@@ -118,6 +127,11 @@ class PagesController(val controllerComponents: AuthControllerComponents, manife
     }
   }
 
+  private def createSourceOfHighlights(): (SourceQueueWithComplete[FrontendPage], Source[FrontendPage, NotUsed]) = {
+    val initialSourceOfStatuses = Source.queue[FrontendPage](100, OverflowStrategy.dropHead)
+    initialSourceOfStatuses.preMaterialize()(materializer)
+  }
+
   private def getHighlights(uri: Uri, query: String, username: String, isSearch: Boolean): Attempt[Seq[HighlightForSearchNavigation]] = {
     val searchQuery = if (isSearch) Some(query) else None
     val findQuery = if (isSearch) None else Some(query)
@@ -138,11 +152,45 @@ class PagesController(val controllerComponents: AuthControllerComponents, manife
     }
   }
 
+  private def getHighlightsStream(sourceQueue: SourceQueueWithComplete[FrontendPage], uri: Uri, query: String, username: String, isSearch: Boolean): Attempt[Unit] = {
+    val searchQuery = if (isSearch) Some(query) else None
+    val findQuery = if (isSearch) None else Some(query)
+    for {
+      pagesWithHits <- pagesService.findInPages(uri, query)
+    } yield {
+      pagesWithHits.foreach(page => {
+        frontendPageFromQuery(uri, page, username, searchQuery, findQuery).map { frontendPage =>
+          sourceQueue.offer(frontendPage)
+        }
+      })
+
+      ()
+    }
+  }
+
   // This endpoint is used to get highlights for "find in document" on-demand queries.
   def findInDocument(uri: Uri, q: String) = ApiAction.attempt { req =>
     getHighlights(uri, q, req.user.username, isSearch = false).map(highlights =>
       Ok(Json.toJson(highlights))
     )
+  }
+
+  def findInDocumentStream(uri: Uri, q: String) = ApiAction { req =>
+    val (sourceQueue, sourceOfFrontendPages) = createSourceOfHighlights()
+    getHighlightsStream(sourceQueue, uri, q, req.user.username, isSearch = false)
+
+    val sourceOfHighlights = sourceOfFrontendPages.map(frontendPage => {
+      (for {
+        highlight <- frontendPage.highlights
+      } yield {
+        HighlightForSearchNavigation.fromPageHighlight(frontendPage.page, highlight.index, highlight)
+      }).toString
+    })
+
+    Right(Ok.chunked(sourceOfHighlights via EventSource.flow)
+      .as(ContentTypes.EVENT_STREAM)
+      .withHeaders("Cache-Control" -> "no-cache")
+      .withHeaders("Connection" -> "keep-alive"))
   }
 
   // This endpoint is used to get highlights for the "search across documents" query which
