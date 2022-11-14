@@ -112,7 +112,7 @@ lazy val backend = (project in file("backend"))
       "com.pff" % "java-libpst" % "0.9.3",
       // NOTE: When you update tika you need to check if there are any updates required to be made to the
       // conf/org/apache/tika/mimecustom-mimetypes.xml file
-      "org.apache.tika" % "tika-parsers" % "1.22" exclude("javax.ws.rs", "javax.ws.rs-api"),
+      "org.apache.tika" % "tika-parsers" % "1.25" exclude("javax.ws.rs", "javax.ws.rs-api"),
       // Daft workaround due to https://github.com/sbt/sbt/issues/3618#issuecomment-454528463
       "jakarta.ws.rs" % "jakarta.ws.rs-api" % "2.1.5",
       "org.apache.logging.log4j" % "log4j-to-slf4j" % log4jVersion,
