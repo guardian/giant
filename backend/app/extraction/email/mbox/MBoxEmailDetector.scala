@@ -19,11 +19,9 @@ object MBoxEmailDetector extends CustomTikaDetector {
       val mbox = JavaMail.openStore(url)
 
       try {
-        // If it's got more than one messages, lets call it an mbox!
-        // Yes they are 1-indexed.
-        val mensajes = mbox.getMessages(1, 2)
+        val messageCount = mbox.getMessageCount()
 
-        if(mensajes.length == 2) {
+        if(messageCount >= 2) {
           Some(MediaType.parse(MBOX_MIME_TYPE))
         } else {
           None
