@@ -104,6 +104,7 @@ lazy val backend = (project in file("backend"))
       ws,
       "commons-codec" % "commons-codec" % "1.11",
       "org.bouncycastle" % "bcprov-jdk15on" % "1.70",
+      "org.bouncycastle" % "bcutil-jdk15on" % "1.70",
       "commons-io" % "commons-io" % "2.6",
       "com.sksamuel.elastic4s" %% "elastic4s-client-esjava" % "7.9.1",
       "org.elasticsearch.client" % "elasticsearch-rest-client-sniffer" % "7.9.2",
