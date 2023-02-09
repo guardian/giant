@@ -59,16 +59,17 @@ class Pages2(val client: ElasticClient, indexNamePrefix: String)(implicit val ex
     val searchHighlightFields = buildHighlightFields(searchQuery)
     val findHighlightFields = buildHighlightFields(findQuery)
 
+    val indexId = s"${uri.value}-$pageNumber"
     val queries =
       List(
         Some(
           search(textIndexName)
-            .termQuery("_id", s"${uri.value}-$pageNumber")
+            .termQuery("_id", indexId)
             .highlighting(searchHighlightFields)
         ),
         findQuery.map { _ =>
           search(textIndexName)
-            .termQuery("_id", s"${uri.value}-$pageNumber")
+            .termQuery("_id", indexId)
             .highlighting(findHighlightFields)
         }
       ).flatten
@@ -87,13 +88,18 @@ class Pages2(val client: ElasticClient, indexNamePrefix: String)(implicit val ex
             Attempt.Left(MultipleFailures(errors.toList))
           } else {
             val pages = results.flatMap(_.to[Page])
+            val page = pages.headOption
+            page match {
+              case None => Attempt.Left(NotFoundFailure(s"No page found in elasticsearch with id ${indexId}"))
+              case Some(page) =>
+                // This is attempting to get the second element from the results,
+                // which will contain find highlights if they were requested.
+                val pageWithFindHighlights = pages.lift(1)
 
-            val page = pages.head
-            val pageWithFindHighlights = pages.lift(1)
-
-            Attempt.Right(
-              PageWithFind(page.page, page.value, pageWithFindHighlights.map(_.value), page.dimensions)
-            )
+                Attempt.Right(
+                  PageWithFind(page.page, page.value, pageWithFindHighlights.map(_.value), page.dimensions)
+                )
+            }
           }
         }
   }
