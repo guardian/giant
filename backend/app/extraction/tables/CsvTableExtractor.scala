@@ -26,7 +26,7 @@ class CsvTableExtractor(scratch: ScratchSpace, tableOps: Tables)(implicit ec: Ex
 
   override def priority: Int = 5
 
-  private val format = CSVFormat.RFC4180.withHeader()
+  private val format = CSVFormat.RFC4180.builder().setHeader().build()
 
   override def extract(blob: Blob, file: File, params: ExtractionParams): Either[Failure, Unit] = {
     // TODO assume charset?? BAD???
