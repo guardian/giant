@@ -1,4 +1,4 @@
-import {applyMiddleware, compose, createStore} from 'redux';
+import {applyMiddleware, compose, legacy_createStore as createStore } from 'redux';
 import thunkMiddleware from 'redux-thunk';
 import createRootReducer from '../reducers';
 import { routerMiddleware } from 'connected-react-router';
