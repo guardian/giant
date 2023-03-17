@@ -32,7 +32,7 @@ deployments:
     parameters:
       amiEncrypted: true
       amiTags:
-        Recipe: investigations-elasticsearch-7
+        Recipe: investigations-elasticsearch-7-arm64
         AmigoStage: PROD
         Encrypted: pfi-playground
 
