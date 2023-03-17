@@ -15,7 +15,7 @@ val compilerFlags = Seq(
   "-Xfatal-warnings"
 )
 
-val awsVersion = "1.11.566"
+val awsVersion = "1.12.428"
 val log4jVersion = "2.17.0"
 // To match what the main app gets from scalatestplus-play transitively
 val scalatestVersion = "3.1.1"
