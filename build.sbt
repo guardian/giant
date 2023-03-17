@@ -82,7 +82,7 @@ lazy val common = (project in file("common"))
     scalacOptions := compilerFlags,
     libraryDependencies ++= Seq(
       "org.typelevel" %% "cats-core" % "2.2.0",
-      "com.typesafe.play" %% "play-json" % "2.9.0",
+      "com.typesafe.play" %% "play-json" % "2.9.4",
       "com.amazonaws" % "aws-java-sdk-s3" % awsVersion,
       "org.slf4j" % "slf4j-api" % "1.7.25",
       "org.scalatest" %% "scalatest" % scalatestVersion
@@ -107,7 +107,7 @@ lazy val backend = (project in file("backend"))
       "commons-io" % "commons-io" % "2.6",
       "com.sksamuel.elastic4s" %% "elastic4s-client-esjava" % "7.9.1",
       "org.elasticsearch.client" % "elasticsearch-rest-client-sniffer" % "7.9.2",
-      "com.typesafe.akka" %% "akka-cluster-typed" % "2.6.5", // should match what we get transitively from Play
+      "com.typesafe.akka" %% "akka-cluster-typed" % "2.6.20", // should match what we get transitively from Play
       "org.neo4j.driver" % "neo4j-java-driver" % "1.6.3",
       "com.pff" % "java-libpst" % "0.9.3",
       // NOTE: When you update tika you need to check if there are any updates required to be made to the
@@ -119,17 +119,19 @@ lazy val backend = (project in file("backend"))
       "org.apache.logging.log4j" % "log4j-api" % log4jVersion,
       "org.apache.logging.log4j" % "log4j-core" % log4jVersion,
       "net.logstash.logback" % "logstash-logback-encoder" % "6.3",
-      "com.pauldijou" %% "jwt-play" % "4.3.0",
+      "com.pauldijou" %% "jwt-play" % "5.0.0",
       "com.amazonaws" % "aws-java-sdk-ec2" % awsVersion,
       "com.amazonaws" % "aws-java-sdk-ssm" % awsVersion,
       "com.amazonaws" % "aws-java-sdk-autoscaling" % awsVersion,
       "com.amazonaws" % "aws-java-sdk-cloudwatch" % awsVersion,
       "com.amazonaws" % "aws-java-sdk-cloudwatchmetrics" % awsVersion,
-      "com.beachape" %% "enumeratum-play" % "1.6.1",
+      "com.beachape" %% "enumeratum-play" % "1.7.2",
       "com.iheart" %% "ficus" % "1.5.2",
       "com.sun.mail" % "javax.mail" % "1.6.2",
       "org.jsoup" % "jsoup" % "1.11.3",
       "com.gu" %% "pan-domain-auth-verification" % "1.2.0",
+
+
 
       // Libraries whose use are potentially contentious
 
