@@ -131,7 +131,10 @@ lazy val backend = (project in file("backend"))
       "org.jsoup" % "jsoup" % "1.11.3",
       "com.gu" %% "pan-domain-auth-verification" % "1.2.0",
 
-
+      // this is needed to override the 2.11.4 version of jackson-module used in various play libraries (including jwt-play)
+      // as 2.11.4 is only compatible with versions of jackson databind up to 2.12.0 - and we're using 2.12.7 (Phil thinks
+      // because of the version of tikka-parsers we're using)
+      "com.fasterxml.jackson.module" % "jackson-module-scala_2.13" % "2.14.2",
 
       // Libraries whose use are potentially contentious
 
