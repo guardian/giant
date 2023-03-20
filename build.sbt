@@ -143,7 +143,7 @@ lazy val backend = (project in file("backend"))
       "com.github.jai-imageio" % "jai-imageio-jpeg2000" % "1.3.0",
       // Subject to the mad unRAR restriction so again should be reviewed before any open sourcing
       // The latest code is here: https://github.com/junrar/junrar (not in the older repository that appears first in Google)
-      "com.github.junrar" % "junrar" % "3.0.0",
+      "com.github.junrar" % "junrar" % "7.4.1",
 
       // Test dependencies
 
@@ -193,7 +193,7 @@ lazy val cli = (project in file("cli"))
     libraryDependencies ++= Seq(
       "org.rogach" %% "scallop" % "3.5.1",
       "com.beachape" %% "enumeratum" % "1.5.13",
-      "com.squareup.okhttp3" % "okhttp" % "3.10.0",
+      "com.squareup.okhttp3" % "okhttp" % "4.9.2",
       "com.amazonaws" % "aws-java-sdk-s3" % awsVersion,
       "com.auth0" % "java-jwt" % "3.3.0",
       "ch.qos.logback" % "logback-classic" % "1.2.3",
