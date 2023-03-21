@@ -93,7 +93,11 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
     });
   }, [findQuery, pageCache]);
 
-  const [pageRange, setPageRange] = useState<PageRange>({bottom: 1 + PRELOAD_PAGES, middle: 1, top: 1});
+  const [pageRange, setPageRange] = useState<PageRange>({
+    bottom: Math.min(1 + PRELOAD_PAGES, totalPages),
+    middle: 1,
+    top: 1
+  });
   const debouncedSetPageRange = useMemo(() => debounce(setPageRange, 150), [setPageRange]);
 
   const setPageRangeFromScrollPosition = useCallback(() => {
@@ -102,8 +106,8 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
         const v = viewport.current;
 
         const currentMid = v.scrollTop + v.clientHeight / 2;
-        const topEdge = currentMid - PRELOAD_PAGES * pageHeight;
-        const botEdge = currentMid + PRELOAD_PAGES * pageHeight;
+        const topEdge = currentMid - (PRELOAD_PAGES * pageHeight);
+        const botEdge = currentMid + (PRELOAD_PAGES * pageHeight);
 
         const newPageRange = {
           bottom: Math.min(Math.ceil(botEdge / pageHeight), totalPages),
