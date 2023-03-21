@@ -15,7 +15,7 @@
     "human-date": "^1.4.0",
     "jwt-decode": "^2.2.0",
     "md5": "^2.2.1",
-    "moment": "^2.27.0",
+    "moment": "^2.29.4",
     "mousetrap": "^1.6.5",
     "papaparse": "^5.2.0",
     "pdfjs-dist": "^2.6.347",
