@@ -5,7 +5,7 @@ import { GiantState } from '../../types/redux/GiantState';
 
 export default function authFetch(url: RequestInfo, init?: RequestInit): Promise<Response> {
     const request = new Request(url, init);
-    const { auth } = (store.getState() as GiantState);
+    const { auth } = (store.getState() as unknown as GiantState);
 
     if(auth.token && auth.token.exp < (Date.now() / 1000)) {
         logOutTheUserLocally();
