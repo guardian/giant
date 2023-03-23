@@ -132,7 +132,7 @@ lazy val backend = (project in file("backend"))
       "com.beachape" %% "enumeratum-play" % "1.7.2",
       "com.iheart" %% "ficus" % "1.5.2",
       "com.sun.mail" % "javax.mail" % "1.6.2",
-      "org.jsoup" % "jsoup" % "1.11.3",
+      "org.jsoup" % "jsoup" % "1.14.2",
       "com.gu" %% "pan-domain-auth-verification" % "1.2.0",
 
       // this is needed to override the 2.11.4 version of jackson-module used in various play libraries (including jwt-play)
