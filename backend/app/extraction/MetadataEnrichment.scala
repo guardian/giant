@@ -54,6 +54,8 @@ object MetadataEnrichment {
 
   val authorKeys = List(
     "pdf:docinfo:author",
+    // TODO TIKA: might need changing
+    // https://cwiki.apache.org/confluence/display/TIKA/Migrating+to+Tika+2.0.0
     "Author",
     "dc:creator",
     "creator"

@@ -16,7 +16,8 @@ val compilerFlags = Seq(
 )
 
 val awsVersion = "1.12.428"
-val log4jVersion = "2.17.0"
+val log4jVersion = "2.20.0"
+val slf4jVersion = "2.0.7"
 // To match what the main app gets from scalatestplus-play transitively
 val scalatestVersion = "3.1.1"
 
@@ -84,8 +85,9 @@ lazy val common = (project in file("common"))
       "org.typelevel" %% "cats-core" % "2.2.0",
       "com.typesafe.play" %% "play-json" % "2.9.4",
       "com.amazonaws" % "aws-java-sdk-s3" % awsVersion,
-      "org.slf4j" % "slf4j-api" % "1.7.25",
-      "org.scalatest" %% "scalatest" % scalatestVersion
+      "org.slf4j" % "slf4j-api" % slf4jVersion,
+      "org.scalatest" %% "scalatest" % scalatestVersion,
+      "ch.qos.logback" % "logback-classic" % "1.4.6",
     )
   )
 
@@ -114,11 +116,11 @@ lazy val backend = (project in file("backend"))
       "com.typesafe.akka" %% "akka-cluster-typed" % "2.6.20", // should match what we get transitively from Play
       "org.neo4j.driver" % "neo4j-java-driver" % "1.6.3",
       "com.pff" % "java-libpst" % "0.9.3",
+      // TODO TIKA: check the below
       // NOTE: When you update tika you need to check if there are any updates required to be made to the
       // conf/org/apache/tika/mimecustom-mimetypes.xml file
-      "org.apache.tika" % "tika-parsers" % "1.28.5" exclude("javax.ws.rs", "javax.ws.rs-api"),
-      // Daft workaround due to https://github.com/sbt/sbt/issues/3618#issuecomment-454528463
-      "jakarta.ws.rs" % "jakarta.ws.rs-api" % "2.1.5",
+      "org.apache.tika" % "tika-parsers-standard-package" % "2.7.0",
+      "org.apache.tika" % "tika-core" % "2.7.0",
       "org.apache.logging.log4j" % "log4j-to-slf4j" % log4jVersion,
       "org.apache.logging.log4j" % "log4j-api" % log4jVersion,
       "org.apache.logging.log4j" % "log4j-core" % log4jVersion,
@@ -201,8 +203,7 @@ lazy val cli = (project in file("cli"))
       "com.squareup.okhttp3" % "okhttp" % "4.9.2",
       "com.amazonaws" % "aws-java-sdk-s3" % awsVersion,
       "com.auth0" % "java-jwt" % "3.3.0",
-      "ch.qos.logback" % "logback-classic" % "1.2.3",
-      "org.slf4j" % "jcl-over-slf4j" % "1.7.25",
+      "org.slf4j" % "jcl-over-slf4j" % slf4jVersion,
       "com.google.guava" % "guava" % "28.2-jre",
       "org.scalatest" %% "scalatest" % scalatestVersion
     ),
