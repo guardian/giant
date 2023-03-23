@@ -46,6 +46,10 @@ object MetadataEnrichment {
     extractFields(metadata, wordCountKeys)(safeIntParse)
   )
 
+  // Probably these lists of keys could be simplified now we're on Tika v2.
+  // But I've left the old ones in for backwards compatibility,
+  // and because I'm not sure how to test this.
+  // https://cwiki.apache.org/confluence/display/TIKA/Migrating+to+Tika+2.0.0#MigratingtoTika2.0.0-Removedduplicate/triplicatekeys
   val titleKeys = List(
     "pdf:docinfo:title",
     "title",
@@ -62,12 +66,14 @@ object MetadataEnrichment {
   val createdAtKeys = List(
     "meta:creation-date",
     "Creation-Date",
-    "pdf:docinfo:created"
+    "pdf:docinfo:created",
+    "dcterms:created"
   )
 
   val lastModifiedKeys = List(
     "Last-Modified",
-    "Last-Save-Date"
+    "Last-Save-Date",
+    "dcterms:modified"
   )
 
   val createdWithKeys = List(
