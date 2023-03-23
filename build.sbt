@@ -85,8 +85,12 @@ lazy val common = (project in file("common"))
       "org.typelevel" %% "cats-core" % "2.2.0",
       "com.typesafe.play" %% "play-json" % "2.9.4",
       "com.amazonaws" % "aws-java-sdk-s3" % awsVersion,
-      "org.slf4j" % "slf4j-api" % slf4jVersion,
       "org.scalatest" %% "scalatest" % scalatestVersion,
+      // Play has a transitive dependency on Logback,
+      // but we specify one here to ensure that Play uses compatible
+      // versions of SLF4J and Logback (i.e. its versions should be evicted by those here).
+      // https://github.com/playframework/playframework/issues/11499#issuecomment-1285654119
+      "org.slf4j" % "slf4j-api" % slf4jVersion,
       "ch.qos.logback" % "logback-classic" % "1.4.6",
     )
   )
