@@ -15,6 +15,7 @@ import play.api.test.Helpers._
 import services.users.UserManagement
 import test.integration.Helpers.stubControllerComponentsAsUser
 import test.{AttemptValues, TestUserManagement, TestUserRegistration}
+import utils.auth.providers.DatabaseUserProvider
 
 class UsersTest extends AnyFreeSpec with Matchers with Results with ScalaFutures with AttemptValues {
   import test.TestUserManagement._
@@ -28,7 +29,7 @@ class UsersTest extends AnyFreeSpec with Matchers with Results with ScalaFutures
 
   "UsersController" - {
     "list partial user information to punters" in {
-      TestSetup(punter) { (controller, _) =>
+      TestSetup(punter) { (controller, _, _) =>
         val result = controller.listUsers.apply(FakeRequest())
         val json = contentAsJson(result)
 
@@ -42,7 +43,7 @@ class UsersTest extends AnyFreeSpec with Matchers with Results with ScalaFutures
     }
 
     "list full user information to admins" in {
-      TestSetup(admin) { (controller, _) =>
+      TestSetup(admin) { (controller, _, _) =>
         val result = controller.listUsers.apply(FakeRequest())
         val json = contentAsJson(result)
 
@@ -56,14 +57,14 @@ class UsersTest extends AnyFreeSpec with Matchers with Results with ScalaFutures
     }
 
     "get user permissions" in {
-      TestSetup(admin) { (controller, _) =>
+      TestSetup(admin) { (controller, _, _) =>
         val result = controller.getMyPermissions.apply(FakeRequest())
         val json = contentAsJson(result)
 
         json.as[UserPermissions] should be(UserPermissions.bigBoss)
       }
 
-      TestSetup(punter) { (controller, _) =>
+      TestSetup(punter) { (controller, _, _) =>
         val result = controller.getMyPermissions.apply(FakeRequest())
         val json = contentAsJson(result)
 
@@ -72,7 +73,7 @@ class UsersTest extends AnyFreeSpec with Matchers with Results with ScalaFutures
     }
 
     "disallow operations without permission" in {
-      TestSetup(punter) { (controller, _) =>
+      TestSetup(punter) { (controller, _, _) =>
         def disallow[T](action: Action[T], body: T) = {
           val req: Request[T] = FakeRequest().withBody(body)
           val resp = action.apply(req)
@@ -89,7 +90,7 @@ class UsersTest extends AnyFreeSpec with Matchers with Results with ScalaFutures
     }
 
     "create user that is flagged as not registered" in {
-      TestSetup(admin) { (controller, db) =>
+      TestSetup(admin) { (controller, db, _) =>
         val req = FakeRequest().withBody(Json.toJson(NewUser("test", "biglongpassword1234")))
 
         status(controller.createUser("test").apply(req)) should be(200)
@@ -106,7 +107,7 @@ class UsersTest extends AnyFreeSpec with Matchers with Results with ScalaFutures
 
       "with require2FA set to false" - {
         "password and registered flag should be updated" in {
-          TestSetup(unregisteredPunter) { (controller, db) =>
+          TestSetup(unregisteredPunter) { (controller, db, _) =>
             val params = UserRegistration(username, testPassword, "Punter", "newPassword", None)
             val req = FakeRequest().withBody(Json.toJson(params))
 
@@ -120,11 +121,11 @@ class UsersTest extends AnyFreeSpec with Matchers with Results with ScalaFutures
         }
 
         "2FA can be successfully enabled and secret set" in {
-          TestSetup(punter) { (controller, db) =>
+          TestSetup(unregisteredPunter) { (_, db, userProvider) =>
             val params = UserRegistration(username, testPassword, "Punter", "newPassword", Some(TotpActivation(sampleSecret.toBase32, sampleAnswers.head)))
-            val req = FakeRequest().withBody(Json.toJson(params))
 
-            status(controller.registerUser(username).apply(req)) should be(204)
+            // Don't use the controller for this specific test so we can pass in the time for totp
+            userProvider.registerUser(Json.toJson(params), sampleEpoch).successValue
 
             val user = db.getUser(username).successValue
             user.totpSecret should contain(sampleSecret)
@@ -132,7 +133,7 @@ class UsersTest extends AnyFreeSpec with Matchers with Results with ScalaFutures
         }
 
         "fails if the 2FA code isn't valid" in {
-          TestSetup(unregisteredPunter) { (controller, db) =>
+          TestSetup(unregisteredPunter) { (controller, db, _) =>
             val params = UserRegistration(username, testPassword, "Punter", "newPassword", Some(TotpActivation(sampleSecret.toBase32, "000000")))
             val req = FakeRequest().withBody(Json.toJson(params))
 
@@ -146,7 +147,7 @@ class UsersTest extends AnyFreeSpec with Matchers with Results with ScalaFutures
 
       "with require2FA set to true" - {
         "fails with a lack of 2FA information" in {
-          TestSetup(unregisteredPunter, require2fa = true) { (controller, db) =>
+          TestSetup(unregisteredPunter, require2fa = true) { (controller, db, _) =>
             val params = UserRegistration(username, testPassword, "Punter", "newPassword", None)
             val req = FakeRequest().withBody(Json.toJson(params))
 
@@ -161,13 +162,13 @@ class UsersTest extends AnyFreeSpec with Matchers with Results with ScalaFutures
   }
 
   object TestSetup {
-    def apply(reqUser: TestUserRegistration, require2fa: Boolean = false)(fn: (Users, UserManagement) => Unit): Unit = {
+    def apply(reqUser: TestUserRegistration, require2fa: Boolean = false)(fn: (Users, UserManagement, DatabaseUserProvider) => Unit): Unit = {
       val (userProvider, userManagement) = TestUserManagement.makeUserProvider(require2fa, admin, punter, unregisteredPunter)
 
       val controllerComponents = stubControllerComponentsAsUser(reqUser.username, userManagement)
       val controller = new Users(controllerComponents, userProvider)
 
-      fn(controller, userManagement)
+      fn(controller, userManagement, userProvider)
     }
   }
 }
