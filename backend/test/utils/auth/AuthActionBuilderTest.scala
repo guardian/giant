@@ -1,34 +1,31 @@
 package utils.auth
 
-import java.io.File
-import java.time.Clock
-
 import akka.util.Timeout
-import model.user
-import model.user.BCryptPassword
 import org.joda.time.DateTime
+import org.scalatest.freespec.AnyFreeSpec
+import org.scalatest.matchers.should.Matchers
 import org.scalatest.{EitherValues, Inside}
 import org.scalatestplus.play.{BaseOneAppPerSuite, FakeApplicationFactory}
 import pdi.jwt.JwtSession
-import play.api.{Application, ApplicationLoader, Configuration, Environment}
 import play.api.http.HeaderNames
-import play.api.inject.DefaultApplicationLifecycle
 import play.api.libs.json.Json
 import play.api.mvc.{AnyContentAsEmpty, Result, Results}
 import play.api.test.{FakeHeaders, FakeRequest, Helpers}
-import play.core.DefaultWebCommands
+import play.api.{Application, ApplicationLoader, Configuration, Environment}
 import test.{EmptyAppLoader, TestUserManagement}
 import utils.attempt._
 import utils.controller.DefaultFailureToResultMapper
 
+import java.io.File
+import java.time.Clock
 import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.language.postfixOps
-import org.scalatest.freespec.AnyFreeSpec
-import org.scalatest.matchers.should.Matchers
 
 class AuthActionBuilderTest extends AnyFreeSpec with Matchers with BaseOneAppPerSuite with FakeApplicationFactory
   with EitherValues with Results with Inside {
+
+  import TestUserManagement._
 
   override def fakeApplication(): Application = {
     val env = Environment.simple(new File("."))
@@ -48,7 +45,7 @@ class AuthActionBuilderTest extends AnyFreeSpec with Matchers with BaseOneAppPer
   implicit val configuration: Configuration = fakeApplication().configuration
   implicit val clock: Clock = Clock.systemUTC()
 
-  val fakeUsers = TestUserManagement(List(user.DBUser("mickey", Some("Mickey Mouse"), Some(BCryptPassword("invalid")), None, registered = true, None)))
+  val fakeUsers = TestUserManagement(List(user("mickey")))
 
   "AuthActionBuilder" - {
     val authActionBuilder = new DefaultAuthActionBuilder(Helpers.stubControllerComponents(), new DefaultFailureToResultMapper, 8 hours, 15 minutes, fakeUsers)(fakeApplication().configuration, Clock.systemUTC())
@@ -256,10 +253,15 @@ class AuthActionBuilderTest extends AnyFreeSpec with Matchers with BaseOneAppPer
   }
 
   private def builderWithUser(invalidationTime: Option[Long] = None, registered: Boolean = true): DefaultAuthActionBuilder = {
+    val baseUser = user("mickey")
+
     new DefaultAuthActionBuilder(Helpers.stubControllerComponents(), new DefaultFailureToResultMapper, 8 hours, 15 minutes,
-      TestUserManagement(List(
-        user.DBUser("mickey", Some("Mickey Mouse"), Some(BCryptPassword("invalid")), invalidationTime, registered = registered, None)
-      ))
+      TestUserManagement(List(baseUser.copy(
+        dbUser = baseUser.dbUser.copy(
+          invalidationTime = invalidationTime,
+          registered = registered
+        )
+      )))
     )
   }
 }

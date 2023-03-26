@@ -1,9 +1,5 @@
 package test.integration
 
-import java.net.URLEncoder
-import java.nio.charset.StandardCharsets
-import java.nio.file.Files
-import java.util.UUID
 import akka.util.Timeout
 import commands.IngestFileResult
 import controllers.api._
@@ -11,14 +7,14 @@ import extraction.MimeTypeMapper
 import model.annotations.{Workspace, WorkspaceEntry, WorkspaceMetadata}
 import model.frontend.{Filter, SearchResults, TreeEntry, TreeNode}
 import model.manifest.{Blob, Collection, CollectionWithUsers}
-import model.user.{BCryptPassword, DBUser, UserPermissions}
+import model.user.UserPermissions
 import model.{CreateCollectionRequest, CreateIngestionRequest, English, Uri}
-import org.apache.xerces.xni.XMLResourceIdentifier
 import org.neo4j.driver.v1.Driver
+import org.scalatest.matchers.should.Matchers
 import org.scalatest.{Assertion, Inside, OptionValues}
 import play.api.libs.Files.SingletonTemporaryFileCreator
 import play.api.libs.json.Json
-import play.api.mvc.{ControllerComponents, Result}
+import play.api.mvc.Result
 import play.api.test.FakeRequest
 import play.api.test.Helpers.{contentAsJson, contentAsString, status, stubControllerComponents => playStubControllerComponents}
 import services.annotations.Neo4jAnnotations
@@ -27,15 +23,18 @@ import services.manifest.Neo4jManifest
 import services.users.{Neo4jUserManagement, UserManagement}
 import services.{BucketConfig, Neo4jQueryLoggingConfig, S3Config, TestTypeDetector}
 import test.integration.Helpers.BlobAndNodeId
-import test.{TestAuthActionBuilder, TestObjectStorage, TestPreviewService}
+import test.{TestAuthActionBuilder, TestObjectStorage, TestPreviewService, TestUserManagement}
+import utils.Logging
 import utils.attempt.AttemptAwait._
 import utils.auth.User
 import utils.controller.{AuthControllerComponents, DefaultFailureToResultMapper}
-import utils.Logging
 
-import scala.concurrent.{ExecutionContext, Future}
+import java.net.URLEncoder
+import java.nio.charset.StandardCharsets
+import java.nio.file.Files
+import java.util.UUID
 import scala.concurrent.duration._
-import org.scalatest.matchers.should.Matchers
+import scala.concurrent.{ExecutionContext, Future}
 
 case class ItemIds(
   `1.txt`: BlobAndNodeId,
@@ -244,7 +243,7 @@ object Helpers extends Matchers with Logging with OptionValues with Inside {
     val userManagement = Neo4jUserManagement(neo4jDriver, ec, queryLoggingConfig, manifest, elasticsearch.elasticResources, elasticsearch.elasticPages, annotations)
 
     usernames.map { username =>
-      val user = DBUser(username, Some(username), Some(BCryptPassword("invalid")), None, registered = true, None)
+      val user = TestUserManagement.user(username).dbUser
       val permissions = if(admins.contains(username)) { UserPermissions.bigBoss } else { UserPermissions.default }
       userManagement.createUser(user, permissions).await()
 
