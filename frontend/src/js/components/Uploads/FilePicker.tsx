@@ -7,16 +7,16 @@ async function readDragEvent(e: React.DragEvent): Promise<Map<string, File>> {
 
     for(const item of e.dataTransfer.items) {
         if(item.webkitGetAsEntry()) {
-            const entry: FileSystemEntry = item.webkitGetAsEntry();
+            const entry: FileSystemEntry | null = item.webkitGetAsEntry();
 
-            if(entry.isFile) {
+            if(entry && entry.isFile) {
                 const file = await readFileEntry(entry as FileSystemFileEntry);
-                files.set(file.name, file);
-            } else if(entry.isDirectory) {
+                files.set(file.name, file as File);
+            } else if(entry && entry.isDirectory) {
                 const directoryFiles = await readDirectoryEntry(entry as FileSystemDirectoryEntry);
 
                 for(const [path, file] of directoryFiles) {
-                    files.set(path, file);
+                    files.set(path, file as File);
                 }
             }
         } else {

@@ -7,7 +7,8 @@ import {
     Axis,
     Chart,
     Settings as EuiSettings,
-    ScaleType, BarSeries
+    ScaleType, BarSeries,
+    Tooltip
 } from "@elastic/charts";
 import '@elastic/charts/dist/theme_light.css';
 
@@ -76,6 +77,7 @@ export default class TimeHistogram extends React.Component {
             this.props.updateSearchText(query);
       }
 
+
         const esData = binnedData.map(b => {
             return {
                 ...b,
@@ -84,11 +86,19 @@ export default class TimeHistogram extends React.Component {
         })
 
         return (
-            <div style={{width: '100%', height: '200px'}}>
+                <div style={{width: '100%', height: '200px'}}>
                 <Chart size={{height: 200}}>
                     <EuiSettings
                         showLegend={false}
                         onElementClick={(event) => queryByDate(event[0][0].datum)}
+
+
+
+                    />
+                    <Tooltip
+                        headerFormatter={(tooltipData) => {
+                            return renderTimeFancy(tooltipData.value);
+                        }}
                     />
                     <BarSeries
                         id="documents"
@@ -97,6 +107,7 @@ export default class TimeHistogram extends React.Component {
                         xScaleType={ScaleType.Time}
                         xAccessor="time"
                         yAccessors={['count']}
+
                     />
 
                     <Axis
@@ -112,6 +123,7 @@ export default class TimeHistogram extends React.Component {
                     />
                 </Chart>
             </div>
+
         );
     }
 }
