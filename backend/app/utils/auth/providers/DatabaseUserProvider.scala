@@ -1,6 +1,6 @@
 package utils.auth.providers
 
-import commands.{RegisterUser, TFACommands}
+import commands.TFACommands
 import model.frontend.user.{NewGenesisUser, PartialUser, UserRegistration}
 import model.frontend.TotpActivation
 import model.user.{DBUser, NewUser, UserPermissions}
@@ -9,9 +9,9 @@ import play.api.mvc.{AnyContent, Request}
 import services.users.UserManagement
 import services.DatabaseAuthConfig
 import utils.attempt._
-import utils.auth.{PasswordHashing, PasswordValidator, RequireRegistered}
+import utils.auth.{PasswordHashing, PasswordValidator, RequireNotRegistered, RequireRegistered}
 import utils.auth.totp.{SecureSecretGenerator, TfaToken, Totp}
-import utils.Epoch
+import utils.{Epoch, Logging}
 
 import scala.concurrent.ExecutionContext
 
@@ -21,7 +21,7 @@ import scala.concurrent.ExecutionContext
 class DatabaseUserProvider(val config: DatabaseAuthConfig, passwordHashing: PasswordHashing, users: UserManagement,
                            totp: Totp, ssg: SecureSecretGenerator, passwordValidator: PasswordValidator)
                           (implicit ec: ExecutionContext)
-  extends UserProvider {
+  extends UserProvider with Logging {
 
   override def clientConfig: Map[String, JsValue] = Map(
     "require2fa" -> JsBoolean(config.require2FA),
@@ -72,10 +72,19 @@ class DatabaseUserProvider(val config: DatabaseAuthConfig, passwordHashing: Pass
   }
 
   override def registerUser(request: JsValue, time: Epoch): Attempt[Unit] = {
-    for {
-      userData <- request.validate[UserRegistration].toAttempt
-      _ <- RegisterUser(users, passwordHashing, passwordValidator, userData, totp, time, config.require2FA).process()
-    } yield ()
+    request.validate[UserRegistration].toAttempt.flatMap { userData =>
+      logger.info(s"Attempt to register ${userData.username}")
+      for {
+        _ <- passwordHashing.verifyUser(users.getUser(userData.username), userData.previousPassword, RequireNotRegistered)
+        _ <- passwordValidator.validate(userData.newPassword)
+        newHash <- passwordHashing.hash(userData.newPassword)
+        secret <- TFACommands.check2FA(config.require2FA, userData.totpActivation, totp, time)
+        _ <- users.registerUser(userData.username, userData.displayName, Some(newHash), secret)
+      } yield {
+        logger.info(s"Registered ${userData.username}")
+        ()
+      }
+    }
   }
 
   override def removeUser(username: String): Attempt[Unit] = {

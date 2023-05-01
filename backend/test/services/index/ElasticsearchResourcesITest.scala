@@ -1,36 +1,32 @@
 package services.index
 
 import controllers.api.Search
-import model.frontend.{Highlight, SearchResults}
+import model.frontend.Highlight
 import model.index.Document
 import model.manifest.Collection
-import model.user.{BCryptPassword, DBUser, UserPermissions}
-import model.{Arabic, Email, English, Portuguese, Recipient, Russian, Uri, user}
+import model.{Arabic, Email, English, Portuguese, Recipient, Russian, Uri}
+import org.scalatest.freespec.AnyFreeSpec
+import org.scalatest.matchers.should.Matchers
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import test.integration.ElasticsearchTestService
-import test.integration.Helpers.{Controllers, setupUserControllers, stubControllerComponentsAsUser}
-import test.{TestAnnotations, TestUserManagement}
+import test.integration.Helpers.stubControllerComponentsAsUser
+import test.{TestAnnotations, TestUserManagement, TestUserRegistration}
 import utils.IndexTestHelpers
 import utils.attempt.AttemptAwait._
-import org.scalatest.freespec.AnyFreeSpec
-import org.scalatest.matchers.should.Matchers
 
 class ElasticsearchResourcesITest extends AnyFreeSpec with Matchers with ElasticsearchTestService with IndexTestHelpers {
-
-  val canSeeCatsAndDogsUser = user.DBUser("paul", Some("Paul Chuckle"), Some(BCryptPassword("invalid")), None, registered = true, None)
-  val canSeeCatsUser = user.DBUser("barry", Some("Barry Chuckle"), Some(BCryptPassword("invalid")), None, registered = true, None)
-  val cantSeeCollectionsUser = user.DBUser("larry", Some("Larry"), Some(BCryptPassword("invalid")), None, registered = true, None)
+  import TestUserManagement._
 
   val catCollection = Collection(Uri("cat"), "cat", List.empty, None)
   val dogCollection = Collection(Uri("dog"), "dog", List.empty, None)
   val goatCollection = Collection(Uri("goat"), "goat", List.empty, None)
 
-  val users: Map[DBUser, (UserPermissions, List[Collection])] = Map(
-    canSeeCatsAndDogsUser -> (UserPermissions.default, List(catCollection, dogCollection)),
-    canSeeCatsUser -> (UserPermissions.default, List(catCollection)),
-    cantSeeCollectionsUser -> (UserPermissions.default, List.empty)
-  )
+  val canSeeCatsAndDogsUser = user("paul", collections = List(catCollection, dogCollection))
+  val canSeeCatsUser = user("barry", collections = List(catCollection))
+  val cantSeeCollectionsUser = user("larry")
+
+  val users = List(canSeeCatsAndDogsUser, canSeeCatsUser, cantSeeCollectionsUser)
 
   var docs: Map[Collection, List[Uri]] = Map.empty
 
@@ -613,7 +609,7 @@ class ElasticsearchResourcesITest extends AnyFreeSpec with Matchers with Elastic
   }
 
   object TestSetup {
-    def apply(initialUsers: Map[user.DBUser, (user.UserPermissions, List[Collection])], reqUser: user.DBUser, usersToWorkspaces: Map[String, List[String]] = Map.empty)(fn: Search => Unit): Unit = {
+    def apply(initialUsers: List[TestUserRegistration], reqUser: TestUserRegistration, usersToWorkspaces: Map[String, List[String]] = Map.empty)(fn: Search => Unit): Unit = {
 
       val userManagement = TestUserManagement(initialUsers)
       val annotations = new TestAnnotations(usersToWorkspaces)

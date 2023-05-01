@@ -2,7 +2,6 @@ package controllers.api
 
 import java.time.Instant
 import java.util.concurrent.TimeUnit
-
 import akka.stream.Materializer
 import akka.stream.testkit.NoMaterializer
 import akka.util.Timeout
@@ -13,24 +12,23 @@ import model.user.{DBUser, UserPermissions}
 import play.api.test.Helpers.contentAsJson
 import play.api.test.{FakeRequest, Helpers}
 import services.events.{ActionComplete, Event}
-import test.{TestAuthActionBuilder, TestEventsService, TestUserManagement}
+import test.{TestAuthActionBuilder, TestEventsService, TestUserManagement, TestUserRegistration}
 import utils.auth.User
 import test.integration.Helpers.stubControllerComponentsAsUser
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.must.Matchers
 
 class EventsTest extends AnyFunSuite with Matchers {
+  import TestUserManagement._
+
   implicit val mat: Materializer = NoMaterializer
   implicit val timeout: Timeout = Timeout(10, TimeUnit.SECONDS)
-
-  val punter = DBUser("punter", None, None, None, true, None)
-  val admin = DBUser("admin", None, None, None, true, None)
 
   val collectionOne = Collection(Uri("one"), "one", List.empty, None)
   val collectionTwo = Collection(Uri("two"), "two", List.empty, None)
 
-  val adminPermissions = UserPermissions(Set(CanPerformAdminOperations))
-  val punterPermissions = UserPermissions(Set.empty)
+  val punter = user("punter", collections = List(collectionOne))
+  val admin = user("admin", permissions = UserPermissions.bigBoss)
 
   val initialEvents = List(
     uploadEvent(collectionOne.uri.value, punter.username),
@@ -40,7 +38,7 @@ class EventsTest extends AnyFunSuite with Matchers {
 
   test("return all uploads from non-admins to admins") {
     new TestSetup(
-      users = Map(punter -> (punterPermissions, List(collectionOne)), admin -> (adminPermissions, List.empty)),
+      users = List(punter, admin),
       requestUser = admin,
       initialEvents = initialEvents
     ) {
@@ -56,7 +54,7 @@ class EventsTest extends AnyFunSuite with Matchers {
 
   test("return all uploads") {
     new TestSetup(
-      users = Map(punter -> (punterPermissions, List(collectionOne)), admin -> (adminPermissions, List.empty)),
+      users = List(punter, admin),
       requestUser = admin,
       initialEvents = initialEvents
     ) {
@@ -68,7 +66,7 @@ class EventsTest extends AnyFunSuite with Matchers {
     }
   }
 
-  class TestSetup(users: Map[DBUser, (UserPermissions, List[Collection])], requestUser: DBUser, initialEvents: List[Event]) {
+  class TestSetup(users: List[TestUserRegistration], requestUser: TestUserRegistration, initialEvents: List[Event]) {
     val userManagement = TestUserManagement(users)
     val controllerComponents = stubControllerComponentsAsUser(requestUser.username, userManagement)
     val eventsService = new TestEventsService(initialEvents)

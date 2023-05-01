@@ -2,49 +2,39 @@ package controllers.api
 
 import akka.stream.Materializer
 import akka.stream.testkit.NoMaterializer
-import commands.RegisterUser
 import model.frontend.TotpActivation
 import model.frontend.user.UserRegistration
-import model.manifest.Collection
-import model.user
-import model.user.{BCryptPassword, DBUser, NewUser, UserPermissions}
+import model.user.{BCryptPassword, NewUser, UserPermissions}
 import org.scalatest.concurrent.ScalaFutures
-import play.api.libs.json.{JsArray, JsObject, Json}
-import play.api.mvc.{Action, AnyContentAsEmpty, Request, Results}
-import play.api.test.Helpers._
-import play.api.test.{FakeRequest, Helpers}
-import services.DatabaseAuthConfig
-import services.users.UserManagement
-import test.{AttemptValues, TestAuthActionBuilder, TestUserManagement}
-import utils.attempt.{ClientFailure, SecondFactorRequired}
-import utils.auth
-import utils.auth.providers.DatabaseUserProvider
-import utils.auth.totp.{SecureSecretGenerator, Totp}
-import utils.auth.{PasswordHashing, PasswordValidator}
-import test.integration.Helpers.stubControllerComponentsAsUser
 import org.scalatest.freespec.AnyFreeSpec
 import org.scalatest.matchers.should.Matchers
+import play.api.libs.json.{JsArray, JsObject, Json}
+import play.api.mvc.{Action, AnyContentAsEmpty, Request, Results}
+import play.api.test.FakeRequest
+import play.api.test.Helpers._
+import services.users.UserManagement
+import test.integration.Helpers.stubControllerComponentsAsUser
+import test.{AttemptValues, TestUserManagement, TestUserRegistration}
+import utils.auth.providers.DatabaseUserProvider
 
 class UsersTest extends AnyFreeSpec with Matchers with Results with ScalaFutures with AttemptValues {
+  import test.TestUserManagement._
+
   import scala.concurrent.ExecutionContext.Implicits.global
   implicit val mat: Materializer = NoMaterializer
 
-  private val hashing = new PasswordHashing(7)
-  private val validator = new PasswordValidator(12)
-  private val totp = Totp.googleAuthenticatorInstance()
-
-  val paul = user.DBUser("paul", Some("Paul Chuckle"), Some(BCryptPassword("invalid")), None, registered = true, None)
-  val barry = user.DBUser("barry", Some("Barry Chuckle"), Some(BCryptPassword("invalid")), None, registered = true, None)
-  val users: Map[DBUser, (UserPermissions, List[Collection])] = Map(paul -> (UserPermissions.default, List.empty), barry -> (UserPermissions.default, List.empty))
+  val admin = user("admin", permissions = UserPermissions.bigBoss)
+  val punter = user("punter")
+  val unregisteredPunter = unregisteredUser("newPunter")
 
   "UsersController" - {
     "list partial user information to punters" in {
-      TestSetup(Map(paul -> (UserPermissions.bigBoss, List.empty), barry -> (UserPermissions.default, List.empty)), barry) { (controller, _) =>
+      TestSetup(punter) { (controller, _, _) =>
         val result = controller.listUsers.apply(FakeRequest())
         val json = contentAsJson(result)
 
         val users = (json \ "users").as[JsArray].value
-        users should have length 2
+        users should have length 3
 
         users.collect { case user: JsObject =>
           user.fields.map(_._1) should contain only("username", "displayName")
@@ -53,12 +43,12 @@ class UsersTest extends AnyFreeSpec with Matchers with Results with ScalaFutures
     }
 
     "list full user information to admins" in {
-      TestSetup(Map(paul -> (UserPermissions.bigBoss, List.empty)), paul) { (controller, _) =>
+      TestSetup(admin) { (controller, _, _) =>
         val result = controller.listUsers.apply(FakeRequest())
         val json = contentAsJson(result)
 
         val users = (json \ "users").as[JsArray].value
-        users should have length 2
+        users should have length 3
 
         users.collect { case user: JsObject =>
           user.fields.map(_._1) should contain only("username", "displayName", "collections", "permissions")
@@ -67,14 +57,14 @@ class UsersTest extends AnyFreeSpec with Matchers with Results with ScalaFutures
     }
 
     "get user permissions" in {
-      TestSetup(Map(paul -> (UserPermissions.bigBoss, List.empty)), paul) { (controller, _) =>
+      TestSetup(admin) { (controller, _, _) =>
         val result = controller.getMyPermissions.apply(FakeRequest())
         val json = contentAsJson(result)
 
         json.as[UserPermissions] should be(UserPermissions.bigBoss)
       }
 
-      TestSetup(Map(paul -> (UserPermissions.default, List.empty)), barry) { (controller, _) =>
+      TestSetup(punter) { (controller, _, _) =>
         val result = controller.getMyPermissions.apply(FakeRequest())
         val json = contentAsJson(result)
 
@@ -83,7 +73,7 @@ class UsersTest extends AnyFreeSpec with Matchers with Results with ScalaFutures
     }
 
     "disallow operations without permission" in {
-      TestSetup(users, paul) { (controller, _) =>
+      TestSetup(punter) { (controller, _, _) =>
         def disallow[T](action: Action[T], body: T) = {
           val req: Request[T] = FakeRequest().withBody(body)
           val resp = action.apply(req)
@@ -92,15 +82,15 @@ class UsersTest extends AnyFreeSpec with Matchers with Results with ScalaFutures
         }
 
         disallow(controller.createUser("test"), Json.toJson(NewUser("test", "biglongpassword1234")))
-        disallow(controller.removeUser(barry.username), AnyContentAsEmpty)
+        disallow(controller.removeUser(admin.username), AnyContentAsEmpty)
 
-        disallow(controller.updateUserFullname(barry.username), Json.parse("""{"displayName": "test"}"""))
-        disallow(controller.updateUserPassword(barry.username), Json.parse("""{"password": "biglongpassword1234"}"""))
+        disallow(controller.updateUserFullname(punter.username), Json.parse("""{"displayName": "test"}"""))
+        disallow(controller.updateUserPassword(punter.username), Json.parse("""{"password": "biglongpassword1234"}"""))
       }
     }
 
     "create user that is flagged as not registered" in {
-      TestSetup(Map(paul -> (UserPermissions.bigBoss, List.empty)), paul) { (controller, db) =>
+      TestSetup(admin) { (controller, db, _) =>
         val req = FakeRequest().withBody(Json.toJson(NewUser("test", "biglongpassword1234")))
 
         status(controller.createUser("test").apply(req)) should be(200)
@@ -112,78 +102,73 @@ class UsersTest extends AnyFreeSpec with Matchers with Results with ScalaFutures
 
     "the register user flow" - {
       import test.fixtures.GoogleAuthenticator._
-      val originalPasswordText = "bob"
-      val originalPassword = BCryptPassword("$2y$14$QfKVhpRMSe1VXi.ghHLJguCY6CmSA.ipNrg8JJZok5xhUxM5wDIem")
-      val bob = DBUser("bob", Some("Spongebob"), Some(originalPassword), None, registered = false, None)
+
+      val username = unregisteredPunter.username
 
       "with require2FA set to false" - {
         "password and registered flag should be updated" in {
-          val users = TestUserManagement(List(bob))
-          val result = RegisterUser(users, hashing, validator,
-            UserRegistration("bob", originalPasswordText, "Spongebob", "longPassword", None),
-            totp, sampleEpoch, require2FA = false).process()
+          TestSetup(unregisteredPunter) { (controller, db, _) =>
+            val params = UserRegistration(username, testPassword, "Punter", "newPassword", None)
+            val req = FakeRequest().withBody(Json.toJson(params))
 
-          result.successValue shouldBe (())
-          val newBob = users.getAllUsers.find(_.username == "bob").get
-          newBob.registered shouldBe true
-          newBob.password should not be originalPassword
+            status(controller.registerUser(username).apply(req)) should be(204)
+
+            val user = db.getUser(username).successValue
+
+            user.registered should be(true)
+            user.password should not contain (testPasswordHashed)
+          }
         }
 
         "2FA can be successfully enabled and secret set" in {
-          val users = TestUserManagement(List(bob))
-          val result = RegisterUser(
-            users, hashing, validator,
-            UserRegistration("bob", originalPasswordText, "Spongebob", "longpassword", Some(TotpActivation(sampleSecret.toBase32, sampleAnswers.head))),
-            totp, sampleEpoch, require2FA = false
-          ).process()
+          TestSetup(unregisteredPunter) { (_, db, userProvider) =>
+            val params = UserRegistration(username, testPassword, "Punter", "newPassword", Some(TotpActivation(sampleSecret.toBase32, sampleAnswers.head)))
 
-          result.successValue shouldBe (())
-          val newBob = users.getAllUsers.find(_.username == "bob").get
-          newBob.totpSecret shouldBe Some(sampleSecret)
+            // Don't use the controller for this specific test so we can pass in the time for totp
+            userProvider.registerUser(Json.toJson(params), sampleEpoch).successValue
+
+            val user = db.getUser(username).successValue
+            user.totpSecret should contain(sampleSecret)
+          }
         }
 
         "fails if the 2FA code isn't valid" in {
-          val users = TestUserManagement(List(bob))
-          val result = RegisterUser(
-            users, hashing, validator,
-            UserRegistration("bob", originalPasswordText, "Spongebob", "longpassword", Some(TotpActivation(sampleSecret.toBase32, "000000"))),
-            totp, sampleEpoch, require2FA = false
-          ).process()
+          TestSetup(unregisteredPunter) { (controller, db, _) =>
+            val params = UserRegistration(username, testPassword, "Punter", "newPassword", Some(TotpActivation(sampleSecret.toBase32, "000000")))
+            val req = FakeRequest().withBody(Json.toJson(params))
 
-          result.failureValue shouldBe ClientFailure("Sample 2FA code wasn't valid, check the time on your device")
+            status(controller.registerUser(username).apply(req)) should be(400)
+
+            val user = db.getUser(username).successValue
+            user.registered should be(false)
+          }
         }
       }
 
       "with require2FA set to true" - {
         "fails with a lack of 2FA information" in {
-          val users = TestUserManagement(List(bob))
-          val result = RegisterUser(
-            users, hashing, validator,
-            UserRegistration("bob", originalPasswordText, "Spongebob", "longpassword", None),
-            totp, sampleEpoch, require2FA = true
-          ).process()
+          TestSetup(unregisteredPunter, require2fa = true) { (controller, db, _) =>
+            val params = UserRegistration(username, testPassword, "Punter", "newPassword", None)
+            val req = FakeRequest().withBody(Json.toJson(params))
 
-          result.failureValue shouldBe SecondFactorRequired("2FA enrollment is required")
+            status(controller.registerUser(username).apply(req)) should be(401)
+
+            val user = db.getUser(username).successValue
+            user.registered should be(false)
+          }
         }
       }
     }
   }
 
   object TestSetup {
-    val generator = new SecureSecretGenerator
-    def apply(initialUsers: Map[user.DBUser, (user.UserPermissions, List[Collection])], reqUser: user.DBUser)(fn: (Users, UserManagement) => Unit): Unit = {
-      import scala.concurrent.ExecutionContext.Implicits.global
-
-      val dbAuthConfig = DatabaseAuthConfig(12, require2FA = false, "pfi")
-      val hashing = new PasswordHashing
-      val validator = new PasswordValidator(dbAuthConfig.minPasswordLength)
-      val userManagement = TestUserManagement(users ++ initialUsers)
+    def apply(reqUser: TestUserRegistration, require2fa: Boolean = false)(fn: (Users, UserManagement, DatabaseUserProvider) => Unit): Unit = {
+      val (userProvider, userManagement) = TestUserManagement.makeUserProvider(require2fa, admin, punter, unregisteredPunter)
 
       val controllerComponents = stubControllerComponentsAsUser(reqUser.username, userManagement)
-      val userProvider = new DatabaseUserProvider(dbAuthConfig, hashing, userManagement, Totp.googleAuthenticatorInstance(), generator, validator)
       val controller = new Users(controllerComponents, userProvider)
 
-      fn(controller, userManagement)
+      fn(controller, userManagement, userProvider)
     }
   }
 }
