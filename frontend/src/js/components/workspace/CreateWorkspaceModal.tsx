@@ -23,7 +23,7 @@ type Props = ReturnType<typeof mapStateToProps>
 type State = {
     name: string,
     isPublic: boolean,
-    tagColor: ValueType<{ value: string, label: string }>
+    tagColor: ValueType<{ value: string, label: string }, boolean>
 };
 
 class CreateWorkspaceModalUnconnected extends React.Component<Props, State> {
@@ -92,7 +92,7 @@ class CreateWorkspaceModalUnconnected extends React.Component<Props, State> {
                         ]}
                         valueComponent={ColorTagValue}
                         optionComponent={ColorTagOption}
-                        onChange={(o: ValueType<{ value: string, label: string }>) => this.setState({tagColor: o})}
+                        onChange={(o: ValueType<{ value: string, label: string }, false>) => this.setState({tagColor: o})}
                         clearable={false}
                         searchable={false}
                     />

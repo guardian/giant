@@ -1,4 +1,4 @@
-import { PDFPageProxy } from "pdfjs-dist/types/display/api";
+import {PDFPageProxy} from "pdfjs-dist";
 
 // Hardcoded container sizes - should make these dynamic but that can wait for now...
 export const CONTAINER_SIZE = 1000;

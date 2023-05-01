@@ -1,16 +1,17 @@
-import * as pdfjs from "pdfjs-dist";
+
 import { CachedPreview, CONTAINER_SIZE, PdfText } from "./model";
+import {getDocument, GlobalWorkerOptions, PDFWorker, renderTextLayer} from "pdfjs-dist";
 
 // PDFjs has webpack config built-in but it uses worker-loader which seems
 // to break automatic reloading in dev in our Create React App project.
 // My solution is to symlink the worker js file into our existing 3rd party
 // directory in the backend and reference it directly.
-pdfjs.GlobalWorkerOptions.workerSrc = '/third-party/pdf.worker.min.js';
+GlobalWorkerOptions.workerSrc = '/third-party/pdf.worker.min.js';
 export const renderPdfPreview = async (
   buffer: ArrayBuffer,
-  pdfWorker: typeof pdfjs.PDFWorker
+  pdfWorker: PDFWorker
 ): Promise<CachedPreview> => {
-  const doc = await pdfjs.getDocument({
+  const doc = await getDocument({
     data: new Uint8Array(buffer),
     // Use the same web worker for all pages
     worker: pdfWorker
@@ -50,7 +51,6 @@ export const renderTextOverlays = async (
   const { pdfPage, scale } = preview;
 
   const textContentStream = pdfPage.streamTextContent({
-    normalizeWhitespace: true,
     disableCombineTextItems: false,
   });
 
@@ -58,12 +58,12 @@ export const renderTextOverlays = async (
   const textContentItemsStr: string[] = [];
   const viewport = pdfPage.getViewport({ scale });
 
-  await pdfjs.renderTextLayer({
+  await renderTextLayer({
     textContentStream,
     container: document.createElement("div"),
     viewport,
     textDivs,
-    enhanceTextSelection: true,
+    // enhanceTextSelection: true,
     textContentItemsStr,
   }).promise;
 

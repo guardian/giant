@@ -81,9 +81,6 @@ export default class TimeHistogram extends React.Component {
             this.props.updateSearchText(query);
       }
 
-      const bd = binnedData.filter(b => b.count !== 0)
-        console.log(bd)
-
         const esData = binnedData.map(b => {
             return {
                 ...b,
