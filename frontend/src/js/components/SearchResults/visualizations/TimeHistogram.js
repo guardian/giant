@@ -76,8 +76,7 @@ export default class TimeHistogram extends React.Component {
             const query = JSON.stringify(cleanedQWithoutDateChips.concat([beforeChip, '', afterChip, '']));
             this.props.updateSearchText(query);
       }
-
-
+      
         const esData = binnedData.map(b => {
             return {
                 ...b,

@@ -1,12 +1,11 @@
-import { PDFPageProxy } from 'pdfjs-dist/types/display/api';
 
-import *  as pdfjs from 'pdfjs-dist';
-import { PageViewport } from 'pdfjs-dist/types/display/display_utils';
 // PDFjs has webpack config built-in but it uses worker-loader which seems
 // to break automatic reloading in dev in our Create React App project.
 // My solution is to symlink the worker js file into our existing 3rd party
 // directory in the backend and reference it directly.
-pdfjs.GlobalWorkerOptions.workerSrc = '/third-party/pdf.worker.min.js';
+import {getDocument, GlobalWorkerOptions, PageViewport, PDFPageProxy, renderTextLayer} from "pdfjs-dist";
+
+GlobalWorkerOptions.workerSrc = '/third-party/pdf.worker.min.js';
 
 function getViewport(page: PDFPageProxy, pageWidth: number, pageHeight: number): PageViewport {
     // See https://github.com/mozilla/pdf.js/blob/4a74cc418ccb0b14dbbb50e0b964f32a41d16647/web/pdf_viewer.js#L531
@@ -23,7 +22,7 @@ function getViewport(page: PDFPageProxy, pageWidth: number, pageHeight: number):
 }
 
 export async function parsePDF(buffer: ArrayBuffer): Promise<PDFPageProxy> {
-    const doc = await pdfjs.getDocument(new Uint8Array(buffer)).promise;
+    const doc = await getDocument(new Uint8Array(buffer)).promise;
     const page = await doc.getPage(1);
 
     return page;
@@ -48,16 +47,15 @@ export type PDFText = {
 export async function renderPDFText(pdfJsPage: PDFPageProxy, pageWidth: number, pageHeight: number): Promise<PDFText[]> {
     const viewport = getViewport(pdfJsPage, pageWidth, pageHeight);
 
-    const textContentStream = pdfJsPage.streamTextContent({ normalizeWhitespace: true, disableCombineTextItems: false });
+    const textContentStream = pdfJsPage.streamTextContent({  disableCombineTextItems: false });
     const textDivs: HTMLDivElement[] = [];
     const textContentItemsStr: string[] = [];
 
-    await pdfjs.renderTextLayer({
+    await renderTextLayer({
         textContentStream,
         container: document.createElement("div"),
         viewport,
         textDivs,
-        enhanceTextSelection: true,
         textContentItemsStr
     }).promise;
 

@@ -81,7 +81,7 @@ export function TextPreview({ uri, currentUser, view, text, comments, searchHigh
                     }}
                 />
             </div>
-            <TextPopover target='data-selectable-text-preview' allowComments={preferences.showCommentHighlights} />
+            <TextPopover target='data-selectable-text-preview' allowComments={preferences.showCommentHighlights || false} />
             {preferences.showCommentHighlights ? <CommentPanel
                 uri={uri}
                 view={view}

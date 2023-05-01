@@ -6,7 +6,7 @@ import {getExtractionFailures} from '../../actions/metrics/getExtractionFailures
 import { ExtractionFailureSummary, ExtractionFailures } from '../../types/ExtractionFailures';
 import { GiantState } from '../../types/redux/GiantState';
 import { GiantDispatch } from '../../types/redux/GiantDispatch';
-import ResourcesForExtractionFailureComponent from './ResourcesForExtractionFailureComponent';
+import {ResourcesForExtractionFailureComponent} from './ResourcesForExtractionFailureComponent'
 
 type Props = {
     getExtractionFailures: typeof getExtractionFailures,

@@ -107,7 +107,7 @@ class AddToWorkspaceModalUnconnected extends React.Component<Props, State> {
         return this.props.workspacesMetadata.map(w => ({value: w.id, label: w.name}));
     };
 
-    workspaceSelected = (selected: ValueType<{value: string, label: string}>): void => {
+    workspaceSelected = (selected: ValueType<{value: string, label: string}, false>): void => {
         const s = Array.isArray(selected) ? selected[0] : selected;
         this.setState({workspaceId: s.value});
     };

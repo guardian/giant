@@ -1,8 +1,8 @@
-import { PDFPageProxy } from 'pdfjs-dist/types/display/api';
 import React, { useCallback, useEffect, useState } from 'react';
 import { Page } from '../../../reducers/pagesReducer';
 import { fetchPagePreview } from './pageViewerApi';
 import { parsePDF, PDFText, rasterisePage, renderPDFText } from './pageViewerPdf';
+import {PDFPageProxy} from "pdfjs-dist";
 
 type Props = {
     page: Page,
