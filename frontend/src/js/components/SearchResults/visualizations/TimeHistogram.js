@@ -1,19 +1,25 @@
 import React from 'react';
 import {searchResultsPropType} from '../../../types/SearchResults';
-import { Histogram, BarSeries, withParentSize, XAxis, YAxis } from '@data-ui/histogram';
 import {format} from 'date-fns';
 import _ from 'lodash';
 import PropTypes from 'prop-types';
+import {
+    Axis,
+    Chart,
+    Settings as EuiSettings,
+    ScaleType,  BarSeries
+} from "@elastic/charts";
+import '@elastic/charts/dist/theme_light.css';
 
-const ResponsiveHistogram = withParentSize((props) => {
-  return (
-    <Histogram
-        {...props}
-        width={props.parentWidth}
-        height={props.parentHeight}
-      />
-  );
-});
+// const ResponsiveHistogram = withParentSize((props) => {
+//   return (
+//     <Histogram
+//         {...props}
+//         width={props.parentWidth}
+//         height={props.parentHeight}
+//       />
+//   );
+// });
 
 export default class TimeHistogram extends React.Component {
     static propTypes = {
@@ -53,10 +59,6 @@ export default class TimeHistogram extends React.Component {
             return format(new Date(millis), 'MM/yyyy');
         };
 
-        const renderTimeFancy = (millis) => {
-            return format(new Date(millis), 'MMMM yyyy');
-        };
-
         const queryByDate = (datum) => {
             const qAsArray = this.props.q !== '["*"]' ? JSON.parse(this.props.q) : [""];
             // Filter existing date chips from the current query string and any double spaces that result from thsi removal
@@ -84,31 +86,44 @@ export default class TimeHistogram extends React.Component {
             this.props.updateSearchText(query);
       }
 
+        const esData = binnedData.map(b => {
+            return {
+                ...b,
+                time: b.bin0.getTime(),
+            }
+        })
 
         return (
             <div style={{width: '100%', height: '200px'}}>
-                <ResponsiveHistogram
-                    ariaLabel='Created At distribution'
-                    vertical
-                    binCount={binnedData.length}
-                    binType="numeric"
-                    renderTooltip={({datum}) => (
-                        <div>
-                            <strong>{renderTimeFancy(datum.bin0)}</strong>
-                            <div>{datum.count} documents</div>
-                        </div>
-                    )}>
+                <Chart size={{height: 200}}>
+                    <EuiSettings
+                        showLegend={false}
+                        onElementClick={(event) => queryByDate(event[0][0].datum)}
 
+
+                    />
                     <BarSeries
-                        fill='rgb(31, 45, 62)'
-                        binnedData={binnedData.filter(b => b.count !== 0)}
-                        onClick={({datum}) => queryByDate(datum)}
-                    >
-                    </BarSeries>
+                        id="documents"
+                        name="Documents"
+                        data={esData}
+                        xScaleType={ScaleType.Time}
+                        xAccessor="time"
+                        yAccessors={['count']}
+                    />
 
-                    <XAxis tickFormat={renderTime}/>
-                    <YAxis />
-                  </ResponsiveHistogram>
+                    <Axis
+                        id="bottom-axis"
+                        position="bottom"
+                        tickFormat={renderTime}
+                        ticks={binnedData.length}
+
+                    />
+                    <Axis
+                        id="left-axis"
+                        position="left"
+                        title={"count"}
+                    />
+                </Chart>
             </div>
         );
     }
