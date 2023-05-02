@@ -12,7 +12,7 @@
     &__title {
         border-bottom: 1px solid $borderColour;
         margin-bottom: $baseSpacing;
-        padding-bottom: $baseSpacing / 4;
+        padding-bottom: calc($baseSpacing / 4);
     }
 
     &__section:not(:last-child) {
@@ -28,7 +28,7 @@
         display: block;
         font-size: 12px;
         font-weight: bold;
-        margin-bottom: $baseSpacing / 2;
+        margin-bottom: calc($baseSpacing / 2);
         line-height: 1.2;
     }
 
@@ -40,7 +40,7 @@
         background-color: white;
         border: 1px solid $borderColour;
         border-radius: $borderRadius;
-        padding: $baseSpacing / 2;
+        padding: calc($baseSpacing / 2);
         color: $primaryDark;
         display: block;
         width: 100%;

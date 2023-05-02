@@ -12,13 +12,13 @@
 
     .modal__dismiss {
         position: absolute;
-        right: $baseSpacing / 2;
-        top: $baseSpacing / 2;
+        right: calc($baseSpacing / 2);
+        top: calc($baseSpacing / 2);
     }
 
     &__title {
         margin-bottom: $baseSpacing;
-        padding-bottom: $baseSpacing / 2;
+        padding-bottom: calc($baseSpacing / 2);
         border-bottom: 1px solid $borderColour;
     }
 
@@ -44,7 +44,7 @@
             background-color: white;
             border: 1px solid $borderColour;
             border-radius: $borderRadius;
-            padding: $baseSpacing / 2;
+            padding: calc($baseSpacing / 2);
             color: $primaryDark;
             display: block;
             width: 100%;
