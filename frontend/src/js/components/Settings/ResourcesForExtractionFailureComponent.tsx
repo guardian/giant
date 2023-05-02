@@ -6,7 +6,7 @@ import { ResourcesForExtractionFailure, ExtractionFailureSummary } from '../../t
 import PageNavigator from '../UtilComponents/PageNavigator';
 import { SearchLink } from '../UtilComponents/SearchLink';
 
-export default function({ summary }: { summary: ExtractionFailureSummary }) {
+export function ResourcesForExtractionFailureComponent({ summary }: { summary: ExtractionFailureSummary }) {
     const [resources, setResources] = useState<ResourcesForExtractionFailure | undefined>(undefined);
     const [page, setPage] = useState(1);
 
