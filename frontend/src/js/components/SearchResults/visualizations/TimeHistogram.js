@@ -7,19 +7,9 @@ import {
     Axis,
     Chart,
     Settings as EuiSettings,
-    ScaleType,  BarSeries
+    ScaleType, BarSeries
 } from "@elastic/charts";
 import '@elastic/charts/dist/theme_light.css';
-
-// const ResponsiveHistogram = withParentSize((props) => {
-//   return (
-//     <Histogram
-//         {...props}
-//         width={props.parentWidth}
-//         height={props.parentHeight}
-//       />
-//   );
-// });
 
 export default class TimeHistogram extends React.Component {
     static propTypes = {
@@ -99,8 +89,6 @@ export default class TimeHistogram extends React.Component {
                     <EuiSettings
                         showLegend={false}
                         onElementClick={(event) => queryByDate(event[0][0].datum)}
-
-
                     />
                     <BarSeries
                         id="documents"
@@ -116,7 +104,6 @@ export default class TimeHistogram extends React.Component {
                         position="bottom"
                         tickFormat={renderTime}
                         ticks={binnedData.length}
-
                     />
                     <Axis
                         id="left-axis"
