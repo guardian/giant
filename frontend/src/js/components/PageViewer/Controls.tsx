@@ -123,10 +123,10 @@ export const Controls: FC<ControlsProps> = ({
     <div className={styles.bar}>
       {fixedQuery === undefined &&
         <div>
-          <button onClick={rotateAnticlockwise}>
+          <button onClick={rotateAnticlockwise} >
             <RotateLeft />
           </button>
-          <button onClick={rotateClockwise}>
+          <button onClick={rotateClockwise}  >
             <RotateRight />
           </button>
         </div>
