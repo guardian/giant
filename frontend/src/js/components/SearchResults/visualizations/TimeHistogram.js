@@ -46,8 +46,19 @@ export default class TimeHistogram extends React.Component {
 
         binnedData = _.sortBy(binnedData, i => i.bin0);
 
+        const esData = binnedData.map(b => {
+            return {
+                ...b,
+                time: b.bin0.getTime(),
+            }
+        })
+
         const renderTime = (millis) => {
             return format(new Date(millis), 'MM/yyyy');
+        };
+
+        const renderTimeFancy = (millis) => {
+            return format(new Date(millis), 'MMMM yyyy');
         };
 
         const queryByDate = (datum) => {
@@ -76,23 +87,13 @@ export default class TimeHistogram extends React.Component {
             const query = JSON.stringify(cleanedQWithoutDateChips.concat([beforeChip, '', afterChip, '']));
             this.props.updateSearchText(query);
       }
-      
-        const esData = binnedData.map(b => {
-            return {
-                ...b,
-                time: b.bin0.getTime(),
-            }
-        })
 
         return (
-                <div style={{width: '100%', height: '200px'}}>
+            <div style={{width: '100%', height: '200px'}}>
                 <Chart size={{height: 200}}>
                     <EuiSettings
                         showLegend={false}
                         onElementClick={(event) => queryByDate(event[0][0].datum)}
-
-
-
                     />
                     <Tooltip
                         headerFormatter={(tooltipData) => {
@@ -108,7 +109,6 @@ export default class TimeHistogram extends React.Component {
                         yAccessors={['count']}
 
                     />
-
                     <Axis
                         id="bottom-axis"
                         position="bottom"
@@ -122,7 +122,6 @@ export default class TimeHistogram extends React.Component {
                     />
                 </Chart>
             </div>
-
         );
     }
 }
