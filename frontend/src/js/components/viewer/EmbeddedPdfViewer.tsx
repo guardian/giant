@@ -1,7 +1,7 @@
 import React, { useCallback } from 'react';
 import PropTypes from 'prop-types';
 
-const viewerLocation = '/third'  // '/third-party/pdfjs-2.4.456-dist/web/viewer.html';
+const viewerLocation = '/third-party/pdfjs-2.4.456-dist/web/viewer.html';
 
 
 
