@@ -63,7 +63,6 @@ export const renderTextOverlays = async (
     container: document.createElement("div"),
     viewport,
     textDivs,
-    // enhanceTextSelection: true,
     textContentItemsStr,
   }).promise;
 
