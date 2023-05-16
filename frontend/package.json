@@ -3,8 +3,6 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
-    "@elastic/charts": "15.0.5",
-    "@data-ui/histogram": "0.0.84",
     "@elastic/charts": "57.0.0",
     "@elastic/datemath": "^5.0.3",
     "@elastic/eui": "77.2.0",

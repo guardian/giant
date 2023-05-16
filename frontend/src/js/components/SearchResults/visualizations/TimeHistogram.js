@@ -46,7 +46,7 @@ export default class TimeHistogram extends React.Component {
 
         binnedData = _.sortBy(binnedData, i => i.bin0);
 
-        const esData = binnedData.map(b => {
+        const histogramData = binnedData.map(b => {
             return {
                 ...b,
                 time: b.bin0.getTime(),
@@ -103,7 +103,7 @@ export default class TimeHistogram extends React.Component {
                     <BarSeries
                         id="documents"
                         name="Documents"
-                        data={esData}
+                        data={histogramData}
                         xScaleType={ScaleType.Time}
                         xAccessor="time"
                         yAccessors={['count']}
