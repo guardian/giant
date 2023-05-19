@@ -21,7 +21,7 @@
     }
 
     &__button {
-        margin: $baseSpacing / 2 $baseSpacing;
+        margin: calc($baseSpacing / 2) $baseSpacing;
     }
 
     &__group {
@@ -125,11 +125,11 @@
     padding: 0;
 
     &-item {
-        padding: $baseSpacing/2 $baseSpacing;
+        padding: calc($baseSpacing / 2) $baseSpacing;
     }
 
     &-title {
-        margin-bottom: $baseSpacing / 2;
+        margin-bottom: calc($baseSpacing / 2);
         font-weight: bold;
     }
 
@@ -137,7 +137,7 @@
         font-size: 12px;
 
         &:not(:last-child) {
-            margin-bottom: $baseSpacing / 4;
+            margin-bottom: calc($baseSpacing / 4);
         }
     }
 }

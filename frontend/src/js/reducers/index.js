@@ -18,7 +18,7 @@ import expandedFilters from './expandedFiltersReducer';
 import isLoadingResource from './isLoadingResourceReducer';
 import pages from './pagesReducer';
 
-export default (history) => combineReducers({
+const allReducers = (history) => combineReducers({
     collections,
     filters,
     urlParams,
@@ -38,3 +38,4 @@ export default (history) => combineReducers({
     isLoadingResource,
     pages
 });
+export default allReducers

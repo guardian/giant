@@ -15,7 +15,7 @@ $btnBoxShadowHeight: 2px;
     background-color: $secondaryDark;
     border: 1px solid $borderColour;
     border-radius: $borderRadius;
-    padding: $baseSpacing / 2;
+    padding: calc($baseSpacing / 2);
 
     &:hover {
         background-color: $secondary;

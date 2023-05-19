@@ -2,8 +2,8 @@ import authFetch from "../../util/auth/authFetch";
 import { LruCache } from "../../util/LruCache";
 import { CachedPreview, PageData } from "./model";
 import { renderPdfPreview } from "./PdfHelpers";
-import * as pdfjs from 'pdfjs-dist';
 import { removeLastUnmatchedQuote } from '../../util/stringUtils';
+import {PDFWorker} from "pdfjs-dist";
 
 export type CachedPage = {
   previewAbortController: AbortController;
@@ -29,10 +29,7 @@ export class PageCache {
   // within document
   findQuery?: string;
 
-  // Unfortunately because PDF.js haven't typed it,
-  // this type is actually just "any" so type system won't enforce anything.
-  // But at least this documents what we should be putting in here.
-  pdfWorker: typeof pdfjs.PDFWorker;
+  pdfWorker: PDFWorker;
 
   // Arrived at by testing with Chrome on Ubuntu.
   // Having too many cached pages can result in having too many
@@ -57,7 +54,7 @@ export class PageCache {
       this.onDataCacheMiss,
       this.onDataCacheEvict
     );
-    this.pdfWorker = new pdfjs.PDFWorker();
+    this.pdfWorker = new PDFWorker();
   }
 
   setFindQuery = (q?: string) => {

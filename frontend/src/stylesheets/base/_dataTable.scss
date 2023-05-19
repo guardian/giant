@@ -21,7 +21,7 @@
     }
 
     &__item {
-        padding: $baseSpacing / 2 $baseSpacing;
+        padding: calc($baseSpacing / 2) $baseSpacing;
         text-align: left;
 
         &--icon {

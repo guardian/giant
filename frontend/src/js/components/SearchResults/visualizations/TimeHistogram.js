@@ -7,7 +7,8 @@ import {
     Axis,
     Chart,
     Settings as EuiSettings,
-    ScaleType, BarSeries
+    ScaleType, BarSeries,
+    Tooltip
 } from "@elastic/charts";
 import '@elastic/charts/dist/theme_light.css';
 
@@ -45,8 +46,19 @@ export default class TimeHistogram extends React.Component {
 
         binnedData = _.sortBy(binnedData, i => i.bin0);
 
+        const histogramData = binnedData.map(b => {
+            return {
+                ...b,
+                time: b.bin0.getTime(),
+            }
+        })
+
         const renderTime = (millis) => {
             return format(new Date(millis), 'MM/yyyy');
+        };
+
+        const renderTimeFancy = (millis) => {
+            return format(new Date(millis), 'MMMM yyyy');
         };
 
         const queryByDate = (datum) => {
@@ -76,13 +88,6 @@ export default class TimeHistogram extends React.Component {
             this.props.updateSearchText(query);
       }
 
-        const esData = binnedData.map(b => {
-            return {
-                ...b,
-                time: b.bin0.getTime(),
-            }
-        })
-
         return (
             <div style={{width: '100%', height: '200px'}}>
                 <Chart size={{height: 200}}>
@@ -90,15 +95,20 @@ export default class TimeHistogram extends React.Component {
                         showLegend={false}
                         onElementClick={(event) => queryByDate(event[0][0].datum)}
                     />
+                    <Tooltip
+                        headerFormatter={(tooltipData) => {
+                            return renderTimeFancy(tooltipData.value);
+                        }}
+                    />
                     <BarSeries
                         id="documents"
                         name="Documents"
-                        data={esData}
+                        data={histogramData}
                         xScaleType={ScaleType.Time}
                         xAccessor="time"
                         yAccessors={['count']}
-                    />
 
+                    />
                     <Axis
                         id="bottom-axis"
                         position="bottom"

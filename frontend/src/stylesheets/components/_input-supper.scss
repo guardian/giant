@@ -57,7 +57,7 @@
     position: relative;
     display: inline-block;
     height: 100%;
-    margin: 0 $baseSpacing / 2 0 0;
+    margin: 0 calc($baseSpacing / 2) 0 0;
 
     &:last-child {
         flex-grow: 1;
@@ -70,7 +70,7 @@
 .input-supper__chip {
     display: inline-block;
     width: fit-content;
-    margin-right: $baseSpacing / 2;
+    margin-right: calc($baseSpacing / 2);
     color: white;
 
     & > button {

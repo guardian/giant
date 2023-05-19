@@ -14,7 +14,7 @@
     }
 
     &__item, &__message {
-        padding: $baseSpacing / 2;
+        padding: calc($baseSpacing / 2);
         position: relative;
         display: flex;
     }

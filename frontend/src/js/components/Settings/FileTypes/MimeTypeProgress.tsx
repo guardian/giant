@@ -1,13 +1,12 @@
 import React from 'react';
-import PropTypes from 'prop-types';
 
-type PropTypes = {
+type MimeTypeProgressProps = {
     done: number,
     todo: number,
     failed: number,
 }
 
-export function MimeTypeProgress({ done, todo, failed }: PropTypes) {
+export function MimeTypeProgress({ done, todo, failed }: MimeTypeProgressProps) {
     const total = done + todo + failed;
     const successWidth = (done / total) * 100;
     const failureWidth = (failed / total) * 100;

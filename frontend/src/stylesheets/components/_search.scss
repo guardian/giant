@@ -48,7 +48,7 @@
     }
 
     &:not(:last-child) {
-        margin-right: $baseSpacing / 2;
+        margin-right: calc($baseSpacing / 2);
     }
 }
 
@@ -65,7 +65,7 @@
         flex-direction: column;
 
         position: relative;
-        margin: $baseSpacing / 2;
+        margin: calc($baseSpacing / 2);
         width: 300px;
         flex-shrink: 0;
         border-radius: $borderRadius 0 0 $borderRadius;
@@ -138,14 +138,14 @@
     &__icon--small {
         width: 25px !important;
         height: 25px !important;
-        padding: $baseSpacing / 3 !important;
+        padding: calc($baseSpacing / 3) !important;
     }
 
     &__icon-email {
         padding: $baseSpacing;
         width: 50px;
         height: 50px;
-        margin: $baseSpacing / 2;
+        margin: calc($baseSpacing / 2);
         border-radius: 50%;
         color: white;
         background-color: $highlightColour;
@@ -156,7 +156,7 @@
         padding: $baseSpacing;
         width: 50px;
         height: 50px;
-        margin: $baseSpacing / 2;
+        margin: calc($baseSpacing / 2);
         border-radius: 50%;
         color: white;
         background-color: $accentBlue;
@@ -179,7 +179,7 @@
     }
 
     &__highlight {
-        padding: $baseSpacing / 2;
+        padding: calc($baseSpacing / 2);
         position: relative;
         font-family: monospace;
         border-bottom: 1px solid $borderColour;
@@ -258,7 +258,7 @@
 
     &--error {
         background-color: $errorColour;
-        padding: $baseSpacing / 2;
+        padding: calc($baseSpacing / 2);
         border-radius: $borderRadius;
         color: white;
     }

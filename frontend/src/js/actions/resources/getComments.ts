@@ -15,6 +15,7 @@ export function getComments(uri: string) {
                 comments
             });
         } catch(error) {
+            // @ts-ignore
             dispatch({
                 type: AppActionType.APP_SHOW_ERROR,
                 message: 'Failed to get comments',
