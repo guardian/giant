@@ -1,7 +1,6 @@
 package com.gu.pfi.cli.ingestion
 
 import java.nio.file.{Files, Path}
-
 import model.{Language, Uri}
 import model.ingestion.{IngestionFile, OnDiskFileContext}
 import utils.Logging
@@ -10,27 +9,27 @@ import scala.jdk.StreamConverters._
 import scala.util.Try
 
 class CliFileWalker(enrich: Path => IngestionFile) extends Logging {
-  def walk(path: Path, root: Uri, languages: List[Language]): LazyList[OnDiskFileContext] = {
+  def walk(path: Path, root: Uri, languages: List[Language]): List[OnDiskFileContext] = {
     walk(path, List(root.chain(path.getFileName.toString), root), root, languages)
   }
 
-  private def walk(thisPath: Path, parents: List[Uri], root: Uri, languages: List[Language]): LazyList[OnDiskFileContext] = {
+  private def walk(thisPath: Path, parents: List[Uri], root: Uri, languages: List[Language]): List[OnDiskFileContext] = {
     val enrichedPath = enrich(thisPath)
 
-    OnDiskFileContext(enrichedPath, parents, root.value, languages, thisPath) #:: {
+    OnDiskFileContext(enrichedPath, parents, root.value, languages, thisPath) +: {
       if (Files.isDirectory(thisPath)) {
         Try {
           val fileStream = Files.list(thisPath)
           // eagerly evaluate the file stream; allowing it to be closed to avoid resource exhaustion
-          val evaluated = fileStream.toScala(LazyList)
+          val evaluated = fileStream.toScala(LazyList).toList
           fileStream.close()
           evaluated
         }.map(_.flatMap(p => walk(p, parents.head.chain(p.getFileName.toString) :: parents, root, languages))).getOrElse {
           logger.error(s"IO error reading '$thisPath'")
-          LazyList.empty[OnDiskFileContext]
+          List.empty[OnDiskFileContext]
         }
       } else {
-        LazyList.empty[OnDiskFileContext]
+        List.empty[OnDiskFileContext]
       }
     }
   }
