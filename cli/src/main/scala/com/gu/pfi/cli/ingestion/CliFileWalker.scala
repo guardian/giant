@@ -9,14 +9,14 @@ import scala.jdk.StreamConverters._
 import scala.util.Try
 
 class CliFileWalker(enrich: Path => IngestionFile) extends Logging {
-  def walk(path: Path, root: Uri, languages: List[Language]): List[OnDiskFileContext] = {
+  def walk(path: Path, root: Uri, languages: List[Language]): LazyList[OnDiskFileContext] = {
     walk(path, List(root.chain(path.getFileName.toString), root), root, languages)
   }
 
-  private def walk(thisPath: Path, parents: List[Uri], root: Uri, languages: List[Language]): List[OnDiskFileContext] = {
+  private def walk(thisPath: Path, parents: List[Uri], root: Uri, languages: List[Language]): LazyList[OnDiskFileContext] = {
     val enrichedPath = enrich(thisPath)
 
-    OnDiskFileContext(enrichedPath, parents, root.value, languages, thisPath) +: {
+    OnDiskFileContext(enrichedPath, parents, root.value, languages, thisPath) #:: {
       if (Files.isDirectory(thisPath)) {
         Try {
           val fileStream = Files.list(thisPath)
@@ -26,10 +26,10 @@ class CliFileWalker(enrich: Path => IngestionFile) extends Logging {
           evaluated
         }.map(_.flatMap(p => walk(p, parents.head.chain(p.getFileName.toString) :: parents, root, languages))).getOrElse {
           logger.error(s"IO error reading '$thisPath'")
-          List.empty[OnDiskFileContext]
+          LazyList.empty[OnDiskFileContext]
         }
       } else {
-        List.empty[OnDiskFileContext]
+        LazyList.empty[OnDiskFileContext]
       }
     }
   }
