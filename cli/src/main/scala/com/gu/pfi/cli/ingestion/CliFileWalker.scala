@@ -1,7 +1,6 @@
 package com.gu.pfi.cli.ingestion
 
 import java.nio.file.{Files, Path}
-
 import model.{Language, Uri}
 import model.ingestion.{IngestionFile, OnDiskFileContext}
 import utils.Logging
@@ -22,7 +21,7 @@ class CliFileWalker(enrich: Path => IngestionFile) extends Logging {
         Try {
           val fileStream = Files.list(thisPath)
           // eagerly evaluate the file stream; allowing it to be closed to avoid resource exhaustion
-          val evaluated = fileStream.toScala(LazyList)
+          val evaluated = LazyList.from(fileStream.toScala(List))
           fileStream.close()
           evaluated
         }.map(_.flatMap(p => walk(p, parents.head.chain(p.getFileName.toString) :: parents, root, languages))).getOrElse {
