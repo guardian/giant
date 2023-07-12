@@ -43,9 +43,11 @@ class PanDomainUserProvider(val config: PandaAuthConfig, currentPublicKey: () =>
         val status = PanDomain.authStatus(cookieData.value, publicKey, validateUser, 0L, "giant", false)
         status match {
           case Authenticated(authedUser) =>
+            println("*******upcasing user from " + authedUser.user.email)
+            val upcasedAuthedUser = authedUser.copy(user = authedUser.user.copy(email = authedUser.user.email.toUpperCase()))
             for {
-              user <- users.getUser(authedUser.user.email)
-              displayName = s"${authedUser.user.firstName} ${authedUser.user.lastName}"
+              user <- users.getUser(upcasedAuthedUser.user.email)
+              displayName = s"${upcasedAuthedUser.user.firstName} ${upcasedAuthedUser.user.lastName}"
               _ <- if (user.registered)
                 Attempt.Right(user)
               else {
