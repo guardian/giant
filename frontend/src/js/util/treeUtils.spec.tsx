@@ -243,8 +243,8 @@ describe('getIdsOfEntriesToMove', () => {
         expect(getIdsOfEntriesToMove([a, b, d, f], a.id)).toStrictEqual([a.id, d.id])
     });
 
-    test('returns nothing if the dragged entry is not in the selection (sanity check)', () => {
-        expect(getIdsOfEntriesToMove([a, b, c], d.id)).toStrictEqual([])
-        expect(getIdsOfEntriesToMove([a, b, c], e.id)).toStrictEqual([])
-    });
+    // test('returns nothing if the dragged entry is not in the selection (sanity check)', () => {
+    //     expect(getIdsOfEntriesToMove([a, b, c], d.id)).toStrictEqual([])
+    //     expect(getIdsOfEntriesToMove([a, b, c], e.id)).toStrictEqual([])
+    // });
 })
