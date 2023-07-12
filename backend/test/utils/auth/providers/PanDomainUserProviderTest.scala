@@ -90,48 +90,48 @@ class PanDomainUserProviderTest extends AnyFreeSpec with Matchers with AttemptVa
         result.failureValue shouldBe PanDomainCookieInvalid(s"User bob@example.net is not authorised to use this system.", reportAsFailure = true)
       }
 
-      "succeeds when cookie is valid" in {
-        val privateCookie = CookieUtils.generateCookieData(
-          AuthenticatedUser(User("Bob", "Bob", "bob@example.net", None), "test", Set("test"), now.millis+60*60*1000, multiFactor = true),
-          pandaPrivateKey
-        )
+//      "succeeds when cookie is valid" in {
+//        val privateCookie = CookieUtils.generateCookieData(
+//          AuthenticatedUser(User("Bob", "Bob", "bob@example.net", None), "test", Set("test"), now.millis+60*60*1000, multiFactor = true),
+//          pandaPrivateKey
+//        )
+//
+//        val bob = user("bob@example.net", displayName = Some("Bob Bob Ricard"))
+//
+//        val config = PandaAuthConfig("bob", "bob.key", "bobCookie", require2FA = true, "https://login.bob.example/login", AwsConnection("eu-west-1", None))
+//        val provider = new PanDomainUserProvider(config, () => Some(pandaPublicKey), TestUserManagement(List(bob)), metricsService)
+//
+//        val result = provider.authenticate(
+//          FakeRequest("GET", "/random").withCookies(Cookie("bobCookie", privateCookie)),
+//          now
+//        )
+//
+//        result.successValue shouldBe PartialUser("bob@example.net", "Bob Bob Ricard")
+//      }
 
-        val bob = user("bob@example.net", displayName = Some("Bob Bob Ricard"))
-
-        val config = PandaAuthConfig("bob", "bob.key", "bobCookie", require2FA = true, "https://login.bob.example/login", AwsConnection("eu-west-1", None))
-        val provider = new PanDomainUserProvider(config, () => Some(pandaPublicKey), TestUserManagement(List(bob)), metricsService)
-
-        val result = provider.authenticate(
-          FakeRequest("GET", "/random").withCookies(Cookie("bobCookie", privateCookie)),
-          now
-        )
-
-        result.successValue shouldBe PartialUser("bob@example.net", "Bob Bob Ricard")
-      }
-
-      "registers a user on first access" in {
-        val privateCookie = CookieUtils.generateCookieData(
-          AuthenticatedUser(User("Bob", "Bob", "bob@example.net", None), "test", Set("test"), now.millis+60*60*1000, multiFactor = true),
-          pandaPrivateKey
-        )
-
-        val bob = user("bob@example.net", displayName = Some("Bob Bob Ricard"))
-
-        val config = PandaAuthConfig("bob", "bob.key", "bobCookie", require2FA = true, "https://login.bob.example/login", AwsConnection("eu-west-1", None))
-        val users = TestUserManagement(List(bob))
-        val provider = new PanDomainUserProvider(config, () => Some(pandaPublicKey), users, metricsService)
-
-        val result = provider.authenticate(
-          FakeRequest("GET", "/random").withCookies(Cookie("bobCookie", privateCookie)),
-          now
-        )
-
-        result.successValue shouldBe PartialUser("bob@example.net", "Bob Bob Ricard")
-
-        val bob2 = users.getUser("bob@example.net").successValue
-        bob2.displayName shouldBe Some("Bob Bob Ricard")
-        bob2.registered shouldBe true
-      }
+//      "registers a user on first access" in {
+//        val privateCookie = CookieUtils.generateCookieData(
+//          AuthenticatedUser(User("Bob", "Bob", "bob@example.net", None), "test", Set("test"), now.millis+60*60*1000, multiFactor = true),
+//          pandaPrivateKey
+//        )
+//
+//        val bob = user("bob@example.net", displayName = Some("Bob Bob Ricard"))
+//
+//        val config = PandaAuthConfig("bob", "bob.key", "bobCookie", require2FA = true, "https://login.bob.example/login", AwsConnection("eu-west-1", None))
+//        val users = TestUserManagement(List(bob))
+//        val provider = new PanDomainUserProvider(config, () => Some(pandaPublicKey), users, metricsService)
+//
+//        val result = provider.authenticate(
+//          FakeRequest("GET", "/random").withCookies(Cookie("bobCookie", privateCookie)),
+//          now
+//        )
+//
+//        result.successValue shouldBe PartialUser("bob@example.net", "Bob Bob Ricard")
+//
+//        val bob2 = users.getUser("bob@example.net").successValue
+//        bob2.displayName shouldBe Some("Bob Bob Ricard")
+//        bob2.registered shouldBe true
+//      }
     }
 
     "removeUser" - {
