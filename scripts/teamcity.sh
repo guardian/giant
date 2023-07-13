@@ -30,15 +30,17 @@ export PATH=$JAVA_HOME/bin:$PATH
 # Do a full build of PFI including all tests and upload it to Riff-Raff under the playground stack
 sbt -DPFI_STACK=pfi-playground clean riffRaffUploadWithIntegrationTests
 
-# Do another build limited to just the binaries and upload under the Giant stack
-# To achieve this we unfortunately need to edit riff-raff.yaml directly.
-sed -i -e "s/pfi-playground/pfi-giant/g" riff-raff.yaml
-sbt -DPFI_STACK=pfi-giant riffRaffUpload
-
 # Do another build limited to just the binaries and upload under the Giant Llama stack
 # To achieve this we unfortunately need to edit riff-raff.yaml directly.
 sed -i -e "s/pfi-playground/pfi-llama/g" riff-raff.yaml
 sbt -DPFI_STACK=pfi-llama riffRaffUpload
+# revert changes for giant or any other future builds
+sed -i -e "s/pfi-llama/pfi-playground/g" riff-raff.yaml
+
+# Do another build limited to just the binaries and upload under the Giant stack
+# To achieve this we unfortunately need to edit riff-raff.yaml directly.
+sed -i -e "s/pfi-playground/pfi-giant/g" riff-raff.yaml
+sbt -DPFI_STACK=pfi-giant riffRaffUpload
 
 # Avoid problems in case we re-use this checkout again
 sed -i -e "s/pfi-giant/pfi-playground/g" riff-raff.yaml
