@@ -82,28 +82,30 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
     if (containerSize !== 1000) {
       setRenderedPages((currentPages) => {
         const newPages: RenderedPage[] = currentPages.map((page) => {
+          // TODO: is there a way to avoid re-fetching the preview from the server?
           const refreshedPage = pageCache.getPageAndRefreshPreview(
               page.pageNumber
           );
           return {
             pageNumber: page.pageNumber,
-            getPagePreview: page.getPagePreview,
-            getPageData: refreshedPage.data,
+            getPagePreview: refreshedPage.preview,
+            getPageData: page.getPageData,
           }
         });
 
-        // Once we've refreshed all visible pages go and refresh the cached pages too
-        // Will this work inside a setState callback?? It seems so...
-        Promise.all(newPages.map((page) => page.getPageData)).then(() => {
-          pageCache
-              .getAllPageNumbers()
-              .filter((cachedPageNumber) =>
-                  !newPages.some((newPage) => newPage.pageNumber === cachedPageNumber)
-              )
-              .forEach((pageNumberToRefresh) =>
-                  pageCache.getPageAndRefreshPreview(pageNumberToRefresh)
-              );
-        });
+        // TODO: do we need this for zoom? maybe not because we don't care about data of non-visible pages
+        // // Once we've refreshed all visible pages go and refresh the cached pages too
+        // // Will this work inside a setState callback?? It seems so...
+        // Promise.all(newPages.map((page) => page.getPagePreview)).then(() => {
+        //   pageCache
+        //       .getAllPageNumbers()
+        //       .filter((cachedPageNumber) =>
+        //           !newPages.some((newPage) => newPage.pageNumber === cachedPageNumber)
+        //       )
+        //       .forEach((pageNumberToRefresh) =>
+        //           pageCache.getPageAndRefreshPreview(pageNumberToRefresh)
+        //       );
+        // });
 
         return newPages;
       });
@@ -227,24 +229,26 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
   return (
     <div ref={viewport} className={styles.scrollContainer} onScroll={throttledSetPageRangeFromScrollPosition}>
       <div className={styles.pages} style={{ height: totalPages * pageHeight }}>
-        {renderedPages.map((page) => (
-          <div
-            key={page.pageNumber}
-            style={{
-              top: (page.pageNumber - 1) * pageHeight,
-              transform: `rotate(${rotation}deg)`,
-            }}
-            className={styles.pageContainer}
+        {renderedPages.map((page) => {
+          console.log('Re-rendering page: ', page);
+          return (<div
+              key={page.pageNumber}
+              style={{
+                top: (page.pageNumber - 1) * pageHeight,
+                transform: `rotate(${rotation}deg)`,
+              }}
+              className={styles.pageContainer}
           >
             <Page
-              focusedFindHighlightId={focusedFindHighlight?.id}
-              focusedSearchHighlightId={focusedSearchHighlight?.id}
-              pageNumber={page.pageNumber}
-              getPagePreview={page.getPagePreview}
-              getPageData={page.getPageData}
+                focusedFindHighlightId={focusedFindHighlight?.id}
+                focusedSearchHighlightId={focusedSearchHighlight?.id}
+                pageNumber={page.pageNumber}
+                getPagePreview={page.getPagePreview}
+                getPageData={page.getPageData}
+                pageHeight={pageHeight}
             />
-          </div>
-        ))}
+          </div>);
+        })}
       </div>
     </div>
   );

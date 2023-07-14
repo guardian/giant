@@ -11,6 +11,7 @@ type PageProps = {
   pageNumber: number;
   getPagePreview: Promise<CachedPreview>;
   getPageData: Promise<PageData>;
+  pageHeight: number;
 };
 
 export const Page: FC<PageProps> = ({
@@ -19,6 +20,7 @@ export const Page: FC<PageProps> = ({
   pageNumber,
   getPagePreview,
   getPageData,
+  pageHeight,
 }) => {
   const [pageText, setPageText] = useState<PageData | null>(null);
   const [scale, setScale] = useState<number | null>(null);
@@ -39,13 +41,17 @@ export const Page: FC<PageProps> = ({
   };
 
   useEffect(() => {
+    console.log('useEffect getPagePreview');
     if (containerRef.current) {
       getPagePreview
         .then((preview) => {
+          console.log('Render page preview into DOM');
           // Have to recheck here because the component may have dismounted
           const node = containerRef.current;
           if (node) {
             setScale(preview.scale);
+            // TODO DANGEROUS: this might completely mess up multi-page docs
+            node.innerHTML = '';
             node.appendChild(preview.canvas);
           }
           setPreviewMounted(true);
@@ -57,10 +63,13 @@ export const Page: FC<PageProps> = ({
         })
         .catch(handleAbort);
     }
-  }, [getPagePreview]);
+  }, [getPagePreview, pageHeight]);
 
   useEffect(() => {
-    getPageData.then(setPageText).catch(handleAbort);
+    getPageData.then((text) => {
+      console.log('Refresh page data');
+      setPageText(text);
+    }).catch(handleAbort);
   }, [containerRef, getPageData]);
 
   return (
