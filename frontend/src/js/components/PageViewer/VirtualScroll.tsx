@@ -1,8 +1,8 @@
-import { debounce, range } from 'lodash';
-import React, { FC, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { CachedPreview, CONTAINER_AND_MARGIN_SIZE, HighlightForSearchNavigation, PageData } from './model';
-import { Page } from './Page';
-import { PageCache } from './PageCache';
+import {debounce, range} from 'lodash';
+import React, {FC, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState} from 'react';
+import {CachedPreview, HighlightForSearchNavigation, PageData} from './model';
+import {Page} from './Page';
+import {PageCache} from './PageCache';
 import styles from './VirtualScroll.module.css';
 import throttle from 'lodash/throttle';
 
@@ -51,7 +51,15 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
   // Could possibly make it dynamic based on the visible of the container
   const PRELOAD_PAGES = 2;
 
-  const pageHeight = CONTAINER_AND_MARGIN_SIZE;
+  // This must be the same as the margin CSS of .pageContainer
+  const MARGIN = 10;
+
+  const [containerSize, setContainerSize] = useState<number>(1000);
+  const [pageHeight, setPageHeight] = useState<number>(1000 + (MARGIN * 2));
+
+  useEffect(() => {
+    setPageHeight(containerSize + (MARGIN * 2));
+  }, [containerSize])
 
   const viewport = useRef<HTMLDivElement>(null);
 
