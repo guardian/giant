@@ -12,6 +12,8 @@ export const renderPdfPreview = async (
   pdfWorker: PDFWorker,
   containerSize: number
 ): Promise<CachedPreview> => {
+  console.log('render pdf preview! containerSize: ', containerSize);
+
   const doc = await getDocument({
     data: new Uint8Array(buffer),
     // Use the same web worker for all pages
@@ -43,6 +45,7 @@ export const renderPdfPreview = async (
     viewport,
   });
 
+  console.log('rendered!');
   return { pdfPage, canvas, scale };
 };
 

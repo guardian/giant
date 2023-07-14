@@ -1,6 +1,8 @@
 import React, { FC, useCallback, useEffect, useState } from 'react';
 import RotateLeft from 'react-icons/lib/md/rotate-left';
 import RotateRight from 'react-icons/lib/md/rotate-right';
+import ZoomInIcon from 'react-icons/lib/md/zoom-in';
+import ZoomOutIcon from 'react-icons/lib/md/zoom-out';
 import styles from './Controls.module.css';
 import { FindInput } from './FindInput';
 import { HighlightForSearchNavigation } from './model';
@@ -8,10 +10,13 @@ import { removeLastUnmatchedQuote } from '../../util/stringUtils';
 import authFetch from '../../util/auth/authFetch';
 import { HighlightsState } from './PageViewer';
 
+
 type ControlsProps = {
   // Rotation
   rotateClockwise: () => void;
   rotateAnticlockwise: () => void;
+  zoomIn: () => void;
+  zoomOut: () => void;
 
   fixedQuery?: string;
   uri: string;
@@ -25,7 +30,9 @@ export const Controls: FC<ControlsProps> = ({
   fixedQuery,
   uri,
   onHighlightStateChange,
-  onQueryChange
+  onQueryChange,
+  zoomIn,
+  zoomOut
 }) => {
   const [focusedFindHighlightIndex, setFocusedFindHighlightIndex] = useState<number | null>(null);
   const [findHighlights, setFindHighlights] = useState<HighlightForSearchNavigation[]>([]);
@@ -121,6 +128,14 @@ export const Controls: FC<ControlsProps> = ({
 
   return (
     <div className={styles.bar}>
+      <div>
+        <button onClick={zoomIn} >
+          <ZoomInIcon />
+        </button>
+        <button onClick={zoomOut}  >
+          <ZoomOutIcon />
+        </button>
+      </div>
       {fixedQuery === undefined &&
         <div>
           <button onClick={rotateAnticlockwise} >

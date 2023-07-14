@@ -69,6 +69,8 @@ export class PageCache {
   };
 
   private onPreviewCacheMiss = (pageNumber: number): CachedPreviewData => {
+    console.log('onPreviewCacheMiss');
+
     const previewAbortController = new AbortController();
     const preview = authFetch(`/api/pages2/${this.uri}/${pageNumber}/preview`, {
       signal: previewAbortController.signal,
@@ -118,6 +120,18 @@ export class PageCache {
 
   getPage = (pageNumber: number): CachedPage => {
     const preview = this.previewCache.get(pageNumber);
+    const data = this.dataCache.get(pageNumber);
+
+    return {
+      ...preview,
+      ...data,
+    };
+  };
+
+  getPageAndRefreshPreview = (pageNumber: number): CachedPage => {
+    const preview = this.previewCache.getAndForceRefresh(pageNumber);
+
+    // TODO: we may need to refresh the data too, if we need a new server call to get new highlight positions
     const data = this.dataCache.get(pageNumber);
 
     return {

@@ -19,6 +19,7 @@ type VirtualScrollProps = {
   jumpToPage?: number | null;
 
   rotation: number;
+  scale: number;
 };
 
 type RenderedPage = {
@@ -45,7 +46,9 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
   pageNumbersToPreload,
 
   rotation,
+  scale
 }) => {
+  console.log(`scale inside VirtualScroll is ${scale}`);
   // Tweaked this and 2 seems to be a good amount on a regular monitor
   // The fewer pages we preload the faster the initial paint will be
   // Could possibly make it dynamic based on the visible of the container
@@ -54,12 +57,14 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
   // This must be the same as the margin CSS of .pageContainer
   const MARGIN = 10;
 
-  const [containerSize, setContainerSize] = useState<number>(1000);
-  const [pageHeight, setPageHeight] = useState<number>(1000 + (MARGIN * 2));
-
-  useEffect(() => {
-    setPageHeight(containerSize + (MARGIN * 2));
-  }, [containerSize])
+  // const [containerSize, setContainerSize] = useState<number>(1000);
+  // const [pageHeight, setPageHeight] = useState<number>(1000 + (MARGIN * 2));
+  //
+  // useEffect(() => {
+  //   setPageHeight(containerSize + (MARGIN * 2));
+  // }, [containerSize])
+  const containerSize = 1000 * scale;
+  const pageHeight = containerSize + (MARGIN * 2);
 
   const viewport = useRef<HTMLDivElement>(null);
 
@@ -69,6 +74,41 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
   // We have a second tier cache tied to the React component lifecycle for storing
   // rendered pages which allows us to swap out stale pages without flickering pages
   const [renderedPages, setRenderedPages] = useState<RenderedPage[]>([]);
+
+  useEffect(() => {
+    console.log('containerSize is now ', containerSize);
+    pageCache.setContainerSize(containerSize);
+
+    if (containerSize !== 1000) {
+      setRenderedPages((currentPages) => {
+        const newPages: RenderedPage[] = currentPages.map((page) => {
+          const refreshedPage = pageCache.getPageAndRefreshPreview(
+              page.pageNumber
+          );
+          return {
+            pageNumber: page.pageNumber,
+            getPagePreview: page.getPagePreview,
+            getPageData: refreshedPage.data,
+          }
+        });
+
+        // Once we've refreshed all visible pages go and refresh the cached pages too
+        // Will this work inside a setState callback?? It seems so...
+        Promise.all(newPages.map((page) => page.getPageData)).then(() => {
+          pageCache
+              .getAllPageNumbers()
+              .filter((cachedPageNumber) =>
+                  !newPages.some((newPage) => newPage.pageNumber === cachedPageNumber)
+              )
+              .forEach((pageNumberToRefresh) =>
+                  pageCache.getPageAndRefreshPreview(pageNumberToRefresh)
+              );
+        });
+
+        return newPages;
+      });
+    }
+  }, [pageCache, containerSize])
 
   useEffect(() => {
     pageCache.setFindQuery(findQuery);
