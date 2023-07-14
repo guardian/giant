@@ -1,5 +1,5 @@
 
-import { CachedPreview, CONTAINER_SIZE, PdfText } from "./model";
+import { CachedPreview, PdfText } from "./model";
 import {getDocument, GlobalWorkerOptions, PDFWorker, renderTextLayer} from "pdfjs-dist";
 
 // PDFjs has webpack config built-in but it uses worker-loader which seems
@@ -9,7 +9,8 @@ import {getDocument, GlobalWorkerOptions, PDFWorker, renderTextLayer} from "pdfj
 GlobalWorkerOptions.workerSrc = '/third-party/pdf.worker.min.js';
 export const renderPdfPreview = async (
   buffer: ArrayBuffer,
-  pdfWorker: PDFWorker
+  pdfWorker: PDFWorker,
+  containerSize: number
 ): Promise<CachedPreview> => {
   const doc = await getDocument({
     data: new Uint8Array(buffer),
@@ -26,8 +27,8 @@ export const renderPdfPreview = async (
   const unscaledViewport = pdfPage.getViewport({ scale: 1.0 });
   const isLandscape = unscaledViewport.width > unscaledViewport.height;
 
-  const widthScale = CONTAINER_SIZE / unscaledViewport.width;
-  const heightScale = CONTAINER_SIZE / unscaledViewport.height;
+  const widthScale = containerSize / unscaledViewport.width;
+  const heightScale = containerSize / unscaledViewport.height;
 
   const scale = isLandscape ? widthScale : heightScale;
 

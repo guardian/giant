@@ -29,6 +29,8 @@ export class PageCache {
   // within document
   findQuery?: string;
 
+  containerSize: number;
+
   pdfWorker: PDFWorker;
 
   // Arrived at by testing with Chrome on Ubuntu.
@@ -41,7 +43,8 @@ export class PageCache {
   private previewCache: LruCache<number, CachedPreviewData>;
   private dataCache: LruCache<number, CachedPageData>;
 
-  constructor(uri: string, query?: string) {
+  constructor(uri: string, containerSize: number, query?: string) {
+    this.containerSize = containerSize;
     this.uri = uri;
     this.searchQuery = query;
     this.previewCache = new LruCache(
@@ -61,13 +64,17 @@ export class PageCache {
     this.findQuery = q;
   };
 
+  setContainerSize = (sizeInPixels: number) => {
+    this.containerSize = sizeInPixels;
+  };
+
   private onPreviewCacheMiss = (pageNumber: number): CachedPreviewData => {
     const previewAbortController = new AbortController();
     const preview = authFetch(`/api/pages2/${this.uri}/${pageNumber}/preview`, {
       signal: previewAbortController.signal,
     })
       .then((res) => res.arrayBuffer())
-      .then((buf) => renderPdfPreview(buf, this.pdfWorker));
+      .then((buf) => renderPdfPreview(buf, this.pdfWorker, this.containerSize));
 
     return {
       previewAbortController,
