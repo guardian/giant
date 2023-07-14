@@ -32,7 +32,7 @@ class PanDomainUserProvider(val config: PandaAuthConfig, currentPublicKey: () =>
 
     def validateUser(user: AuthenticatedUser): Boolean = {
       val passesMultifactor = if (config.require2FA) user.multiFactor else true
-      val dbUser = users.getUser(user.user.email).awaitEither(10.seconds)
+      val dbUser = users.getUser(user.user.email.toLowerCase()).awaitEither(10.seconds)
       dbUser.isRight && passesMultifactor
     }
 
@@ -43,9 +43,10 @@ class PanDomainUserProvider(val config: PandaAuthConfig, currentPublicKey: () =>
         val status = PanDomain.authStatus(cookieData.value, publicKey, validateUser, 0L, "giant", false)
         status match {
           case Authenticated(authedUser) =>
+            val downcasedAuthedUser = authedUser.copy(user = authedUser.user.copy(email = authedUser.user.email.toLowerCase()))
             for {
-              user <- users.getUser(authedUser.user.email)
-              displayName = s"${authedUser.user.firstName} ${authedUser.user.lastName}"
+              user <- users.getUser(downcasedAuthedUser.user.email)
+              displayName = s"${downcasedAuthedUser.user.firstName} ${downcasedAuthedUser.user.lastName}"
               _ <- if (user.registered)
                 Attempt.Right(user)
               else {
