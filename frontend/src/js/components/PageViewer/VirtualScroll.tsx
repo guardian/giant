@@ -19,6 +19,7 @@ type VirtualScrollProps = {
   jumpToPage?: number | null;
 
   rotation: number;
+  scale: number;
 };
 
 type RenderedPage = {
@@ -45,6 +46,7 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
   pageNumbersToPreload,
 
   rotation,
+  scale,
 }) => {
   // Tweaked this and 2 seems to be a good amount on a regular monitor
   // The fewer pages we preload the faster the initial paint will be
@@ -184,9 +186,9 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
             key={page.pageNumber}
             style={{
               top: (page.pageNumber - 1) * pageHeight,
-              transform: `rotate(${rotation}deg)`,
+              transform: `rotate(${rotation}deg)`,            
             }}
-            className={styles.pageContainer}
+            className={styles.pageContainer}           
           >
             <Page
               focusedFindHighlightId={focusedFindHighlight?.id}
@@ -194,6 +196,7 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
               pageNumber={page.pageNumber}
               getPagePreview={page.getPagePreview}
               getPageData={page.getPageData}
+              newScale={scale}
             />
           </div>
         ))}

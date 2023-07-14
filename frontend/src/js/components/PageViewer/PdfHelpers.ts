@@ -1,6 +1,7 @@
 
 import { CachedPreview, CONTAINER_SIZE, PdfText } from "./model";
-import {getDocument, GlobalWorkerOptions, PDFWorker, renderTextLayer} from "pdfjs-dist";
+import {getDocument, GlobalWorkerOptions, PDFDocumentProxy, PDFWorker, renderTextLayer} from "pdfjs-dist";
+import { PDFPageProxy } from "pdfjs-dist/types/src/display/api";
 
 // PDFjs has webpack config built-in but it uses worker-loader which seems
 // to break automatic reloading in dev in our Create React App project.
@@ -45,10 +46,31 @@ export const renderPdfPreview = async (
   return { pdfPage, canvas, scale };
 };
 
-export const renderTextOverlays = async (
-  preview: CachedPreview
+const renderPage = async (scale: number, preview: CachedPreview) => {
+  
+  const viewport = preview.pdfPage.getViewport({scale});
+  const canvas = preview.canvas;
+  const canvasContext = canvas.getContext("2d")!;
+
+  canvas.width = viewport.width;
+  canvas.height = viewport.height;
+
+  await preview.pdfPage.render({
+    canvasContext,
+    viewport,
+  });  
+
+  return { page: preview.pdfPage, scale };
+}
+
+export const changeScale = async (scale: number, preview: CachedPreview) => {
+  return await renderPage(scale, preview);
+}
+
+export const renderTextOverlays = async (  
+  pdfPage: PDFPageProxy,
+  scale: number,
 ): Promise<PdfText[]> => {
-  const { pdfPage, scale } = preview;
 
   const textContentStream = pdfPage.streamTextContent({
     disableCombineTextItems: false,

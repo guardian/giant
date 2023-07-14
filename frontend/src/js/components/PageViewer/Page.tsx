@@ -3,7 +3,7 @@ import { CachedPreview, PageData, PdfText } from './model';
 import styles from './Page.module.css';
 import { PageHighlight } from './PageHighlight';
 import { PageOverlayText } from './PageOverlayText';
-import { renderTextOverlays } from './PdfHelpers';
+import { renderTextOverlays, changeScale } from './PdfHelpers';
 
 type PageProps = {
   focusedFindHighlightId: string | undefined;
@@ -11,6 +11,7 @@ type PageProps = {
   pageNumber: number;
   getPagePreview: Promise<CachedPreview>;
   getPageData: Promise<PageData>;
+  newScale: number;
 };
 
 export const Page: FC<PageProps> = ({
@@ -19,6 +20,7 @@ export const Page: FC<PageProps> = ({
   pageNumber,
   getPagePreview,
   getPageData,
+  newScale,
 }) => {
   const [pageText, setPageText] = useState<PageData | null>(null);
   const [scale, setScale] = useState<number | null>(null);
@@ -45,7 +47,7 @@ export const Page: FC<PageProps> = ({
           // Have to recheck here because the component may have dismounted
           const node = containerRef.current;
           if (node) {
-            setScale(preview.scale);
+            setScale(preview.scale);                  
             node.appendChild(preview.canvas);
           }
           setPreviewMounted(true);
@@ -53,13 +55,28 @@ export const Page: FC<PageProps> = ({
         })
         .then((preview) => {
           // Begin rendering the text overlays after the PDF rendered to the DOM
-          renderTextOverlays(preview).then(setTextOverlays);
+          renderTextOverlays(preview.pdfPage, preview.scale).then(setTextOverlays);
         })
         .catch(handleAbort);
     }
   }, [getPagePreview]);
 
   useEffect(() => {
+    console.log("***** starting re rendering the pdf");
+    getPagePreview.then(async (preview) => {      
+      console.log("***** starting re scaling");
+      changeScale(newScale, preview).then(({page, scale}) => {
+        console.log("***** starting re rendering text layer");
+        renderTextOverlays(page, scale).then(x => {
+          console.log("**** finished before text layer");
+          setTextOverlays(x);
+          console.log("**** finished after text layer");
+        });
+      });      
+    })
+  }, [getPagePreview, newScale]);
+
+  useEffect(() => {    
     getPageData.then(setPageText).catch(handleAbort);
   }, [containerRef, getPageData]);
 
