@@ -100,7 +100,24 @@ class PanDomainUserProviderTest extends AnyFreeSpec with Matchers with AttemptVa
 
         val config = PandaAuthConfig("bob", "bob.key", "bobCookie", require2FA = true, "https://login.bob.example/login", AwsConnection("eu-west-1", None))
         val provider = new PanDomainUserProvider(config, () => Some(pandaPublicKey), TestUserManagement(List(bob)), metricsService)
+        val result = provider.authenticate(
+          FakeRequest("GET", "/random").withCookies(Cookie("bobCookie", privateCookie)),
+          now
+        )
 
+        result.successValue shouldBe PartialUser("bob@example.net", "Bob Bob Ricard")
+      }
+
+      "succeeds when authed user email is title case but is lower case in the database" in {
+        val privateCookie = CookieUtils.generateCookieData(
+          AuthenticatedUser(User("Bob", "Bob", "Bob@example.net", None), "test", Set("test"), now.millis + 60 * 60 * 1000, multiFactor = true),
+          pandaPrivateKey
+        )
+
+        val bob = user("bob@example.net", displayName = Some("Bob Bob Ricard"))
+
+        val config = PandaAuthConfig("bob", "bob.key", "bobCookie", require2FA = true, "https://login.bob.example/login", AwsConnection("eu-west-1", None))
+        val provider = new PanDomainUserProvider(config, () => Some(pandaPublicKey), TestUserManagement(List(bob)), metricsService)
         val result = provider.authenticate(
           FakeRequest("GET", "/random").withCookies(Cookie("bobCookie", privateCookie)),
           now
