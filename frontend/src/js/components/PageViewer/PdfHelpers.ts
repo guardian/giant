@@ -1,4 +1,5 @@
 
+import { PDFPageProxy } from "pdfjs-dist/types/src/display/api";
 import { CachedPreview, PdfText } from "./model";
 import {getDocument, GlobalWorkerOptions, PDFWorker, renderTextLayer} from "pdfjs-dist";
 
@@ -7,6 +8,13 @@ import {getDocument, GlobalWorkerOptions, PDFWorker, renderTextLayer} from "pdfj
 // My solution is to symlink the worker js file into our existing 3rd party
 // directory in the backend and reference it directly.
 GlobalWorkerOptions.workerSrc = '/third-party/pdf.worker.min.js';
+export const updatePreview = async (preview: Promise<CachedPreview>, containerSize: number): Promise<CachedPreview> => {
+  return preview.then(async prev => {
+    const page = prev.pdfPage;
+    return renderPagePreview(page, containerSize);
+  });
+}
+
 export const renderPdfPreview = async (
   buffer: ArrayBuffer,
   pdfWorker: PDFWorker,
@@ -18,33 +26,10 @@ export const renderPdfPreview = async (
     // Use the same web worker for all pages
     worker: pdfWorker
   }).promise;
-
-  const pdfPage = await doc.getPage(1);
-
-  const canvas = document.createElement("canvas");
-  const canvasContext = canvas.getContext("2d")!;
-
-  // Scaling
-  const unscaledViewport = pdfPage.getViewport({ scale: 1.0 });
-  const isLandscape = unscaledViewport.width > unscaledViewport.height;
-
-  const widthScale = containerSize / unscaledViewport.width;
-  const heightScale = containerSize / unscaledViewport.height;
-
-  const scale = isLandscape ? widthScale : heightScale;
-
-  const viewport = pdfPage.getViewport({ scale });
-
-  canvas.width = viewport.width;
-  canvas.height = viewport.height;
-
-  // Render
-  await pdfPage.render({
-    canvasContext,
-    viewport,
-  });
   
-  return { pdfPage, canvas, scale };
+  const pdfPage = await doc.getPage(1);
+  
+  return renderPagePreview(pdfPage, containerSize);
 };
 
 export const renderTextOverlays = async (
@@ -77,3 +62,29 @@ export const renderTextOverlays = async (
     transform: textDiv.style.transform,
   }));
 };
+
+const renderPagePreview = async (pdfPage: PDFPageProxy, containerSize: number) => {
+  const canvas = document.createElement("canvas");
+  const canvasContext = canvas.getContext("2d")!;
+
+  const unscaledViewport = pdfPage.getViewport({ scale: 1.0 });
+  const isLandscape = unscaledViewport.width > unscaledViewport.height;
+
+  const widthScale = containerSize / unscaledViewport.width;
+  const heightScale = containerSize / unscaledViewport.height;
+
+  const scale = isLandscape ? widthScale : heightScale;
+
+  const viewport = pdfPage.getViewport({ scale });
+
+  canvas.width = viewport.width;
+  canvas.height = viewport.height;
+
+    // Render
+    await pdfPage.render({
+      canvasContext,
+      viewport,
+    });
+    
+    return { pdfPage, canvas, scale };
+}

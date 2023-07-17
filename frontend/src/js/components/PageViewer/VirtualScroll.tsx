@@ -74,20 +74,23 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
   // rendered pages which allows us to swap out stale pages without flickering pages
   const [renderedPages, setRenderedPages] = useState<RenderedPage[]>([]);
 
-  useEffect(() => {
+
+  useEffect(() => {    
     pageCache.setContainerSize(containerSize);
 
     if (containerSize !== 1000) {
       setRenderedPages((currentPages) => {
         const newPages: RenderedPage[] = currentPages.map((page) => {
           // TODO: is there a way to avoid re-fetching the preview from the server?
-          const refreshedPage = pageCache.getPageAndRefreshPreview(
-              page.pageNumber
-          );
+          const refreshedPage = pageCache.refreshPreview(
+            page.pageNumber,
+            page.getPagePreview,
+            containerSize          
+          ); 
           return {
             pageNumber: page.pageNumber,
             getPagePreview: refreshedPage.preview,
-            getPageData: page.getPageData,
+            getPageData: refreshedPage.data,
           }
         });
 

@@ -1,7 +1,7 @@
 import authFetch from "../../util/auth/authFetch";
 import { LruCache } from "../../util/LruCache";
 import { CachedPreview, PageData } from "./model";
-import { renderPdfPreview } from "./PdfHelpers";
+import { renderPdfPreview, updatePreview } from "./PdfHelpers";
 import { removeLastUnmatchedQuote } from '../../util/stringUtils';
 import {PDFWorker} from "pdfjs-dist";
 
@@ -123,6 +123,26 @@ export class PageCache {
 
     return {
       ...preview,
+      ...data,
+    };
+  };
+
+  refreshPreview = (pageNumber: number, preview: Promise<CachedPreview>, containerSize: number): CachedPage => {    
+    const originalPreviewData = this.previewCache.get(pageNumber);
+    const newPreview = updatePreview(preview, containerSize);
+    const cachedPreviewCache = {
+      previewAbortController: originalPreviewData.previewAbortController,
+      preview: newPreview,
+    };  
+    // TODO: we may need to refresh the data too, if we need a new server call to get new highlight positions
+    const data = this.dataCache.get(pageNumber);
+
+    this.previewCache.replace(pageNumber, cachedPreviewCache);
+
+    const newPreviewData = this.previewCache.get(pageNumber);
+
+    return {
+      ...newPreviewData,
       ...data,
     };
   };
