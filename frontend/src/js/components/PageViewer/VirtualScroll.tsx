@@ -48,7 +48,6 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
   rotation,
   scale
 }) => {
-  console.log(`scale inside VirtualScroll is ${scale}`);
   // Tweaked this and 2 seems to be a good amount on a regular monitor
   // The fewer pages we preload the faster the initial paint will be
   // Could possibly make it dynamic based on the visible of the container
@@ -76,7 +75,6 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
   const [renderedPages, setRenderedPages] = useState<RenderedPage[]>([]);
 
   useEffect(() => {
-    console.log('containerSize is now ', containerSize);
     pageCache.setContainerSize(containerSize);
 
     if (containerSize !== 1000) {
@@ -197,8 +195,10 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
 
   useLayoutEffect(() => {
     if (viewport?.current && focusedFindHighlight) {
-      const topOfHighlightPage = (pageHeight * (focusedFindHighlight.pageNumber - 1));
-      viewport.current.scrollTop = topOfHighlightPage;
+      const highlightYPos = focusedFindHighlight.firstSpan?.y || 0;
+      const topOfHighlightPage = (pageHeight * (focusedFindHighlight.pageNumber - 1)) + highlightYPos;
+      
+      viewport.current.scrollTop = topOfHighlightPage;      
     }
   }, [pageHeight, focusedFindHighlight]);
   useLayoutEffect(() => {
@@ -229,8 +229,7 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
   return (
     <div ref={viewport} className={styles.scrollContainer} onScroll={throttledSetPageRangeFromScrollPosition}>
       <div className={styles.pages} style={{ height: totalPages * pageHeight }}>
-        {renderedPages.map((page) => {
-          console.log('Re-rendering page: ', page);
+        {renderedPages.map((page) => {          
           return (<div
               key={page.pageNumber}
               style={{

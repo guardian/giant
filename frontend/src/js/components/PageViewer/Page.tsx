@@ -40,19 +40,22 @@ export const Page: FC<PageProps> = ({
     }
   };
 
-  useEffect(() => {
-    console.log('useEffect getPagePreview');
+  useEffect(() => {    
     if (containerRef.current) {
       getPagePreview
         .then((preview) => {
-          console.log('Render page preview into DOM');
           // Have to recheck here because the component may have dismounted
           const node = containerRef.current;
           if (node) {
             setScale(preview.scale);
-            // TODO DANGEROUS: this might completely mess up multi-page docs
-            node.innerHTML = '';
-            node.appendChild(preview.canvas);
+            if (node.hasChildNodes()) {
+              const oldCanvas = node.getElementsByTagName('canvas');
+              if (oldCanvas.length > 0) {
+                node.replaceChild(preview.canvas, oldCanvas[0]);
+              }                      
+            } else {
+              node.appendChild(preview.canvas);
+            }                        
           }
           setPreviewMounted(true);
           return preview;
@@ -67,7 +70,6 @@ export const Page: FC<PageProps> = ({
 
   useEffect(() => {
     getPageData.then((text) => {
-      console.log('Refresh page data');
       setPageText(text);
     }).catch(handleAbort);
   }, [containerRef, getPageData]);

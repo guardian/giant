@@ -69,7 +69,6 @@ export class PageCache {
   };
 
   private onPreviewCacheMiss = (pageNumber: number): CachedPreviewData => {
-    console.log('onPreviewCacheMiss');
 
     const previewAbortController = new AbortController();
     const preview = authFetch(`/api/pages2/${this.uri}/${pageNumber}/preview`, {
