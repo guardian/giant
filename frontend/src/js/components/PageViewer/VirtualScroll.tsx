@@ -196,11 +196,13 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
   useLayoutEffect(() => {
     if (viewport?.current && focusedFindHighlight) {
       const highlightYPos = focusedFindHighlight.firstSpan?.y || 0;
-      const topOfHighlightPage = (pageHeight * (focusedFindHighlight.pageNumber - 1)) + highlightYPos;
+
+      const topOfHighlightPage = (pageHeight * (focusedFindHighlight.pageNumber - 1)) + (highlightYPos * scale);    
       
-      viewport.current.scrollTop = topOfHighlightPage;      
+      viewport.current.scrollTop = topOfHighlightPage;
     }
-  }, [pageHeight, focusedFindHighlight]);
+  }, [pageHeight, focusedFindHighlight, scale]);
+
   useLayoutEffect(() => {
     if (viewport?.current && focusedSearchHighlight) {
       const topOfHighlightPage = (pageHeight * (focusedSearchHighlight.pageNumber - 1));
@@ -217,7 +219,7 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
         getPagePreview: cachedPage.preview,
         getPageData: cachedPage.data,
       };
-    });
+    });    
 
     setRenderedPages(renderedPages);
   }, [pageRange.top, pageRange.bottom, pageCache, setRenderedPages]);
