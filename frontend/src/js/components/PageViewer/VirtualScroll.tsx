@@ -185,10 +185,13 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
 
   useLayoutEffect(() => {
     if (viewport?.current && focusedSearchHighlight) {
-      const topOfHighlightPage = (pageHeight * (focusedSearchHighlight.pageNumber - 1));
+      const highlightYPos = focusedSearchHighlight.firstSpan?.y || 0;
+
+      const topOfHighlightPage = (pageHeight * (focusedSearchHighlight.pageNumber - 1)) + (highlightYPos * scale);
+      
       viewport.current.scrollTop = topOfHighlightPage;
     }
-  }, [pageHeight, focusedSearchHighlight]);
+  }, [pageHeight, focusedSearchHighlight, scale]);
 
   useEffect(() => {
     const renderedPages = range(pageRange.top, pageRange.bottom + 1).map((pageNumber) => {
