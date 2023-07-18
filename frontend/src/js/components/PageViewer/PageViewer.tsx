@@ -109,11 +109,9 @@ export const PageViewer: FC<PageViewerProps> = ({uri, totalPages}) => {
             rotateAnticlockwise={() => setRotation((r) => r - 90)}
             rotateClockwise={() => setRotation((r) => r + 90)}
             zoomIn={() => {
-              console.log('zoom in');
               setScale((currentScale) => currentScale + 0.75);
             }}
             zoomOut={() => {
-              console.log('zoom out');
               setScale((currentScale) => currentScale - 0.75);
             }}
             uri={uri}
@@ -126,11 +124,9 @@ export const PageViewer: FC<PageViewerProps> = ({uri, totalPages}) => {
           rotateAnticlockwise={() => setRotation((r) => r - 90)}
           rotateClockwise={() => setRotation((r) => r + 90)}
           zoomIn={() => {
-            console.log('zoom in');
             setScale((currentScale) => currentScale + 0.75);
           }}
           zoomOut={() => {
-            console.log('zoom out');
             setScale((currentScale) => currentScale - 0.75);
           }}
           uri={uri}

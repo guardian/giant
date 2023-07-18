@@ -127,17 +127,18 @@ export class PageCache {
     };
   };
 
-  refreshPreview = (pageNumber: number, preview: Promise<CachedPreview>, containerSize: number): CachedPage => {    
+  refreshPreview = (pageNumber: number, preview: Promise<CachedPreview>, containerSize: number): CachedPage => {  
+    this.setContainerSize(containerSize);  
     const originalPreviewData = this.previewCache.get(pageNumber);
     const newPreview = updatePreview(preview, containerSize);
-    const cachedPreviewCache = {
+    const newPreviewCache = {
       previewAbortController: originalPreviewData.previewAbortController,
       preview: newPreview,
     };  
-    // TODO: we may need to refresh the data too, if we need a new server call to get new highlight positions
+
     const data = this.dataCache.get(pageNumber);
 
-    this.previewCache.replace(pageNumber, cachedPreviewCache);
+    this.previewCache.replace(pageNumber, newPreviewCache);
 
     const newPreviewData = this.previewCache.get(pageNumber);
 

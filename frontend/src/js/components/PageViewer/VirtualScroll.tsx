@@ -1,8 +1,8 @@
-import {debounce, range} from 'lodash';
-import React, {FC, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState} from 'react';
-import {CachedPreview, HighlightForSearchNavigation, PageData} from './model';
-import {Page} from './Page';
-import {PageCache} from './PageCache';
+import { debounce, range } from 'lodash';
+import React, { FC, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { CachedPreview, HighlightForSearchNavigation, PageData } from './model';
+import { Page } from './Page';
+import { PageCache } from './PageCache';
 import styles from './VirtualScroll.module.css';
 import throttle from 'lodash/throttle';
 
@@ -56,12 +56,6 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
   // This must be the same as the margin CSS of .pageContainer
   const MARGIN = 10;
 
-  // const [containerSize, setContainerSize] = useState<number>(1000);
-  // const [pageHeight, setPageHeight] = useState<number>(1000 + (MARGIN * 2));
-  //
-  // useEffect(() => {
-  //   setPageHeight(containerSize + (MARGIN * 2));
-  // }, [containerSize])
   const containerSize = 1000 * scale;
   const pageHeight = containerSize + (MARGIN * 2);
 
@@ -81,7 +75,6 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
     if (containerSize !== 1000) {
       setRenderedPages((currentPages) => {
         const newPages: RenderedPage[] = currentPages.map((page) => {
-          // TODO: is there a way to avoid re-fetching the preview from the server?
           const refreshedPage = pageCache.refreshPreview(
             page.pageNumber,
             page.getPagePreview,
@@ -94,24 +87,10 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
           }
         });
 
-        // TODO: do we need this for zoom? maybe not because we don't care about data of non-visible pages
-        // // Once we've refreshed all visible pages go and refresh the cached pages too
-        // // Will this work inside a setState callback?? It seems so...
-        // Promise.all(newPages.map((page) => page.getPagePreview)).then(() => {
-        //   pageCache
-        //       .getAllPageNumbers()
-        //       .filter((cachedPageNumber) =>
-        //           !newPages.some((newPage) => newPage.pageNumber === cachedPageNumber)
-        //       )
-        //       .forEach((pageNumberToRefresh) =>
-        //           pageCache.getPageAndRefreshPreview(pageNumberToRefresh)
-        //       );
-        // });
-
         return newPages;
       });
     }
-  }, [pageCache, containerSize])
+  }, [pageCache, containerSize]);
 
   useEffect(() => {
     pageCache.setFindQuery(findQuery);
@@ -222,7 +201,7 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
         getPagePreview: cachedPage.preview,
         getPageData: cachedPage.data,
       };
-    });    
+    });
 
     setRenderedPages(renderedPages);
   }, [pageRange.top, pageRange.bottom, pageCache, setRenderedPages]);
@@ -234,25 +213,25 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
   return (
     <div ref={viewport} className={styles.scrollContainer} onScroll={throttledSetPageRangeFromScrollPosition}>
       <div className={styles.pages} style={{ height: totalPages * pageHeight }}>
-        {renderedPages.map((page) => {          
-          return (<div
+        {renderedPages.map((page) => (
+            <div
               key={page.pageNumber}
               style={{
                 top: (page.pageNumber - 1) * pageHeight,
                 transform: `rotate(${rotation}deg)`,
               }}
               className={styles.pageContainer}
-          >
-            <Page
+            >
+              <Page
                 focusedFindHighlightId={focusedFindHighlight?.id}
                 focusedSearchHighlightId={focusedSearchHighlight?.id}
                 pageNumber={page.pageNumber}
                 getPagePreview={page.getPagePreview}
                 getPageData={page.getPageData}
                 pageHeight={pageHeight}
-            />
-          </div>);
-        })}
+              />
+            </div>
+          ))}
       </div>
     </div>
   );

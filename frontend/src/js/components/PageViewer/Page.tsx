@@ -40,7 +40,7 @@ export const Page: FC<PageProps> = ({
     }
   };
 
-  useEffect(() => {    
+  useEffect(() => {
     if (containerRef.current) {
       getPagePreview
         .then((preview) => {
