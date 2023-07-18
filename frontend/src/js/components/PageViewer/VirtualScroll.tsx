@@ -217,6 +217,7 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
               style={{
                 top: (page.pageNumber - 1) * pageHeight,
                 transform: `rotate(${rotation}deg)`,
+                left: `${scale > 1 ? '0' : ''}`,  
               }}
               className={styles.pageContainer}
             >
