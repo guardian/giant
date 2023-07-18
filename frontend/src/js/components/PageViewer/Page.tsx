@@ -48,14 +48,14 @@ export const Page: FC<PageProps> = ({
           const node = containerRef.current;
           if (node) {
             setScale(preview.scale);
-            if (node.hasChildNodes()) {
-              const oldCanvas = node.getElementsByTagName('canvas');
-              if (oldCanvas.length > 0) {
-                node.replaceChild(preview.canvas, oldCanvas[0]);
-              }                      
+
+            const oldCanvas = node.getElementsByTagName('canvas');
+
+            if (oldCanvas.length > 0) {
+              node.replaceChild(preview.canvas, oldCanvas[0]);
             } else {
               node.appendChild(preview.canvas);
-            }                        
+            }
           }
           setPreviewMounted(true);
           return preview;

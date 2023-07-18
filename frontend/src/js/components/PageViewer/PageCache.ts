@@ -8,6 +8,7 @@ import {PDFWorker} from "pdfjs-dist";
 export type CachedPage = {
   previewAbortController: AbortController;
   preview: Promise<CachedPreview>;
+  previewContainerSize: number;
   dataAbortController: AbortController;
   data: Promise<PageData>;
 };
@@ -15,6 +16,7 @@ export type CachedPage = {
 export type CachedPreviewData = {
   previewAbortController: AbortController;
   preview: Promise<CachedPreview>;
+  previewContainerSize: number;
 };
 
 export type CachedPageData = {
@@ -80,6 +82,7 @@ export class PageCache {
     return {
       previewAbortController,
       preview,
+      previewContainerSize: this.containerSize,
     };
   };
 
@@ -128,12 +131,13 @@ export class PageCache {
   };
 
   refreshPreview = (pageNumber: number, preview: Promise<CachedPreview>, containerSize: number): CachedPage => {  
-    this.setContainerSize(containerSize);  
+    this.setContainerSize(containerSize);
     const originalPreviewData = this.previewCache.get(pageNumber);
     const newPreview = updatePreview(preview, containerSize);
     const newPreviewCache = {
       previewAbortController: originalPreviewData.previewAbortController,
       preview: newPreview,
+      previewContainerSize: this.containerSize    
     };  
 
     const data = this.dataCache.get(pageNumber);

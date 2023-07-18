@@ -193,11 +193,21 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
     }
   }, [pageHeight, focusedSearchHighlight, scale]);
 
+  const getCachedPage = useCallback((pageNumber: number) => {
+    const cachedPage = pageCache.getPage(pageNumber);
+    if (cachedPage.previewContainerSize === pageCache.containerSize){
+      return cachedPage;
+    } else {
+      return pageCache.refreshPreview(pageNumber, cachedPage.preview, containerSize);
+    }
+  }, [pageCache, containerSize]);
+
   useEffect(() => {
     const renderedPages = range(pageRange.top, pageRange.bottom + 1).map((pageNumber) => {
-      const cachedPage = pageCache.getPage(pageNumber);
-      return {
 
+      const cachedPage = getCachedPage(pageNumber);
+
+      return {
         pageNumber,
         getPagePreview: cachedPage.preview,
         getPageData: cachedPage.data,
@@ -205,7 +215,7 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
     });
 
     setRenderedPages(renderedPages);
-  }, [pageRange.top, pageRange.bottom, pageCache, setRenderedPages]);
+  }, [pageRange.top, pageRange.bottom, pageCache, setRenderedPages, getCachedPage]);
 
   useEffect(() => {
     pageNumbersToPreload.forEach((pageNumber) => pageCache.getPage(pageNumber));
