@@ -68,9 +68,12 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
   // rendered pages which allows us to swap out stale pages without flickering pages
   const [renderedPages, setRenderedPages] = useState<RenderedPage[]>([]);
 
-
-  useEffect(() => {    
-    pageCache.setContainerSize(containerSize);
+  // denounce is used to avoid multiple re-rendering when user clicks on zoom 
+  // buttons several times and container size changes too quickly 
+  const debouncedRefreshPreview = React.useMemo(
+    () =>
+      debounce((pageCache: PageCache, containerSize: number) => {
+        pageCache.setContainerSize(containerSize);
 
       setRenderedPages((currentPages) => {
         const newPages: RenderedPage[] = currentPages.map((page) => {
@@ -87,8 +90,14 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
         });
 
         return newPages;
-      });
-  }, [pageCache, containerSize]);
+      })
+      }, 500),
+    []
+  );
+
+  useEffect(() => {
+    debouncedRefreshPreview(pageCache, containerSize);
+  }, [pageCache, containerSize, debouncedRefreshPreview]);
 
   useEffect(() => {
     pageCache.setFindQuery(findQuery);

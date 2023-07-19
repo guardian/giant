@@ -80,11 +80,11 @@ const renderPagePreview = async (pdfPage: PDFPageProxy, containerSize: number) =
   canvas.width = viewport.width;
   canvas.height = viewport.height;
 
-    // Render
-    await pdfPage.render({
-      canvasContext,
-      viewport,
-    });
+  // Render
+  await pdfPage.render({
+    canvasContext,
+    viewport,
+  });
     
-    return { pdfPage, canvas, scale };
+  return { pdfPage, canvas, scale };
 }
