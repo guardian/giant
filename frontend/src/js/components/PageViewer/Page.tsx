@@ -49,10 +49,10 @@ export const Page: FC<PageProps> = ({
           if (node) {
             setScale(preview.scale);
 
-            const oldCanvas = node.getElementsByTagName('canvas');
+            const oldCanvas = node.querySelector('canvas');
 
-            if (oldCanvas.length > 0) {
-              node.replaceChild(preview.canvas, oldCanvas[0]);
+            if (oldCanvas) {
+              node.replaceChild(preview.canvas, oldCanvas);
             } else {
               node.appendChild(preview.canvas);
             }
