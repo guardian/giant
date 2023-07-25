@@ -64,6 +64,7 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
   // Used too avoid rendering the page un-necessarily as a result of 
   // useEffects that are dependant on containerSize & findQuery
   const isInitialRender = useRef<boolean>(true);
+  const pageScrollHeight = useRef<number>(pageHeight * totalPages);
 
   // TODO: move pageCache up?
   const [pageCache] = useState(() => new PageCache(uri, containerSize, searchQuery));
@@ -116,10 +117,21 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
 
   useEffect(() => {
     if (!isInitialRender.current && containerSize !== pageCache.containerSize) {
-      debouncedRefreshPreview(pageCache, containerSize);      
+      debouncedRefreshPreview(pageCache, containerSize);
     }
 
   }, [pageCache, containerSize, debouncedRefreshPreview]);
+
+  // Adjusting the scroll to stay in the same position that it currently is
+  // considering the change in the page height
+  useLayoutEffect(() => {
+      if (viewport.current && pageScrollHeight.current) {
+        const currentScrollPosition = viewport.current.scrollTop / pageScrollHeight.current;
+        const newScrollPosition = currentScrollPosition * viewport.current.scrollHeight;
+        pageScrollHeight.current = viewport.current.scrollHeight;
+        viewport.current.scrollTop = newScrollPosition;
+      }
+  }, [containerSize, pageHeight]);
 
   useEffect(() => {
     if (!isInitialRender.current) {
