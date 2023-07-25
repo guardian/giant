@@ -128,23 +128,26 @@ export const Controls: FC<ControlsProps> = ({
 
   return (
     <div className={styles.bar}>
-      <div>
-        <button onClick={zoomIn} >
-          <ZoomInIcon />
-        </button>
-        <button onClick={zoomOut}  >
-          <ZoomOutIcon />
-        </button>
-      </div>
+      
       {fixedQuery === undefined &&
-        <div>
-          <button onClick={rotateAnticlockwise} >
-            <RotateLeft />
-          </button>
-          <button onClick={rotateClockwise}  >
-            <RotateRight />
-          </button>
-        </div>
+        <>
+          <div>
+            <button onClick={zoomIn} >
+              <ZoomInIcon />
+            </button>
+            <button onClick={zoomOut}  >
+              <ZoomOutIcon />
+            </button>
+          </div>
+          <div>
+            <button onClick={rotateAnticlockwise} >
+              <RotateLeft />
+            </button>
+            <button onClick={rotateClockwise}  >
+              <RotateRight />
+            </button>
+          </div>
+        </>
       }
 
       <FindInput
