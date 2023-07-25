@@ -60,6 +60,10 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
   const pageHeight = containerSize + (MARGIN * 2);
 
   const viewport = useRef<HTMLDivElement>(null);
+  
+  // Used too avoid rendering the page un-necessarily as a result of 
+  // useEffects that are dependant on containerSize & findQuery
+  const isInitialRender = useRef<boolean>(true);
 
   // TODO: move pageCache up?
   const [pageCache] = useState(() => new PageCache(uri, containerSize, searchQuery));
@@ -74,60 +78,80 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
     () =>
       debounce((pageCache: PageCache, containerSize: number) => {
         pageCache.setContainerSize(containerSize);
+        setRenderedPages((currentPages) => {
+          const newPages: RenderedPage[] = currentPages.map((page) => {
+            const refreshedPage = pageCache.refreshPreview(
+              page.pageNumber,
+              page.getPagePreview,
+              containerSize          
+            ); 
+            return {
+              pageNumber: page.pageNumber,
+              getPagePreview: refreshedPage.preview,
+              getPageData: refreshedPage.data,
+            }
+          });
 
-      setRenderedPages((currentPages) => {
-        const newPages: RenderedPage[] = currentPages.map((page) => {
-          const refreshedPage = pageCache.refreshPreview(
-            page.pageNumber,
-            page.getPagePreview,
-            containerSize          
-          ); 
-          return {
-            pageNumber: page.pageNumber,
-            getPagePreview: refreshedPage.preview,
-            getPageData: refreshedPage.data,
-          }
+          setLeftScrollToMiddle();
+
+          return newPages;
         });
-
-        return newPages;
-      })
       }, 500),
     []
   );
 
+  const setLeftScrollToMiddle = () => {
+    // a 1 second delay is used to make sure the pdf page is rendered 
+    // and the new canvas element has been added    
+    setTimeout(() => {
+      if (viewport.current) {
+        const width = viewport.current.scrollWidth - viewport.current.offsetWidth;
+        if (width > 0) {          
+          viewport.current.scrollLeft = width / 2;
+        }
+      }
+
+    }, 1000);
+  }
+
   useEffect(() => {
-    debouncedRefreshPreview(pageCache, containerSize);
+    if (!isInitialRender.current && containerSize !== pageCache.containerSize) {
+      debouncedRefreshPreview(pageCache, containerSize);      
+    }
+
   }, [pageCache, containerSize, debouncedRefreshPreview]);
 
   useEffect(() => {
-    pageCache.setFindQuery(findQuery);
-    setRenderedPages((currentPages) => {
-      const newPages: RenderedPage[] = currentPages.map((page) => {
-        const refreshedPage = pageCache.getPageAndRefreshHighlights(
-            page.pageNumber
-        );
-        return {
-          pageNumber: page.pageNumber,
-          getPagePreview: page.getPagePreview,
-          getPageData: refreshedPage.data,
-        }
+    if (!isInitialRender.current) {
+      pageCache.setFindQuery(findQuery);
+      setRenderedPages((currentPages) => {
+        const newPages: RenderedPage[] = currentPages.map((page) => {
+          const refreshedPage = pageCache.getPageAndRefreshHighlights(
+              page.pageNumber
+          );
+          return {
+            pageNumber: page.pageNumber,
+            getPagePreview: page.getPagePreview,
+            getPageData: refreshedPage.data,
+          }
+        });
+  
+        // Once we've refreshed all visible pages go and refresh the cached pages too
+        // Will this work inside a setState callback?? It seems so...
+        Promise.all(newPages.map((page) => page.getPageData)).then(() => {
+          pageCache
+              .getAllPageNumbers()
+              .filter((cachedPageNumber) =>
+                  !newPages.some((newPage) => newPage.pageNumber === cachedPageNumber)
+              )
+              .forEach((pageNumberToRefresh) =>
+                  pageCache.getPageAndRefreshHighlights(pageNumberToRefresh)
+              );
+        });
+  
+        return newPages;
       });
-
-      // Once we've refreshed all visible pages go and refresh the cached pages too
-      // Will this work inside a setState callback?? It seems so...
-      Promise.all(newPages.map((page) => page.getPageData)).then(() => {
-        pageCache
-            .getAllPageNumbers()
-            .filter((cachedPageNumber) =>
-                !newPages.some((newPage) => newPage.pageNumber === cachedPageNumber)
-            )
-            .forEach((pageNumberToRefresh) =>
-                pageCache.getPageAndRefreshHighlights(pageNumberToRefresh)
-            );
-      });
-
-      return newPages;
-    });
+    }
   }, [findQuery, pageCache]);
 
   const [pageRange, setPageRange] = useState<PageRange>({
@@ -222,8 +246,8 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
         getPageData: cachedPage.data,
       };
     });
-
     setRenderedPages(renderedPages);
+    if (isInitialRender) isInitialRender.current = false;
   }, [pageRange.top, pageRange.bottom, pageCache, setRenderedPages, getCachedPage]);
 
   useEffect(() => {
@@ -239,7 +263,7 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
               style={{
                 top: (page.pageNumber - 1) * pageHeight,
                 transform: `rotate(${rotation}deg)`,
-                left: `${scale > 1 ? '0' : ''}`,  
+                left: 0,
               }}
               className={styles.pageContainer}
             >
