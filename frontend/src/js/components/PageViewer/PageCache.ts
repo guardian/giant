@@ -152,18 +152,6 @@ export class PageCache {
     };
   };
 
-  getPageAndRefreshPreview = (pageNumber: number): CachedPage => {
-    const preview = this.previewCache.getAndForceRefresh(pageNumber);
-
-    // TODO: we may need to refresh the data too, if we need a new server call to get new highlight positions
-    const data = this.dataCache.get(pageNumber);
-
-    return {
-      ...preview,
-      ...data,
-    };
-  };
-
   getPageAndRefreshHighlights = (pageNumber: number): CachedPage => {
     if (this.findQuery) {
       const preview = this.previewCache.get(pageNumber);
