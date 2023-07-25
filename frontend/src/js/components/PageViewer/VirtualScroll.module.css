@@ -6,13 +6,14 @@
 
 .pages {
   position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+  /*display: flex;*/
+  /*flex-direction: column;*/
+  /*align-items: center;*/
 }
 
 .pageContainer {
   position: absolute;
+  left: 50%;
 
   margin: 10px;
 

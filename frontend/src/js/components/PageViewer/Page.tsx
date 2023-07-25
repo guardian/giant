@@ -44,6 +44,7 @@ export const Page: FC<PageProps> = ({
     if (containerRef.current) {
       getPagePreview
         .then((preview) => {
+          console.log(`Appending canvas for page ${pageNumber}`);
           // Have to recheck here because the component may have dismounted
           const node = containerRef.current;
           if (node) {

@@ -92,7 +92,7 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
             };
           });
 
-          setLeftScrollToMiddle();
+          // setLeftScrollToMiddle();
 
           return newPages;
         });
@@ -262,8 +262,7 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
               key={page.pageNumber}
               style={{
                 top: (page.pageNumber - 1) * pageHeight,
-                transform: `rotate(${rotation}deg)`,
-                left: 0,
+                transform: `translate(-50%) rotate(${rotation}deg)`,
               }}
               className={styles.pageContainer}
             >
