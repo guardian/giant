@@ -72,7 +72,7 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
   // rendered pages which allows us to swap out stale pages without flickering pages
   const [renderedPages, setRenderedPages] = useState<RenderedPage[]>([]);
 
-  // denounce is used to avoid multiple re-rendering when user clicks on zoom 
+  // debounce is used to avoid multiple re-rendering when user clicks on zoom 
   // buttons several times and container size changes too quickly 
   const debouncedRefreshPreview = React.useMemo(
     () =>
@@ -83,13 +83,13 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
             const refreshedPage = pageCache.reRenderPagePreview(
               page.pageNumber,
               page.getPagePreview,
-              containerSize          
-            ); 
+              containerSize
+            );
             return {
               pageNumber: page.pageNumber,
               getPagePreview: refreshedPage.preview,
               getPageData: refreshedPage.data,
-            }
+            };
           });
 
           setLeftScrollToMiddle();
@@ -112,7 +112,7 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
       }
 
     }, 1000);
-  }
+  };
 
   useEffect(() => {
     if (!isInitialRender.current && containerSize !== pageCache.containerSize) {

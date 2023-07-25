@@ -128,7 +128,6 @@ export const Controls: FC<ControlsProps> = ({
 
   return (
     <div className={styles.bar}>
-      
       {fixedQuery === undefined &&
         <>
           <div>
