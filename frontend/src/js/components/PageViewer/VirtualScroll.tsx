@@ -80,7 +80,7 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
         pageCache.setContainerSize(containerSize);
         setRenderedPages((currentPages) => {
           const newPages: RenderedPage[] = currentPages.map((page) => {
-            const refreshedPage = pageCache.refreshPreview(
+            const refreshedPage = pageCache.reRenderPagePreview(
               page.pageNumber,
               page.getPagePreview,
               containerSize          
@@ -231,7 +231,7 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
     if (cachedPage.previewContainerSize === pageCache.containerSize){
       return cachedPage;
     } else {
-      return pageCache.refreshPreview(pageNumber, cachedPage.preview, containerSize);
+      return pageCache.reRenderPagePreview(pageNumber, cachedPage.preview, containerSize);
     }
   }, [pageCache, containerSize]);
 

@@ -130,7 +130,7 @@ export class PageCache {
     };
   };
 
-  refreshPreview = (pageNumber: number, preview: Promise<CachedPreview>, containerSize: number): CachedPage => {  
+  reRenderPagePreview = (pageNumber: number, preview: Promise<CachedPreview>, containerSize: number): CachedPage => {  
     this.setContainerSize(containerSize);
     const originalPreviewData = this.previewCache.get(pageNumber);
     const newPreview = updatePreview(preview, containerSize);
