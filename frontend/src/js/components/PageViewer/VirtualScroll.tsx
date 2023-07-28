@@ -93,27 +93,11 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
             };
           });
 
-          setLeftScrollToMiddle();
-
           return newPages;
         });
       }, 500),
     []
   );
-
-  const setLeftScrollToMiddle = () => {
-    // a 1 second delay is used to make sure the pdf page is rendered 
-    // and the new canvas element has been added    
-    setTimeout(() => {
-      if (viewport.current) {
-        const width = viewport.current.scrollWidth - viewport.current.offsetWidth;
-        if (width > 0) {          
-          viewport.current.scrollLeft = width / 2;
-        }
-      }
-
-    }, 1000);
-  };
 
   useEffect(() => {
     if (!isInitialRender.current && containerSize !== pageCache.containerSize) {
@@ -275,7 +259,7 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
               style={{
                 top: (page.pageNumber - 1) * pageHeight,
                 transform: `rotate(${rotation}deg)`,
-                left: 0,
+                left: `${scale > 1 ? '0' : ''}`,
               }}
               className={styles.pageContainer}
             >
