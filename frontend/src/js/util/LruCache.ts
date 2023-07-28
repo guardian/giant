@@ -85,6 +85,16 @@ export class LruCache<K extends string | number, V> {
   };
 
   replace = (k: K, v: V): void => {
-    this.addToCache(k, v);
+    this.entries[k] = v;
+    this.bumpRecency(k);
+
+    if (this.recencyQueue.length > this.maxEntries) {
+      const evictedEntryKey = this.recencyQueue.shift();
+      if (evictedEntryKey) {
+        const evictedEntry = this.entries[evictedEntryKey];
+        this.onEvict(evictedEntryKey, evictedEntry);
+        delete this.entries[evictedEntryKey];
+      }
+    }
   }
 }
