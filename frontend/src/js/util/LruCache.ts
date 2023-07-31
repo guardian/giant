@@ -89,6 +89,7 @@ export class LruCache<K extends string | number, V> {
       this.entries[k] = v;
       this.bumpRecency(k);
     } else {
+      console.warn(`Cannot replace cache for page ${k} that doesn't exist`);
       this.addToCache(k, v);
     }
   }
