@@ -1,13 +1,14 @@
 import authFetch from "../../util/auth/authFetch";
 import { LruCache } from "../../util/LruCache";
 import { CachedPreview, PageData } from "./model";
-import { renderPdfPreview } from "./PdfHelpers";
+import { renderPdfPreview, updatePreview } from "./PdfHelpers";
 import { removeLastUnmatchedQuote } from '../../util/stringUtils';
 import {PDFWorker} from "pdfjs-dist";
 
 export type CachedPage = {
   previewAbortController: AbortController;
   preview: Promise<CachedPreview>;
+  previewContainerSize: number;
   dataAbortController: AbortController;
   data: Promise<PageData>;
 };
@@ -15,6 +16,7 @@ export type CachedPage = {
 export type CachedPreviewData = {
   previewAbortController: AbortController;
   preview: Promise<CachedPreview>;
+  previewContainerSize: number;
 };
 
 export type CachedPageData = {
@@ -29,6 +31,8 @@ export class PageCache {
   // within document
   findQuery?: string;
 
+  containerSize: number;
+
   pdfWorker: PDFWorker;
 
   // Arrived at by testing with Chrome on Ubuntu.
@@ -41,7 +45,8 @@ export class PageCache {
   private previewCache: LruCache<number, CachedPreviewData>;
   private dataCache: LruCache<number, CachedPageData>;
 
-  constructor(uri: string, query?: string) {
+  constructor(uri: string, containerSize: number, query?: string) {
+    this.containerSize = containerSize;
     this.uri = uri;
     this.searchQuery = query;
     this.previewCache = new LruCache(
@@ -61,17 +66,23 @@ export class PageCache {
     this.findQuery = q;
   };
 
+  setContainerSize = (sizeInPixels: number) => {
+    this.containerSize = sizeInPixels;
+  };
+
   private onPreviewCacheMiss = (pageNumber: number): CachedPreviewData => {
+
     const previewAbortController = new AbortController();
     const preview = authFetch(`/api/pages2/${this.uri}/${pageNumber}/preview`, {
       signal: previewAbortController.signal,
     })
       .then((res) => res.arrayBuffer())
-      .then((buf) => renderPdfPreview(buf, this.pdfWorker));
+      .then((buf) => renderPdfPreview(buf, this.pdfWorker, this.containerSize));
 
     return {
       previewAbortController,
       preview,
+      previewContainerSize: this.containerSize,
     };
   };
 
@@ -115,6 +126,28 @@ export class PageCache {
 
     return {
       ...preview,
+      ...data,
+    };
+  };
+
+  reRenderPagePreview = (pageNumber: number, preview: Promise<CachedPreview>, containerSize: number): CachedPage => {  
+    this.setContainerSize(containerSize);
+    const originalPreviewData = this.previewCache.get(pageNumber);
+    const newPreview = updatePreview(preview, containerSize);
+    const newPreviewCache = {
+      previewAbortController: originalPreviewData.previewAbortController,
+      preview: newPreview,
+      previewContainerSize: this.containerSize    
+    };  
+
+    const data = this.dataCache.get(pageNumber);
+
+    this.previewCache.replace(pageNumber, newPreviewCache);
+
+    const newPreviewData = this.previewCache.get(pageNumber);
+
+    return {
+      ...newPreviewData,
       ...data,
     };
   };
