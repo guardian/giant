@@ -71,8 +71,9 @@ class Worker(
     work.foldLeft(0) { case(completed, (extractor, blob, params)) =>
       logger.info(s"Working on ${blob.uri.value} with ${extractor.name}")
 
-      val result = blobStorage.get(blob.uri.toStoragePath)
-        .flatMap(safeInvokeExtractor(params, extractor, blob, _))
+      val blobRes = blobStorage.get(blob.uri.toStoragePath)
+      logger.info(s"got some blob shit" + blobRes.isRight)
+      val result = blobRes.flatMap(safeInvokeExtractor(params, extractor, blob, _))
 
       result match {
         case Right(_) =>

@@ -36,7 +36,7 @@ object AwsDiscovery extends Logging {
       ),
       auth = config.auth.copy(
         provider = config.auth.provider match {
-          case db: DatabaseAuthConfig => db.copy(require2FA = true)
+          case db: DatabaseAuthConfig => db.copy(require2FA = false)
           case other => other
         }
       ),
@@ -49,7 +49,7 @@ object AwsDiscovery extends Logging {
       ),
       elasticsearch = config.elasticsearch.copy(
         hosts = if(runningLocally) {
-          List("http://localhost:19200")
+          List("http://localhost:9200")
         } else {
           buildElasticsearchHosts(stack, stage, ec2Client)
         },
@@ -57,11 +57,11 @@ object AwsDiscovery extends Logging {
       ),
       neo4j = config.neo4j.copy(
         url = if(runningLocally) {
-          "bolt://localhost:17687"
+          "bolt://localhost:7687"
         } else {
           buildNeo4jUrl(stack, stage, ec2Client)
         },
-        password = readSSMParameter("neo4j/password", stack, stage, ssmClient)
+        password = if (runningLocally) "bob" else  readSSMParameter("neo4j/password", stack, stage, ssmClient)
       ),
       // Using the instanceId as the worker name will allow us to break locks on terminated instances in the future
       worker = maybeInstanceId.map { instanceId =>
@@ -70,7 +70,7 @@ object AwsDiscovery extends Logging {
         )
       }.getOrElse(config.worker),
       underlying = config.underlying
-        .withValue("play.http.secret.key", fromAnyRef(readSSMParameter("pfi/playSecret", stack, stage, ssmClient)))
+        .withValue("play.http.secret.key", fromAnyRef(if (runningLocally) "changeme" else readSSMParameter("pfi/playSecret", stack, stage, ssmClient)))
         .withValue("akka.actor.provider", fromAnyRef("local")) // disable Akka clustering, we query EC2 directly
     )
 
@@ -162,6 +162,7 @@ object AwsDiscovery extends Logging {
   }
 
   private def readSSMParameter(name: String, stack: String, stage: String, ssmClient: AWSSimpleSystemsManagement): String = {
+    println("fetching " + s"/pfi/$stack/$stage/$name")
     val request = new GetParameterRequest()
       .withName(s"/pfi/$stack/$stage/$name")
       .withWithDecryption(true)

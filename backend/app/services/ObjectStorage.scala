@@ -27,6 +27,8 @@ class S3ObjectStorage private(client: S3Client, bucket: String) extends ObjectSt
   }
 
   def get(key: String): Either[Failure, InputStream] = {
+    println(key)
+    print(bucket)
     run(client.aws.getObject(bucket, key).getObjectContent)
   }
 

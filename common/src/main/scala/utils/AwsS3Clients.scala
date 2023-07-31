@@ -21,6 +21,7 @@ object AwsS3Clients {
 
   private def buildS3Client(credentials: AWSCredentialsProvider, region: String, endpoint: Option[String]): AmazonS3 = endpoint match {
     case Some(minioEndpoint) =>
+      println("MINIO")
       // https://docs.minio.io/docs/how-to-use-aws-sdk-for-java-with-minio-server
       AmazonS3ClientBuilder.standard()
         .withEndpointConfiguration(new EndpointConfiguration(minioEndpoint, region))
