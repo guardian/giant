@@ -27,6 +27,7 @@ trait WorkerControl {
 }
 
 class AkkaWorkerControl(actorSystem: ActorSystem) extends WorkerControl {
+
   private val cluster = Cluster(actorSystem)
 
   override def getWorkerDetails(implicit ec: ExecutionContext): Attempt[WorkerDetails] = Attempt.catchNonFatalBlasé {

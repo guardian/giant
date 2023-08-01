@@ -72,10 +72,12 @@ object IngestionServices extends Logging {
         case NotFoundFailure(_) => Right[Failure, Option[Blob]](None)
       }
 
+      println(s"ingestFile: $blobUri path: $path ")
       val upload = blob.flatMap { maybeBlob =>
-        if (maybeBlob.isEmpty)
+        if (maybeBlob.isEmpty) {
+          println("**creating blob")
           objectStorage.create(blobUri.toStoragePath, path)
-        else
+        } else
           Right(())
       }
 

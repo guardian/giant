@@ -94,7 +94,7 @@ class AppComponents(context: Context, config: Config)
     val manifest = Neo4jManifest.setupManifest(neo4jDriver, neo4jExecutionContext, config.neo4j.queryLogging).valueOr(failure => throw new Exception(failure.msg))
     val annotations = Neo4jAnnotations.setupAnnotations(neo4jDriver, neo4jExecutionContext, config.neo4j.queryLogging).valueOr(failure => throw new Exception(failure.msg))
     val users = Neo4jUserManagement(neo4jDriver, neo4jExecutionContext, config.neo4j.queryLogging, manifest, esResources, esPages, annotations)
-    val metricsService = config.aws.map(new CloudwatchMetricsService(_)).getOrElse(new NoOpMetricsService())
+    val metricsService = new NoOpMetricsService() // config.aws.map(new CloudwatchMetricsService(_)).getOrElse(new NoOpMetricsService())
 
     val userProvider = config.auth.provider match {
       case config: DatabaseAuthConfig =>
@@ -122,6 +122,7 @@ class AppComponents(context: Context, config: Config)
 
     // Preview
     val previewStorage = S3ObjectStorage(s3Client, config.s3.buckets.preview).valueOr(failure => throw new Exception(failure.msg))
+    println(config.s3.buckets)
     val previewService = PreviewService(config.preview, esResources, blobStorage, previewStorage)
 
     // extractors
@@ -180,7 +181,8 @@ class AppComponents(context: Context, config: Config)
 
     val workerControl = config.aws match {
       case Some(awsDiscoveryConfig) =>
-        new AWSWorkerControl(config.worker, awsDiscoveryConfig, ingestStorage, manifest)
+//        new AWSWorkerControl(config.worker, awsDiscoveryConfig, ingestStorage, manifest)
+        new AkkaWorkerControl(actorSystem)
 
       case None =>
         new AkkaWorkerControl(actorSystem)

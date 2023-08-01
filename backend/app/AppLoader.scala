@@ -19,6 +19,7 @@ class AppLoader extends ApplicationLoader {
 
     config.aws match {
       case Some(discoveryConfig) =>
+        println("AWS discovery enabled"")
         AwsDiscovery.build(config, discoveryConfig)
 
       case _ =>
