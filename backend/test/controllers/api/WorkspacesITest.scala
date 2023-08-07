@@ -2,7 +2,7 @@ package controllers.api
 
 import java.util.concurrent.TimeUnit
 
-import org.apache.pekko.util.Timeout
+import akka.util.Timeout
 import model.Uri
 import model.annotations.{Workspace, WorkspaceEntry}
 import model.frontend.{SearchResults, TreeEntry, TreeLeaf, TreeNode}

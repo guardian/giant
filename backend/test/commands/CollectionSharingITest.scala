@@ -2,7 +2,7 @@ package commands
 
 import java.util.concurrent.TimeUnit
 
-import org.apache.pekko.util.Timeout
+import akka.util.Timeout
 import model.Uri
 import model.manifest.{Blob, Collection}
 import org.scalatest.funsuite.AnyFunSuite

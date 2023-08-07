@@ -1,6 +1,6 @@
 package test.integration
 
-import org.apache.pekko.util.Timeout
+import akka.util.Timeout
 import commands.IngestFileResult
 import controllers.api._
 import extraction.MimeTypeMapper

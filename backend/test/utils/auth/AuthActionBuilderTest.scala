@@ -1,6 +1,6 @@
 package utils.auth
 
-import org.apache.pekko.util.Timeout
+import akka.util.Timeout
 import org.joda.time.DateTime
 import org.scalatest.freespec.AnyFreeSpec
 import org.scalatest.matchers.should.Matchers

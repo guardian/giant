@@ -3,7 +3,7 @@ package controllers.api
 import java.nio.file.Files
 import java.util.concurrent.TimeUnit
 
-import org.apache.pekko.util.Timeout
+import akka.util.Timeout
 import extraction.ExtractionParams
 import extraction.archives.ZipExtractor
 import model.ingestion.WorkspaceItemContext

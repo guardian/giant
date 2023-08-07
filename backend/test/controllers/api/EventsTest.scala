@@ -1,10 +1,9 @@
 package controllers.api
 
+
 import java.time.Instant
 import java.util.concurrent.TimeUnit
-import org.apache.pekko.stream.Materializer
-import org.apache.pekko.stream.testkit.NoMaterializer
-import org.apache.pekko.util.Timeout
+import akka.util.Timeout
 import model.Uri
 import model.manifest.Collection
 import model.user.UserPermission.CanPerformAdminOperations
@@ -21,7 +20,6 @@ import org.scalatest.matchers.must.Matchers
 class EventsTest extends AnyFunSuite with Matchers {
   import TestUserManagement._
 
-  implicit val mat: Materializer = NoMaterializer
   implicit val timeout: Timeout = Timeout(10, TimeUnit.SECONDS)
 
   val collectionOne = Collection(Uri("one"), "one", List.empty, None)
