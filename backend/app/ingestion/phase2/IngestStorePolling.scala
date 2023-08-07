@@ -2,7 +2,7 @@ package ingestion.phase2
 
 import java.nio.file.{Files, Path}
 import java.util.UUID
-import akka.actor.{ActorSystem, Cancellable}
+import org.apache.pekko.actor.{ActorSystem, Cancellable}
 import cats.syntax.either._
 import com.amazonaws.services.cloudwatch.model.MetricDatum
 import extraction.Worker

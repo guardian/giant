@@ -1,6 +1,6 @@
 package utils
 
-import akka.util.Timeout
+import org.apache.pekko.util.Timeout
 import controllers.api.Search
 import extraction.MetadataEnrichment
 import model.frontend.{Highlight, SearchResults}

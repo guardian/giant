@@ -1,7 +1,7 @@
 package controllers.api
 
-import akka.stream.scaladsl.StreamConverters
-import akka.util.ByteString
+import org.apache.pekko.stream.scaladsl.StreamConverters
+import org.apache.pekko.util.ByteString
 import commands._
 import model.frontend.{Chips, HighlightableText, ResourcesForExtractionFailureRequest}
 import model.index.{FrontendPage, FrontendPageResult, Page, PageHighlight, PageResult}

@@ -4,6 +4,7 @@ import services.Config
 import utils.{AwsDiscovery, DiscoveryResult}
 
 class AppLoader extends ApplicationLoader {
+
   override def load(contextBefore: Context): Application = {
     val discoveryResult = discoverConfig(contextBefore)
     val config = discoveryResult.updatedConfig

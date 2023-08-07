@@ -1,6 +1,6 @@
 package model.frontend
 
-import akka.cluster.{Member, MemberStatus}
+import org.apache.pekko.cluster.{Member, MemberStatus}
 import play.api.libs.json.Json
 
 case class Node(hostname: String, reachable: Boolean)

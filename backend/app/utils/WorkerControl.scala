@@ -1,10 +1,11 @@
 package utils
 
+
 import java.time.Instant
 import java.util.Date
 
-import akka.actor.{ActorSystem, Cancellable, Scheduler}
-import akka.cluster.{Cluster, MemberStatus}
+import org.apache.pekko.actor.{ActorSystem, Cancellable, Scheduler}
+import org.apache.pekko.cluster.{Cluster, MemberStatus}
 import com.amazonaws.services.autoscaling.AmazonAutoScalingClientBuilder
 import com.amazonaws.services.autoscaling.model.{AutoScalingGroup, DescribeAutoScalingGroupsRequest, DescribeScalingActivitiesRequest, SetDesiredCapacityRequest}
 import com.amazonaws.services.ec2.AmazonEC2ClientBuilder
@@ -26,7 +27,7 @@ trait WorkerControl {
   def stop(): Future[Unit]
 }
 
-class AkkaWorkerControl(actorSystem: ActorSystem) extends WorkerControl {
+class PekkoWorkerControl(actorSystem: ActorSystem) extends WorkerControl {
   private val cluster = Cluster(actorSystem)
 
   override def getWorkerDetails(implicit ec: ExecutionContext): Attempt[WorkerDetails] = Attempt.catchNonFatalBlasé {

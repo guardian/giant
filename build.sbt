@@ -118,6 +118,7 @@ lazy val backend = (project in file("backend"))
       "com.sksamuel.elastic4s" %% "elastic4s-client-esjava" % "7.9.1",
       "org.elasticsearch.client" % "elasticsearch-rest-client-sniffer" % "7.9.2",
       "com.typesafe.akka" %% "akka-cluster-typed" % "2.6.20", // should match what we get transitively from Play
+      "org.apache.pekko" %% "pekko-cluster-typed" % "1.0.1",
       "org.neo4j.driver" % "neo4j-java-driver" % "1.6.3",
       "com.pff" % "java-libpst" % "0.9.3",
       // NOTE: When you update tika you need to check if there are any updates required to be made to the
