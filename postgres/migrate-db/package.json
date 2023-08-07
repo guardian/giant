@@ -1,0 +1,25 @@
+{
+    "name": "@guardian/lurch-tasks",
+    "scripts": {
+        "start": "NODE_OPTIONS=--max_old_space_size=4906 esr src/index.ts",
+        "type-check": "tsc --noEmit",
+        "bundle": "esbuild ./src/index.ts --bundle --platform=node --external:pg --external:pg-format --outfile=./build/index.js",
+        "build": "run-p --print-label type-check bundle"
+    },
+    "dependencies": {
+        "pg": "8.7.1",
+        "dotenv": "^10.0.0",
+        "lodash": "4.17.21",
+        "postgrator": "^5.0.0",
+        "prettier": "^2.8.2",
+        "string-argv": "0.3.1"
+    },
+    "devDependencies": {
+        "@types/lodash": "4.14.178",
+        "@types/node": "^16.11.11",
+        "@types/pg": "^8.6.1",
+        "esbuild": "0.14.13",
+        "esbuild-runner": "^2.2.1",
+        "typescript": "4.5.3"
+    }
+}
