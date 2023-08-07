@@ -17,7 +17,9 @@ export default function authUploadWithProgress(
     const retryInitialCount = 0;
 
     xhr.upload.onprogress = (e) => {
-      console.log(`progress: loaded: ${e.loaded} from total: ${e.total}`);
+      console.log(
+        `progress: loaded: ${e.loaded} from total: ${e.total} for url: ${url}`
+      );
       if (e.lengthComputable) {
         if (onProgress) {
           onProgress(e.loaded, e.total);
@@ -60,7 +62,7 @@ const processRequest = (
     } else {
       if (retryCount < 3) {
         console.warn(
-          `retrying because request failed due to ${xhr.responseText} - status: ${xhr.status}, retry: ${retryCount}`
+          `retrying because request failed due to ${xhr.responseText} - status: ${xhr.status}, retry: ${retryCount} for url: ${url}`
         );
         retryRequest(
           retryCount,
@@ -75,7 +77,7 @@ const processRequest = (
         );
       } else {
         console.error(
-          `request failed due to ${xhr.responseText} - status: ${xhr.status}, retry: ${retryCount} `
+          `request failed due to ${xhr.responseText} - status: ${xhr.status}, retry: ${retryCount} for url: ${url}`
         );
         reject(`${xhr.status} - ${xhr.responseText}`);
       }
@@ -99,7 +101,7 @@ const retryRequest = (
 ) => {
   const limit = retryCount ? Math.pow(2, retryCount - 1) * 1000 : 0;
   const pause = Math.random() * limit;
-  console.log(`delaying the next retry by ${pause / 1000} s`);
+  console.log(`delaying the next retry by ${pause / 1000} s - for url: ${url}`);
 
   setTimeout(() => {
     processRequest(
