@@ -106,38 +106,35 @@ class Collections(override val controllerComponents: AuthControllerComponents, m
   }
 
   def uploadIngestionFile(collection: String, ingestion: String) = ApiAction.attempt(parse.temporaryFile) { req =>
-    {
-      Thread.sleep(60000)
-      users.canSeeCollection(req.user.username, Uri(collection)).flatMap {
-        case true =>
-          (req.headers.get(CONTENT_LOCATION), req.headers.get("X-PFI-Upload-Id")) match {
-            case (Some(rawOriginalPath), Some(uploadId)) =>
-              val originalPath = URLDecoder.decode(rawOriginalPath, "UTF-8")
-              val lastModifiedTime = req.headers.get("X-PFI-Last-Modified")
-              val maybeWorkspaceContext = buildWorkspaceItemContext(req.headers)
+    users.canSeeCollection(req.user.username, Uri(collection)).flatMap {
+      case true =>
+        (req.headers.get(CONTENT_LOCATION), req.headers.get("X-PFI-Upload-Id")) match {
+          case (Some(rawOriginalPath), Some(uploadId)) =>
+            val originalPath = URLDecoder.decode(rawOriginalPath, "UTF-8")
+            val lastModifiedTime = req.headers.get("X-PFI-Last-Modified")
+            val maybeWorkspaceContext = buildWorkspaceItemContext(req.headers)
 
-              new IngestFile(
-                Uri(collection),
-                Uri(collection).chain(ingestion),
-                uploadId,
-                workspace = maybeWorkspaceContext,
-                req.user.username,
-                temporaryFilePath = req.body.path,
-                originalPath = Paths.get(originalPath),
-                lastModifiedTime,
-                manifest, esEvents, ingestionServices, annotations
-              ).process().map { result =>
-                Created(Json.toJson(result))
-              }
+            new IngestFile(
+              Uri(collection),
+              Uri(collection).chain(ingestion),
+              uploadId,
+              workspace = maybeWorkspaceContext,
+              req.user.username,
+              temporaryFilePath = req.body.path,
+              originalPath = Paths.get(originalPath),
+              lastModifiedTime,
+              manifest, esEvents, ingestionServices, annotations
+            ).process().map { result =>
+              Created(Json.toJson(result))
+            }
 
-            case _ =>
-              Attempt.Right(BadRequest(s"Missing $CONTENT_LOCATION or X-PFI-Upload-Id header"))
-          }
+          case _ =>
+            Attempt.Right(BadRequest(s"Missing $CONTENT_LOCATION or X-PFI-Upload-Id header"))
+        }
 
-        case false =>
-          // GitHub-style error - a thing exists but we can't see it so tell the user it doesn't exist
-          Attempt.Left(NotFoundFailure(s"$collection does not exist"))
-      }
+      case false =>
+        // GitHub-style error - a thing exists but we can't see it so tell the user it doesn't exist
+        Attempt.Left(NotFoundFailure(s"$collection does not exist"))
     }
   }
 
