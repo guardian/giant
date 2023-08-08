@@ -115,7 +115,7 @@ class Collections(override val controllerComponents: AuthControllerComponents, m
               blobId = "663f8dd6-7c3f-4ea3-861c-6515b84f3fc3",
               ingestUri = ingestion,
               IngestionEvent.MimeTypeDetected,
-              Details(List(), List(ExtractorType.Msg, ExtractorType.Olm), 46, "path/file")
+              Details(List(), List(ExtractorType.Zip, ExtractorType.Rar), 46, "path/file")
             )
             // *********
             val originalPath = URLDecoder.decode(rawOriginalPath, "UTF-8")
