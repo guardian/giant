@@ -3,6 +3,7 @@ import { handleResponseFromAuthRequest } from "./handleResponseFromAuthRequest";
 import { WorkspaceUploadMetadata } from "../../components/Uploads/UploadFiles";
 
 export type ProgressHandler = (loadedBytes: number, totalBytes: number) => void;
+const RETRY_MAX_LIMIT = 3;
 
 export default function authUploadWithProgress(
   url: string,
@@ -60,12 +61,12 @@ const processRequest = (
     if (xhr.status >= 200 && xhr.status < 300) {
       resolve(xhr.response);
     } else {
-      if (retryCount < 3) {
+      if (retryCount < RETRY_MAX_LIMIT) {
         console.warn(
           `retrying because request failed due to ${xhr.responseText} - status: ${xhr.status}, retry: ${retryCount} for url: ${url}`
         );
         retryRequest(
-          retryCount,
+          retryCount + 1,
           xhr,
           url,
           file,
@@ -110,7 +111,7 @@ const retryRequest = (
       file,
       path,
       uploadId,
-      retryCount + 1,
+      retryCount,
       resolve,
       reject,
       workspace
