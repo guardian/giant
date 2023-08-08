@@ -55,6 +55,11 @@ object AwsDiscovery extends Logging {
         },
         disableSniffing = Some(runningLocally)
       ),
+      postgres = config.postgres.copy(
+        url = "jdbc:postgresql://localhost:8432/giant",
+        user = "giant_master",
+        password = "giant"
+      ),
       neo4j = config.neo4j.copy(
         url = if(runningLocally) {
           "bolt://localhost:17687"

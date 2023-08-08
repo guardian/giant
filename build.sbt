@@ -156,6 +156,11 @@ lazy val backend = (project in file("backend"))
       // The latest code is here: https://github.com/junrar/junrar (not in the older repository that appears first in Google)
       "com.github.junrar" % "junrar" % "7.4.1",
 
+      // postgres
+      "org.scalikejdbc" %% "scalikejdbc"       % "3.5.0",
+      "org.postgresql"  %  "postgresql"        % "42.2.5",
+      "ch.qos.logback"  %  "logback-classic"   % "1.2.3",
+
       // Test dependencies
 
       "org.scalacheck" %% "scalacheck" % "1.14.0" % Test,

@@ -100,6 +100,12 @@ case class Neo4jConfig(
   queryLogging: Neo4jQueryLoggingConfig
 )
 
+case class PostgresConfig(
+  url: String,
+  user: String,
+  password: String,
+)
+
 case class ElasticsearchConfig(
   hosts: List[String],
   indexName: String,
@@ -161,6 +167,7 @@ case class Config(
   auth: AuthConfig,
   worker: WorkerConfig,
   neo4j: Neo4jConfig,
+  postgres: PostgresConfig,
   elasticsearch: ElasticsearchConfig,
   ingestion: IngestConfig,
   preview: PreviewConfig,
