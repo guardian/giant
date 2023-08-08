@@ -6,11 +6,7 @@ import services.observability.ExtractorType.ExtractorType
 object IngestionEvent extends Enumeration {
   type IngestionEvent = Value
 
-  val HashComplete = Value(1, "hashComplete")
-  val MimeTypeDetected = Value(2, "mimeTypeDetected")
-  val OcrComplete = Value(3, "ocrComplete")
-  val ZipExtractionSuccess = Value(4, "zipExtractionSuccess")
-  val PreviouslyProcessed = Value(5, "previouslyProcessed")
+  val HashComplete, MimeTypeDetected, OcrComplete, ZipExtractionSuccess, PreviouslyProcessed = Value
 
   implicit val format: Format[IngestionEvent] = Json.formatEnum(this)
 }
