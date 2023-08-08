@@ -31,6 +31,7 @@ import services.events.ElasticsearchEvents
 import services.index.{ElasticsearchPages, ElasticsearchResources, Pages2}
 import services.ingestion.IngestionServices
 import services.manifest.Neo4jManifest
+import services.observability.DBClient
 import services.previewing.PreviewService
 import services.table.ElasticsearchTable
 import services.users.Neo4jUserManagement
@@ -83,6 +84,7 @@ class AppComponents(context: Context, config: Config)
     val ingestStorage = S3IngestStorage(s3Client, config.s3.buckets.ingestion).valueOr(failure => throw new Exception(failure.msg))
     val blobStorage = S3ObjectStorage(s3Client, config.s3.buckets.collections).valueOr(failure => throw new Exception(failure.msg))
 
+    val dbClient = new DBClient(config.postgres.url, config.postgres.user, config.postgres.password)
     val esClient = ElasticsearchClient(config).await()
     val esResources = new ElasticsearchResources(esClient, config.elasticsearch.indexName).setup().await()
     val esTables = new ElasticsearchTable(esClient, config.elasticsearch.tableRowIndexName).setup().await()
@@ -164,7 +166,7 @@ class AppComponents(context: Context, config: Config)
     val authController = new Authentication(authControllerComponents, userProvider, users, config)(configuration, Clock.systemUTC())
     val genesisController = new Genesis(controllerComponents, userProvider, users, config.auth.enableGenesisFlow)
     val eventsController = new Events(authControllerComponents, esEvents)
-    val collectionsController = new Collections(authControllerComponents, manifest, users, esResources, config.s3, esEvents, esPages, ingestionServices, annotations)
+    val collectionsController = new Collections(authControllerComponents, manifest, dbClient, users, esResources, config.s3, esEvents, esPages, ingestionServices, annotations)
     val blobsController = new Blobs(authControllerComponents, manifest, esResources, blobStorage, previewStorage, previewService)
     val filtersController = new Filters(authControllerComponents, manifest, annotations)
     val searchController = new Search(authControllerComponents, users, esResources, annotations)

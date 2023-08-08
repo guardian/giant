@@ -3,7 +3,6 @@ package controllers.api
 import java.net.URLDecoder
 import java.nio.file.Paths
 import java.util.UUID
-
 import commands._
 import model.ingestion.WorkspaceItemUploadContext
 import model.manifest.CollectionWithUsers
@@ -16,13 +15,14 @@ import services.annotations.Annotations
 import services.index.{Index, Pages}
 import services.ingestion.IngestionServices
 import services.manifest.Manifest
+import services.observability.{DBClient, Details, ExtractorType, IngestionEvent}
 import services.users.UserManagement
 import utils.IngestionVerification
 import utils.attempt._
 import utils.auth.UserIdentityRequest
 import utils.controller.{AuthApiController, AuthControllerComponents}
 
-class Collections(override val controllerComponents: AuthControllerComponents, manifest: Manifest,
+class Collections(override val controllerComponents: AuthControllerComponents, manifest: Manifest, dBClient: DBClient,
                   users: UserManagement, index: Index, s3Config: S3Config, esEvents: services.events.Events,
                   pages: Pages, ingestionServices: IngestionServices, annotations: Annotations)
   extends AuthApiController {
@@ -110,6 +110,14 @@ class Collections(override val controllerComponents: AuthControllerComponents, m
       case true =>
         (req.headers.get(CONTENT_LOCATION), req.headers.get("X-PFI-Upload-Id")) match {
           case (Some(rawOriginalPath), Some(uploadId)) =>
+            // TEST ONLY *********
+            dBClient.insertRow(
+              blobId = "663f8dd6-7c3f-4ea3-861c-6515b84f3fc3",
+              ingestUri = ingestion,
+              IngestionEvent.MimeTypeDetected,
+              Details(List(), List(ExtractorType.Msg, ExtractorType.Olm), 46, "path/file")
+            )
+            // *********
             val originalPath = URLDecoder.decode(rawOriginalPath, "UTF-8")
             val lastModifiedTime = req.headers.get("X-PFI-Last-Modified")
             val maybeWorkspaceContext = buildWorkspaceItemContext(req.headers)

@@ -183,6 +183,7 @@ object Config {
     parseAuth(raw.getConfig("auth")),
     raw.as[WorkerConfig]("worker"),
     raw.as[Neo4jConfig]("neo4j"),
+    raw.as[PostgresConfig]("postgres"),
     raw.as[ElasticsearchConfig]("elasticsearch"),
     raw.as[IngestConfig]("ingestion"),
     raw.as[PreviewConfig]("preview"),

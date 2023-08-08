@@ -1,5 +1,7 @@
 package services.observability
+import play.api.libs.json.{Json}
 import scalikejdbc._
+import services.observability.IngestionEvent.IngestionEvent
 
 
 class DBClient (url: String, user: String, password: String) {
@@ -8,19 +10,20 @@ class DBClient (url: String, user: String, password: String) {
 	ConnectionPool.singleton(url, user, password)
 	implicit val session = AutoSession
 
-	def insertRow () = {
+	import Details.detailsFormat
+	def insertRow (blobId: String, ingestUri: String, eventType: IngestionEvent, details: Details) = {
 		// val a = sql"select * from ingestion_events".map(_.toMap()).list().apply()
+		println("inserting row: ")
 		sql"""insert INTO ingestion_events (
-			id,
 			blob_id,
 			"type",
 			details,
 			created_at
 		) VALUES (
-			'663f8dd6-7c3f-4ea3-861c-6515b84f3fc3',
-			'asldjfasldkjg',
-			'CREATED',
-			'{}'::jsonb,
+			$blobId,
+			$ingestUri,
+			$eventType,
+			${Json.toJson(details).toString}::JSONB,
 			now()
 		);""".update().apply()
 	}
