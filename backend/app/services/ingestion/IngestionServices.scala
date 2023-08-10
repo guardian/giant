@@ -1,7 +1,6 @@
 package services.ingestion
 
 import java.nio.file.{Files, Path}
-
 import cats.syntax.either._
 import extraction.{Extractor, MimeTypeMapper}
 import model.{Language, Uri}
@@ -16,7 +15,7 @@ import utils.attempt.{Attempt, Failure, NotFoundFailure}
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
-import services.observability.{DBClient, IngestionEvent, Details, IngestionError}
+import services.observability.{DBClient, Details, IngestionError, IngestionEvent, IngestionEventType, Status}
 
 sealed trait UriParent {
   def parent: Uri
@@ -73,16 +72,18 @@ object IngestionServices extends Logging {
         case NotFoundFailure(_) => Right[Failure, Option[Blob]](None)
       }
 
+      val baseIngestEvent = IngestionEvent(blobUri.value, context.ingestion, IngestionEventType.BlobCopy)
+
       val upload = blob.flatMap { maybeBlob =>
         if (maybeBlob.isEmpty) {
           val result = objectStorage.create(blobUri.toStoragePath, path)
           result match {
-            case Right(_) => dbClient.insertRow(blobUri.value, context.ingestion, IngestionEvent.BlobCopy, "SUCCESS", None)
-            case Left(failure: Failure) => dbClient.insertRow(blobUri.value, context.ingestion, IngestionEvent.BlobCopy, "FAILURE", Some(Details(errors = Some(List(IngestionError(failure.msg))))))
+            case Right(_) => dbClient.insertRow(baseIngestEvent)
+            case Left(failure: Failure) => dbClient.insertRow(baseIngestEvent.copy(status = Status.Failure, details = Details.errorDetails(failure.msg)))
           }
           result
         } else {
-          dbClient.insertRow(blobUri.value, context.ingestion, IngestionEvent.ManifestExists, "SUCCESS", None)
+          dbClient.insertRow(baseIngestEvent.copy(eventType = IngestionEventType.ManifestExists))
           Right(())
         }
       }
@@ -110,6 +111,7 @@ object IngestionServices extends Logging {
           context.ingestion,
           context.workspace
         )
+        _ = dbClient.insertRow(baseIngestEvent.copy(eventType = IngestionEventType.MimeTypeDetected, details = Details.ingestionDataDetails(data, extractors)))
         // TODO once we get attempt everywhere we can remove the await
         _ <- index.ingestDocument(blobUri, context.file.size, data, context.languages).awaitEither(2.minutes)
       } yield {

@@ -1,7 +1,7 @@
 package services.observability
-import play.api.libs.json.{Json}
+import play.api.libs.json.Json
 import scalikejdbc._
-import services.observability.IngestionEvent.IngestionEvent
+import services.observability.IngestionEventType.IngestionEventType
 import org.postgresql.util.PSQLException
 import scala.util.{Failure, Success, Try}
 import akka.http.scaladsl.model.headers.LinkParams
@@ -13,12 +13,12 @@ class DBClient (url: String, user: String, password: String) extends Logging {
 	// initialize JDBC driver & connection pool
 	Class.forName("org.postgresql.Driver")
 	ConnectionPool.singleton(url, user, password)
-	implicit val session = AutoSession
+	implicit val session: AutoSession.type = AutoSession
 
 	import Details.detailsFormat
-	def insertRow (blobId: String, ingestUri: String, eventType: IngestionEvent, eventStatus: String, details: Option[Details] = None) = {
+	def insertRow (event: IngestionEvent): Boolean = {
 		Try {
-			val detailsJson = details.map(Json.toJson(_).toString).getOrElse("{}")
+			val detailsJson = event.details.map(Json.toJson(_).toString).getOrElse("{}")
 			sql"""
 			INSERT INTO ingestion_events (
 				blob_id,
@@ -28,10 +28,10 @@ class DBClient (url: String, user: String, password: String) extends Logging {
 				details,
 				created_at
 			) VALUES (
-				$blobId,
-				$ingestUri,
-				${eventType.toString()},
-				$eventStatus,
+				${event.blobId},
+				${event.ingestUri},
+				${event.eventType.toString()},
+				${event.status},
 				$detailsJson::JSONB,
 				now()
 			);""".execute().apply()

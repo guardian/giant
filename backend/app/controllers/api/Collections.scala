@@ -15,7 +15,7 @@ import services.annotations.Annotations
 import services.index.{Index, Pages}
 import services.ingestion.IngestionServices
 import services.manifest.Manifest
-import services.observability.{DBClient, Details, ExtractorType, IngestionEvent}
+import services.observability.{DBClient, Details, ExtractorType, IngestionEventType}
 import services.users.UserManagement
 import utils.IngestionVerification
 import utils.attempt._
