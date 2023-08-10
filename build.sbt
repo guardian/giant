@@ -159,7 +159,6 @@ lazy val backend = (project in file("backend"))
       // postgres
       "org.scalikejdbc" %% "scalikejdbc"       % "3.5.0",
       "org.postgresql"  %  "postgresql"        % "42.2.5",
-      "ch.qos.logback"  %  "logback-classic"   % "1.2.3",
 
       // Test dependencies
 
