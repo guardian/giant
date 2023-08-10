@@ -16,19 +16,23 @@ class DBClient (url: String, user: String, password: String) extends Logging {
 	implicit val session = AutoSession
 
 	import Details.detailsFormat
-	def insertRow (blobId: String, ingestUri: String, eventType: IngestionEvent, details: Details) = {
+	def insertRow (blobId: String, ingestUri: String, eventType: IngestionEvent, eventStatus: String, details: Option[Details] = None) = {
 		Try {
-			sql"""INSERT INTO ingestion_events (
+			val detailsJson = details.map(Json.toJson(_).toString).getOrElse("{}")
+			sql"""
+			INSERT INTO ingestion_events (
 				blob_id,
 				ingest_uri,
 				type,
+				status,
 				details,
-				-- created_at
+				created_at
 			) VALUES (
 				$blobId,
 				$ingestUri,
 				${eventType.toString()},
-				${Json.toJson(details).toString}::JSONB,
+				$eventStatus,
+				$detailsJson::JSONB,
 				now()
 			);""".execute().apply()
 		} match {

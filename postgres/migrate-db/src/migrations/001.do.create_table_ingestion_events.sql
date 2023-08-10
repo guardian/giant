@@ -9,5 +9,6 @@ CREATE TABLE ingestion_events (
 CREATE TABLE blob_metadata (
 	blob_id TEXT PRIMARY KEY,
 	file_name TEXT,
+	file_size INT,
 	path TEXT
 );

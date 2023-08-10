@@ -16,6 +16,7 @@ import utils.attempt.{Attempt, Failure, NotFoundFailure}
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
+import services.observability.{DBClient, IngestionEvent, Details, IngestionError}
 
 sealed trait UriParent {
   def parent: Uri
@@ -46,7 +47,7 @@ trait IngestionServices {
 }
 
 object IngestionServices extends Logging {
-  def apply(manifest: Manifest, index: Index, objectStorage: ObjectStorage, typeDetector: TypeDetector, mimeTypeMapper: MimeTypeMapper)(implicit ec: ExecutionContext): IngestionServices = new IngestionServices {
+  def apply(manifest: Manifest, index: Index, objectStorage: ObjectStorage, typeDetector: TypeDetector, mimeTypeMapper: MimeTypeMapper, dbClient: DBClient)(implicit ec: ExecutionContext): IngestionServices = new IngestionServices {
     override def ingestEmail(context: EmailContext, sourceMimeType: String): Either[Failure, Unit] = {
 
       val uriParents: List[UriParent] = UriParent.createPairwiseChain(context.parents)
@@ -73,10 +74,17 @@ object IngestionServices extends Logging {
       }
 
       val upload = blob.flatMap { maybeBlob =>
-        if (maybeBlob.isEmpty)
-          objectStorage.create(blobUri.toStoragePath, path)
-        else
+        if (maybeBlob.isEmpty) {
+          val result = objectStorage.create(blobUri.toStoragePath, path)
+          result match {
+            case Right(_) => dbClient.insertRow(blobUri.value, context.ingestion, IngestionEvent.BlobCopy, "SUCCESS", None)
+            case Left(failure: Failure) => dbClient.insertRow(blobUri.value, context.ingestion, IngestionEvent.BlobCopy, "FAILURE", Some(Details(errors = Some(List(IngestionError(failure.msg))))))
+          }
+          result
+        } else {
+          dbClient.insertRow(blobUri.value, context.ingestion, IngestionEvent.ManifestExists, "SUCCESS", None)
           Right(())
+        }
       }
 
       val uriParents: List[UriParent] = UriParent.createPairwiseChain(context.parents)

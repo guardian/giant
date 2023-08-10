@@ -120,7 +120,7 @@ class AppComponents(context: Context, config: Config)
     // processing services
     val tika = Tika.createInstance
     val mimeTypeMapper = new MimeTypeMapper()
-    val ingestionServices = IngestionServices(manifest, esResources, blobStorage, tika, mimeTypeMapper)
+    val ingestionServices = IngestionServices(manifest, esResources, blobStorage, tika, mimeTypeMapper, dbClient)
 
     // Preview
     val previewStorage = S3ObjectStorage(s3Client, config.s3.buckets.preview).valueOr(failure => throw new Exception(failure.msg))
@@ -197,7 +197,7 @@ class AppComponents(context: Context, config: Config)
 
       // ingestion phase 2
       val phase2IngestionScheduler =
-        new IngestStorePolling(actorSystem, workerExecutionContext, workerControl, ingestStorage, scratchSpace, ingestionServices, config.ingestion.batchSize, metricsService)
+        new IngestStorePolling(actorSystem, workerExecutionContext, workerControl, ingestStorage, scratchSpace, ingestionServices, config.ingestion.batchSize, metricsService, dbClient)
       phase2IngestionScheduler.start()
       applicationLifecycle.addStopHook(() => phase2IngestionScheduler.stop())
 

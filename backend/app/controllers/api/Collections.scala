@@ -110,14 +110,6 @@ class Collections(override val controllerComponents: AuthControllerComponents, m
       case true =>
         (req.headers.get(CONTENT_LOCATION), req.headers.get("X-PFI-Upload-Id")) match {
           case (Some(rawOriginalPath), Some(uploadId)) =>
-            // TEST ONLY *********
-            dBClient.insertRow(
-              blobId = "663f8dd6-7c3f-4ea3-861c-6515b84f3fc3",
-              ingestUri = ingestion,
-              IngestionEvent.MimeTypeDetected,
-              Details(List(), List(ExtractorType.Zip, ExtractorType.Rar), 46, "path/file")
-            )
-            // *********
             val originalPath = URLDecoder.decode(rawOriginalPath, "UTF-8")
             val lastModifiedTime = req.headers.get("X-PFI-Last-Modified")
             val maybeWorkspaceContext = buildWorkspaceItemContext(req.headers)
