@@ -17,7 +17,7 @@ import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
 import scala.util.{Success, Failure => SFailure}
-import services.observability.{IngestionEventType, DBClient}
+import services.observability.{IngestionEventType, PostgresClient}
 
 case class WorkSelector(numberOfNodes: Int, thisNode: Int) extends Logging {
   def isSelected(long: Long): Boolean = {
@@ -35,7 +35,7 @@ class IngestStorePolling(
   ingestionServices: IngestionServices,
   batchSize: Int,
   metricsService: MetricsService,
-  dbClient: DBClient) extends Logging {
+  dbClient: PostgresClient) extends Logging {
   implicit val workerContext: ExecutionContext = executionContext
 
   private val minimumWait = 10.second

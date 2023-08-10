@@ -15,14 +15,14 @@ import services.annotations.Annotations
 import services.index.{Index, Pages}
 import services.ingestion.IngestionServices
 import services.manifest.Manifest
-import services.observability.{DBClient, Details, ExtractorType, IngestionEventType}
+import services.observability.{PostgresClient, Details, ExtractorType, IngestionEventType}
 import services.users.UserManagement
 import utils.IngestionVerification
 import utils.attempt._
 import utils.auth.UserIdentityRequest
 import utils.controller.{AuthApiController, AuthControllerComponents}
 
-class Collections(override val controllerComponents: AuthControllerComponents, manifest: Manifest, dBClient: DBClient,
+class Collections(override val controllerComponents: AuthControllerComponents, manifest: Manifest, dBClient: PostgresClient,
                   users: UserManagement, index: Index, s3Config: S3Config, esEvents: services.events.Events,
                   pages: Pages, ingestionServices: IngestionServices, annotations: Annotations)
   extends AuthApiController {

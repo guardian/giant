@@ -15,7 +15,7 @@ import utils.attempt.{Attempt, Failure, NotFoundFailure}
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
-import services.observability.{DBClient, Details, IngestionError, IngestionEvent, IngestionEventType, Status}
+import services.observability.{PostgresClient, Details, IngestionError, IngestionEvent, IngestionEventType, Status}
 
 sealed trait UriParent {
   def parent: Uri
@@ -46,7 +46,7 @@ trait IngestionServices {
 }
 
 object IngestionServices extends Logging {
-  def apply(manifest: Manifest, index: Index, objectStorage: ObjectStorage, typeDetector: TypeDetector, mimeTypeMapper: MimeTypeMapper, dbClient: DBClient)(implicit ec: ExecutionContext): IngestionServices = new IngestionServices {
+  def apply(manifest: Manifest, index: Index, objectStorage: ObjectStorage, typeDetector: TypeDetector, mimeTypeMapper: MimeTypeMapper, dbClient: PostgresClient)(implicit ec: ExecutionContext): IngestionServices = new IngestionServices {
     override def ingestEmail(context: EmailContext, sourceMimeType: String): Either[Failure, Unit] = {
 
       val uriParents: List[UriParent] = UriParent.createPairwiseChain(context.parents)

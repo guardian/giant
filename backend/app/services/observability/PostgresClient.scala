@@ -9,7 +9,7 @@ import akka.event.Logging
 import utils.Logging
 
 
-class DBClient (url: String, user: String, password: String) extends Logging {
+class PostgresClient(url: String, user: String, password: String) extends Logging {
 	// initialize JDBC driver & connection pool
 	Class.forName("org.postgresql.Driver")
 	ConnectionPool.singleton(url, user, password)
