@@ -59,7 +59,9 @@ class AppComponents(context: Context, config: Config)
   // TODO MRB: should we have allowed hosts enabled? how could it point to the ELB?
   val disabledFilters: Set[EssentialFilter] = Set(allowedHostsFilter)
 
-  val pekkoActorSystem = PekkoActorSystem.create("pfi")
+  // Play includes an akka actorSystem but due to licensing constraints we can only use it for play specific tasks
+  // so here we create a pekko actor system
+  private val pekkoActorSystem: PekkoActorSystem = PekkoActorSystem.create("pfi")
   applicationLifecycle.addStopHook(() => {
     logger.info("Shutting down pekko")
     pekkoActorSystem.terminate()
