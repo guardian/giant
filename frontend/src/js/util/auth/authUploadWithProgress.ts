@@ -18,9 +18,6 @@ export default function authUploadWithProgress(
     const retryInitialCount = 0;
 
     xhr.upload.onprogress = (e) => {
-      console.log(
-        `progress: loaded: ${e.loaded} from total: ${e.total} for url: ${url}`
-      );
       if (e.lengthComputable) {
         if (onProgress) {
           onProgress(e.loaded, e.total);
@@ -62,9 +59,6 @@ const processRequest = (
       resolve(xhr.response);
     } else {
       if (retryCount < RETRY_MAX_LIMIT) {
-        console.warn(
-          `retrying because request failed due to ${xhr.responseText} - status: ${xhr.status}, retry: ${retryCount} for url: ${url}`
-        );
         retryRequest(
           retryCount + 1,
           xhr,
@@ -85,7 +79,6 @@ const processRequest = (
     }
   };
 
-  console.log(`sending request: ${url} - retry: ${retryCount}`);
   sendRequest(xhr, url, file, path, uploadId, retryCount, workspace);
 };
 
@@ -102,7 +95,6 @@ const retryRequest = (
 ) => {
   const limit = retryCount ? Math.pow(2, retryCount - 1) * 1000 : 0;
   const pause = Math.random() * limit;
-  console.log(`delaying the next retry by ${pause / 1000} s - for url: ${url}`);
 
   setTimeout(() => {
     processRequest(
