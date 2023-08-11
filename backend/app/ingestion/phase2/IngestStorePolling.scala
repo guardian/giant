@@ -76,6 +76,7 @@ class IngestStorePolling(
               val result = processKey(key)
               result match {
                 case Left(failure) =>
+                  // dbCLient.insertRow
                   metricsService.updateMetric(Metrics.itemsFailed)
                   logger.warn(s"Failed to process $key: $failure")
                 case _ => ingestStorage.delete(key)
@@ -116,7 +117,7 @@ class IngestStorePolling(
           ingestResult match {
             case Left(failure) =>
               val details = Details.errorDetails(failure.msg, failure.cause.map(throwable => throwable.getStackTrace.toString) )
-              dbClient.insertRow{ failure match {
+              dbClient.insertRow { failure match {
                 case _: ElasticSearchQueryFailure => baseIngestEvent.copy(
                   status = Status.Failure,
                   eventType = IngestionEventType.InitialElasticIngest,

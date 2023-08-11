@@ -14,7 +14,7 @@ import services.observability.Status.Status
 object IngestionEventType extends Enumeration {
   type IngestionEventType = Value
 
-  val HashComplete, BlobCopy, ManifestExists, MimeTypeDetected, IngestFile, InitialElasticIngest = Value
+  val HashComplete, BlobCopy, ManifestExists, MimeTypeDetected, IngestFile, InitialElasticIngest, RunExtractor = Value
 
   implicit val format: Format[IngestionEventType] = Json.formatEnum(this)
 }
@@ -55,7 +55,7 @@ case class Details(
                     extractors: Option[List[ExtractorType]] = None,
                     blob: Option[Blob] = None,
                     ingestionData: Option[IngestionData] = None,
-extractorName: Option[String] = None
+                    extractorName: Option[ExtractorType] = None
                   )
 
 object Details {
@@ -66,6 +66,8 @@ object Details {
   def ingestionDataDetails(data: IngestionData, extractors: List[Extractor]) = Some(Details(
     extractors = Some(extractors.map(e => ExtractorType.withNameCustom(e.name))),
     ingestionData = Some(data)))
+
+  def extractorDetails(extractorName: String) = Some(Details(extractorName = Some(ExtractorType.withNameCustom(extractorName))))
 
 }
 

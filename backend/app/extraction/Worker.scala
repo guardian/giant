@@ -7,6 +7,7 @@ import extraction.Worker.Batch
 import model.manifest.{Blob, WorkItem}
 import services.{Metrics, MetricsService, ObjectStorage}
 import services.manifest.WorkerManifest
+import services.observability.{Details, IngestionEvent, IngestionEventType, PostgresClient}
 import utils.Logging
 import utils.attempt._
 
@@ -23,7 +24,8 @@ class Worker(
   manifest: WorkerManifest,
   blobStorage: ObjectStorage,
   extractors: List[Extractor],
-  metricsService: MetricsService)(implicit executionContext: ExecutionContext) extends Logging {
+  metricsService: MetricsService,
+  postgresClient: PostgresClient)(implicit executionContext: ExecutionContext) extends Logging {
 
   private val maxBatchSize = 1000 // tasks
   private val maxCost = 100 * 1024 * 1024 // 100MB
@@ -74,10 +76,13 @@ class Worker(
       val result = blobStorage.get(blob.uri.toStoragePath)
         .flatMap(safeInvokeExtractor(params, extractor, blob, _))
 
+
       result match {
         case Right(_) =>
           markAsComplete(params, blob, extractor)
+          postgresClient.insertRow(IngestionEvent(blob.uri.toString, params.ingestion, IngestionEventType.RunExtractor, details = Details.extractorDetails(extractor.name)))
           completed + 1
+        // dbCLient.insertRow(extractor finished)
 
         case Left(SubprocessInterruptedFailure) =>
           logger.info(s"Subprocess terminated while processing ${blob.uri.value}")

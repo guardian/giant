@@ -193,7 +193,7 @@ class AppComponents(context: Context, config: Config)
       logger.info("Worker enabled on this instance")
 
       // PFI processors
-      val worker = new Worker(workerName, manifest, blobStorage, extractors, metricsService)(workerExecutionContext)
+      val worker = new Worker(workerName, manifest, blobStorage, extractors, metricsService, postgresClient)(workerExecutionContext)
 
       // ingestion phase 2
       val phase2IngestionScheduler =
