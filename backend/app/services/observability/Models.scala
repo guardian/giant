@@ -84,7 +84,7 @@ case class IngestionEvent(
                            eventType: IngestionEventType,
                            status: Status = Status.Success,
                            details: Option[Details] = None,
-                           event_time: DateTime = DateTime.now()
+                           eventTime: DateTime = DateTime.now()
                          )
 object IngestionEvent {
   implicit val metaDataFormat = Json.format[MetaData]
