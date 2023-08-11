@@ -27,8 +27,8 @@ class PostgresClient(url: String, user: String, password: String) extends Loggin
 				details,
 				created_at
 			) VALUES (
-				${event.blobId},
-				${event.ingestUri},
+				${event.metaData.blobId},
+				${event.metaData.ingestUri},
 				${event.eventType.toString()},
 				${event.status.toString()},
 				$detailsJson::JSONB,
@@ -41,7 +41,7 @@ class PostgresClient(url: String, user: String, password: String) extends Loggin
 			case Failure(exception) => {
 				logger.error(s"""
 					An exception ocurred while inserting ingestion event
-					blobId: ${event.blobId}, ingestUri: ${event.ingestUri} eventType: ${event.eventType.toString()}
+					blobId: ${event.metaData.blobId}, ingestUri: ${event.metaData.ingestUri} eventType: ${event.eventType.toString()}
 					exception: ${exception.getMessage()}"""
 				)
 				Left(PostgresWriteFailure(exception))

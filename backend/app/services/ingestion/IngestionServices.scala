@@ -15,7 +15,7 @@ import utils.attempt.{Attempt, Failure, NotFoundFailure}
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
-import services.observability.{PostgresClient, Details, IngestionError, IngestionEvent, IngestionEventType, Status}
+import services.observability.{Details, IngestionEvent, IngestionEventType, MetaData, PostgresClient, Status}
 
 sealed trait UriParent {
   def parent: Uri
@@ -72,18 +72,21 @@ object IngestionServices extends Logging {
         case NotFoundFailure(_) => Right[Failure, Option[Blob]](None)
       }
 
-      val baseIngestEvent = IngestionEvent(blobUri.value, context.ingestion, IngestionEventType.BlobCopy)
+      val ingestionMetaData = MetaData(blobUri.value, context.ingestion)
 
       val upload = blob.flatMap { maybeBlob =>
         if (maybeBlob.isEmpty) {
           val result = objectStorage.create(blobUri.toStoragePath, path)
           result match {
-            case Right(_) => dbClient.insertRow(baseIngestEvent)
-            case Left(failure: Failure) => dbClient.insertRow(baseIngestEvent.copy(status = Status.Failure, details = Details.errorDetails(failure.msg)))
+            case Right(_) => dbClient.insertRow(IngestionEvent(ingestionMetaData, IngestionEventType.BlobCopy))
+            case Left(failure: Failure) =>
+              dbClient.insertRow(
+                IngestionEvent(ingestionMetaData, IngestionEventType.BlobCopy, Status.Failure, Details.errorDetails(failure.msg))
+              )
           }
           result
         } else {
-          dbClient.insertRow(baseIngestEvent.copy(eventType = IngestionEventType.ManifestExists))
+          dbClient.insertRow(IngestionEvent(ingestionMetaData, eventType = IngestionEventType.ManifestExists))
           Right(())
         }
       }
@@ -111,9 +114,8 @@ object IngestionServices extends Logging {
           context.ingestion,
           context.workspace
         )
-        _ = dbClient.insertRow(baseIngestEvent.copy(
-          eventType = IngestionEventType.MimeTypeDetected,
-          details = Details.ingestionDataDetails(data, extractors))
+        _ = dbClient.insertRow(
+          IngestionEvent(ingestionMetaData, eventType = IngestionEventType.MimeTypeDetected, details = Details.ingestionDataDetails(data, extractors))
         )
         // TODO once we get attempt everywhere we can remove the await
         _ <- index.ingestDocument(blobUri, context.file.size, data, context.languages).awaitEither(2.minutes)

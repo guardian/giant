@@ -7,7 +7,7 @@ import extraction.Worker.Batch
 import model.manifest.{Blob, WorkItem}
 import services.{Metrics, MetricsService, ObjectStorage}
 import services.manifest.WorkerManifest
-import services.observability.{Details, IngestionEvent, IngestionEventType, PostgresClient}
+import services.observability.{Details, IngestionEvent, IngestionEventType, MetaData, PostgresClient}
 import utils.Logging
 import utils.attempt._
 
@@ -80,9 +80,13 @@ class Worker(
       result match {
         case Right(_) =>
           markAsComplete(params, blob, extractor)
-          postgresClient.insertRow(IngestionEvent(blob.uri.toString, params.ingestion, IngestionEventType.RunExtractor, details = Details.extractorDetails(extractor.name)))
+          postgresClient.insertRow(
+            IngestionEvent(
+              MetaData(blob.uri.toString, params.ingestion),
+              IngestionEventType.RunExtractor,
+              details = Details.extractorDetails(extractor.name))
+          )
           completed + 1
-        // dbCLient.insertRow(extractor finished)
 
         case Left(SubprocessInterruptedFailure) =>
           logger.info(s"Subprocess terminated while processing ${blob.uri.value}")
@@ -95,6 +99,16 @@ class Worker(
           markAsFailure(blob, extractor, failure)
           metricsService.updateMetric(Metrics.itemsFailed)
           logger.error(s"Ingest batch execution failure, ${failure.msg}", failure.toThrowable)
+
+          postgresClient.insertRow(
+            IngestionEvent(
+              MetaData(blob.uri.toString, params.ingestion),
+              IngestionEventType.RunExtractor,
+              details = Details.extractorErrorDetails(
+                extractor.name, failure.msg, failure.cause.map(throwable => throwable.getStackTrace.toString)
+              )
+            )
+          )
           completed
       }
     }

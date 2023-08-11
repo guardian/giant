@@ -63,6 +63,12 @@ object Details {
 
   def errorDetails(message: String, stackTrace: Option[String] = None): Option[Details] = Some(Details(Some(List(IngestionError(message, stackTrace)))))
 
+  def extractorErrorDetails(extractorName: String, message: String, stackTrace: Option[String] = None): Option[Details] =
+    Some(Details(
+      errors = Some(List(IngestionError(message, stackTrace))),
+      extractorName = Some(ExtractorType.withNameCustom(extractorName)))
+    )
+
   def ingestionDataDetails(data: IngestionData, extractors: List[Extractor]) = Some(Details(
     extractors = Some(extractors.map(e => ExtractorType.withNameCustom(e.name))),
     ingestionData = Some(data)))
@@ -71,13 +77,15 @@ object Details {
 
 }
 
+case class MetaData(blobId: String, ingestUri: String)
+
 case class IngestionEvent(
-                           blobId: String,
-                           ingestUri: String,
+                           metaData: MetaData,
                            eventType: IngestionEventType,
                            status: Status = Status.Success,
                            details: Option[Details] = None
                          )
 object IngestionEvent {
+  implicit val metaDataFormat = Json.format[MetaData]
   implicit val ingestionEventFormat = Json.format[IngestionEvent]
 }

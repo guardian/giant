@@ -18,7 +18,7 @@ import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
 import scala.util.{Success, Failure => SFailure}
-import services.observability.{Details, IngestionEvent, IngestionEventType, PostgresClient, Status}
+import services.observability.{Details, IngestionEvent, IngestionEventType, MetaData, PostgresClient, Status}
 
 
 case class WorkSelector(numberOfNodes: Int, thisNode: Int) extends Logging {
@@ -37,7 +37,7 @@ class IngestStorePolling(
   ingestionServices: IngestionServices,
   batchSize: Int,
   metricsService: MetricsService,
-  dbClient: PostgresClient) extends Logging {
+  postgresClient: PostgresClient) extends Logging {
   implicit val workerContext: ExecutionContext = executionContext
 
   private val minimumWait = 10.second
@@ -76,7 +76,6 @@ class IngestStorePolling(
               val result = processKey(key)
               result match {
                 case Left(failure) =>
-                  // dbCLient.insertRow
                   metricsService.updateMetric(Metrics.itemsFailed)
                   logger.warn(s"Failed to process $key: $failure")
                 case _ => ingestStorage.delete(key)
@@ -110,23 +109,21 @@ class IngestStorePolling(
     for {
       context <- ingestStorage.getMetadata(key)
       _ <- fetchData(key) { case (path, fingerprint) =>
-        val baseIngestEvent = IngestionEvent(fingerprint.value, context.ingestion, IngestionEventType.HashComplete)
-        dbClient.insertRow(baseIngestEvent)
+        val ingestionMetaData = MetaData(fingerprint.value, context.ingestion)
+        postgresClient.insertRow(IngestionEvent(ingestionMetaData, IngestionEventType.HashComplete))
         try {
           val ingestResult = ingestionServices.ingestFile(context, fingerprint, path)
           ingestResult match {
             case Left(failure) =>
               val details = Details.errorDetails(failure.msg, failure.cause.map(throwable => throwable.getStackTrace.toString) )
-              dbClient.insertRow { failure match {
-                case _: ElasticSearchQueryFailure => baseIngestEvent.copy(
-                  status = Status.Failure,
-                  eventType = IngestionEventType.InitialElasticIngest,
-                  details = details
-                )
-                case _ => baseIngestEvent.copy(eventType = IngestionEventType.IngestFile, status = Status.Failure, details = details)
+              postgresClient.insertRow { failure match {
+                case _: ElasticSearchQueryFailure =>
+                  IngestionEvent(ingestionMetaData, eventType = IngestionEventType.InitialElasticIngest, status = Status.Failure, details = details)
+                case _ =>
+                  IngestionEvent(ingestionMetaData, eventType = IngestionEventType.IngestFile, status = Status.Failure, details = details)
               }}
 
-            case Right(_) => dbClient.insertRow(baseIngestEvent.copy(eventType = IngestionEventType.IngestFile))
+            case Right(_) => postgresClient.insertRow(IngestionEvent(ingestionMetaData, eventType = IngestionEventType.IngestFile))
           }
           ingestResult
         } catch {
