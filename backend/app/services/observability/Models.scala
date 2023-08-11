@@ -4,6 +4,7 @@ import extraction.Extractor
 import model.ingestion.WorkspaceItemContext
 import play.api.libs.json.{Format, Json}
 import model.manifest.Blob
+import org.joda.time.DateTime
 import services.index.IngestionData
 import services.observability.ExtractorType.ExtractorType
 import services.observability.IngestionEventType.IngestionEventType
@@ -100,4 +101,14 @@ case class BlobMetaData(blobId: String, fileName: String, fileSize: Long, path: 
 
 object BlobMetaData {
   implicit val blobMetaDataFormat = Json.format[BlobMetaData]
+}
+case class BlobStatus(
+                       metaData: MetaData,
+                       path: String,
+                       ingestStart: DateTime,
+                       mostRecentEvent: DateTime,
+                       extractorStatuses: List[(ExtractorType, Status)],
+                       errors: List[IngestionError])
+object BlobStatus {
+  implicit val format = Json.format[BlobStatus]
 }
