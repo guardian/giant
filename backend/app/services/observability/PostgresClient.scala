@@ -25,7 +25,7 @@ class PostgresClient(url: String, user: String, password: String) extends Loggin
 				type,
 				status,
 				details,
-				created_at
+				event_time
 			) VALUES (
 				${event.metaData.blobId},
 				${event.metaData.ingestUri},

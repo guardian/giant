@@ -4,7 +4,7 @@ CREATE TABLE ingestion_events (
 	"type" TEXT NOT NULL,
 	status TEXT NOT NULL,
 	details JSONB,
-	created_at TIMESTAMP NOT NULL
+    event_time TIMESTAMP NOT NULL
 );
 CREATE TABLE blob_metadata (
 	blob_id TEXT PRIMARY KEY,

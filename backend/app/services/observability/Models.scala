@@ -3,7 +3,7 @@ package services.observability
 import extraction.Extractor
 import play.api.libs.json.{Format, Json}
 import model.manifest.Blob
-import org.apache.james.mime4j.dom.datetime.DateTime
+import org.joda.time.DateTime
 import services.index.IngestionData
 import services.observability.ExtractorType.ExtractorType
 import services.observability.IngestionEventType.IngestionEventType
@@ -83,7 +83,8 @@ case class IngestionEvent(
                            metaData: MetaData,
                            eventType: IngestionEventType,
                            status: Status = Status.Success,
-                           details: Option[Details] = None
+                           details: Option[Details] = None,
+                           event_time: DateTime = DateTime.now()
                          )
 object IngestionEvent {
   implicit val metaDataFormat = Json.format[MetaData]
