@@ -3,12 +3,10 @@ package services.observability
 import extraction.Extractor
 import play.api.libs.json.{Format, Json}
 import model.manifest.Blob
-import org.joda.time.DateTime
 import services.index.IngestionData
 import services.observability.ExtractorType.ExtractorType
 import services.observability.IngestionEventType.IngestionEventType
 import services.observability.Status.Status
-
 
 
 object IngestionEventType extends Enumeration {
@@ -84,7 +82,6 @@ case class IngestionEvent(
                            eventType: IngestionEventType,
                            status: Status = Status.Success,
                            details: Option[Details] = None,
-                           eventTime: DateTime = DateTime.now()
                          )
 object IngestionEvent {
   implicit val metaDataFormat = Json.format[MetaData]
