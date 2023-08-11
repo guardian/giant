@@ -7,8 +7,10 @@ import utils.Logging
 import utils.attempt.PostgresWriteFailure
 import utils.attempt.{Failure => GiantFailure}
 
-
-class PostgresClient(url: String, user: String, password: String) extends Logging {
+trait PostgresClient {
+	def insertRow (event: IngestionEvent): Either[GiantFailure, Unit]
+}
+class PostgresClientImpl(url: String, user: String, password: String) extends PostgresClient with Logging {
 	// initialize JDBC driver & connection pool
 	Class.forName("org.postgresql.Driver")
 	ConnectionPool.singleton(url, user, password)
