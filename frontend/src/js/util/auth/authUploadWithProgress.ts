@@ -86,7 +86,7 @@ const processRequest = (
   };
 
   console.log(`sending request: ${url} - retry: ${retryCount}`);
-  sendRequest(xhr, url, file, path, uploadId, workspace);
+  sendRequest(xhr, url, file, path, uploadId, retryCount, workspace);
 };
 
 const retryRequest = (
@@ -125,6 +125,7 @@ const sendRequest = (
   file: File,
   path: string,
   uploadId: string,
+  retryCount: number,
   workspace?: WorkspaceUploadMetadata
 ) => {
   xhr.open("POST", url);
@@ -148,5 +149,6 @@ const sendRequest = (
     xhr.setRequestHeader("X-PFI-Workspace-Name", workspace.workspaceName);
   }
   xhr.setRequestHeader("X-PFI-Last-Modified", file.lastModified.toString());
+  xhr.setRequestHeader("X-PFI-Retry-Count", retryCount.toString());
   xhr.send(file);
 };
