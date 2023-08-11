@@ -66,13 +66,14 @@ object IngestionServices extends Logging {
     }
 
     override def ingestFile(context: FileContext, blobUri: Uri, path: Path): Either[Failure, Blob] = {
+      val ingestionMetaData = MetaData(blobUri.value, context.ingestion)
+      dbClient.insertRow(IngestionEvent(ingestionMetaData, IngestionEventType.HashComplete))
+
       // see if the Blob already exists in the manifest to avoid doing uneeded processing
       val blob: Either[Failure, Option[Blob]] = manifest.getBlob(blobUri).map(Some(_)).recoverWith {
         // successful DB query, but the blob isn't there
         case NotFoundFailure(_) => Right[Failure, Option[Blob]](None)
       }
-
-      val ingestionMetaData = MetaData(blobUri.value, context.ingestion)
 
       val upload = blob.flatMap { maybeBlob =>
         if (maybeBlob.isEmpty) {

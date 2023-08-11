@@ -110,7 +110,7 @@ class IngestStorePolling(
       context <- ingestStorage.getMetadata(key)
       _ <- fetchData(key) { case (path, fingerprint) =>
         val ingestionMetaData = MetaData(fingerprint.value, context.ingestion)
-        postgresClient.insertRow(IngestionEvent(ingestionMetaData, IngestionEventType.HashComplete))
+
         try {
           val ingestResult = ingestionServices.ingestFile(context, fingerprint, path)
           ingestResult match {
