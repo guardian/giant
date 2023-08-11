@@ -17,7 +17,7 @@ import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
 import scala.util.{Success, Failure => SFailure}
-import services.observability.{IngestionEventType, PostgresClient}
+import services.observability.{IngestionEvent, IngestionEventType, PostgresClient, Status}
 
 case class WorkSelector(numberOfNodes: Int, thisNode: Int) extends Logging {
   def isSelected(long: Long): Boolean = {
@@ -108,7 +108,7 @@ class IngestStorePolling(
       context <- ingestStorage.getMetadata(key)
       _ <- fetchData(key) { case (path, fingerprint) =>
         dbClient.insertRow(
-          fingerprint.value, context.ingestion, IngestionEventType.HashComplete, "SUCCESS", None
+          IngestionEvent(fingerprint.value, context.ingestion, IngestionEventType.HashComplete, Status.Success, None)
         )
         try {
           ingestionServices.ingestFile(context, fingerprint, path)

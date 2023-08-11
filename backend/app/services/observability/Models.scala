@@ -22,7 +22,16 @@ object IngestionEventType extends Enumeration {
 object ExtractorType extends Enumeration {
   type ExtractorType = Value
 
-  val Zip, Rar, Olm, Msg, DocumentBody = Value
+  val OlmEmailExtractor, ZipExtractor, RarExtractor, DocumentBodyExtractor,
+    PstEmailExtractor, EmlEmailExtractor, MsgEmailExtractor, MBoxEmailExtractor,
+    CsvTableExtractor, ExcelTableExtractor, OcrMyPdfExtractor, OcrMyPdfImageExtractor,
+    TesseractPdfOcrExtractor, ImageOcrExtractor, UnknownExtractor = Value
+  def withNameCustom(s: String): Value = {
+    values.find(_.toString == s) match {
+      case Some(value) => value
+      case None => UnknownExtractor
+    }
+  }
 
   implicit val format: Format[ExtractorType] = Json.formatEnum(this)
 }
@@ -41,7 +50,12 @@ object IngestionError {
   implicit val format = Json.format[IngestionError]
 }
 
-case class Details(errors: Option[List[IngestionError]] = None, extractors: Option[List[ExtractorType]] = None, blob: Option[Blob] = None, ingestionData: Option[IngestionData] = None)
+case class Details(
+                    errors: Option[List[IngestionError]] = None,
+                    extractors: Option[List[ExtractorType]] = None,
+                    blob: Option[Blob] = None,
+                    ingestionData: Option[IngestionData] = None
+                  )
 
 object Details {
   implicit val detailsFormat = Json.format[Details]
@@ -49,7 +63,7 @@ object Details {
   def errorDetails(message: String, stackTrace: Option[String] = None) = Some(Details(Some(List(IngestionError(message, stackTrace)))))
 
   def ingestionDataDetails(data: IngestionData, extractors: List[Extractor]) = Some(Details(
-    extractors = extractors.map(e => e.name),
+    extractors = Some(extractors.map(e => ExtractorType.withNameCustom(e.name))),
     ingestionData = Some(data)))
 
 }

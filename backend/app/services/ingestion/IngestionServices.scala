@@ -111,7 +111,10 @@ object IngestionServices extends Logging {
           context.ingestion,
           context.workspace
         )
-        _ = dbClient.insertRow(baseIngestEvent.copy(eventType = IngestionEventType.MimeTypeDetected, details = Details.ingestionDataDetails(data, extractors)))
+        _ = dbClient.insertRow(baseIngestEvent.copy(
+          eventType = IngestionEventType.MimeTypeDetected,
+          details = Details.ingestionDataDetails(data, extractors))
+        )
         // TODO once we get attempt everywhere we can remove the await
         _ <- index.ingestDocument(blobUri, context.file.size, data, context.languages).awaitEither(2.minutes)
       } yield {
