@@ -2,10 +2,10 @@ package services.observability
 
 import extraction.Extractor
 import play.api.libs.json.{Format, Json}
-import services.observability.ExtractorType.ExtractorType
 import model.manifest.Blob
 import org.apache.james.mime4j.dom.datetime.DateTime
 import services.index.IngestionData
+import services.observability.ExtractorType.ExtractorType
 import services.observability.IngestionEventType.IngestionEventType
 import services.observability.Status.Status
 
@@ -14,7 +14,7 @@ import services.observability.Status.Status
 object IngestionEventType extends Enumeration {
   type IngestionEventType = Value
 
-  val HashComplete, BlobCopy, ManifestExists, MimeTypeDetected, OcrComplete, ZipExtractionSuccess, PreviouslyProcessed = Value
+  val HashComplete, BlobCopy, ManifestExists, MimeTypeDetected, IngestFile, InitialElasticIngest = Value
 
   implicit val format: Format[IngestionEventType] = Json.formatEnum(this)
 }
@@ -54,13 +54,14 @@ case class Details(
                     errors: Option[List[IngestionError]] = None,
                     extractors: Option[List[ExtractorType]] = None,
                     blob: Option[Blob] = None,
-                    ingestionData: Option[IngestionData] = None
+                    ingestionData: Option[IngestionData] = None,
+extractorName: Option[String] = None
                   )
 
 object Details {
   implicit val detailsFormat = Json.format[Details]
 
-  def errorDetails(message: String, stackTrace: Option[String] = None) = Some(Details(Some(List(IngestionError(message, stackTrace)))))
+  def errorDetails(message: String, stackTrace: Option[String] = None): Option[Details] = Some(Details(Some(List(IngestionError(message, stackTrace)))))
 
   def ingestionDataDetails(data: IngestionData, extractors: List[Extractor]) = Some(Details(
     extractors = Some(extractors.map(e => ExtractorType.withNameCustom(e.name))),

@@ -1,12 +1,11 @@
 package services.observability
 import play.api.libs.json.Json
 import scalikejdbc._
-import services.observability.IngestionEventType.IngestionEventType
-import org.postgresql.util.PSQLException
+
 import scala.util.{Failure, Success, Try}
-import akka.http.scaladsl.model.headers.LinkParams
-import akka.event.Logging
 import utils.Logging
+import utils.attempt.PostgresWriteFailure
+import utils.attempt.{Failure => GiantFailure}
 
 
 class PostgresClient(url: String, user: String, password: String) extends Logging {
@@ -16,7 +15,7 @@ class PostgresClient(url: String, user: String, password: String) extends Loggin
 	implicit val session: AutoSession.type = AutoSession
 
 	import Details.detailsFormat
-	def insertRow (event: IngestionEvent): Boolean = {
+	def insertRow (event: IngestionEvent): Either[GiantFailure, Unit] = {
 		Try {
 			val detailsJson = event.details.map(Json.toJson(_).toString).getOrElse("{}")
 			sql"""
@@ -37,7 +36,7 @@ class PostgresClient(url: String, user: String, password: String) extends Loggin
 			);""".execute().apply()
 		} match {
 			case Success(_) => {
-				true
+				Right(())
 			}
 			case Failure(exception) => {
 				logger.error(s"""
@@ -45,7 +44,7 @@ class PostgresClient(url: String, user: String, password: String) extends Loggin
 					blobId: ${event.blobId}, ingestUri: ${event.ingestUri} eventType: ${event.eventType.toString()}
 					exception: ${exception.getMessage()}"""
 				)
-				false
+				Left(PostgresWriteFailure(exception))
 			}
 		}
 	}

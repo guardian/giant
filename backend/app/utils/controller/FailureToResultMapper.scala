@@ -111,6 +111,10 @@ object FailureToResultMapper extends Logging {
       case DeleteFailure(msg) =>
         logUserAndMessage(user, s"Delete failed: ${msg}")
         Results.InternalServerError(msg)
+      case f: PostgresWriteFailure =>
+        logger.error(f.msg, f.throwable)
+        Results.InternalServerError(f.msg)
+
     }
   }
 }

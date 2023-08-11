@@ -8,16 +8,18 @@ import com.amazonaws.services.cloudwatch.model.MetricDatum
 import extraction.Worker
 import model.Uri
 import model.ingestion.Key
+import org.apache.xmlbeans.impl.soap.Detail
 import services.ingestion.IngestionServices
 import services.{FingerprintServices, IngestStorage, MetricUpdate, Metrics, MetricsService, ScratchSpace}
-import utils.attempt.{Attempt, Failure, UnknownFailure}
+import utils.attempt.{Attempt, ElasticSearchQueryFailure, Failure, UnknownFailure}
 import utils.{Logging, WorkerControl}
 
 import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
 import scala.util.{Success, Failure => SFailure}
-import services.observability.{IngestionEvent, IngestionEventType, PostgresClient, Status}
+import services.observability.{Details, IngestionEvent, IngestionEventType, PostgresClient, Status}
+
 
 case class WorkSelector(numberOfNodes: Int, thisNode: Int) extends Logging {
   def isSelected(long: Long): Boolean = {
@@ -107,11 +109,25 @@ class IngestStorePolling(
     for {
       context <- ingestStorage.getMetadata(key)
       _ <- fetchData(key) { case (path, fingerprint) =>
-        dbClient.insertRow(
-          IngestionEvent(fingerprint.value, context.ingestion, IngestionEventType.HashComplete, Status.Success, None)
-        )
+        val baseIngestEvent = IngestionEvent(fingerprint.value, context.ingestion, IngestionEventType.HashComplete)
+        dbClient.insertRow(baseIngestEvent)
         try {
-          ingestionServices.ingestFile(context, fingerprint, path)
+          val ingestResult = ingestionServices.ingestFile(context, fingerprint, path)
+          ingestResult match {
+            case Left(failure) =>
+              val details = Details.errorDetails(failure.msg, failure.cause.map(throwable => throwable.getStackTrace.toString) )
+              dbClient.insertRow{ failure match {
+                case _: ElasticSearchQueryFailure => baseIngestEvent.copy(
+                  status = Status.Failure,
+                  eventType = IngestionEventType.InitialElasticIngest,
+                  details = details
+                )
+                case _ => baseIngestEvent.copy(eventType = IngestionEventType.IngestFile, status = Status.Failure, details = details)
+              }}
+
+            case Right(_) => dbClient.insertRow(baseIngestEvent.copy(eventType = IngestionEventType.IngestFile))
+          }
+          ingestResult
         } catch {
           case NonFatal(t) =>
             logger.error(s"Unexpected exception", t)

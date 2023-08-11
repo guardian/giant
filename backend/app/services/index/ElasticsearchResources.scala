@@ -15,6 +15,7 @@ import model.{Arabic, Email, ExtractedDateTime, Language, Languages, Recipient, 
 import services.ElasticsearchSyntax
 import services.ElasticsearchSyntax.NestedField
 import services.index.HitReaders._
+import services.observability.PostgresClient
 import utils._
 import utils.attempt._
 

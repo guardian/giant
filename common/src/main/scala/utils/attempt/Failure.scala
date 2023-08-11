@@ -82,6 +82,9 @@ case class Neo4JFailure(throwable: Throwable) extends FailureWithThrowable
 case class Neo4JTransientFailure(throwable: Throwable) extends FailureWithThrowable
 case class Neo4JValueFailure(msg: String) extends Failure
 case class AwsSdkFailure(throwable: Throwable) extends FailureWithThrowable
+case class PostgresWriteFailure(throwable: Throwable) extends FailureWithThrowable {
+  final override def msg = "Failed to write to postgres"
+}
 
 case class UserDoesNotExistFailure(username: String) extends HiddenFailure {
   final override def actualMessage = s"$username does not exist"
