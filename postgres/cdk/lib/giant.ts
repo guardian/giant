@@ -29,7 +29,7 @@ export class Giant extends GuStack {
 
 		const vpc = GuVpc.fromIdParameter(
 			this,
-			AppIdentity.suffixText({ app: 'giant' }, 'VPC'),
+			'GiantVPC',
 		);
 
 		const dbStorage = 20;

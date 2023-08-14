@@ -8,7 +8,7 @@
     "test-update": "jest -u",
     "format": "prettier --write \"{lib,bin}/**/*.ts\"",
     "lint": "eslint lib/** bin/** --ext .ts --no-error-on-unmatched-pattern",
-    "synth": "cdk synth --path-metadata false --version-reporting false",
+    "synth": "cdk synth --path-metadata false --version-reporting false --quiet",
     "diff": "cdk diff --path-metadata false --version-reporting false"
   },
   "devDependencies": {

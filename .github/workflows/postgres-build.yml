@@ -20,17 +20,41 @@ jobs:
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: actions/checkout@v2
-      - uses: aws-actions/configure-aws-credentials@v1
+      - uses: actions/checkout@v3
+      - uses: aws-actions/configure-aws-credentials@v2
         with:
           role-to-assume: ${{ secrets.GU_RIFF_RAFF_ROLE_ARN }}
           aws-region: eu-west-1
-      - uses: actions/setup-node@v2
-        with:
-          node-version: "16"
-          cache: "npm"
-          cache-dependency-path: postgres/cdk/package-lock.json
 
-      - name: build postgres
-        run: ./postgres/scripts/build.sh
-        shell: bash
+      - uses: actions/setup-node@v3
+        with:
+          node-version-file: '.nvmrc'
+          cache: npm
+
+      - name: cdk synth
+        run: |
+          npm ci
+          npm run synth
+
+      - uses: guardian/actions-riff-raff@v2
+        with:
+          app: postgres
+          config: |
+            stacks:
+              - giant
+            regions:
+              - eu-west-1
+            allowedStages:
+              - CODE
+              - PROD
+            deployments:
+              cloudformation:
+                type: cloud-formation
+                app: postgres
+                sources:
+                  - postgres/cdk/cdk.out/giant-postgres-CODE.template.json
+                  - postgres/cdk/cdk.out/giant-postgres-PROD.template.json
+                parameters:
+                  templateStagePaths:
+                    CODE: giant-postgres-CODE.template.json
+                    PROD: giant-postgres-PROD.template.json
