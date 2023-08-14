@@ -9,6 +9,8 @@ import services.index.IngestionData
 import services.observability.ExtractorType.ExtractorType
 import services.observability.IngestionEventType.IngestionEventType
 import services.observability.EventStatus.EventStatus
+import play.api.libs.json.JodaWrites.jodaDateWrites
+import play.api.libs.json.JodaReads.jodaDateReads
 
 
 object IngestionEventType extends Enumeration {
@@ -103,12 +105,14 @@ object BlobMetaData {
   implicit val blobMetaDataFormat = Json.format[BlobMetaData]
 }
 case class BlobStatus(
-                       metaData: MetaData,
+                       metaData: EventMetaData,
                        path: String,
                        ingestStart: DateTime,
                        mostRecentEvent: DateTime,
-                       extractorStatuses: List[(ExtractorType, Status)],
+                       extractorStatuses: List[(ExtractorType, EventStatus)],
                        errors: List[IngestionError])
 object BlobStatus {
+  implicit val dateWrites = jodaDateWrites("yyyy-MM-dd'T'HH:mm:ss.SSSZ")
+  implicit val dateReads = jodaDateReads("yyyy-MM-dd'T'HH:mm:ss.SSSZ")
   implicit val format = Json.format[BlobStatus]
 }

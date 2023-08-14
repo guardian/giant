@@ -84,6 +84,7 @@ lazy val common = (project in file("common"))
     libraryDependencies ++= Seq(
       "org.typelevel" %% "cats-core" % "2.2.0",
       "com.typesafe.play" %% "play-json" % "2.9.4",
+      "com.typesafe.play" %% "play-json-joda" % "2.9.4",
       "com.amazonaws" % "aws-java-sdk-s3" % awsVersion,
       "org.scalatest" %% "scalatest" % scalatestVersion,
       // Play has a transitive dependency on Logback,
