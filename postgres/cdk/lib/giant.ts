@@ -63,7 +63,7 @@ export class Giant extends GuStack {
 				InstanceClass.T4G,
 				this.stage === 'PROD' ? InstanceSize.MICRO : InstanceSize.MICRO,
 			),
-			instanceIdentifier: `giant-database-${this.stage}`,
+			instanceIdentifier: `giant-db-${this.stage}`,
 			databaseName: 'giant',
 			deletionProtection: true,
 			cloudwatchLogsExports: ['postgresql'],

@@ -16,6 +16,9 @@ jobs:
     permissions:
       id-token: write
       contents: read
+    defaults:
+      run:
+        working-directory: ./postgres/cdk
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
@@ -27,10 +30,10 @@ jobs:
           aws-region: eu-west-1
 
       - uses: actions/setup-node@v3
-        working-directory: postgres/cdk
         with:
-          node-version-file: '.nvmrc'
+          node-version-file: './postgres/cdk/.nvmrc'
           cache: npm
+          cache-dependency-path: ./postgres/cdk/package-lock.json
 
       - name: cdk synth
         run: |
@@ -40,9 +43,13 @@ jobs:
       - uses: guardian/actions-riff-raff@v2
         with:
           app: postgres
+          contentDirectories: |
+            cloudformation:
+              - ./postgres/cdk/cdk.out/pfi-giant-postgres-CODE.template.json
+              - ./postgres/cdk/cdk.out/pfi-giant-postgres-PROD.template.json
           config: |
             stacks:
-              - giant
+              - pfi-giant
             regions:
               - eu-west-1
             allowedStages:
@@ -52,10 +59,7 @@ jobs:
               cloudformation:
                 type: cloud-formation
                 app: postgres
-                sources:
-                  - postgres/cdk/cdk.out/giant-postgres-CODE.template.json
-                  - postgres/cdk/cdk.out/giant-postgres-PROD.template.json
                 parameters:
                   templateStagePaths:
-                    CODE: giant-postgres-CODE.template.json
-                    PROD: giant-postgres-PROD.template.json
+                    CODE: pfi-giant-postgres-CODE.template.json
+                    PROD: pfi-giant-postgres-PROD.template.json
