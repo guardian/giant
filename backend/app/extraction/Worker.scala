@@ -82,7 +82,7 @@ class Worker(
           markAsComplete(params, blob, extractor)
           postgresClient.insertRow(
             IngestionEvent(
-              MetaData(blob.uri.toString, params.ingestion),
+              MetaData(blob.uri.value, params.ingestion),
               IngestionEventType.RunExtractor,
               details = Details.extractorDetails(extractor.name))
           )
@@ -102,7 +102,7 @@ class Worker(
 
           postgresClient.insertRow(
             IngestionEvent(
-              MetaData(blob.uri.toString, params.ingestion),
+              MetaData(blob.uri.value, params.ingestion),
               IngestionEventType.RunExtractor,
               details = Details.extractorErrorDetails(
                 extractor.name, failure.msg, failure.cause.map(throwable => throwable.getStackTrace.toString)
