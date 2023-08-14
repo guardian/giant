@@ -77,11 +77,15 @@ object Details {
 
 case class MetaData(blobId: String, ingestUri: String)
 
+object MetaData {
+  implicit val format = Json.format[MetaData]
+}
+
 case class IngestionEvent(
                            metaData: MetaData,
                            eventType: IngestionEventType,
                            status: Status = Status.Success,
-                           details: Option[Details] = None,
+                           details: Option[Details] = None
                          )
 object IngestionEvent {
   implicit val metaDataFormat = Json.format[MetaData]
