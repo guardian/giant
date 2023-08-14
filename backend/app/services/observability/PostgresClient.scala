@@ -90,7 +90,7 @@ class PostgresClientImpl(url: String, user: String, password: String) extends Po
 			val results = sql"""
         WITH blob_extractors AS (
          SELECT blob_id, jsonb_array_elements_text(details -> 'extractors') as extractor from ingestion_events
-         WHERE ingest_uri = ${ingestionUri} AND
+         WHERE ingest_id = ${ingestionUri} AND
          type = ${IngestionEventType.MimeTypeDetected.toString}
     		),
 				extractor_statuses as (
@@ -125,7 +125,7 @@ class PostgresClientImpl(url: String, user: String, password: String) extends Po
 				BlobStatus(
 					MetaData(
 						rs.string("blob_id"),
-						rs.string("ingest_uri")
+						rs.string("ingest_id")
 					),
 					"unknown",
 					new DateTime(rs.dateTime("ingest_start").toInstant.toEpochMilli, DateTimeZone.UTC),
