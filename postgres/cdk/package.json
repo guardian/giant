@@ -14,6 +14,7 @@
   "devDependencies": {
     "@guardian/cdk": "50.10.8",
     "@guardian/eslint-config-typescript": "5.0.0",
+    "@guardian/node-riffraff-artifact": "^0.3.2",
     "@guardian/prettier": "5.0.0",
     "@types/jest": "^29.5.3",
     "@types/node": "20.4.9",
