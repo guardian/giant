@@ -27,6 +27,7 @@ jobs:
           aws-region: eu-west-1
 
       - uses: actions/setup-node@v3
+        working-directory: postgres/cdk
         with:
           node-version-file: '.nvmrc'
           cache: npm
