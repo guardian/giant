@@ -23,7 +23,7 @@ class PostgresClientImpl(url: String, user: String, password: String) extends Po
 			sql"""
 			INSERT INTO ingestion_events (
 				blob_id,
-				ingest_uri,
+				ingest_id,
 				type,
 				status,
 				details,

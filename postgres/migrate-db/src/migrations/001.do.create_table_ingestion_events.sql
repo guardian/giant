@@ -1,6 +1,6 @@
 CREATE TABLE ingestion_events (
 	blob_id TEXT,
-	ingest_uri TEXT,
+	ingest_id TEXT,
 	"type" TEXT NOT NULL,
 	status TEXT NOT NULL,
 	details JSONB,
