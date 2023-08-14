@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # build cloudformation
-cd postgres
+cd postgres/cdk
 npm install
 npm run synth
 
