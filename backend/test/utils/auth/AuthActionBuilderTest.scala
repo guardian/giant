@@ -32,7 +32,7 @@ class AuthActionBuilderTest extends AnyFreeSpec with Matchers with BaseOneAppPer
     val initialSettings: Map[String, AnyRef] = Map(
       "play.http.secret.key" -> "TestKey",
       "play.http.session.maxAge" -> Int.box(900000),
-      "akka.actor.provider" -> "local"
+      "pekko.actor.provider" -> "local"
     )
 
     val context = ApplicationLoader.Context.create(env, initialSettings)

@@ -18,6 +18,7 @@ class GetPagePreview(uri: Uri, language: Language, pageNumber: Int,
       pageData <- previewStorage.get(previewUri).toAttempt
     } yield {
       // StreamConverters.fromInputStream will close the stream for us once it's done
+      // HttpEntity comes from Play and expects an akka ByteString so here we use akka here
       HttpEntity.Streamed(StreamConverters.fromInputStream(() => pageData), None, Some("application/pdf"))
     }
   }
