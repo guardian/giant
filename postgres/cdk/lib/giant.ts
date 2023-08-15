@@ -75,7 +75,9 @@ export class Giant extends GuStack {
 			monitoringInterval: Duration.minutes(1),
 			port: DATABASE_PORT,
 			securityGroups: [databaseSecurityGroup],
-			credentials: Credentials.fromGeneratedSecret(DATABASE_MASTER_USER),
+			credentials: Credentials.fromGeneratedSecret(DATABASE_MASTER_USER, {
+				secretName: `${props.stack}-postgres-${props.stage}`,
+			}),
 		});
 
 		const dbAccessSecurityGroup = new SecurityGroup(this, 'db-access', {
