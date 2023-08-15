@@ -80,7 +80,7 @@ class Worker(
       result match {
         case Right(_) =>
           markAsComplete(params, blob, extractor)
-          postgresClient.insertRow(
+          postgresClient.insertEvent(
             IngestionEvent(
               MetaData(blob.uri.value, params.ingestion),
               IngestionEventType.RunExtractor,
@@ -100,7 +100,7 @@ class Worker(
           metricsService.updateMetric(Metrics.itemsFailed)
           logger.error(s"Ingest batch execution failure, ${failure.msg}", failure.toThrowable)
 
-          postgresClient.insertRow(
+          postgresClient.insertEvent(
             IngestionEvent(
               MetaData(blob.uri.value, params.ingestion),
               IngestionEventType.RunExtractor,

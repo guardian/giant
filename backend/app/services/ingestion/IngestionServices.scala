@@ -15,7 +15,7 @@ import utils.attempt.{Attempt, Failure, NotFoundFailure}
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
-import services.observability.{Details, IngestionEvent, IngestionEventType, MetaData, PostgresClient, Status}
+import services.observability.{BlobMetaData, Details, IngestionEvent, IngestionEventType, MetaData, PostgresClient, Status}
 
 sealed trait UriParent {
   def parent: Uri
@@ -67,7 +67,13 @@ object IngestionServices extends Logging {
 
     override def ingestFile(context: FileContext, blobUri: Uri, path: Path): Either[Failure, Blob] = {
       val ingestionMetaData = MetaData(blobUri.value, context.ingestion)
-      dbClient.insertRow(IngestionEvent(ingestionMetaData, IngestionEventType.HashComplete))
+      dbClient.insertMetaData(BlobMetaData(
+        blobId = blobUri.value,
+        fileName = context.file.uri.value.split("/").last,
+        fileSize = context.file.size.toInt,
+        path = context.file.uri.value)
+      )
+      dbClient.insertEvent(IngestionEvent(ingestionMetaData, IngestionEventType.HashComplete))
 
       // see if the Blob already exists in the manifest to avoid doing uneeded processing
       val blob: Either[Failure, Option[Blob]] = manifest.getBlob(blobUri).map(Some(_)).recoverWith {
@@ -79,15 +85,15 @@ object IngestionServices extends Logging {
         if (maybeBlob.isEmpty) {
           val result = objectStorage.create(blobUri.toStoragePath, path)
           result match {
-            case Right(_) => dbClient.insertRow(IngestionEvent(ingestionMetaData, IngestionEventType.BlobCopy))
+            case Right(_) => dbClient.insertEvent(IngestionEvent(ingestionMetaData, IngestionEventType.BlobCopy))
             case Left(failure: Failure) =>
-              dbClient.insertRow(
+              dbClient.insertEvent(
                 IngestionEvent(ingestionMetaData, IngestionEventType.BlobCopy, Status.Failure, Details.errorDetails(failure.msg))
               )
           }
           result
         } else {
-          dbClient.insertRow(IngestionEvent(ingestionMetaData, eventType = IngestionEventType.ManifestExists))
+          dbClient.insertEvent(IngestionEvent(ingestionMetaData, eventType = IngestionEventType.ManifestExists))
           Right(())
         }
       }
@@ -115,7 +121,7 @@ object IngestionServices extends Logging {
           context.ingestion,
           context.workspace
         )
-        _ = dbClient.insertRow(
+        _ = dbClient.insertEvent(
           IngestionEvent(ingestionMetaData, eventType = IngestionEventType.MimeTypeDetected, details = Details.ingestionDataDetails(data, extractors))
         )
         // TODO once we get attempt everywhere we can remove the await

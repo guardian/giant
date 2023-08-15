@@ -116,14 +116,14 @@ class IngestStorePolling(
           ingestResult match {
             case Left(failure) =>
               val details = Details.errorDetails(failure.msg, failure.cause.map(throwable => throwable.getStackTrace.toString) )
-              postgresClient.insertRow { failure match {
+              postgresClient.insertEvent { failure match {
                 case _: ElasticSearchQueryFailure =>
                   IngestionEvent(ingestionMetaData, eventType = IngestionEventType.InitialElasticIngest, status = Status.Failure, details = details)
                 case _ =>
                   IngestionEvent(ingestionMetaData, eventType = IngestionEventType.IngestFile, status = Status.Failure, details = details)
               }}
 
-            case Right(_) => postgresClient.insertRow(IngestionEvent(ingestionMetaData, eventType = IngestionEventType.IngestFile))
+            case Right(_) => postgresClient.insertEvent(IngestionEvent(ingestionMetaData, eventType = IngestionEventType.IngestFile))
           }
           ingestResult
         } catch {

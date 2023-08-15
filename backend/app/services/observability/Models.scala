@@ -91,3 +91,9 @@ object IngestionEvent {
   implicit val metaDataFormat = Json.format[MetaData]
   implicit val ingestionEventFormat = Json.format[IngestionEvent]
 }
+
+case class BlobMetaData(blobId: String, fileName: String, fileSize: Long, path: String)
+
+object BlobMetaData {
+  implicit val blobMetaDataFormat = Json.format[BlobMetaData]
+}
