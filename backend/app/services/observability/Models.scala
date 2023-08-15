@@ -1,6 +1,7 @@
 package services.observability
 
 import extraction.Extractor
+import model.ingestion.WorkspaceItemContext
 import play.api.libs.json.{Format, Json}
 import model.manifest.Blob
 import services.index.IngestionData
@@ -53,7 +54,8 @@ case class Details(
                     extractors: Option[List[ExtractorType]] = None,
                     blob: Option[Blob] = None,
                     ingestionData: Option[IngestionData] = None,
-                    extractorName: Option[ExtractorType] = None
+                    extractorName: Option[ExtractorType] = None,
+                    workspaceItemContext: Option[WorkspaceItemContext] = None
                   )
 
 object Details {
@@ -70,6 +72,8 @@ object Details {
   def ingestionDataDetails(data: IngestionData, extractors: List[Extractor]) = Some(Details(
     extractors = Some(extractors.map(e => ExtractorType.withNameCustom(e.name))),
     ingestionData = Some(data)))
+
+  def workspaceDetails(workspaceItemContext: Option[WorkspaceItemContext]) = Some(Details(workspaceItemContext = workspaceItemContext))
 
   def extractorDetails(extractorName: String) = Some(Details(extractorName = Some(ExtractorType.withNameCustom(extractorName))))
 

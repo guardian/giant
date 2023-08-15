@@ -73,7 +73,7 @@ object IngestionServices extends Logging {
         fileSize = context.file.size.toInt,
         path = context.file.uri.value)
       )
-      dbClient.insertEvent(IngestionEvent(ingestionMetaData, IngestionEventType.HashComplete))
+      dbClient.insertEvent(IngestionEvent(ingestionMetaData, IngestionEventType.HashComplete, details = Details.workspaceDetails(context.workspace)))
 
       // see if the Blob already exists in the manifest to avoid doing uneeded processing
       val blob: Either[Failure, Option[Blob]] = manifest.getBlob(blobUri).map(Some(_)).recoverWith {
