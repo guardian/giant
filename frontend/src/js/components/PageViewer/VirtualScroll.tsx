@@ -1,6 +1,6 @@
 import { debounce, range } from 'lodash';
 import React, { FC, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { CachedPreview, CONTAINER_AND_MARGIN_SIZE, HighlightForSearchNavigation, PageData } from './model';
+import { CachedPreview, HighlightForSearchNavigation, PageData } from './model';
 import { Page } from './Page';
 import { PageCache } from './PageCache';
 import styles from './VirtualScroll.module.css';
@@ -19,6 +19,7 @@ type VirtualScrollProps = {
   jumpToPage?: number | null;
 
   rotation: number;
+  scale: number;
 };
 
 type RenderedPage = {
@@ -45,52 +46,108 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
   pageNumbersToPreload,
 
   rotation,
+  scale
 }) => {
   // Tweaked this and 2 seems to be a good amount on a regular monitor
   // The fewer pages we preload the faster the initial paint will be
   // Could possibly make it dynamic based on the visible of the container
   const PRELOAD_PAGES = 2;
 
-  const pageHeight = CONTAINER_AND_MARGIN_SIZE;
+  // This must be the same as the margin CSS of .pageContainer
+  const MARGIN = 10;
+
+  const containerSize = 1000 * scale;
+  const pageHeight = containerSize + (MARGIN * 2);
 
   const viewport = useRef<HTMLDivElement>(null);
+  
+  // Used too avoid rendering the page un-necessarily as a result of 
+  // useEffects that are dependant on containerSize & findQuery
+  const isInitialRender = useRef<boolean>(true);
+  const pageScrollHeight = useRef<number>(pageHeight * totalPages);
 
   // TODO: move pageCache up?
-  const [pageCache] = useState(() => new PageCache(uri, searchQuery));
+  const [pageCache] = useState(() => new PageCache(uri, containerSize, searchQuery));
 
   // We have a second tier cache tied to the React component lifecycle for storing
   // rendered pages which allows us to swap out stale pages without flickering pages
   const [renderedPages, setRenderedPages] = useState<RenderedPage[]>([]);
 
-  useEffect(() => {
-    pageCache.setFindQuery(findQuery);
-    setRenderedPages((currentPages) => {
-      const newPages: RenderedPage[] = currentPages.map((page) => {
-        const refreshedPage = pageCache.getPageAndRefreshHighlights(
-            page.pageNumber
-        );
-        return {
-          pageNumber: page.pageNumber,
-          getPagePreview: page.getPagePreview,
-          getPageData: refreshedPage.data,
-        }
-      });
-
-      // Once we've refreshed all visible pages go and refresh the cached pages too
-      // Will this work inside a setState callback?? It seems so...
-      Promise.all(newPages.map((page) => page.getPageData)).then(() => {
-        pageCache
-            .getAllPageNumbers()
-            .filter((cachedPageNumber) =>
-                !newPages.some((newPage) => newPage.pageNumber === cachedPageNumber)
-            )
-            .forEach((pageNumberToRefresh) =>
-                pageCache.getPageAndRefreshHighlights(pageNumberToRefresh)
+  // debounce is used to avoid multiple re-rendering when user clicks on zoom 
+  // buttons several times and container size changes too quickly 
+  const debouncedRefreshPreview = React.useMemo(
+    () =>
+      debounce((pageCache: PageCache, containerSize: number) => {
+        pageCache.setContainerSize(containerSize);
+        setRenderedPages((currentPages) => {
+          const newPages: RenderedPage[] = currentPages.map((page) => {
+            const refreshedPage = pageCache.reRenderPagePreview(
+              page.pageNumber,
+              page.getPagePreview,
+              containerSize
             );
-      });
+            return {
+              pageNumber: page.pageNumber,
+              getPagePreview: refreshedPage.preview,
+              getPageData: refreshedPage.data,
+            };
+          });
 
-      return newPages;
-    });
+          return newPages;
+        });
+      }, 500),
+    []
+  );
+
+  useEffect(() => {
+    if (!isInitialRender.current && containerSize !== pageCache.containerSize) {
+      debouncedRefreshPreview(pageCache, containerSize);
+    }
+
+  }, [pageCache, containerSize, debouncedRefreshPreview]);
+
+  // Adjusting the scroll to stay in the same position that it currently is
+  // considering the change in the page height
+  useLayoutEffect(() => {
+      if (viewport.current && pageScrollHeight.current) {
+        const currentScrollPosition = viewport.current.scrollTop / pageScrollHeight.current;
+        const newScrollPosition = currentScrollPosition * viewport.current.scrollHeight;
+        pageScrollHeight.current = viewport.current.scrollHeight;
+        viewport.current.scrollTop = newScrollPosition;
+      }
+  }, [containerSize, pageHeight]);
+
+  useEffect(() => {
+    if (!isInitialRender.current) {
+      pageCache.setFindQuery(findQuery);
+      setRenderedPages((currentPages) => {
+        const newPages: RenderedPage[] = currentPages.map((page) => {
+          const refreshedPage = pageCache.getPageAndRefreshHighlights(
+              page.pageNumber
+          );
+          return {
+            pageNumber: page.pageNumber,
+            getPagePreview: page.getPagePreview,
+            getPageData: refreshedPage.data,
+          }
+        });
+  
+        // Once we've refreshed all visible pages go and refresh the cached pages too
+        // Will this work inside a setState callback?? It seems so...
+        Promise.all(newPages.map((page) => page.getPageData)).then(() => {
+          pageCache
+              .getAllPageNumbers()
+              .filter((cachedPageNumber) =>
+                  !newPages.some((newPage) => newPage.pageNumber === cachedPageNumber)
+              )
+              .forEach((pageNumberToRefresh) =>
+                  pageCache.getPageAndRefreshHighlights(pageNumberToRefresh)
+              );
+        });
+  
+        return newPages;
+      });
+    }
   }, [findQuery, pageCache]);
 
   const [pageRange, setPageRange] = useState<PageRange>({
@@ -147,30 +204,47 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
 
   useLayoutEffect(() => {
     if (viewport?.current && focusedFindHighlight) {
-      const topOfHighlightPage = (pageHeight * (focusedFindHighlight.pageNumber - 1));
+      const highlightYPos = focusedFindHighlight.firstSpan?.y || 0;
+
+      const topOfHighlightPage = (pageHeight * (focusedFindHighlight.pageNumber - 1)) + (highlightYPos * scale);    
+      
       viewport.current.scrollTop = topOfHighlightPage;
     }
-  }, [pageHeight, focusedFindHighlight]);
+  }, [pageHeight, focusedFindHighlight, scale]);
+
   useLayoutEffect(() => {
     if (viewport?.current && focusedSearchHighlight) {
-      const topOfHighlightPage = (pageHeight * (focusedSearchHighlight.pageNumber - 1));
+      const highlightYPos = focusedSearchHighlight.firstSpan?.y || 0;
+
+      const topOfHighlightPage = (pageHeight * (focusedSearchHighlight.pageNumber - 1)) + (highlightYPos * scale);
+      
       viewport.current.scrollTop = topOfHighlightPage;
     }
-  }, [pageHeight, focusedSearchHighlight]);
+  }, [pageHeight, focusedSearchHighlight, scale]);
+
+  const getCachedPage = useCallback((pageNumber: number) => {
+    const cachedPage = pageCache.getPage(pageNumber);
+    if (cachedPage.previewContainerSize === pageCache.containerSize){
+      return cachedPage;
+    } else {
+      return pageCache.reRenderPagePreview(pageNumber, cachedPage.preview, containerSize);
+    }
+  }, [pageCache, containerSize]);
 
   useEffect(() => {
     const renderedPages = range(pageRange.top, pageRange.bottom + 1).map((pageNumber) => {
-      const cachedPage = pageCache.getPage(pageNumber);
-      return {
 
+      const cachedPage = getCachedPage(pageNumber);
+
+      return {
         pageNumber,
         getPagePreview: cachedPage.preview,
         getPageData: cachedPage.data,
       };
     });
-
     setRenderedPages(renderedPages);
-  }, [pageRange.top, pageRange.bottom, pageCache, setRenderedPages]);
+    if (isInitialRender) isInitialRender.current = false;
+  }, [pageRange.top, pageRange.bottom, pageCache, setRenderedPages, getCachedPage]);
 
   useEffect(() => {
     pageNumbersToPreload.forEach((pageNumber) => pageCache.getPage(pageNumber));
@@ -180,23 +254,25 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
     <div ref={viewport} className={styles.scrollContainer} onScroll={throttledSetPageRangeFromScrollPosition}>
       <div className={styles.pages} style={{ height: totalPages * pageHeight }}>
         {renderedPages.map((page) => (
-          <div
-            key={page.pageNumber}
-            style={{
-              top: (page.pageNumber - 1) * pageHeight,
-              transform: `rotate(${rotation}deg)`,
-            }}
-            className={styles.pageContainer}
-          >
-            <Page
-              focusedFindHighlightId={focusedFindHighlight?.id}
-              focusedSearchHighlightId={focusedSearchHighlight?.id}
-              pageNumber={page.pageNumber}
-              getPagePreview={page.getPagePreview}
-              getPageData={page.getPageData}
-            />
-          </div>
-        ))}
+            <div
+              key={page.pageNumber}
+              style={{
+                top: (page.pageNumber - 1) * pageHeight,
+                transform: `rotate(${rotation}deg)`,
+                left: `${scale > 1 ? '0' : ''}`,
+              }}
+              className={styles.pageContainer}
+            >
+              <Page
+                focusedFindHighlightId={focusedFindHighlight?.id}
+                focusedSearchHighlightId={focusedSearchHighlight?.id}
+                pageNumber={page.pageNumber}
+                getPagePreview={page.getPagePreview}
+                getPageData={page.getPageData}
+                pageHeight={pageHeight}
+              />
+            </div>
+          ))}
       </div>
     </div>
   );

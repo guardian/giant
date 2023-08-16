@@ -1,7 +1,5 @@
 package controllers.api
 
-import akka.stream.Materializer
-import akka.stream.testkit.NoMaterializer
 import model.frontend.TotpActivation
 import model.frontend.user.UserRegistration
 import model.user.{BCryptPassword, NewUser, UserPermissions}
@@ -21,7 +19,6 @@ class UsersTest extends AnyFreeSpec with Matchers with Results with ScalaFutures
   import test.TestUserManagement._
 
   import scala.concurrent.ExecutionContext.Implicits.global
-  implicit val mat: Materializer = NoMaterializer
 
   val admin = user("admin", permissions = UserPermissions.bigBoss)
   val punter = user("punter")

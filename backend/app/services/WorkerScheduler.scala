@@ -1,6 +1,6 @@
 package services
 
-import akka.actor.{ActorSystem, Cancellable}
+import org.apache.pekko.actor.{ActorSystem, Cancellable}
 import extraction.Worker
 import utils.Logging
 import utils.attempt.{Attempt, Failure}

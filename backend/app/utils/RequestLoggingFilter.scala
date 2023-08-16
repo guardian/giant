@@ -1,7 +1,7 @@
 package utils
 
 import java.net.URI
-import akka.stream.Materializer
+import akka.stream.Materializer // use akka Materializer rather than pekko as this is what Filter expects
 import org.slf4j.LoggerFactory
 import play.api.mvc.{Filter, RequestHeader, Result}
 

@@ -11,6 +11,7 @@ type PageProps = {
   pageNumber: number;
   getPagePreview: Promise<CachedPreview>;
   getPageData: Promise<PageData>;
+  pageHeight: number;
 };
 
 export const Page: FC<PageProps> = ({
@@ -19,6 +20,7 @@ export const Page: FC<PageProps> = ({
   pageNumber,
   getPagePreview,
   getPageData,
+  pageHeight,
 }) => {
   const [pageText, setPageText] = useState<PageData | null>(null);
   const [scale, setScale] = useState<number | null>(null);
@@ -46,7 +48,14 @@ export const Page: FC<PageProps> = ({
           const node = containerRef.current;
           if (node) {
             setScale(preview.scale);
-            node.appendChild(preview.canvas);
+
+            const oldCanvas = node.querySelector('canvas');
+
+            if (oldCanvas) {
+              node.replaceChild(preview.canvas, oldCanvas);
+            } else {
+              node.appendChild(preview.canvas);
+            }
           }
           setPreviewMounted(true);
           return preview;
@@ -57,10 +66,12 @@ export const Page: FC<PageProps> = ({
         })
         .catch(handleAbort);
     }
-  }, [getPagePreview]);
+  }, [getPagePreview, pageHeight]);
 
   useEffect(() => {
-    getPageData.then(setPageText).catch(handleAbort);
+    getPageData.then((text) => {
+      setPageText(text);
+    }).catch(handleAbort);
   }, [containerRef, getPageData]);
 
   return (

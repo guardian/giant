@@ -1,6 +1,6 @@
 package utils
 
-import akka.stream.Materializer
+import akka.stream.Materializer // use akka Materializer rather than pekko as this is what Filter expects
 import play.api.mvc.{Filter, RequestHeader, Result}
 
 import scala.concurrent.{ExecutionContext, Future}

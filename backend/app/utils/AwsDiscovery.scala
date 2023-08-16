@@ -76,7 +76,7 @@ object AwsDiscovery extends Logging {
       }.getOrElse(config.worker),
       underlying = config.underlying
         .withValue("play.http.secret.key", fromAnyRef(readSSMParameter("pfi/playSecret", stack, stage, ssmClient)))
-        .withValue("akka.actor.provider", fromAnyRef("local")) // disable Akka clustering, we query EC2 directly
+        .withValue("pekko.actor.provider", fromAnyRef("local")) // disable Akka clustering, we query EC2 directly
     )
 
     val jsonLoggingProperties = Map(

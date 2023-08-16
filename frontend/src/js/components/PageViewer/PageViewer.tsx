@@ -68,6 +68,7 @@ export const PageViewer: FC<PageViewerProps> = ({uri, totalPages}) => {
 
   const [pageNumbersToPreload, setPageNumbersToPreload] = useState<number[]>([]);
   const [rotation, setRotation] = useState(0);
+  const [scale, setScale] = useState(1);
 
   useEffect(() => {
     const findHighlightsPreloadPages = getPreloadPages(findHighlightsState);
@@ -107,6 +108,12 @@ export const PageViewer: FC<PageViewerProps> = ({uri, totalPages}) => {
           <Controls
             rotateAnticlockwise={() => setRotation((r) => r - 90)}
             rotateClockwise={() => setRotation((r) => r + 90)}
+            zoomIn={() => {
+              setScale((currentScale) => currentScale + 0.75);
+            }}
+            zoomOut={() => {
+              setScale((currentScale) => currentScale - 0.75);
+            }}
             uri={uri}
             onHighlightStateChange={onSearchHighlightStateChange}
             onQueryChange={onSearchQueryChange}
@@ -116,6 +123,12 @@ export const PageViewer: FC<PageViewerProps> = ({uri, totalPages}) => {
         <Controls
           rotateAnticlockwise={() => setRotation((r) => r - 90)}
           rotateClockwise={() => setRotation((r) => r + 90)}
+          zoomIn={() => {
+            setScale((currentScale) => currentScale + 0.75);
+          }}
+          zoomOut={() => {
+            setScale((currentScale) => currentScale - 0.75);
+          }}
           uri={uri}
           onHighlightStateChange={onFindHighlightStateChange}
           onQueryChange={onFindQueryChange}
@@ -131,6 +144,7 @@ export const PageViewer: FC<PageViewerProps> = ({uri, totalPages}) => {
           totalPages={totalPages}
           pageNumbersToPreload={pageNumbersToPreload}
           rotation={rotation}
+          scale={scale}
         />
       ) : null}
     </main>
