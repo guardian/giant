@@ -45,7 +45,7 @@ export class Giant extends GuStack {
 			},
 		);
 
-		new DatabaseInstance(this, 'Database', {
+		const database = new DatabaseInstance(this, 'Database', {
 			vpc: vpc,
 			vpcSubnets: {
 				subnets: GuVpc.subnetsFromParameter(this, {
@@ -98,6 +98,11 @@ export class Giant extends GuStack {
 		new CfnOutput(this, 'DbAccessSecurityGroup', {
 			exportName: `${props.stack}-postgres-${props.stage}-DbAccessSecurityGroup`,
 			value: dbAccessSecurityGroup.securityGroupId,
+		});
+
+		new CfnOutput(this, 'PostgresDbSecretArn', {
+			exportName: `${props.stack}-postgres-${props.stage}-PostgresDbSecretArn`,
+			value: database.secret?.secretArn ?? '',
 		});
 	}
 }
