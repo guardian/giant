@@ -12,3 +12,6 @@ npm-debug.log
 .DS_Store
 backend/conf/site.conf
 .bsp/
+.bloop/
+.metals/
+metals.sbt

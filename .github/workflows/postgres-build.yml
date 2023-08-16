@@ -1,0 +1,65 @@
+name: postgres-build
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "postgres/**"
+      - ".github/workflows/postgres*"
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  # This workflow contains a single job called "build"
+  build:
+    # The type of runner that the job will run on
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    defaults:
+      run:
+        working-directory: ./postgres/cdk
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v3
+      - uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: ${{ secrets.GU_RIFF_RAFF_ROLE_ARN }}
+          aws-region: eu-west-1
+
+      - uses: actions/setup-node@v3
+        with:
+          node-version-file: './postgres/cdk/.nvmrc'
+          cache: npm
+          cache-dependency-path: ./postgres/cdk/package-lock.json
+
+      - name: cdk synth
+        run: |
+          npm ci
+          npm run synth
+
+      - uses: guardian/actions-riff-raff@v2
+        with:
+          app: postgres
+          contentDirectories: |
+            cloudformation:
+              - ./postgres/cdk/cdk.out/pfi-giant-postgres-CODE.template.json
+              - ./postgres/cdk/cdk.out/pfi-giant-postgres-PROD.template.json
+          config: |
+            stacks:
+              - pfi-giant
+            regions:
+              - eu-west-1
+            allowedStages:
+              - CODE
+              - PROD
+            deployments:
+              cloudformation:
+                type: cloud-formation
+                app: postgres
+                parameters:
+                  templateStagePaths:
+                    CODE: pfi-giant-postgres-CODE.template.json
+                    PROD: pfi-giant-postgres-PROD.template.json
