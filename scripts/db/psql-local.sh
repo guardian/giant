@@ -1,2 +1,2 @@
 #/usr/bin/env bash
-PGPASSWORD=lurch psql -h localhost -p 9432 -U lurch_master -d lurch "$@"
+PGPASSWORD=giant psql -h localhost -p 8432 -U giant_master -d giant "$@"
