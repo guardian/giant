@@ -1,7 +1,6 @@
 package utils
 
 import java.util.Locale
-
 import com.amazonaws.services.ec2.model.{DescribeInstancesRequest, Filter, Instance}
 import com.amazonaws.services.ec2.{AmazonEC2, AmazonEC2ClientBuilder}
 import com.amazonaws.services.simplesystemsmanagement.model.GetParameterRequest
@@ -9,9 +8,13 @@ import com.amazonaws.services.simplesystemsmanagement.{AWSSimpleSystemsManagemen
 import com.amazonaws.util.EC2MetadataUtils
 import com.typesafe.config.ConfigValueFactory.fromAnyRef
 import org.apache.commons.lang3.StringUtils
-import services.{AWSDiscoveryConfig, BucketConfig, Config, DatabaseAuthConfig}
+import services.{AWSDiscoveryConfig, BucketConfig, Config, DatabaseAuthConfig, PostgresConfig}
+import com.amazonaws.services.secretsmanager.{AWSSecretsManager, AWSSecretsManagerClientBuilder}
+import com.amazonaws.services.secretsmanager.model.GetSecretValueRequest
+import play.api.libs.json.Json
 
 import scala.jdk.CollectionConverters._
+import scala.util.Try
 
 case class DiscoveryResult(updatedConfig: Config, jsonLoggingProperties: Map[String, String])
 
@@ -26,6 +29,7 @@ object AwsDiscovery extends Logging {
     val credentials = AwsCredentials(profile = if(runningLocally) { Some("investigations") } else { None })
     val ec2Client = AmazonEC2ClientBuilder.standard().withCredentials(credentials).withRegion(region).build()
     val ssmClient = AWSSimpleSystemsManagementClientBuilder.standard().withCredentials(credentials).withRegion(region).build()
+    val secretsManagerClient = AWSSecretsManagerClientBuilder.standard().withCredentials(credentials).withRegion(region).build()
 
     logger.info(s"AWS discovery stack: $stack app: $app stage: $stage region: $region runningLocally: $runningLocally")
 
@@ -55,11 +59,7 @@ object AwsDiscovery extends Logging {
         },
         disableSniffing = Some(runningLocally)
       ),
-      postgres = config.postgres.copy(
-        url = "jdbc:postgresql://localhost:8432/giant",
-        user = "giant_master",
-        password = "giant"
-      ),
+      postgres = getDbSecrets(stack, secretsManagerClient),
       neo4j = config.neo4j.copy(
         url = if(runningLocally) {
           "bolt://localhost:17687"
@@ -173,5 +173,32 @@ object AwsDiscovery extends Logging {
 
     val response = ssmClient.getParameter(request)
     response.getParameter.getValue
+  }
+
+  private def getDbSecrets(stack: String, secretsManagerClient: AWSSecretsManager): Option[PostgresConfig] = {
+    val secretStagePath = stack match {
+      case "pfi-giant" => Some("PROD")
+      case "pfi-playground" => Some("CODE")
+      case _ => None
+    }
+
+    secretStagePath.flatMap { stage =>
+      val secretId = s"pfi-giant-postgres-${stage}"
+      val getSecretValueRequest = new GetSecretValueRequest().withSecretId(secretId)
+
+      val result = Try {
+        val secret = secretsManagerClient.getSecretValue(getSecretValueRequest)
+        Json.parse(secret.getSecretString).asOpt[PostgresConfig].orElse {
+          logger.error(s"Unable to parse credentials retrieved from secret  $secretId")
+          None
+        }
+      }.recover {
+        case error =>
+          logger.error(s"Could not fetch secret for $secretId", error)
+          None
+      }.get
+
+      result
+    }
   }
 }

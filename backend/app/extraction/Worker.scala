@@ -7,7 +7,7 @@ import extraction.Worker.Batch
 import model.manifest.{Blob, WorkItem}
 import services.{Metrics, MetricsService, ObjectStorage}
 import services.manifest.WorkerManifest
-import services.observability.{Details, IngestionEvent, IngestionEventType, MetaData, PostgresClient}
+import services.observability.{Details, IngestionEvent, IngestionEventType, MetaData, PostgresClient, Status}
 import utils.Logging
 import utils.attempt._
 
@@ -104,6 +104,7 @@ class Worker(
             IngestionEvent(
               MetaData(blob.uri.value, params.ingestion),
               IngestionEventType.RunExtractor,
+              Status.Failure,
               details = Details.extractorErrorDetails(
                 extractor.name, failure.msg, failure.cause.map(throwable => throwable.getStackTrace.toString)
               )

@@ -79,7 +79,7 @@ object Details {
 
 }
 
-case class MetaData(blobId: String, ingestUri: String)
+case class MetaData(blobId: String, ingestId: String)
 
 object MetaData {
   implicit val format = Json.format[MetaData]
@@ -96,7 +96,7 @@ object IngestionEvent {
   implicit val ingestionEventFormat = Json.format[IngestionEvent]
 }
 
-case class BlobMetaData(blobId: String, fileName: String, fileSize: Long, path: String)
+case class BlobMetaData(ingestId: String, blobId: String, path: String, fileSize: Long)
 
 object BlobMetaData {
   implicit val blobMetaDataFormat = Json.format[BlobMetaData]

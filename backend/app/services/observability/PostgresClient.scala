@@ -1,6 +1,7 @@
 package services.observability
 import play.api.libs.json.Json
 import scalikejdbc._
+import services.PostgresConfig
 
 import scala.util.{Failure, Success, Try}
 import utils.Logging
@@ -11,10 +12,17 @@ trait PostgresClient {
 	def insertEvent(event: IngestionEvent): Either[GiantFailure, Unit]
 	def insertMetaData(metaData: BlobMetaData): Either[GiantFailure, Unit]
 }
-class PostgresClientImpl(url: String, user: String, password: String) extends PostgresClient with Logging {
+
+class PostgresClientDoNothing extends PostgresClient {
+	override def insertEvent(event: IngestionEvent): Either[GiantFailure, Unit] = Right(())
+
+	override def insertMetaData(metaData: BlobMetaData): Either[GiantFailure, Unit] = Right(())
+}
+
+class PostgresClientImpl(postgresConfig: PostgresConfig) extends PostgresClient with Logging {
 	// initialize JDBC driver & connection pool
 	Class.forName("org.postgresql.Driver")
-	ConnectionPool.singleton(url, user, password)
+	ConnectionPool.singleton(postgresConfig.host, postgresConfig.username, postgresConfig.password)
 	implicit val session: AutoSession.type = AutoSession
 
 	import Details.detailsFormat
@@ -23,22 +31,24 @@ class PostgresClientImpl(url: String, user: String, password: String) extends Po
 		Try {
 			sql"""
 			INSERT INTO blob_metadata (
+			  ingest_id,
 				blob_id,
-				file_name,
 				file_size,
-				path
+				path,
+			  insert_time
 			) VALUES (
+			  ${metaData.ingestId},
 				${metaData.blobId},
-      	${metaData.fileName},
       	${metaData.fileSize},
-      	${metaData.path}
+      	${metaData.path},
+			  now()
 			);""".execute().apply()
 		} match {
 			case Success(_) => Right(())
 			case Failure(exception) =>
-				logger.error(s"""
+				logger.warn(s"""
               An exception occurred while inserting blob metadata
-              blobId: ${metaData.blobId}, fileName: ${metaData.fileName}, file_size: ${metaData.fileSize} path: ${metaData.path}
+              blobId: ${metaData.blobId}, ingestId: ${metaData.ingestId} path: ${metaData.path}
               exception: ${exception.getMessage()}"""
 				)
 				Left(PostgresWriteFailure(exception))
@@ -57,7 +67,7 @@ class PostgresClientImpl(url: String, user: String, password: String) extends Po
 				event_time
 			) VALUES (
 				${event.metaData.blobId},
-				${event.metaData.ingestUri},
+				${event.metaData.ingestId},
 				${event.eventType.toString()},
 				${event.status.toString()},
 				$detailsJson::JSONB,
@@ -66,9 +76,9 @@ class PostgresClientImpl(url: String, user: String, password: String) extends Po
 		} match {
 			case Success(_) => Right(())
 			case Failure(exception) =>
-				logger.error(s"""
+				logger.warn(s"""
           An exception occurred while inserting ingestion event
-          blobId: ${event.metaData.blobId}, ingestUri: ${event.metaData.ingestUri} eventType: ${event.eventType.toString()}
+          blobId: ${event.metaData.blobId}, ingestId: ${event.metaData.ingestId} eventType: ${event.eventType.toString()}
           exception: ${exception.getMessage()}"""
 				)
 				Left(PostgresWriteFailure(exception))

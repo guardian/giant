@@ -13,8 +13,8 @@ CREATE TABLE blob_metadata (
 	file_size BIGINT NOT NULL,
 	insert_time TIMESTAMP NOT NULL
 );
-CREATE INDEX ON ingestion_events (ingest_uri, blob_id);
-CREATE INDEX ON blob_metadata (ingest_uri, blob_id);
+CREATE INDEX ON ingestion_events (ingest_id, blob_id);
+CREATE INDEX ON blob_metadata (ingest_id, blob_id);
 CREATE INDEX ON ingestion_events ("type");
 CREATE INDEX ON ingestion_events ((details->>'extractorName'));
 -- TODO think about indexing details->>'extractors'

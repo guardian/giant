@@ -68,10 +68,10 @@ object IngestionServices extends Logging {
     override def ingestFile(context: FileContext, blobUri: Uri, path: Path): Either[Failure, Blob] = {
       val ingestionMetaData = MetaData(blobUri.value, context.ingestion)
       dbClient.insertMetaData(BlobMetaData(
+        ingestId = context.ingestion,
         blobId = blobUri.value,
-        fileName = context.file.uri.value.split("/").last,
         fileSize = context.file.size.toInt,
-        path = context.file.uri.value)
+        path = context.file.uri.value.replaceFirst(context.ingestion + "/", ""))
       )
       dbClient.insertEvent(IngestionEvent(ingestionMetaData, IngestionEventType.HashComplete, details = Details.workspaceDetails(context.workspace)))
 

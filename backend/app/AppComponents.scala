@@ -31,7 +31,7 @@ import services.events.ElasticsearchEvents
 import services.index.{ElasticsearchPages, ElasticsearchResources, Pages2}
 import services.ingestion.IngestionServices
 import services.manifest.Neo4jManifest
-import services.observability.{PostgresClientImpl}
+import services.observability.{PostgresClientDoNothing, PostgresClientImpl}
 import services.previewing.PreviewService
 import services.table.ElasticsearchTable
 import services.users.Neo4jUserManagement
@@ -84,7 +84,10 @@ class AppComponents(context: Context, config: Config)
     val ingestStorage = S3IngestStorage(s3Client, config.s3.buckets.ingestion).valueOr(failure => throw new Exception(failure.msg))
     val blobStorage = S3ObjectStorage(s3Client, config.s3.buckets.collections).valueOr(failure => throw new Exception(failure.msg))
 
-    val postgresClient = new PostgresClientImpl(config.postgres.url, config.postgres.user, config.postgres.password)
+    val postgresClient = config.postgres match {
+      case Some(postgresConfig) =>  new PostgresClientImpl(postgresConfig)
+      case None => new PostgresClientDoNothing
+    }
     val esClient = ElasticsearchClient(config).await()
     val esResources = new ElasticsearchResources(esClient, config.elasticsearch.indexName).setup().await()
     val esTables = new ElasticsearchTable(esClient, config.elasticsearch.tableRowIndexName).setup().await()
