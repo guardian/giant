@@ -211,7 +211,7 @@ class AppComponents(context: Context, config: Config)
 
       // ingestion phase 2
       val phase2IngestionScheduler =
-        new IngestStorePolling(pekkoActorSystem, workerExecutionContext, workerControl, ingestStorage, scratchSpace, ingestionServices, config.ingestion.batchSize, metricsService)
+        new IngestStorePolling(pekkoActorSystem, workerExecutionContext, workerControl, ingestStorage, scratchSpace, ingestionServices, config.ingestion.batchSize, metricsService, postgresClient)
       phase2IngestionScheduler.start()
       applicationLifecycle.addStopHook(() => phase2IngestionScheduler.stop())
 
