@@ -16,7 +16,7 @@ import play.api.libs.json.JodaReads.jodaDateReads
 object IngestionEventType extends Enumeration {
   type IngestionEventType = Value
 
-  val HashComplete, BlobCopy, ManifestExists, MimeTypeDetected, IngestFile, InitialElasticIngest, RunExtractor = Value
+  val HashComplete, WorkspaceUpload, BlobCopy, ManifestExists, MimeTypeDetected, IngestFile, InitialElasticIngest, RunExtractor = Value
 
   implicit val format: Format[IngestionEventType] = Json.formatEnum(this)
 }
@@ -41,7 +41,7 @@ object ExtractorType extends Enumeration {
 object EventStatus extends Enumeration {
   type EventStatus = Value
 
-  val Started, Success, Failure = Value
+  val Unknown, Started, Success, Failure = Value
 
   implicit val format: Format[EventStatus] = Json.formatEnum(this)
 }
@@ -58,7 +58,7 @@ case class EventDetails(
                     blob: Option[Blob] = None,
                     ingestionData: Option[IngestionData] = None,
                     extractorName: Option[ExtractorType] = None,
-                    workspaceItemContext: Option[WorkspaceItemContext] = None
+                    workspaceName: Option[String] = None
                   )
 
 object EventDetails {
@@ -75,8 +75,6 @@ object EventDetails {
   def ingestionDataDetails(data: IngestionData, extractors: List[Extractor]) = Some(EventDetails(
     extractors = Some(extractors.map(e => ExtractorType.withNameCustom(e.name))),
     ingestionData = Some(data)))
-
-  def workspaceDetails(workspaceItemContext: Option[WorkspaceItemContext]) = Some(EventDetails(workspaceItemContext = workspaceItemContext))
 
   def extractorDetails(extractorName: String) = Some(EventDetails(extractorName = Some(ExtractorType.withNameCustom(extractorName))))
 
@@ -97,6 +95,13 @@ case class IngestionEvent(
 object IngestionEvent {
   implicit val metaDataFormat = Json.format[EventMetaData]
   implicit val ingestionEventFormat = Json.format[IngestionEvent]
+
+  def workspaceUploadEvent(blobId: String, ingestUri: String, workspaceName: String, status: EventStatus) = IngestionEvent(
+    EventMetaData(blobId, ingestUri),
+    IngestionEventType.WorkspaceUpload,
+    status,
+    Some(EventDetails(workspaceName = Some(workspaceName)))
+  )
 }
 
 case class BlobMetaData(ingestId: String, blobId: String, path: String, fileSize: Long)
@@ -106,7 +111,9 @@ object BlobMetaData {
 }
 case class BlobStatus(
                        metaData: EventMetaData,
-                       path: String,
+                       paths: List[String],
+                       fileSize: Long,
+                       workspaceName: Option[String],
                        ingestStart: DateTime,
                        mostRecentEvent: DateTime,
                        extractorStatuses: List[(ExtractorType, EventStatus)],

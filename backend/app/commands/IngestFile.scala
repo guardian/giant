@@ -2,7 +2,6 @@ package commands
 
 import java.nio.file.Path
 import java.nio.file.attribute.FileTime
-
 import ingestion.IngestionContextBuilder
 import model.Uri
 import model.ingestion.{FileContext, WorkspaceItemContext, WorkspaceItemUploadContext}
@@ -13,6 +12,7 @@ import services.annotations.Annotations
 import services.events.{ActionComplete, Events}
 import services.ingestion.IngestionServices
 import services.manifest.Manifest
+import services.observability.{Details, IngestionEvent, IngestionEventType, MetaData, PostgresClient, Status}
 import utils.attempt.{Attempt, MissingPermissionFailure}
 
 import scala.concurrent.ExecutionContext
@@ -31,11 +31,14 @@ class IngestFile(collectionUri: Uri, ingestionUri: Uri, uploadId: String, worksp
       ingestion <- getIngestion()
 
       fileUri = FingerprintServices.createFingerprintFromFile(temporaryFilePath.toFile)
+      workspaceEvent = workspace.map(w =>
+        IngestionEvent.workspaceUploadEvent(fileUri, ingestionUri.value, w.workspaceName, Status.Started))
+      _ = workspaceEvent.foreach(ingestionServices.recordIngestionEvent)
       metadata = buildMetadata(ingestion, lastModifiedTime, workspace.map(WorkspaceItemContext.fromUpload(fileUri, _)))
-
       blob <- Attempt.fromEither(ingestionServices.ingestFile(metadata, Uri(fileUri), temporaryFilePath))
       workspaceNodeId <- addToWorkspaceIfRequired(blob)
     } yield {
+      workspaceEvent.foreach(e => ingestionServices.recordIngestionEvent(e.copy(status = Status.Success)))
       esEvents.record(
         ActionComplete,
         s"User $username Uploaded '$originalPath' to ingestion '${ingestionUri.value}'",

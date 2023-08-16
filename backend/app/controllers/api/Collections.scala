@@ -15,6 +15,7 @@ import services.annotations.Annotations
 import services.index.{Index, Pages}
 import services.ingestion.IngestionServices
 import services.manifest.Manifest
+import services.observability.{IngestionEvent, MetaData, PostgresClient}
 import services.users.UserManagement
 import utils.IngestionVerification
 import utils.attempt._
@@ -23,7 +24,7 @@ import utils.controller.{AuthApiController, AuthControllerComponents}
 
 class Collections(override val controllerComponents: AuthControllerComponents, manifest: Manifest,
                   users: UserManagement, index: Index, s3Config: S3Config, esEvents: services.events.Events,
-                  pages: Pages, ingestionServices: IngestionServices, annotations: Annotations)
+                  pages: Pages, ingestionServices: IngestionServices, annotations: Annotations, postgresClient: PostgresClient)
   extends AuthApiController {
 
   def newCollection() = ApiAction.attempt(parse.json) { req: UserIdentityRequest[JsValue] =>
