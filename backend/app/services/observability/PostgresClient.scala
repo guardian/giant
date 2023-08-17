@@ -19,7 +19,7 @@ class PostgresClientDoNothing extends PostgresClient {
 
 	override def insertMetaData(metaData: BlobMetaData): Either[GiantFailure, Unit] = Right(())
 
-	override def getEvents (ingestId: String, ingestIdIsPrefix: Boolean): Either[GiantFailure, List[BlobStatus]] = Right(List()g)
+	override def getEvents (ingestId: String, ingestIdIsPrefix: Boolean): Either[GiantFailure, List[BlobStatus]] = Right(List())
 }
 
 class PostgresClientImpl(postgresConfig: PostgresConfig) extends PostgresClient with Logging {
@@ -90,7 +90,6 @@ class PostgresClientImpl(postgresConfig: PostgresConfig) extends PostgresClient 
 	}
 
 	def getEvents(ingestId: String, ingestIdIsPrefix: Boolean): Either[PostgresReadFailure, List[BlobStatus]] = {
-		println(ingestId)
 		Try {
 			/**
 				* The aim of this query is to merge ingestion events for each blob into a single row, containing the success/failure
@@ -132,7 +131,7 @@ class PostgresClientImpl(postgresConfig: PostgresConfig) extends PostgresClient 
 						MIN(event_time) AS ingest_start,
 						Max(event_time) AS most_recent_event,
 						ARRAY_AGG(details -> 'errors') as errors,
-            (ARRAY_AGG(details -> 'workspaceName'))[1] AS workspace_name
+            (ARRAY_AGG(details ->> 'workspaceName'))[1] AS workspace_name
 						FROM ingestion_events
 						WHERE ingest_id LIKE ${if(ingestIdIsPrefix) LikeConditionEscapeUtil.beginsWith(ingestId) else ingestId}
 						GROUP BY 1,2
@@ -141,7 +140,6 @@ class PostgresClientImpl(postgresConfig: PostgresConfig) extends PostgresClient 
 				LEFT JOIN extractor_statuses USING(blob_id)
 				GROUP BY 1,2,3,4,5,6
      """.map(rs => {
-
 				BlobStatus(
 					MetaData(
 						rs.string("blob_id"),
@@ -165,7 +163,6 @@ class PostgresClientImpl(postgresConfig: PostgresConfig) extends PostgresClient 
 				)
 			}
 			).list().apply()
-			println(results)
 			results
 		}
 		match {

@@ -96,7 +96,7 @@ object IngestionEvent {
   implicit val metaDataFormat = Json.format[EventMetaData]
   implicit val ingestionEventFormat = Json.format[IngestionEvent]
 
-  def workspaceUploadEvent(blobId: String, ingestUri: String, workspaceName: String, status: EventStatus) = IngestionEvent(
+  def workspaceUploadEvent(blobId: String, ingestUri: String, workspaceName: String, status: EventStatus): IngestionEvent = IngestionEvent(
     EventMetaData(blobId, ingestUri),
     IngestionEventType.WorkspaceUpload,
     status,

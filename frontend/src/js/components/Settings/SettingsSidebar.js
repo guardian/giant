@@ -37,6 +37,9 @@ class SettingsSidebar extends React.Component {
             <SidebarSearchLink className='sidebar__item' to='/settings/file-types'>
                 <div className='sidebar__item__text'>File Types</div>
             </SidebarSearchLink>
+            <SidebarSearchLink className='sidebar__item' to='/settings/all-ingestion-events'>
+                <div className='sidebar__item__text'>All ingestion events</div>
+            </SidebarSearchLink>
         </React.Fragment>;
     }
 
@@ -54,6 +57,9 @@ class SettingsSidebar extends React.Component {
                 </SidebarSearchLink>
                 <SidebarSearchLink className='sidebar__item' to='/settings/about'>
                     <div className='sidebar__item__text'>About</div>
+                </SidebarSearchLink>
+                <SidebarSearchLink className='sidebar__item' to='/settings/my-uploads'>
+                    <div className='sidebar__item__text'>My uploads</div>
                 </SidebarSearchLink>
                 {canManageUsers ? this.renderAdminLinks() : false}
                 <div className='sidebar__item'>

@@ -1,0 +1,10 @@
+
+.dropdownMenus {
+    display: 'inline-flex';
+    flexWrap: 'wrap';
+    padding: 2px;
+}
+
+.dropdown {
+    min-width: 300px;
+}
