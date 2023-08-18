@@ -103,6 +103,7 @@ case class Neo4jConfig(
 
 case class PostgresConfig(
   host: String,
+  port: Int,
   username: String,
   password: String,
 )

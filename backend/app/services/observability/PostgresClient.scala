@@ -20,9 +20,10 @@ class PostgresClientDoNothing extends PostgresClient {
 }
 
 class PostgresClientImpl(postgresConfig: PostgresConfig) extends PostgresClient with Logging {
+	val dbHost = s"jdbc:postgresql://${postgresConfig.host}:${postgresConfig.port}/giant"
 	// initialize JDBC driver & connection pool
 	Class.forName("org.postgresql.Driver")
-	ConnectionPool.singleton(postgresConfig.host, postgresConfig.username, postgresConfig.password)
+	ConnectionPool.singleton(dbHost, postgresConfig.username, postgresConfig.password)
 	implicit val session: AutoSession.type = AutoSession
 
 	import Details.detailsFormat
