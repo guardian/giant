@@ -113,7 +113,8 @@ object HitReaders {
           Success(
             resource.copy(
               text = highlights.flatMap(highlightedText(_, text)).getOrElse(resource.text),
-              ocr = highlightedOcr(highlights).orElse(resource.ocr)
+              ocr = highlightedOcr(highlights).orElse(resource.ocr),
+              transcript = highlightedTranscript(highlights).orElse(resource.ocr)
             )
           )
 
@@ -232,6 +233,7 @@ object HitReaders {
       uri = Uri(id),
       text = fields.optMultiLanguageField(text).getOrElse(""),
       ocr = readOcr(fields),
+      transcript = readTranscript(fields),
       enrichedMetadata = readEnrichedMetadata(fields),
       flag = fields.optField[String](flags),
       extracted = fields.optField[Boolean](extracted).getOrElse(false),
@@ -253,6 +255,12 @@ object HitReaders {
 
   private def readOcr(fields: FieldMap): Option[Map[String, String]] = {
     fields.optField[FieldMap](ocr).map { languages =>
+      languages.view.mapValues(_.asInstanceOf[String]).toMap
+    }
+  }
+
+  private def readTranscript(fields: FieldMap): Option[Map[String, String]] = {
+    fields.optField[FieldMap](transcript).map { languages =>
       languages.view.mapValues(_.asInstanceOf[String]).toMap
     }
   }
@@ -292,6 +300,21 @@ object HitReaders {
 
         Some(highlights.collect {
           case (key, values) if key.startsWith(IndexFields.ocr) && values.nonEmpty =>
+            key.substring(prefix.length) -> values.head
+        })
+
+      case _ =>
+        None
+    }
+  }
+
+  private def highlightedTranscript(maybeHighlights: Option[Map[String, Seq[String]]]): Option[Map[String, String]] = {
+    maybeHighlights match {
+      case Some(highlights) if highlights.nonEmpty =>
+        val prefix = IndexFields.transcript + "."
+
+        Some(highlights.collect {
+          case (key, values) if key.startsWith(IndexFields.transcript) && values.nonEmpty =>
             key.substring(prefix.length) -> values.head
         })
 

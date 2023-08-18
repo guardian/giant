@@ -5,6 +5,7 @@ import com.sksamuel.elastic4s.ElasticDsl._
 import com.sksamuel.elastic4s.requests.common.FetchSourceContext
 import com.sksamuel.elastic4s.requests.searches.DateHistogramInterval
 import com.sksamuel.elastic4s.requests.searches.queries.BoolQuery
+import com.sksamuel.elastic4s.requests.searches.{DateHistogramInterval, HighlightField, SearchResponse}
 import com.sksamuel.elastic4s.requests.update.UpdateByQueryRequest
 import extraction.EnrichedMetadata
 import model.frontend._
@@ -28,11 +29,13 @@ class ElasticsearchResources(override val client: ElasticClient, indexName: Stri
         textField(IndexFields.`type`),
         emptyMultiLanguageField(IndexFields.text),
         emptyMultiLanguageField(IndexFields.ocr),
+        emptyMultiLanguageField(IndexFields.transcript),
         textKeywordField(IndexFields.flags),
         dateField(IndexFields.createdAt),
         dateField(IndexFields.lastModifiedAt),
         booleanField(IndexFields.extracted),
         booleanField(IndexFields.ocrExtracted),
+        booleanField(IndexFields.transcriptExtracted),
         textKeywordField(IndexFields.collection),
         textKeywordField(IndexFields.ingestion),
         keywordField(IndexFields.parentBlobs),
@@ -91,6 +94,7 @@ class ElasticsearchResources(override val client: ElasticClient, indexName: Stri
       putMapping(indexName).as(
         multiLanguageField(IndexFields.text, language),
         multiLanguageField(IndexFields.ocr, language),
+        multiLanguageField(IndexFields.transcript, language),
         objectField(IndexFields.metadataField).fields(
           multiLanguageField(IndexFields.metadata.fileUris, language),
           objectField(IndexFields.metadata.fromField).fields(
@@ -126,6 +130,7 @@ class ElasticsearchResources(override val client: ElasticClient, indexName: Stri
       IndexFields.`type` -> "blob",
       IndexFields.extracted -> false,
       IndexFields.ocrExtracted -> false,
+      IndexFields.transcriptExtracted -> false,
       IndexFields.collection -> Set(collection),
       IndexFields.ingestion -> Set(ingestionData.ingestion),
       IndexFields.parentBlobs -> parentBlobs,
@@ -250,6 +255,24 @@ class ElasticsearchResources(override val client: ElasticClient, indexName: Stri
     )  ++ ocr.map(ocrText =>
       IndexFields.ocr -> Map(
         language.key -> ocrText
+      )
+    )
+
+    executeUpdate {
+      updateById(indexName, uri.value).doc(
+        fieldMap
+      )
+    }
+  }
+
+  override def addDocumentTranscription(uri: Uri, transcription: Option[String], language: Language): Attempt[Unit] = {
+    logger.info(s"Adding transcription to ${uri.value} in index")
+
+    val fieldMap = Map(
+      IndexFields.transcriptExtracted -> true
+    ) ++ transcription.map(transcriptionText =>
+      IndexFields.transcript -> Map(
+        language.key -> transcriptionText
       )
     )
 
@@ -417,7 +440,7 @@ class ElasticsearchResources(override val client: ElasticClient, indexName: Stri
                 // Ensure we get the whole document, not just the highlights
                 .map(_.numberOfFragments(0))
             )
-        }.flatMap { response =>
+        }.flatMap { response: SearchResponse =>
           response.to[IndexedResource].headOption match {
             case Some(resource) =>
               Attempt.Right(resource)
@@ -703,8 +726,10 @@ object IndexFields {
   val `type` = "type"
   val extracted = "extracted"
   val ocrExtracted = "ocrExtracted"
+  val transcriptExtracted = "transcriptExtracted"
   val text = "text"
   val ocr = "ocr"
+  val transcript = "transcript"
   val flags = "flags"
   val flagsRaw = "flags.keyword"
 

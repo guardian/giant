@@ -68,6 +68,9 @@ export type Resource = BasicResource & {
     text: HighlightableText,
     ocr?: {
         [lang: string]: HighlightableText
+    },
+    transcript?: {
+        [lang: string]: HighlightableText
     }
 }
 
