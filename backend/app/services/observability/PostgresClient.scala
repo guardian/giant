@@ -26,7 +26,7 @@ class PostgresClientImpl(postgresConfig: PostgresConfig) extends PostgresClient 
 	ConnectionPool.singleton(dbHost, postgresConfig.username, postgresConfig.password)
 	implicit val session: AutoSession.type = AutoSession
 
-	import Details.detailsFormat
+	import EventDetails.detailsFormat
 
 	def insertMetaData(metaData: BlobMetaData): Either[GiantFailure, Unit] = {
 		Try {

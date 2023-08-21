@@ -15,7 +15,7 @@ import utils.attempt.{Attempt, Failure, NotFoundFailure}
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
-import services.observability.{BlobMetaData, Details, IngestionEvent, IngestionEventType, MetaData, PostgresClient, Status}
+import services.observability.{BlobMetaData, EventDetails, IngestionEvent, IngestionEventType, EventMetaData, PostgresClient, EventStatus}
 
 sealed trait UriParent {
   def parent: Uri
@@ -46,7 +46,7 @@ trait IngestionServices {
 }
 
 object IngestionServices extends Logging {
-  def apply(manifest: Manifest, index: Index, objectStorage: ObjectStorage, typeDetector: TypeDetector, mimeTypeMapper: MimeTypeMapper, dbClient: PostgresClient)(implicit ec: ExecutionContext): IngestionServices = new IngestionServices {
+  def apply(manifest: Manifest, index: Index, objectStorage: ObjectStorage, typeDetector: TypeDetector, mimeTypeMapper: MimeTypeMapper, postgresClient: PostgresClient)(implicit ec: ExecutionContext): IngestionServices = new IngestionServices {
     override def ingestEmail(context: EmailContext, sourceMimeType: String): Either[Failure, Unit] = {
 
       val uriParents: List[UriParent] = UriParent.createPairwiseChain(context.parents)
@@ -66,14 +66,14 @@ object IngestionServices extends Logging {
     }
 
     override def ingestFile(context: FileContext, blobUri: Uri, path: Path): Either[Failure, Blob] = {
-      val ingestionMetaData = MetaData(blobUri.value, context.ingestion)
-      dbClient.insertMetaData(BlobMetaData(
+      val ingestionMetaData = EventMetaData(blobUri.value, context.ingestion)
+      postgresClient.insertMetaData(BlobMetaData(
         ingestId = context.ingestion,
         blobId = blobUri.value,
         fileSize = context.file.size.toInt,
         path = context.file.uri.value.replaceFirst(context.ingestion + "/", ""))
       )
-      dbClient.insertEvent(IngestionEvent(ingestionMetaData, IngestionEventType.HashComplete, details = Details.workspaceDetails(context.workspace)))
+      postgresClient.insertEvent(IngestionEvent(ingestionMetaData, IngestionEventType.HashComplete, details = EventDetails.workspaceDetails(context.workspace)))
 
       // see if the Blob already exists in the manifest to avoid doing uneeded processing
       val blob: Either[Failure, Option[Blob]] = manifest.getBlob(blobUri).map(Some(_)).recoverWith {
@@ -85,15 +85,15 @@ object IngestionServices extends Logging {
         if (maybeBlob.isEmpty) {
           val result = objectStorage.create(blobUri.toStoragePath, path)
           result match {
-            case Right(_) => dbClient.insertEvent(IngestionEvent(ingestionMetaData, IngestionEventType.BlobCopy))
+            case Right(_) => postgresClient.insertEvent(IngestionEvent(ingestionMetaData, IngestionEventType.BlobCopy))
             case Left(failure: Failure) =>
-              dbClient.insertEvent(
-                IngestionEvent(ingestionMetaData, IngestionEventType.BlobCopy, Status.Failure, Details.errorDetails(failure.msg))
+              postgresClient.insertEvent(
+                IngestionEvent(ingestionMetaData, IngestionEventType.BlobCopy, EventStatus.Failure, EventDetails.errorDetails(failure.msg))
               )
           }
           result
         } else {
-          dbClient.insertEvent(IngestionEvent(ingestionMetaData, eventType = IngestionEventType.ManifestExists))
+          postgresClient.insertEvent(IngestionEvent(ingestionMetaData, eventType = IngestionEventType.ManifestExists))
           Right(())
         }
       }
@@ -121,8 +121,8 @@ object IngestionServices extends Logging {
           context.ingestion,
           context.workspace
         )
-        _ = dbClient.insertEvent(
-          IngestionEvent(ingestionMetaData, eventType = IngestionEventType.MimeTypeDetected, details = Details.ingestionDataDetails(data, extractors))
+        _ = postgresClient.insertEvent(
+          IngestionEvent(ingestionMetaData, eventType = IngestionEventType.MimeTypeDetected, details = EventDetails.ingestionDataDetails(data, extractors))
         )
         // TODO once we get attempt everywhere we can remove the await
         _ <- index.ingestDocument(blobUri, context.file.size, data, context.languages).awaitEither(2.minutes)

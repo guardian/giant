@@ -97,7 +97,9 @@ class AppComponents(context: Context, config: Config)
 
     val postgresClient = config.postgres match {
       case Some(postgresConfig) =>  new PostgresClientImpl(postgresConfig)
-      case None => new PostgresClientDoNothing
+      case None =>
+        logger.warn("Postgres config not found, using dummy postgres client!")
+        new PostgresClientDoNothing
     }
     val esClient = ElasticsearchClient(config).await()
     val esResources = new ElasticsearchResources(esClient, config.elasticsearch.indexName).setup().await()

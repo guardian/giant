@@ -18,7 +18,7 @@ import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
 import scala.util.{Success, Failure => SFailure}
-import services.observability.{Details, IngestionEvent, IngestionEventType, MetaData, PostgresClient, Status}
+import services.observability.{EventDetails, IngestionEvent, IngestionEventType, EventMetaData, PostgresClient, EventStatus}
 
 
 case class WorkSelector(numberOfNodes: Int, thisNode: Int) extends Logging {
@@ -109,18 +109,18 @@ class IngestStorePolling(
     for {
       context <- ingestStorage.getMetadata(key)
       _ <- fetchData(key) { case (path, fingerprint) =>
-        val ingestionMetaData = MetaData(fingerprint.value, context.ingestion)
+        val ingestionMetaData = EventMetaData(fingerprint.value, context.ingestion)
 
         try {
           val ingestResult = ingestionServices.ingestFile(context, fingerprint, path)
           ingestResult match {
             case Left(failure) =>
-              val details = Details.errorDetails(failure.msg, failure.cause.map(throwable => throwable.getStackTrace.toString) )
+              val details = EventDetails.errorDetails(failure.msg, failure.cause.map(throwable => throwable.getStackTrace.toString) )
               postgresClient.insertEvent { failure match {
                 case _: ElasticSearchQueryFailure =>
-                  IngestionEvent(ingestionMetaData, eventType = IngestionEventType.InitialElasticIngest, status = Status.Failure, details = details)
+                  IngestionEvent(ingestionMetaData, eventType = IngestionEventType.InitialElasticIngest, status = EventStatus.Failure, details = details)
                 case _ =>
-                  IngestionEvent(ingestionMetaData, eventType = IngestionEventType.IngestFile, status = Status.Failure, details = details)
+                  IngestionEvent(ingestionMetaData, eventType = IngestionEventType.IngestFile, status = EventStatus.Failure, details = details)
               }}
 
             case Right(_) => postgresClient.insertEvent(IngestionEvent(ingestionMetaData, eventType = IngestionEventType.IngestFile))

@@ -7,7 +7,7 @@ import model.manifest.Blob
 import services.index.IngestionData
 import services.observability.ExtractorType.ExtractorType
 import services.observability.IngestionEventType.IngestionEventType
-import services.observability.Status.Status
+import services.observability.EventStatus.EventStatus
 
 
 object IngestionEventType extends Enumeration {
@@ -35,12 +35,12 @@ object ExtractorType extends Enumeration {
   implicit val format: Format[ExtractorType] = Json.formatEnum(this)
 }
 
-object Status extends Enumeration {
-  type Status = Value
+object EventStatus extends Enumeration {
+  type EventStatus = Value
 
   val Started, Success, Failure = Value
 
-  implicit val format: Format[Status] = Json.formatEnum(this)
+  implicit val format: Format[EventStatus] = Json.formatEnum(this)
 }
 
 case class IngestionError(message: String, stackTrace: Option[String] = None)
@@ -49,7 +49,7 @@ object IngestionError {
   implicit val format = Json.format[IngestionError]
 }
 
-case class Details(
+case class EventDetails(
                     errors: Option[List[IngestionError]] = None,
                     extractors: Option[List[ExtractorType]] = None,
                     blob: Option[Blob] = None,
@@ -58,41 +58,41 @@ case class Details(
                     workspaceItemContext: Option[WorkspaceItemContext] = None
                   )
 
-object Details {
-  implicit val detailsFormat = Json.format[Details]
+object EventDetails {
+  implicit val detailsFormat = Json.format[EventDetails]
 
-  def errorDetails(message: String, stackTrace: Option[String] = None): Option[Details] = Some(Details(Some(List(IngestionError(message, stackTrace)))))
+  def errorDetails(message: String, stackTrace: Option[String] = None): Option[EventDetails] = Some(EventDetails(Some(List(IngestionError(message, stackTrace)))))
 
-  def extractorErrorDetails(extractorName: String, message: String, stackTrace: Option[String] = None): Option[Details] =
-    Some(Details(
+  def extractorErrorDetails(extractorName: String, message: String, stackTrace: Option[String] = None): Option[EventDetails] =
+    Some(EventDetails(
       errors = Some(List(IngestionError(message, stackTrace))),
       extractorName = Some(ExtractorType.withNameCustom(extractorName)))
     )
 
-  def ingestionDataDetails(data: IngestionData, extractors: List[Extractor]) = Some(Details(
+  def ingestionDataDetails(data: IngestionData, extractors: List[Extractor]) = Some(EventDetails(
     extractors = Some(extractors.map(e => ExtractorType.withNameCustom(e.name))),
     ingestionData = Some(data)))
 
-  def workspaceDetails(workspaceItemContext: Option[WorkspaceItemContext]) = Some(Details(workspaceItemContext = workspaceItemContext))
+  def workspaceDetails(workspaceItemContext: Option[WorkspaceItemContext]) = Some(EventDetails(workspaceItemContext = workspaceItemContext))
 
-  def extractorDetails(extractorName: String) = Some(Details(extractorName = Some(ExtractorType.withNameCustom(extractorName))))
+  def extractorDetails(extractorName: String) = Some(EventDetails(extractorName = Some(ExtractorType.withNameCustom(extractorName))))
 
 }
 
-case class MetaData(blobId: String, ingestId: String)
+case class EventMetaData(blobId: String, ingestId: String)
 
-object MetaData {
-  implicit val format = Json.format[MetaData]
+object EventMetaData {
+  implicit val format = Json.format[EventMetaData]
 }
 
 case class IngestionEvent(
-                           metaData: MetaData,
+                           metaData: EventMetaData,
                            eventType: IngestionEventType,
-                           status: Status = Status.Success,
-                           details: Option[Details] = None
+                           status: EventStatus = EventStatus.Success,
+                           details: Option[EventDetails] = None
                          )
 object IngestionEvent {
-  implicit val metaDataFormat = Json.format[MetaData]
+  implicit val metaDataFormat = Json.format[EventMetaData]
   implicit val ingestionEventFormat = Json.format[IngestionEvent]
 }
 

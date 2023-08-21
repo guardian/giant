@@ -7,7 +7,7 @@ import extraction.Worker.Batch
 import model.manifest.{Blob, WorkItem}
 import services.{Metrics, MetricsService, ObjectStorage}
 import services.manifest.WorkerManifest
-import services.observability.{Details, IngestionEvent, IngestionEventType, MetaData, PostgresClient, Status}
+import services.observability.{EventDetails, IngestionEvent, IngestionEventType, EventMetaData, PostgresClient, EventStatus}
 import utils.Logging
 import utils.attempt._
 
@@ -82,9 +82,9 @@ class Worker(
           markAsComplete(params, blob, extractor)
           postgresClient.insertEvent(
             IngestionEvent(
-              MetaData(blob.uri.value, params.ingestion),
+              EventMetaData(blob.uri.value, params.ingestion),
               IngestionEventType.RunExtractor,
-              details = Details.extractorDetails(extractor.name))
+              details = EventDetails.extractorDetails(extractor.name))
           )
           completed + 1
 
@@ -102,10 +102,10 @@ class Worker(
 
           postgresClient.insertEvent(
             IngestionEvent(
-              MetaData(blob.uri.value, params.ingestion),
+              EventMetaData(blob.uri.value, params.ingestion),
               IngestionEventType.RunExtractor,
-              Status.Failure,
-              details = Details.extractorErrorDetails(
+              EventStatus.Failure,
+              details = EventDetails.extractorErrorDetails(
                 extractor.name, failure.msg, failure.cause.map(throwable => throwable.getStackTrace.toString)
               )
             )

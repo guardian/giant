@@ -16,8 +16,6 @@ SECRET=$(aws secretsmanager get-secret-value \
 
 DB_PASSWORD=$(echo $SECRET | jq -r .password)
 DB_HOST=$(echo $SECRET | jq -r .host)
-echo $DB_HOST
-echo 25432:$DB_HOST:5432
 
 SSH_COMMAND=$(ssm ssh --raw -t pfi-worker,pfi-playground,rex --newest --profile investigations)
 
@@ -30,6 +28,6 @@ eval ${SSH_COMMAND} -L 25432:$DB_HOST:5432 -o ExitOnForwardFailure=yes -f sleep 
 # For some reason the terminal gets messed up after running the SSH command.
 # Possibly the remote terminal changes the window size and some other
 # settings? Not sure how else to fix.
-#reset
+reset
 
 PGPASSWORD=$DB_PASSWORD psql -h localhost -p 25432 -U giant_master -d giant "$@"
