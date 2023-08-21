@@ -29,7 +29,13 @@ echo "change directory to $DATA_DIRECTORY"
 
 cd $MIGRATE_DIRECTORY
 
-source ~/.nvm/nvm.sh
-nvm use
-npm install
-npm run start CODE $PORT
+EXPECTED_NODE_VERSION=$(head -1 .nvmrc)
+CURRENT_NODE_VERSION=$(node --version)
+
+if [[ $CURRENT_NODE_VERSION = *"$EXPECTED_NODE_VERSION"* ]]; then
+  npm install
+  npm run start CODE $PORT
+else
+  echo -e "\033[0;31m ERROR current directory NODE version $CURRENT_NODE_VERSION does not match the expected version $EXPECTED_NODE_VERSION" 1>&2
+  exit 1
+fi
