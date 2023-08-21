@@ -19,8 +19,10 @@ SECRET=$(aws secretsmanager get-secret-value \
 
 DB_PASSWORD=$(echo $SECRET | jq -r .password)
 DB_HOST=$(echo $SECRET | jq -r .host)
+PORT=25432
+
 SSH_COMMAND=$(ssm ssh --raw -t pfi-worker,pfi-playground,rex --newest --profile investigations)
-eval ${SSH_COMMAND} -L 25432:$DB_HOST:5432 -o ExitOnForwardFailure=yes -f sleep 10
+eval ${SSH_COMMAND} -L $PORT:$DB_HOST:5432 -o ExitOnForwardFailure=yes -f sleep 10
 
 
 echo "change directory to $DATA_DIRECTORY"
@@ -30,4 +32,4 @@ cd $MIGRATE_DIRECTORY
 source ~/.nvm/nvm.sh
 nvm use
 npm install
-npm run start PROD
+npm run start PROD $PORT

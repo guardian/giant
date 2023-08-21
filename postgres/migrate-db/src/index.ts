@@ -9,12 +9,12 @@ interface PostgresConfig {
   password: string,
 }
 
-const connectionPool = (stage: string, config: PostgresConfig): pg.Pool => {
+const connectionPool = (port: number, config: PostgresConfig): pg.Pool => {
   const pool = new pg.Pool({
     user: config.username,
     password: config.password,
     host: "localhost",
-    port: stage === 'local' ? 8432 : 25432,
+    port,
     database,
   });
 
@@ -35,18 +35,18 @@ export const getSecretValue = async (secretName: string) => {
       const result: PostgresConfig = JSON.parse(response.SecretString);
       return result;
     } else {
-      console.error(`Error database secret string is undefined`);
+      console.error(`Error database secret string is undefined for ${secretName}`);
       process.exitCode = 1;
     }
   } catch (err) {
-    console.error(`Error retrieving database secrets`, err);
+    console.error(`Error retrieving database secrets for ${secretName}`, err);
     process.exitCode = 1;
   }
 };
 
-const migrate = async (stage: string, version?: string) => {
+const migrate = async (stage: string, port: number, version?: string) => {
   const postgresConfig =
-      stage === 'local' ?
+      stage === 'DEV' ?
           {
             dbname: database,
             username: 'giant_master',
@@ -57,7 +57,7 @@ const migrate = async (stage: string, version?: string) => {
   if (postgresConfig) {
     try {
       console.log("Configuring migration");
-      const pool = connectionPool(stage, postgresConfig);
+      const pool = connectionPool(port, postgresConfig);
       const connection = await pool.connect();
       console.log("db connection succeeded");
       try {
@@ -95,14 +95,31 @@ const migrate = async (stage: string, version?: string) => {
   }
 };
 
-const version = process.env.VERSION || process.argv[3];
-const stage = process.env.STAGE || process.argv[2];
+const stages = ['DEV', 'CODE', 'PROD'] as const;
+type Stage = typeof stages[number];
+const isStage = (maybeStage: unknown): maybeStage is Stage => {
+  //@ts-expect-error -- custom type guard
+  return typeof maybeStage === 'string' && stages.includes(maybeStage);
+}
 
-if (stage) {
-  console.log(`Migrating DB in stage ${stage} to version ${version}`);
-  migrate(stage, version);
-} else {
-  console.error(`Error stage is missing!`)
+const stage = process.env.STAGE || process.argv[2];
+const port = process.env.STAGE || process.argv[3];
+const version = process.env.VERSION || process.argv[4];
+
+const exitWithMessage = (message: string) => {
+  console.error(message);
+  process.exitCode = 1;
+}
+
+const portNumber = parseInt(port);
+
+if (!isStage(stage))
+  exitWithMessage(`Error stage ${stage} is incorrect! Acceptable values are ${stages}`);
+else if (isNaN(portNumber))
+  exitWithMessage(`Error port ${port} is incorrect!`);
+else {
+  console.log(`Migrating DB in stage ${stage} to version ${version} using port ${port}`);
+  migrate(stage, portNumber, version);
 }
 
 

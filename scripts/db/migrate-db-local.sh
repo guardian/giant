@@ -11,4 +11,4 @@ cd $MIGRATE_DIRECTORY
 source ~/.nvm/nvm.sh
 nvm use
 npm install
-npm run start local
+npm run start DEV 8432
