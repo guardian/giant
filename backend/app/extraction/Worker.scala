@@ -73,6 +73,15 @@ class Worker(
     work.foldLeft(0) { case(completed, (extractor, blob, params)) =>
       logger.info(s"Working on ${blob.uri.value} with ${extractor.name}")
 
+      val observabilityMetadata = EventMetaData(blob.uri.value, params.ingestion)
+
+      postgresClient.insertEvent(
+        IngestionEvent(
+          observabilityMetadata,
+          IngestionEventType.RunExtractor,
+          status = EventStatus.Started,
+          details = EventDetails.extractorDetails(extractor.name))
+      )
       val result = blobStorage.get(blob.uri.toStoragePath)
         .flatMap(safeInvokeExtractor(params, extractor, blob, _))
 
@@ -82,8 +91,9 @@ class Worker(
           markAsComplete(params, blob, extractor)
           postgresClient.insertEvent(
             IngestionEvent(
-              EventMetaData(blob.uri.value, params.ingestion),
+              observabilityMetadata,
               IngestionEventType.RunExtractor,
+              status = EventStatus.Success,
               details = EventDetails.extractorDetails(extractor.name))
           )
           completed + 1
@@ -102,7 +112,7 @@ class Worker(
 
           postgresClient.insertEvent(
             IngestionEvent(
-              EventMetaData(blob.uri.value, params.ingestion),
+              observabilityMetadata,
               IngestionEventType.RunExtractor,
               EventStatus.Failure,
               details = EventDetails.extractorErrorDetails(
