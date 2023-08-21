@@ -7,9 +7,11 @@
         "build": "run-p --print-label type-check bundle"
     },
     "dependencies": {
-        "pg": "8.7.1",
+        "@aws-sdk/client-secrets-manager": "^3.395.0",
         "dotenv": "^10.0.0",
         "lodash": "4.17.21",
+        "npm-run-all": "^4.1.5",
+        "pg": "8.7.1",
         "postgrator": "^5.0.0",
         "prettier": "^2.8.2",
         "string-argv": "0.3.1"
