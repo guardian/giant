@@ -5,7 +5,7 @@ import authFetch from "../../util/auth/authFetch";
 import {GiantState} from "../../types/redux/GiantState";
 import {GiantDispatch} from "../../types/redux/GiantDispatch";
 import {connect} from "react-redux";
-import {EuiFlexItem, EuiHeader, EuiHealth, EuiIcon, EuiSpacer, EuiIconTip, EuiBadge, EuiFlexGroup, EuiInMemoryTable, EuiBasicTableColumn, EuiLoadingSpinner} from "@elastic/eui";
+import {EuiFlexItem, EuiHeader, EuiHealth, EuiToolTip, EuiSpacer, EuiIconTip, EuiBadge, EuiFlexGroup, EuiInMemoryTable, EuiBasicTableColumn, EuiLoadingSpinner} from "@elastic/eui";
 import '@elastic/eui/dist/eui_theme_light.css';
 import hdate from 'human-date';
 import {WorkspaceMetadata} from "../../types/Workspaces";
@@ -18,7 +18,6 @@ type Metadata = {
     blobId: string;
     ingestUri: string;
 }
-
 
 type BlobStatus =  {
     metadata: Metadata;
@@ -62,9 +61,6 @@ const blobStatusIcons = {
 }
 
 const statusToColor = (status: Status) => extractorStatusColors[status]
-
-const mostRecentStatusUpdate = (updates: ExtractorStatusUpdate[]) =>
-    updates.reduce((a, b) => a.eventTime > b.eventTime ? a : b)
 
 const getBlobStatus = (statuses: ExtractorStatus[]) => {
     const failures = statuses.filter(status => status.statusUpdates.find(u => u.status === "Failure") !== undefined)
@@ -113,12 +109,15 @@ const columns: Array<EuiBasicTableColumn<BlobStatus>> = [
         render: (statuses: ExtractorStatus[]) => {
             return <ul>
                 {statuses.map(status => {
-                    const mostRecent = mostRecentStatusUpdate(status.statusUpdates)
+                    const mostRecent = status.statusUpdates[status.statusUpdates.length - 1]
+                    const allUpdatesTooltip = <p>{status.statusUpdates.map(u => <>{`${moment(u.eventTime).format("HH:mm:ss")} ${u.status}`}<br/></>)}</p>
                     return <li><EuiFlexGroup>
                         <EuiFlexItem>{status.extractorType.replace("Extractor", "")}</EuiFlexItem>
-                        <EuiFlexItem grow={false}  >{_.sortBy(status.statusUpdates, s => s.eventTime).map(s =>
-                            <EuiBadge color={statusToColor(s.status)}>{s.status} ({moment(s.eventTime).format("HH:mm:ss")  })</EuiBadge>
-                        )}</EuiFlexItem>
+                        <EuiFlexItem grow={false}>
+                            <EuiToolTip content={allUpdatesTooltip}>
+                            <EuiBadge color={statusToColor(mostRecent.status)}>{mostRecent.status} ({moment(mostRecent.eventTime).format("HH:mm:ss")  })</EuiBadge>
+                            </EuiToolTip>
+                        </EuiFlexItem>
                     </EuiFlexGroup></li>
             })}
             </ul>
@@ -135,10 +134,10 @@ const parseBlobStatus = (status: any): BlobStatus => {
         mostRecentEvent: new Date(status.mostRecentEvent),
         extractorStatuses: status.extractorStatuses.map((s: any) => ({
             ...s,
-            statusUpdates: s.statusUpdates.map((u: any) => ({
+            statusUpdates: _.sortBy(s.statusUpdates.map((u: any) => ({
                 ...u,
                 eventTime: new Date(u.eventTime)
-            }))
+            })), update => update.eventTime)
         }))
     }
 }
