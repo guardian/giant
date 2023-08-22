@@ -1,5 +1,11 @@
 package controllers.api
 
+import akka.NotUsed
+import akka.actor.ActorSystem
+import akka.stream.{Materializer, OverflowStrategy}
+import akka.stream.scaladsl.{Source, SourceQueueWithComplete}
+import model.Uri
+import model.index.FrontendPage
 import pdi.jwt.JwtSession._
 import pdi.jwt.JwtTime
 import play.api.libs.json.Json
@@ -11,6 +17,7 @@ import utils.attempt._
 import utils.auth._
 import utils.auth.providers.UserProvider
 import utils.controller.{AuthControllerComponents, OptionalAuthApiController}
+
 import java.time.Clock
 import play.api.Configuration
 
@@ -21,6 +28,25 @@ class Authentication(override val controllerComponents: AuthControllerComponents
 
   def healthcheck() = noAuth.ApiAction {
     Right(Ok("Ok"))
+  }
+
+  def liveClock() = noAuth.ApiAction {
+    import java.time.ZonedDateTime
+    import java.time.format.DateTimeFormatter
+    import javax.inject.Singleton
+    import akka.stream.scaladsl.Source
+    import play.api.http.ContentTypes
+    import play.api.libs.EventSource
+    import play.api.mvc._
+
+    import scala.concurrent.duration._
+
+    val df: DateTimeFormatter = DateTimeFormatter.ofPattern("HH mm ss")
+    val tickSource = Source.tick(0.millis, 100.millis, "TICK")
+    val source = tickSource.map { (tick) =>
+      df.format(ZonedDateTime.now())
+    }
+    Right(Ok.chunked(source via EventSource.flow).as(ContentTypes.EVENT_STREAM))
   }
 
   def token() = noAuth.ApiAction.attempt { implicit request:Request[AnyContent] =>

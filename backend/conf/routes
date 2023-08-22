@@ -36,6 +36,7 @@ GET           /api/pages/preview/:language/:uri/:pageNumber                 cont
 
 GET           /api/pages2/:uri/pageCount                                    controllers.api.PagesController.getPageCount(uri: model.Uri)
 GET           /api/pages2/:uri/find                                         controllers.api.PagesController.findInDocument(uri: model.Uri, q: String)
+GET           /api/pages2/:uri/find-stream                                  controllers.api.PagesController.findInDocumentStream(uri: model.Uri, q: String)
 GET           /api/pages2/:uri/search                                       controllers.api.PagesController.searchInDocument(uri: model.Uri, q: String)
 GET           /api/pages2/:uri/:pageNumber/preview                          controllers.api.PagesController.getPagePreview(uri: model.Uri, pageNumber: Int)
 GET           /api/pages2/:uri/:pageNumber/text                             controllers.api.PagesController.getPageData(uri: model.Uri, pageNumber: Int, sq: Option[String], fq: Option[String])
@@ -92,6 +93,8 @@ GET           /api/keepalive                                                cont
 
 GET           /api/config                                                   controllers.frontend.App.configuration()
 
+
+
 + NOCSRF
 GET           /healthcheck                                                  controllers.api.Authentication.healthcheck()
 
@@ -101,6 +104,8 @@ GET           /manifest                                                     cont
 GET           /setup                                                        controllers.genesis.Genesis.checkSetup()
 + NOCSRF
 PUT           /setup                                                        controllers.genesis.Genesis.doSetup()
+
+GET /clock controllers.api.Authentication.liveClock()
 
 # === Web Client ===
 GET           /                                                             controllers.frontend.App.index()
