@@ -165,7 +165,7 @@ function IngestionEvents(
                 const blobStatuses = json.map(parseBlobStatus)
                 updateBlobs(blobStatuses)
         })
-    }, [collectionId, ingestId, updateBlobs, ingestIdSuffix, collectionId])
+    }, [collectionId, ingestId, updateBlobs, ingestIdSuffix])
 
     useEffect(() => {
         if (breakdownByWorkspace) {
