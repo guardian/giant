@@ -8,6 +8,8 @@ import scala.util.{Failure, Success, Try}
 import utils.Logging
 import utils.attempt.{PostgresReadFailure, PostgresWriteFailure, Failure => GiantFailure}
 
+import java.time.ZonedDateTime
+
 trait PostgresClient {
 	def insertEvent(event: IngestionEvent): Either[GiantFailure, Unit]
 	def insertMetaData(metaData: BlobMetaData): Either[GiantFailure, Unit]
@@ -102,16 +104,26 @@ class PostgresClientImpl(postgresConfig: PostgresConfig) extends PostgresClient 
 				*/
 			val results = sql"""
         WITH blob_extractors AS (
-         SELECT blob_id, jsonb_array_elements_text(details -> 'extractors') as extractor from ingestion_events
+        -- get all the extractors expected for a given blob
+         SELECT ingest_id, blob_id, jsonb_array_elements_text(details -> 'extractors') as extractor from ingestion_events
          WHERE ingest_id LIKE ${if(ingestIdIsPrefix) LikeConditionEscapeUtil.beginsWith(ingestId) else ingestId} AND
          type = ${IngestionEventType.MimeTypeDetected.toString}
     		),
 				extractor_statuses as (
-					SELECT blob_extractors.blob_id, blob_extractors.extractor, ingestion_events.status
+          -- Aggregate all the status updates for the relevant extractors for a given blob
+					SELECT
+						blob_extractors.blob_id,
+						blob_extractors.extractor,
+            -- As the same status update may happen multiple times if a blob is reingested, it's useful to have the time
+						ARRAY_AGG(EXTRACT(EPOCH from ingestion_events.event_time)) AS extractor_event_times,
+						ARRAY_AGG(ingestion_events.status) AS extractor_event_statuses
 				 	FROM blob_extractors
 				 	LEFT JOIN ingestion_events
 					ON blob_extractors.blob_id = ingestion_events.blob_id
+					AND blob_extractors.ingest_id = ingestion_events.ingest_id
 					AND blob_extractors.extractor = ingestion_events.details ->> 'extractorName'
+          -- A file may be uploaded multiple times within different ingests - use group by to merge them together
+          GROUP BY 1,2
 				)
 				SELECT
 					ie.blob_id,
@@ -123,7 +135,9 @@ class PostgresClientImpl(postgresConfig: PostgresConfig) extends PostgresClient 
           ARRAY_AGG(DISTINCT blob_metadata.path ) AS paths,
      		  (ARRAY_AGG(blob_metadata.file_size))[1] as "fileSize",
 					ARRAY_AGG(extractor_statuses.extractor) AS extractors,
-					ARRAY_AGG(extractor_statuses.status) AS statuses
+          -- You can't array_agg arrays of varying cardinality so here we convert to string
+					ARRAY_AGG(ARRAY_TO_STRING(extractor_statuses.extractor_event_times, ',','null')) AS "extractorEventTimes",
+					ARRAY_AGG(ARRAY_TO_STRING(extractor_statuses.extractor_event_statuses, ',','null')) AS "extractorStatuses"
 				FROM (
 					SELECT
 						blob_id,
@@ -150,14 +164,12 @@ class PostgresClientImpl(postgresConfig: PostgresConfig) extends PostgresClient 
 					rs.stringOpt("workspaceName"),
 					new DateTime(rs.dateTime("ingest_start").toInstant.toEpochMilli, DateTimeZone.UTC),
 					new DateTime(rs.dateTime("most_recent_event").toInstant.toEpochMilli, DateTimeZone.UTC),
-					rs.arrayOpt("extractors").map{extractors =>
-						val extractorArray = extractors.getArray().asInstanceOf[Array[String]].map(s => ExtractorType.withName(s))
-						// assume that if extractors is defined then statuses should be (.array instead of .arrayOpt)
-						val statusArray = rs.array("statuses").getArray().asInstanceOf[Array[String]]
-							.map(s => {
-								if (s == "null" || s == null) Status.Unknown else Status.withName(s)
-							})
-						extractorArray.zip(statusArray).toList
+					rs.arrayOpt("extractors").map { extractors =>
+						ExtractorStatus.parseDbStatusEvents(
+							extractors.getArray().asInstanceOf[Array[String]],
+							rs.array("extractorEventTimes").getArray().asInstanceOf[Array[String]],
+							rs.array("extractorStatuses").getArray().asInstanceOf[Array[String]]
+						)
 					}.getOrElse(List()),
 					List() // need to implement this - something like: rs.array("errors").getArray.asInstanceOf[Array[String]].map(e => Json.parse(e).as[IngestionError]).toList
 				)

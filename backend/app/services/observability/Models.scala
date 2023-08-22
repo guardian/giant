@@ -4,13 +4,15 @@ import extraction.Extractor
 import model.ingestion.WorkspaceItemContext
 import play.api.libs.json.{Format, Json}
 import model.manifest.Blob
-import org.joda.time.DateTime
+import org.joda.time.{DateTime, DateTimeZone}
 import services.index.IngestionData
 import services.observability.ExtractorType.ExtractorType
 import services.observability.IngestionEventType.IngestionEventType
 import services.observability.EventStatus.EventStatus
 import play.api.libs.json.JodaWrites.jodaDateWrites
 import play.api.libs.json.JodaReads.jodaDateReads
+
+import java.time.ZonedDateTime
 
 
 object IngestionEventType extends Enumeration {
@@ -109,6 +111,35 @@ case class BlobMetaData(ingestId: String, blobId: String, path: String, fileSize
 object BlobMetaData {
   implicit val blobMetaDataFormat = Json.format[BlobMetaData]
 }
+
+case class ExtractorStatusUpdate(eventTime: DateTime, status: EventStatus)
+object ExtractorStatusUpdate {
+  implicit val dateWrites = jodaDateWrites("yyyy-MM-dd'T'HH:mm:ss.SSSZ")
+  implicit val dateReads = jodaDateReads("yyyy-MM-dd'T'HH:mm:ss.SSSZ")
+  implicit val format = Json.format[ExtractorStatusUpdate]
+}
+
+
+case class ExtractorStatus(extractorType: ExtractorType, statusUpdates: List[ExtractorStatusUpdate])
+object ExtractorStatus {
+  implicit val format = Json.format[ExtractorStatus]
+
+  def parseDbStatusEvents(extractors: Array[String], extractorEventTimes: Array[String], extractorStatuses: Array[String]): List[ExtractorStatus] = {
+    val statusUpdatesParsed = extractorEventTimes.zip(extractorStatuses).map {
+      case (times, statuses) => times.split(",").zip(statuses.split(",")).map{
+        case (time, status) =>
+          val millisecondsSinceEpoch = (time.toDouble * 1000).toLong
+
+          val parsedStatus = if (status == "null") EventStatus.Unknown else EventStatus.withName(status)
+          ExtractorStatusUpdate(new DateTime(millisecondsSinceEpoch, DateTimeZone.UTC), parsedStatus)}.toList
+    }.toList
+
+    extractors.toList.zip(statusUpdatesParsed).map {case (extractor, statusUpdates) => ExtractorStatus(ExtractorType.withName(extractor), statusUpdates)
+
+    }
+  }
+}
+
 case class BlobStatus(
                        metaData: EventMetaData,
                        paths: List[String],
@@ -116,7 +147,7 @@ case class BlobStatus(
                        workspaceName: Option[String],
                        ingestStart: DateTime,
                        mostRecentEvent: DateTime,
-                       extractorStatuses: List[(ExtractorType, EventStatus)],
+                       extractorStatuses: List[ExtractorStatus],
                        errors: List[IngestionError])
 object BlobStatus {
   implicit val dateWrites = jodaDateWrites("yyyy-MM-dd'T'HH:mm:ss.SSSZ")

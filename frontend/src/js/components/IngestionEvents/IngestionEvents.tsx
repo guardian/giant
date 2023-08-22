@@ -5,16 +5,14 @@ import authFetch from "../../util/auth/authFetch";
 import {GiantState} from "../../types/redux/GiantState";
 import {GiantDispatch} from "../../types/redux/GiantDispatch";
 import {connect} from "react-redux";
-import {EuiFlexItem, EuiHeader, EuiHealth, EuiSpacer} from "@elastic/eui";
-import {EuiBasicTableColumn} from "@elastic/eui";
-import {EuiInMemoryTable} from "@elastic/eui";
+import {EuiFlexItem, EuiHeader, EuiHealth, EuiIcon, EuiSpacer, EuiIconTip, EuiBadge, EuiFlexGroup, EuiInMemoryTable, EuiBasicTableColumn, EuiLoadingSpinner} from "@elastic/eui";
 import '@elastic/eui/dist/eui_theme_light.css';
 import hdate from 'human-date';
-import {EuiBadge} from "@elastic/eui";
-import {EuiFlexGroup} from "@elastic/eui";
 import {WorkspaceMetadata} from "../../types/Workspaces";
 import {bindActionCreators} from "redux";
 import {getCollections} from "../../actions/collections/getCollections";
+import moment from "moment";
+import _ from "lodash";
 
 type Metadata = {
     blobId: string;
@@ -28,7 +26,7 @@ type BlobStatus =  {
     fileSize: number;
     ingestStart: Date;
     mostRecentEvent: Date;
-    extractorStatuses: string[][]
+    extractorStatuses: ExtractorStatus[];
     errors: string[];
     workspaceName: string;
 }
@@ -38,19 +36,51 @@ type IngestionTable = {
     blobs: BlobStatus[]
 }
 
-type ExtractorStatus = "Unknown" | "Started" | "Success" | "Failure"
+type Status = "Unknown" | "Started" | "Success" | "Failure"
 
-const statusColors = {
+type ExtractorStatusUpdate = {
+    eventTime: Date;
+    status: Status
+}
+
+type ExtractorStatus = {
+    extractorType: string;
+    statusUpdates: ExtractorStatusUpdate[];
+}
+
+const extractorStatusColors = {
     "Success": "success",
     "Started": "primary",
     "Failure": "danger",
     "Unknown": "default"
 }
-const statusToColor = (status: ExtractorStatus) => {
-    return statusColors[status]
+
+const blobStatusIcons = {
+    complete: <EuiIconTip type="checkInCircleFilled" />,
+    completeWithErrors: <EuiIconTip type="alert" />,
+    inProgress: <EuiLoadingSpinner />
+}
+
+const statusToColor = (status: Status) => extractorStatusColors[status]
+
+const mostRecentStatusUpdate = (updates: ExtractorStatusUpdate[]) =>
+    updates.reduce((a, b) => a.eventTime > b.eventTime ? a : b)
+
+const getBlobStatus = (statuses: ExtractorStatus[]) => {
+    const failures = statuses.filter(status => status.statusUpdates.find(u => u.status === "Failure") !== undefined)
+    const inProgress = statuses.filter(status => status.statusUpdates.find(u => ["Failure", "Success"].includes(u.status)) === undefined)
+    return failures.length > 0 ? blobStatusIcons.completeWithErrors : inProgress.length > 0 ? blobStatusIcons.inProgress : blobStatusIcons.complete
 }
 
 const columns: Array<EuiBasicTableColumn<BlobStatus>> = [
+    {
+        field: 'extractorStatuses',
+        name: '',
+        render: (statuses: ExtractorStatus[]) => {
+            return getBlobStatus(statuses)
+        }
+
+    },
     {
         field: 'paths',
         name: 'Filename(s)',
@@ -83,23 +113,21 @@ const columns: Array<EuiBasicTableColumn<BlobStatus>> = [
     {
         field: 'extractorStatuses',
         name: 'Extractors',
-        render: (statuses: string[][]) => {
+        render: (statuses: ExtractorStatus[]) => {
             return <ul>
                 {statuses.map(status => {
+                    const mostRecent = mostRecentStatusUpdate(status.statusUpdates)
                     return <li><EuiFlexGroup>
-                        <EuiFlexItem>{status[0].replace("Extractor", "")}</EuiFlexItem>
-                        <EuiFlexItem grow={false}><EuiBadge color={statusToColor(status[1] as ExtractorStatus)}>{status[1]}</EuiBadge></EuiFlexItem>
+                        <EuiFlexItem>{status.extractorType.replace("Extractor", "")}</EuiFlexItem>
+                        <EuiFlexItem grow={false}  >{_.sortBy(status.statusUpdates, s => s.eventTime).map(s =>
+                            <EuiBadge color={statusToColor(s.status)}>{s.status} ({moment(s.eventTime).format("HH:mm:ss")  })</EuiBadge>
+                        )}</EuiFlexItem>
                     </EuiFlexGroup></li>
             })}
             </ul>
 
         },
-    },
-    {
-        field: 'extractorStatuses',
-        name: 'Ingestion status',
-        render: (statuses: string[][]) =>
-            statuses.filter(s => s[1] === "Success" || s[1] === "error").length === statuses.length ? "Complete" : "In progress"
+        width: "300"
     },
 ];
 
@@ -107,7 +135,14 @@ const parseBlobStatus = (status: any): BlobStatus => {
     return {
         ...status,
         ingestStart: new Date(status.ingestStart),
-        mostRecentEvent: new Date(status.mostRecentEvent)
+        mostRecentEvent: new Date(status.mostRecentEvent),
+        extractorStatuses: status.extractorStatuses.map((s: any) => ({
+            ...s,
+            statusUpdates: s.statusUpdates.map((u: any) => ({
+                ...u,
+                eventTime: new Date(u.eventTime)
+            }))
+        }))
     }
 }
 
