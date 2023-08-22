@@ -10,7 +10,6 @@ import {bindActionCreators} from "redux";
 import {getCollections} from "../../actions/collections/getCollections";
 import {Collection, Ingestion} from "../../types/Collection";
 import IngestionEvents from "./IngestionEvents";
-import {PartialUser} from "../../types/User";
 import {EuiFlexGroup, EuiFlexItem, EuiFormControlLayout, EuiFormLabel, EuiProvider} from "@elastic/eui";
 import {EuiSelect} from "@elastic/eui";
 import {EuiSelectOption} from "@elastic/eui";
@@ -21,10 +20,9 @@ function getCollection(collectionId: string, collections: Collection[]) {
 }
 
 export function AllIngestionEvents(
-    props: {
+    {getCollections, collections, workspacesMetadata}: {
         getCollections: (dispatch: any) => any,
         collections: Collection[],
-        currentUser?: PartialUser,
         workspacesMetadata: WorkspaceMetadata[],
     }) {
 
@@ -33,21 +31,21 @@ export function AllIngestionEvents(
     const [ingestId, setIngestId] = useState<string>("all")
 
     useEffect(() => {
-        props.getCollections({})
-    }, [props.getCollections])
+        getCollections({})
+    }, [getCollections])
 
-    const collectionOptions: EuiSelectOption[] = props.collections.map((collection: Collection) => ({
+    const collectionOptions: EuiSelectOption[] = collections.map((collection: Collection) => ({
         value: collection.uri,
         text: collection.display
     }))
 
     useEffect(() => {
-        const sc = getCollection(selectedCollectionId, props.collections)
+        const sc = getCollection(selectedCollectionId, collections)
         sc && setIngestOptions(sc.ingestions.map((ingestion: Ingestion) => ({
             value: ingestion.path,
             text: ingestion.display
         })).concat([{value: "all", text: "All ingestions"}]))
-    }, [selectedCollectionId, props.collections])
+    }, [selectedCollectionId, collections])
 
 
     return             <div className='app__main-content'>
@@ -56,7 +54,7 @@ export function AllIngestionEvents(
             <EuiProvider colorMode="light">
 
             <EuiFlexGroup alignItems={"flexStart"} >
-        {props.collections.length > 0 && <EuiFlexItem grow={false}>
+        {collections.length > 0 && <EuiFlexItem grow={false}>
             <EuiFormControlLayout className={styles.dropdown} prepend={<EuiFormLabel htmlFor={"collection-picker"}>Collection</EuiFormLabel>}>
                 <EuiSelect
                     hasNoInitialSelection={true}
@@ -83,7 +81,7 @@ export function AllIngestionEvents(
             }
             </EuiFlexGroup>
 
-        {selectedCollectionId && <IngestionEvents collectionId={selectedCollectionId} ingestId={ingestId} workspaces={props.workspacesMetadata} breakdownByWorkspace={false}></IngestionEvents>}
+        {selectedCollectionId && <IngestionEvents collectionId={selectedCollectionId} ingestId={ingestId} workspaces={workspacesMetadata} breakdownByWorkspace={false}></IngestionEvents>}
     </EuiProvider>
     </div>
 }
@@ -92,7 +90,6 @@ export function AllIngestionEvents(
 function mapStateToProps(state: GiantState) {
     return {
         workspacesMetadata: state.workspaces.workspacesMetadata,
-        currentUser: state.auth.token?.user,
         collections: state.collections
     };
 }

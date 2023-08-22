@@ -19,7 +19,7 @@ import {EuiFormLabel} from "@elastic/eui";
 
 
 function MyUploads(
-    props: {
+    {getCollections, getWorkspacesMetadata, collections, currentUser, workspacesMetadata}: {
         getCollections: (dispatch: any) => any,
         getWorkspacesMetadata: (dispatch: any) => any,
         collections: Collection[],
@@ -31,15 +31,15 @@ function MyUploads(
     const [selectedWorkspace, setSelectedWorkspace] = useState<string>("all")
 
     useEffect(() => {
-        props.getCollections({})
-        props.getWorkspacesMetadata({})
-    }, [props.getCollections, props.getWorkspacesMetadata])
+        getCollections({})
+        getWorkspacesMetadata({})
+    }, [getCollections, getWorkspacesMetadata])
 
     useEffect(() => {
-        if (props.currentUser && props.collections.length > 0) {
-            setDefaultCollection(getDefaultCollection(props.currentUser.username, props.collections))
+        if (currentUser && collections.length > 0) {
+            setDefaultCollection(getDefaultCollection(currentUser.username, collections))
         }
-    }, [props.collections, props.currentUser])
+    }, [collections, currentUser])
 
 
     return (
@@ -48,7 +48,7 @@ function MyUploads(
         <EuiProvider colorMode="light">
             {defaultCollection &&
                 <>
-                {props.workspacesMetadata.length > 0 &&
+                {workspacesMetadata.length > 0 &&
                     <EuiFormControlLayout prepend={<EuiFormLabel htmlFor={"workspace-picker"}>Workspace</EuiFormLabel>}>
                     <EuiSelect
                         value={selectedWorkspace}
@@ -56,7 +56,7 @@ function MyUploads(
                         id={"workspace-picker"}
                         options={
                         [{value: "all", text: "All workspaces"}].concat(
-                            props.workspacesMetadata.map((w: WorkspaceMetadata) =>
+                            workspacesMetadata.map((w: WorkspaceMetadata) =>
                                 ({value: w.name, text: w.name}))
                         )
                     }>
@@ -65,7 +65,7 @@ function MyUploads(
                 }
                  <IngestionEvents
                      collectionId={defaultCollection.uri}
-                     workspaces={props.workspacesMetadata.filter((w) => selectedWorkspace === "all" || w.name === selectedWorkspace)}
+                     workspaces={workspacesMetadata.filter((w) => selectedWorkspace === "all" || w.name === selectedWorkspace)}
                      breakdownByWorkspace={true}
                  ></IngestionEvents>
                 </>

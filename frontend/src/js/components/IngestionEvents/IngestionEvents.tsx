@@ -146,7 +146,7 @@ const parseBlobStatus = (status: any): BlobStatus => {
 }
 
 function IngestionEvents(
-    props: {
+    {collectionId, ingestId, workspaces, breakdownByWorkspace}: {
         collectionId: string,
         ingestId?: string,
         workspaces: WorkspaceMetadata[],
@@ -154,27 +154,28 @@ function IngestionEvents(
     }) {
     const [blobs, updateBlobs] = useState<BlobStatus[]>([])
 
-    const ingestIdSuffix = props.ingestId && props.ingestId !== "all" ? `/${props.ingestId}` : ""
+    const ingestIdSuffix = ingestId && ingestId !== "all" ? `/${ingestId}` : ""
     const [tableData, setTableData] = useState<IngestionTable[]>([])
 
 
     useEffect(() => {
-        authFetch(`/api/ingestion-events/${props.collectionId}${ingestIdSuffix}`)
+        authFetch(`/api/ingestion-events/${collectionId}${ingestIdSuffix}`)
             .then(resp => resp.json())
             .then(json => {
                 const blobStatuses = json.map(parseBlobStatus)
                 updateBlobs(blobStatuses)
         })
-    }, [props.collectionId, props.ingestId, updateBlobs, ingestIdSuffix, props.collectionId])
+    }, [collectionId, ingestId, updateBlobs, ingestIdSuffix, collectionId])
 
     useEffect(() => {
-        if (props.breakdownByWorkspace) {
-            setTableData(props.workspaces.map((w:WorkspaceMetadata) => ({title: `Workspace: ${w.name}`, blobs: blobs.filter(b => b.workspaceName === w.name)})))
+        if (breakdownByWorkspace) {
+            setTableData(workspaces
+                .map((w:WorkspaceMetadata) => ({title: `Workspace: ${w.name}`, blobs: blobs.filter(b => b.workspaceName === w.name)})))
         } else {
-            setTableData([{title: `${props.collectionId}${ingestIdSuffix}`, blobs}])
+            setTableData([{title: `${collectionId}${ingestIdSuffix}`, blobs}])
         }
 
-    }, [props.breakdownByWorkspace, blobs, props.workspaces, ingestIdSuffix, props.collectionId])
+    }, [breakdownByWorkspace, blobs, workspaces, ingestIdSuffix, collectionId])
 
     return <>
         {tableData.map((t: IngestionTable) => <>
