@@ -91,16 +91,19 @@ const columns: Array<EuiBasicTableColumn<BlobStatus>> = [
     },
     {
         field: 'workspaceName',
+        sortable: true,
         name: 'Workspace name'
     },
     {
         field: 'ingestStart',
         name: 'First event',
+        sortable: true,
         render: (ingestStart: Date) => hdate.prettyPrint(ingestStart, {showTime: true})
     },
     {
         field: 'mostRecentEvent',
         name: 'Most recent event',
+        sortable: true,
         render: (mostRecentEvent: Date) => hdate.prettyPrint(mostRecentEvent, {showTime: true})
     },
     {
@@ -181,12 +184,8 @@ function IngestionEvents(
             tableCaption="ingestion events"
             items={t.blobs}
             itemId="metadata.blobId"
-            // error={"Failed to load data"}
             loading={blobs.length === 0}
-            // message={message}
             columns={columns}
-            // search={search}
-            // pagination={pagination}
             sorting={true}
         />
     </>)}
