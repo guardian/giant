@@ -1,7 +1,6 @@
 package services.observability
 
 import extraction.Extractor
-import model.ingestion.WorkspaceItemContext
 import play.api.libs.json.{Format, Json}
 import model.manifest.Blob
 import org.joda.time.{DateTime, DateTimeZone}
@@ -11,8 +10,6 @@ import services.observability.IngestionEventType.IngestionEventType
 import services.observability.EventStatus.EventStatus
 import play.api.libs.json.JodaWrites.jodaDateWrites
 import play.api.libs.json.JodaReads.jodaDateReads
-
-import java.time.ZonedDateTime
 
 
 object IngestionEventType extends Enumeration {

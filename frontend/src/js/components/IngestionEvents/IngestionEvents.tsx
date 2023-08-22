@@ -86,10 +86,7 @@ const columns: Array<EuiBasicTableColumn<BlobStatus>> = [
         name: 'Filename(s)',
         sortable: true,
         truncateText: true,
-        render: (paths: string[]) => {
-            const x  = paths.map(p => p.split("/").slice(-1)).join("\n")
-            return x
-        }
+        render: (paths: string[]) => paths.map(p => p.split("/").slice(-1)).join("\n")
     },
     {
         field: 'paths',

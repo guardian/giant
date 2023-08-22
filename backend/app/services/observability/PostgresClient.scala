@@ -8,8 +8,6 @@ import scala.util.{Failure, Success, Try}
 import utils.Logging
 import utils.attempt.{PostgresReadFailure, PostgresWriteFailure, Failure => GiantFailure}
 
-import java.time.ZonedDateTime
-
 trait PostgresClient {
 	def insertEvent(event: IngestionEvent): Either[GiantFailure, Unit]
 	def insertMetaData(metaData: BlobMetaData): Either[GiantFailure, Unit]
@@ -155,7 +153,7 @@ class PostgresClientImpl(postgresConfig: PostgresConfig) extends PostgresClient 
 				GROUP BY 1,2,3,4,5,6
      """.map(rs => {
 				BlobStatus(
-					MetaData(
+					EventMetaData(
 						rs.string("blob_id"),
 						rs.string("ingest_id")
 					),
