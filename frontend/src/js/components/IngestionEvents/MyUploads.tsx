@@ -45,7 +45,7 @@ function MyUploads(
     return (
         <div className='app__main-content'>
         <h1 className='page-title'>My workspace uploads</h1>
-        <EuiProvider colorMode="light">
+        <EuiProvider globalStyles={false} colorMode="light">
             {defaultCollection &&
                 <>
                 {workspacesMetadata.length > 0 &&
@@ -78,7 +78,6 @@ function MyUploads(
 
 
 function mapStateToProps(state: GiantState) {
-    console.log(state)
     return {
         workspacesMetadata: state.workspaces.workspacesMetadata,
         currentUser: state.auth.token?.user,

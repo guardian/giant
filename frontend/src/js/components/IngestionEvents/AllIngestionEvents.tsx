@@ -51,7 +51,7 @@ export function AllIngestionEvents(
     return             <div className='app__main-content'>
         <h1 className='page-title'>
             All ingestion events</h1>
-            <EuiProvider colorMode="light">
+            <EuiProvider globalStyles={false} colorMode="light">
 
             <EuiFlexGroup alignItems={"flexStart"} >
         {collections.length > 0 && <EuiFlexItem grow={false}>
