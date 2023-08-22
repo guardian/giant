@@ -1,7 +1,6 @@
 
 
 import React, {useEffect, useState} from "react";
-import authFetch from "../../util/auth/authFetch";
 import {GiantState} from "../../types/redux/GiantState";
 import {GiantDispatch} from "../../types/redux/GiantDispatch";
 import {connect} from "react-redux";
@@ -35,7 +34,7 @@ export function AllIngestionEvents(
 
     useEffect(() => {
         props.getCollections({})
-    }, [])
+    }, [props.getCollections])
 
     const collectionOptions: EuiSelectOption[] = props.collections.map((collection: Collection) => ({
         value: collection.uri,

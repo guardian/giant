@@ -1,6 +1,7 @@
 package controllers.api
 
 import model.Uri
+import model.user.UserPermission.CanPerformAdminOperations
 import play.api.libs.json.Json
 import play.api.mvc.{Action, AnyContent}
 import services.observability.PostgresClient

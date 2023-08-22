@@ -5,7 +5,7 @@ import authFetch from "../../util/auth/authFetch";
 import {GiantState} from "../../types/redux/GiantState";
 import {GiantDispatch} from "../../types/redux/GiantDispatch";
 import {connect} from "react-redux";
-import {EuiFlexItem, EuiHeader, EuiHealth, EuiToolTip, EuiSpacer, EuiIconTip, EuiBadge, EuiFlexGroup, EuiInMemoryTable, EuiBasicTableColumn, EuiLoadingSpinner} from "@elastic/eui";
+import {EuiFlexItem, EuiToolTip, EuiSpacer, EuiIconTip, EuiBadge, EuiFlexGroup, EuiInMemoryTable, EuiBasicTableColumn, EuiLoadingSpinner} from "@elastic/eui";
 import '@elastic/eui/dist/eui_theme_light.css';
 import hdate from 'human-date';
 import {WorkspaceMetadata} from "../../types/Workspaces";
@@ -154,7 +154,6 @@ function IngestionEvents(
     const ingestIdSuffix = props.ingestId && props.ingestId !== "all" ? `/${props.ingestId}` : ""
     const [tableData, setTableData] = useState<IngestionTable[]>([])
 
-    console.log(ingestIdSuffix)
 
     useEffect(() => {
         authFetch(`/api/ingestion-events/${props.collectionId}${ingestIdSuffix}`)
@@ -163,7 +162,7 @@ function IngestionEvents(
                 const blobStatuses = json.map(parseBlobStatus)
                 updateBlobs(blobStatuses)
         })
-    }, [props.collectionId, props.ingestId, updateBlobs])
+    }, [props.collectionId, props.ingestId, updateBlobs, ingestIdSuffix, props.collectionId])
 
     useEffect(() => {
         if (props.breakdownByWorkspace) {
@@ -172,7 +171,7 @@ function IngestionEvents(
             setTableData([{title: `${props.collectionId}${ingestIdSuffix}`, blobs}])
         }
 
-    }, [props.breakdownByWorkspace, blobs, props.workspaces])
+    }, [props.breakdownByWorkspace, blobs, props.workspaces, ingestIdSuffix, props.collectionId])
 
     return <>
         {tableData.map((t: IngestionTable) => <>

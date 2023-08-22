@@ -33,7 +33,7 @@ function MyUploads(
     useEffect(() => {
         props.getCollections({})
         props.getWorkspacesMetadata({})
-    }, [])
+    }, [props.getCollections, props.getWorkspacesMetadata])
 
     useEffect(() => {
         if (props.currentUser && props.collections.length > 0) {
