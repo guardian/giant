@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 set -e
 
+SCRIPT_PATH=$( cd $(dirname $0) ; pwd -P )
+MIGRATE_DIRECTORY="$SCRIPT_PATH/../../postgres/migrate-db"
+
 DB_SECRET_ID=$(aws secretsmanager list-secrets \
   --filters Key=tag-value,Values=pfi-giant-postgres-PROD \
   --profile investigations \
@@ -16,18 +19,23 @@ SECRET=$(aws secretsmanager get-secret-value \
 
 DB_PASSWORD=$(echo $SECRET | jq -r .password)
 DB_HOST=$(echo $SECRET | jq -r .host)
+PORT=25433
 
 SSH_COMMAND=$(ssm ssh --raw -t pfi-worker,pfi-giant,rex --newest --profile investigations)
+eval ${SSH_COMMAND} -L $PORT:$DB_HOST:5432 -o ExitOnForwardFailure=yes -f sleep 10
 
-# -f to run in background
-# sleep 10 to give time for tunnel to be established before psql connects.
-# Once psql connects, ssh will keep the tunnel open as long as there is
-# at least one open connection, so until you exit psql.
-eval ${SSH_COMMAND} -L 25433:$DB_HOST:5432 -o ExitOnForwardFailure=yes -f sleep 10
 
-# For some reason the terminal gets messed up after running the SSH command.
-# Possibly the remote terminal changes the window size and some other
-# settings? Not sure how else to fix.
-reset
+echo "change directory to $DATA_DIRECTORY"
 
-PGPASSWORD=$DB_PASSWORD psql -h localhost -p 25433 -U giant_master -d giant "$@"
+cd $MIGRATE_DIRECTORY
+
+EXPECTED_NODE_VERSION=$(head -1 .nvmrc)
+CURRENT_NODE_VERSION=$(node --version)
+
+if [[ $CURRENT_NODE_VERSION = *"$EXPECTED_NODE_VERSION"* ]]; then
+  npm install
+  npm run start PROD $PORT
+else
+  echo -e "\033[0;31m ERROR current directory NODE version $CURRENT_NODE_VERSION does not match the expected version $EXPECTED_NODE_VERSION" 1>&2
+  exit 1
+fi

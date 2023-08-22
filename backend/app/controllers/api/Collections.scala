@@ -3,7 +3,6 @@ package controllers.api
 import java.net.URLDecoder
 import java.nio.file.Paths
 import java.util.UUID
-
 import commands._
 import model.ingestion.WorkspaceItemUploadContext
 import model.manifest.CollectionWithUsers

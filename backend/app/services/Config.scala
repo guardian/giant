@@ -3,6 +3,7 @@ package services
 import net.ceedubs.ficus.Ficus._
 import net.ceedubs.ficus.readers.ArbitraryTypeReader._
 import net.ceedubs.ficus.readers.EnumerationReader._
+import play.api.libs.json.Json
 
 import scala.concurrent.duration.FiniteDuration
 
@@ -100,6 +101,17 @@ case class Neo4jConfig(
   queryLogging: Neo4jQueryLoggingConfig
 )
 
+case class PostgresConfig(
+  host: String,
+  port: Int,
+  username: String,
+  password: String,
+)
+
+object PostgresConfig {
+  implicit val format = Json.format[PostgresConfig]
+}
+
 case class ElasticsearchConfig(
   hosts: List[String],
   indexName: String,
@@ -161,6 +173,7 @@ case class Config(
   auth: AuthConfig,
   worker: WorkerConfig,
   neo4j: Neo4jConfig,
+  postgres: Option[PostgresConfig],
   elasticsearch: ElasticsearchConfig,
   ingestion: IngestConfig,
   preview: PreviewConfig,
@@ -176,6 +189,7 @@ object Config {
     parseAuth(raw.getConfig("auth")),
     raw.as[WorkerConfig]("worker"),
     raw.as[Neo4jConfig]("neo4j"),
+    raw.as[Option[PostgresConfig]]("postgres"),
     raw.as[ElasticsearchConfig]("elasticsearch"),
     raw.as[IngestConfig]("ingestion"),
     raw.as[PreviewConfig]("preview"),

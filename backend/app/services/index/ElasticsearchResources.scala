@@ -3,23 +3,23 @@ package services.index
 import com.sksamuel.elastic4s.ElasticClient
 import com.sksamuel.elastic4s.ElasticDsl._
 import com.sksamuel.elastic4s.requests.common.FetchSourceContext
+import com.sksamuel.elastic4s.requests.searches.DateHistogramInterval
 import com.sksamuel.elastic4s.requests.searches.queries.BoolQuery
-import com.sksamuel.elastic4s.requests.searches.{DateHistogramInterval, HighlightField}
 import com.sksamuel.elastic4s.requests.update.UpdateByQueryRequest
 import extraction.EnrichedMetadata
 import model.frontend._
 import model.frontend.email.EmailMetadata
 import model.index._
 import model.ingestion.WorkspaceItemContext
-import model.{Arabic, Email, ExtractedDateTime, Language, Languages, Recipient, Uri}
+import model.{Email, ExtractedDateTime, Language, Languages, Recipient, Uri}
 import services.ElasticsearchSyntax
 import services.ElasticsearchSyntax.NestedField
 import services.index.HitReaders._
 import utils._
 import utils.attempt._
 
-import scala.jdk.CollectionConverters._
 import scala.concurrent.ExecutionContext
+import scala.jdk.CollectionConverters._
 
 class ElasticsearchResources(override val client: ElasticClient, indexName: String)(implicit executionContext: ExecutionContext) extends Index with Logging with ElasticsearchSyntax {
   override def setup(): Attempt[Index] = {

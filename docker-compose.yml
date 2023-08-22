@@ -56,6 +56,21 @@ services:
     command:
       -c 'mkdir -p /export/ingest-data && mkdir -p /export/data && mkdir -p /export/preview && minio server /export --console-address ":9001"'
 
+  postgres:
+    image: postgres:15.3
+    # make sure there's enough memory to run VACUUM
+    shm_size: 1g
+    ports:
+      - 8432:5432
+    environment:
+      - POSTGRES_USER=giant_master
+      - POSTGRES_PASSWORD=giant
+      - POSTGRES_DB=giant
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    command:
+      ["postgres", "-c", "log_statement=all", "-c", "random_page_cost=1.5"]
+
 volumes:
   neo4j:
     driver: local
@@ -64,4 +79,7 @@ volumes:
     driver: local
 
   minio:
+    driver: local
+
+  postgres-data:
     driver: local

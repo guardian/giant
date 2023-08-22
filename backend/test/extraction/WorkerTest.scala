@@ -1,22 +1,20 @@
 package extraction
 
-import java.io.InputStream
-import java.nio.file.Path
 import model.manifest.{Blob, WorkItem}
 import model.{English, ObjectMetadata, Uri}
 import org.scalatest.EitherValues
-import services.{NoOpMetricsService, ObjectStorage}
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 import services.manifest.Manifest.WorkCounts
 import services.manifest.WorkerManifest
+import services.{NoOpMetricsService, ObjectStorage}
+import test.TestPostgresClient
 import utils.attempt.AttemptAwait._
 import utils.attempt.{Failure, IllegalStateFailure}
 
+import java.io.InputStream
+import java.nio.file.Path
 import scala.concurrent.ExecutionContext.Implicits.global
-import org.scalatest.flatspec.AnyFlatSpec
-import org.scalatest.matchers.should.Matchers
-import play.api.mvc.Result
-import utils.auth.User
-import utils.controller.DefaultFailureToResultMapper
 
 //noinspection NotImplementedCode
 class WorkerTest extends AnyFlatSpec with Matchers with EitherValues {
@@ -91,7 +89,7 @@ class WorkerTest extends AnyFlatSpec with Matchers with EitherValues {
       override def list(prefix: String): Either[Failure, List[String]] = ???
     }
 
-    new Worker("test", manifest, blobStorage, extractors, new NoOpMetricsService)(scala.concurrent.ExecutionContext.global)
+    new Worker("test", manifest, blobStorage, extractors, new NoOpMetricsService, new TestPostgresClient)(scala.concurrent.ExecutionContext.global)
   }
 }
 

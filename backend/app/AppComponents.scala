@@ -33,6 +33,7 @@ import services.events.ElasticsearchEvents
 import services.index.{ElasticsearchPages, ElasticsearchResources, Pages2}
 import services.ingestion.IngestionServices
 import services.manifest.Neo4jManifest
+import services.observability.{PostgresClientDoNothing, PostgresClientImpl}
 import services.previewing.PreviewService
 import services.table.ElasticsearchTable
 import services.users.Neo4jUserManagement
@@ -94,6 +95,12 @@ class AppComponents(context: Context, config: Config)
     val ingestStorage = S3IngestStorage(s3Client, config.s3.buckets.ingestion).valueOr(failure => throw new Exception(failure.msg))
     val blobStorage = S3ObjectStorage(s3Client, config.s3.buckets.collections).valueOr(failure => throw new Exception(failure.msg))
 
+    val postgresClient = config.postgres match {
+      case Some(postgresConfig) =>  new PostgresClientImpl(postgresConfig)
+      case None =>
+        logger.warn("Postgres config not found, using dummy postgres client!")
+        new PostgresClientDoNothing
+    }
     val esClient = ElasticsearchClient(config).await()
     val esResources = new ElasticsearchResources(esClient, config.elasticsearch.indexName).setup().await()
     val esTables = new ElasticsearchTable(esClient, config.elasticsearch.tableRowIndexName).setup().await()
@@ -129,7 +136,7 @@ class AppComponents(context: Context, config: Config)
     // processing services
     val tika = Tika.createInstance
     val mimeTypeMapper = new MimeTypeMapper()
-    val ingestionServices = IngestionServices(manifest, esResources, blobStorage, tika, mimeTypeMapper)
+    val ingestionServices = IngestionServices(manifest, esResources, blobStorage, tika, mimeTypeMapper, postgresClient)
 
     // Preview
     val previewStorage = S3ObjectStorage(s3Client, config.s3.buckets.preview).valueOr(failure => throw new Exception(failure.msg))
@@ -202,11 +209,11 @@ class AppComponents(context: Context, config: Config)
       logger.info("Worker enabled on this instance")
 
       // PFI processors
-      val worker = new Worker(workerName, manifest, blobStorage, extractors, metricsService)(workerExecutionContext)
+      val worker = new Worker(workerName, manifest, blobStorage, extractors, metricsService, postgresClient)(workerExecutionContext)
 
       // ingestion phase 2
       val phase2IngestionScheduler =
-        new IngestStorePolling(pekkoActorSystem, workerExecutionContext, workerControl, ingestStorage, scratchSpace, ingestionServices, config.ingestion.batchSize, metricsService)
+        new IngestStorePolling(pekkoActorSystem, workerExecutionContext, workerControl, ingestStorage, scratchSpace, ingestionServices, config.ingestion.batchSize, metricsService, postgresClient)
       phase2IngestionScheduler.start()
       applicationLifecycle.addStopHook(() => phase2IngestionScheduler.stop())
 

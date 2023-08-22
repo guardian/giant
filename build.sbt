@@ -140,6 +140,7 @@ lazy val backend = (project in file("backend"))
       "com.sun.mail" % "javax.mail" % "1.6.2",
       "org.jsoup" % "jsoup" % "1.14.2",
       "com.gu" %% "pan-domain-auth-verification" % "1.2.0",
+      "com.amazonaws" % "aws-java-sdk-secretsmanager" % "1.12.528",
 
       // this is needed to override the 2.11.4 version of jackson-module used in various play libraries (including jwt-play)
       // as 2.11.4 is only compatible with versions of jackson databind up to 2.12.0 - and we're using 2.12.7 (Phil thinks
@@ -155,6 +156,10 @@ lazy val backend = (project in file("backend"))
       // Subject to the mad unRAR restriction so again should be reviewed before any open sourcing
       // The latest code is here: https://github.com/junrar/junrar (not in the older repository that appears first in Google)
       "com.github.junrar" % "junrar" % "7.4.1",
+
+      // postgres
+      "org.scalikejdbc" %% "scalikejdbc"       % "3.5.0",
+      "org.postgresql"  %  "postgresql"        % "42.2.5",
 
       // Test dependencies
 

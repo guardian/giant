@@ -5,7 +5,6 @@ import java.nio.charset.StandardCharsets
 import java.nio.file.{Files, Path, Paths}
 import java.time.format.DateTimeFormatter
 import java.time.{OffsetDateTime, ZoneOffset}
-
 import com.google.common.hash.Hashing
 import commands.IngestFile
 import extraction.{ExtractionParams, Extractor, MimeTypeMapper}
@@ -15,10 +14,10 @@ import model.manifest.{Blob, MimeType, WorkItem}
 import model.{Email, English, Recipient, Uri}
 import org.scalamock.scalatest.MockFactory
 import services.events.Events
-import services.{FingerprintServices, ObjectStorage, Tika}
+import services.{ObjectStorage, Tika}
 import services.index.Index
 import services.ingestion.IngestionServices
-import test.AttemptValues
+import test.{AttemptValues, TestPostgresClient}
 import test.integration.Neo4jTestService
 import utils.attempt.{Failure, MissingPermissionFailure, NotFoundFailure}
 import utils.attempt._
@@ -431,7 +430,7 @@ class Neo4JManifestITest extends AnyFreeSpec with Matchers with Neo4jTestService
         val index = mock[Index]
         (index.ingestDocument _).expects(*, *, *, *).returning(Attempt.Right(()))
         val tika: Tika = Tika.createInstance
-        val ingestionServices: IngestionServices = IngestionServices(manifest, index, objectStorage, tika, mimeTypeMapper)(scala.concurrent.ExecutionContext.global)
+        val ingestionServices: IngestionServices = IngestionServices(manifest, index, objectStorage, tika, mimeTypeMapper, new TestPostgresClient)(scala.concurrent.ExecutionContext.global)
 
         manifest.insertCollection(collectionUri.value, collectionUri.value, createdBy = "me").eitherValue.isRight should be(true)
         insertIngestion(collectionUri, Some(ingestionUri), fixed = false).eitherValue.isRight should be(true)

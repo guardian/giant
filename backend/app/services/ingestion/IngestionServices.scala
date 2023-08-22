@@ -1,7 +1,6 @@
 package services.ingestion
 
 import java.nio.file.{Files, Path}
-
 import cats.syntax.either._
 import extraction.{Extractor, MimeTypeMapper}
 import model.{Language, Uri}
@@ -16,6 +15,7 @@ import utils.attempt.{Attempt, Failure, NotFoundFailure}
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
+import services.observability.{BlobMetaData, EventDetails, IngestionEvent, IngestionEventType, EventMetaData, PostgresClient, EventStatus}
 
 sealed trait UriParent {
   def parent: Uri
@@ -46,7 +46,7 @@ trait IngestionServices {
 }
 
 object IngestionServices extends Logging {
-  def apply(manifest: Manifest, index: Index, objectStorage: ObjectStorage, typeDetector: TypeDetector, mimeTypeMapper: MimeTypeMapper)(implicit ec: ExecutionContext): IngestionServices = new IngestionServices {
+  def apply(manifest: Manifest, index: Index, objectStorage: ObjectStorage, typeDetector: TypeDetector, mimeTypeMapper: MimeTypeMapper, postgresClient: PostgresClient)(implicit ec: ExecutionContext): IngestionServices = new IngestionServices {
     override def ingestEmail(context: EmailContext, sourceMimeType: String): Either[Failure, Unit] = {
 
       val uriParents: List[UriParent] = UriParent.createPairwiseChain(context.parents)
@@ -66,6 +66,15 @@ object IngestionServices extends Logging {
     }
 
     override def ingestFile(context: FileContext, blobUri: Uri, path: Path): Either[Failure, Blob] = {
+      val ingestionMetaData = EventMetaData(blobUri.value, context.ingestion)
+      postgresClient.insertMetaData(BlobMetaData(
+        ingestId = context.ingestion,
+        blobId = blobUri.value,
+        fileSize = context.file.size.toInt,
+        path = context.file.uri.value.replaceFirst(context.ingestion + "/", ""))
+      )
+      postgresClient.insertEvent(IngestionEvent(ingestionMetaData, IngestionEventType.HashComplete, details = EventDetails.workspaceDetails(context.workspace)))
+
       // see if the Blob already exists in the manifest to avoid doing uneeded processing
       val blob: Either[Failure, Option[Blob]] = manifest.getBlob(blobUri).map(Some(_)).recoverWith {
         // successful DB query, but the blob isn't there
@@ -73,10 +82,20 @@ object IngestionServices extends Logging {
       }
 
       val upload = blob.flatMap { maybeBlob =>
-        if (maybeBlob.isEmpty)
-          objectStorage.create(blobUri.toStoragePath, path)
-        else
+        if (maybeBlob.isEmpty) {
+          val result = objectStorage.create(blobUri.toStoragePath, path)
+          result match {
+            case Right(_) => postgresClient.insertEvent(IngestionEvent(ingestionMetaData, IngestionEventType.BlobCopy))
+            case Left(failure: Failure) =>
+              postgresClient.insertEvent(
+                IngestionEvent(ingestionMetaData, IngestionEventType.BlobCopy, EventStatus.Failure, EventDetails.errorDetails(failure.msg))
+              )
+          }
+          result
+        } else {
+          postgresClient.insertEvent(IngestionEvent(ingestionMetaData, eventType = IngestionEventType.ManifestExists))
           Right(())
+        }
       }
 
       val uriParents: List[UriParent] = UriParent.createPairwiseChain(context.parents)
@@ -101,6 +120,9 @@ object IngestionServices extends Logging {
           context.parentBlobs,
           context.ingestion,
           context.workspace
+        )
+        _ = postgresClient.insertEvent(
+          IngestionEvent(ingestionMetaData, eventType = IngestionEventType.MimeTypeDetected, details = EventDetails.ingestionDataDetails(data, extractors))
         )
         // TODO once we get attempt everywhere we can remove the await
         _ <- index.ingestDocument(blobUri, context.file.size, data, context.languages).awaitEither(2.minutes)

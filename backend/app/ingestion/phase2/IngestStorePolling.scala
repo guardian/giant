@@ -8,15 +8,18 @@ import com.amazonaws.services.cloudwatch.model.MetricDatum
 import extraction.Worker
 import model.Uri
 import model.ingestion.Key
+import org.apache.xmlbeans.impl.soap.Detail
 import services.ingestion.IngestionServices
 import services.{FingerprintServices, IngestStorage, MetricUpdate, Metrics, MetricsService, ScratchSpace}
-import utils.attempt.{Attempt, Failure, UnknownFailure}
+import utils.attempt.{Attempt, ElasticSearchQueryFailure, Failure, UnknownFailure}
 import utils.{Logging, WorkerControl}
 
 import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
 import scala.util.{Success, Failure => SFailure}
+import services.observability.{EventDetails, IngestionEvent, IngestionEventType, EventMetaData, PostgresClient, EventStatus}
+
 
 case class WorkSelector(numberOfNodes: Int, thisNode: Int) extends Logging {
   def isSelected(long: Long): Boolean = {
@@ -33,7 +36,8 @@ class IngestStorePolling(
   scratchSpace: ScratchSpace,
   ingestionServices: IngestionServices,
   batchSize: Int,
-  metricsService: MetricsService) extends Logging {
+  metricsService: MetricsService,
+  postgresClient: PostgresClient) extends Logging {
   implicit val workerContext: ExecutionContext = executionContext
 
   private val minimumWait = 10.second
@@ -105,8 +109,23 @@ class IngestStorePolling(
     for {
       context <- ingestStorage.getMetadata(key)
       _ <- fetchData(key) { case (path, fingerprint) =>
+        val ingestionMetaData = EventMetaData(fingerprint.value, context.ingestion)
+
         try {
-          ingestionServices.ingestFile(context, fingerprint, path)
+          val ingestResult = ingestionServices.ingestFile(context, fingerprint, path)
+          ingestResult match {
+            case Left(failure) =>
+              val details = EventDetails.errorDetails(failure.msg, failure.cause.map(throwable => throwable.getStackTrace.toString) )
+              postgresClient.insertEvent { failure match {
+                case _: ElasticSearchQueryFailure =>
+                  IngestionEvent(ingestionMetaData, eventType = IngestionEventType.InitialElasticIngest, status = EventStatus.Failure, details = details)
+                case _ =>
+                  IngestionEvent(ingestionMetaData, eventType = IngestionEventType.IngestFile, status = EventStatus.Failure, details = details)
+              }}
+
+            case Right(_) => postgresClient.insertEvent(IngestionEvent(ingestionMetaData, eventType = IngestionEventType.IngestFile))
+          }
+          ingestResult
         } catch {
           case NonFatal(t) =>
             logger.error(s"Unexpected exception", t)

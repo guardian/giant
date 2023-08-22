@@ -7,6 +7,7 @@ import extraction.Worker.Batch
 import model.manifest.{Blob, WorkItem}
 import services.{Metrics, MetricsService, ObjectStorage}
 import services.manifest.WorkerManifest
+import services.observability.{EventDetails, IngestionEvent, IngestionEventType, EventMetaData, PostgresClient, EventStatus}
 import utils.Logging
 import utils.attempt._
 
@@ -23,7 +24,8 @@ class Worker(
   manifest: WorkerManifest,
   blobStorage: ObjectStorage,
   extractors: List[Extractor],
-  metricsService: MetricsService)(implicit executionContext: ExecutionContext) extends Logging {
+  metricsService: MetricsService,
+  postgresClient: PostgresClient)(implicit executionContext: ExecutionContext) extends Logging {
 
   private val maxBatchSize = 1000 // tasks
   private val maxCost = 100 * 1024 * 1024 // 100MB
@@ -74,9 +76,16 @@ class Worker(
       val result = blobStorage.get(blob.uri.toStoragePath)
         .flatMap(safeInvokeExtractor(params, extractor, blob, _))
 
+
       result match {
         case Right(_) =>
           markAsComplete(params, blob, extractor)
+          postgresClient.insertEvent(
+            IngestionEvent(
+              EventMetaData(blob.uri.value, params.ingestion),
+              IngestionEventType.RunExtractor,
+              details = EventDetails.extractorDetails(extractor.name))
+          )
           completed + 1
 
         case Left(SubprocessInterruptedFailure) =>
@@ -90,6 +99,17 @@ class Worker(
           markAsFailure(blob, extractor, failure)
           metricsService.updateMetric(Metrics.itemsFailed)
           logger.error(s"Ingest batch execution failure, ${failure.msg}", failure.toThrowable)
+
+          postgresClient.insertEvent(
+            IngestionEvent(
+              EventMetaData(blob.uri.value, params.ingestion),
+              IngestionEventType.RunExtractor,
+              EventStatus.Failure,
+              details = EventDetails.extractorErrorDetails(
+                extractor.name, failure.msg, failure.cause.map(throwable => throwable.getStackTrace.toString)
+              )
+            )
+          )
           completed
       }
     }

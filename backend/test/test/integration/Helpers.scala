@@ -23,7 +23,7 @@ import services.manifest.Neo4jManifest
 import services.users.{Neo4jUserManagement, UserManagement}
 import services.{BucketConfig, Neo4jQueryLoggingConfig, S3Config, TestTypeDetector}
 import test.integration.Helpers.BlobAndNodeId
-import test.{TestAuthActionBuilder, TestObjectStorage, TestPreviewService, TestUserManagement}
+import test.{TestAuthActionBuilder, TestObjectStorage, TestPostgresClient, TestPreviewService, TestUserManagement}
 import utils.Logging
 import utils.attempt.AttemptAwait._
 import utils.auth.User
@@ -233,7 +233,7 @@ object Helpers extends Matchers with Logging with OptionValues with Inside {
 
     val typeDetector = new TestTypeDetector("application/pdf")
 
-    val ingestionServices = IngestionServices(manifest, elasticsearch.elasticResources, new TestObjectStorage(), typeDetector, new MimeTypeMapper())
+    val ingestionServices = IngestionServices(manifest, elasticsearch.elasticResources, new TestObjectStorage(), typeDetector, new MimeTypeMapper(), new TestPostgresClient)
 
     elasticsearch.resetIndices()
 
