@@ -19,9 +19,9 @@ SECRET=$(aws secretsmanager get-secret-value \
 
 DB_PASSWORD=$(echo $SECRET | jq -r .password)
 DB_HOST=$(echo $SECRET | jq -r .host)
-PORT=25432
+PORT=25433
 
-SSH_COMMAND=$(ssm ssh --raw -t pfi-worker,pfi-playground,rex --newest --profile investigations)
+SSH_COMMAND=$(ssm ssh --raw -t pfi-worker,pfi-giant,rex --newest --profile investigations)
 eval ${SSH_COMMAND} -L $PORT:$DB_HOST:5432 -o ExitOnForwardFailure=yes -f sleep 10
 
 
