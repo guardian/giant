@@ -18,7 +18,7 @@ import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
 import scala.util.{Success, Failure => SFailure}
-import services.observability.{EventDetails, IngestionEvent, IngestionEventType, EventMetaData, PostgresClient, EventStatus}
+import services.observability.{EventDetails, IngestionEvent, IngestionEventType, EventMetadata, PostgresClient, EventStatus}
 
 
 case class WorkSelector(numberOfNodes: Int, thisNode: Int) extends Logging {
@@ -109,7 +109,7 @@ class IngestStorePolling(
     for {
       context <- ingestStorage.getMetadata(key)
       _ <- fetchData(key) { case (path, fingerprint) =>
-        val ingestionMetaData = EventMetaData(fingerprint.value, context.ingestion)
+        val ingestionMetaData = EventMetadata(fingerprint.value, context.ingestion)
 
         try {
           val ingestResult = ingestionServices.ingestFile(context, fingerprint, path)

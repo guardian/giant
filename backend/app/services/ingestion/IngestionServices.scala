@@ -15,7 +15,7 @@ import utils.attempt.{Attempt, Failure, NotFoundFailure}
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
-import services.observability.{BlobMetaData, EventDetails, IngestionEvent, IngestionEventType, EventMetaData, PostgresClient, EventStatus}
+import services.observability.{BlobMetadata, EventDetails, IngestionEvent, IngestionEventType, EventMetadata, PostgresClient, EventStatus}
 
 sealed trait UriParent {
   def parent: Uri
@@ -70,8 +70,8 @@ object IngestionServices extends Logging {
     }
 
     override def ingestFile(context: FileContext, blobUri: Uri, path: Path): Either[Failure, Blob] = {
-      val ingestionMetaData = EventMetaData(blobUri.value, context.ingestion)
-      postgresClient.insertMetaData(BlobMetaData(
+      val ingestionMetaData = EventMetadata(blobUri.value, context.ingestion)
+      postgresClient.insertMetadata(BlobMetadata(
         ingestId = context.ingestion,
         blobId = blobUri.value,
         fileSize = context.file.size.toInt,

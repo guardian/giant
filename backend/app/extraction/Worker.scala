@@ -7,7 +7,7 @@ import extraction.Worker.Batch
 import model.manifest.{Blob, WorkItem}
 import services.{Metrics, MetricsService, ObjectStorage}
 import services.manifest.WorkerManifest
-import services.observability.{EventDetails, IngestionEvent, IngestionEventType, EventMetaData, PostgresClient, EventStatus}
+import services.observability.{EventDetails, IngestionEvent, IngestionEventType, EventMetadata, PostgresClient, EventStatus}
 import utils.Logging
 import utils.attempt._
 
@@ -73,7 +73,7 @@ class Worker(
     work.foldLeft(0) { case(completed, (extractor, blob, params)) =>
       logger.info(s"Working on ${blob.uri.value} with ${extractor.name}")
 
-      val observabilityMetadata = EventMetaData(blob.uri.value, params.ingestion)
+      val observabilityMetadata = EventMetadata(blob.uri.value, params.ingestion)
 
       postgresClient.insertEvent(
         IngestionEvent(

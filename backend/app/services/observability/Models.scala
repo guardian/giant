@@ -79,34 +79,34 @@ object EventDetails {
 
 }
 
-case class EventMetaData(blobId: String, ingestId: String)
+case class EventMetadata(blobId: String, ingestId: String)
 
-object EventMetaData {
-  implicit val format = Json.format[EventMetaData]
+object EventMetadata {
+  implicit val format = Json.format[EventMetadata]
 }
 
 case class IngestionEvent(
-                           metaData: EventMetaData,
+                           metaData: EventMetadata,
                            eventType: IngestionEventType,
                            status: EventStatus = EventStatus.Success,
                            details: Option[EventDetails] = None
                          )
 object IngestionEvent {
-  implicit val metaDataFormat = Json.format[EventMetaData]
+  implicit val metaDataFormat = Json.format[EventMetadata]
   implicit val ingestionEventFormat = Json.format[IngestionEvent]
 
   def workspaceUploadEvent(blobId: String, ingestUri: String, workspaceName: String, status: EventStatus): IngestionEvent = IngestionEvent(
-    EventMetaData(blobId, ingestUri),
+    EventMetadata(blobId, ingestUri),
     IngestionEventType.WorkspaceUpload,
     status,
     Some(EventDetails(workspaceName = Some(workspaceName)))
   )
 }
 
-case class BlobMetaData(ingestId: String, blobId: String, path: String, fileSize: Long)
+case class BlobMetadata(ingestId: String, blobId: String, path: String, fileSize: Long)
 
-object BlobMetaData {
-  implicit val blobMetaDataFormat = Json.format[BlobMetaData]
+object BlobMetadata {
+  implicit val blobMetaDataFormat = Json.format[BlobMetadata]
 }
 
 case class ExtractorStatusUpdate(eventTime: DateTime, status: EventStatus)
@@ -138,7 +138,7 @@ object ExtractorStatus {
 }
 
 case class BlobStatus(
-                       metaData: EventMetaData,
+                       metaData: EventMetadata,
                        paths: List[String],
                        fileSize: Long,
                        workspaceName: Option[String],

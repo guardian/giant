@@ -10,14 +10,14 @@ import utils.attempt.{PostgresReadFailure, PostgresWriteFailure, Failure => Gian
 
 trait PostgresClient {
 	def insertEvent(event: IngestionEvent): Either[GiantFailure, Unit]
-	def insertMetaData(metaData: BlobMetaData): Either[GiantFailure, Unit]
+	def insertMetadata(metaData: BlobMetadata): Either[GiantFailure, Unit]
 	def getEvents (ingestId: String, ingestIdIsPrefix: Boolean): Either[GiantFailure, List[BlobStatus]]
 }
 
 class PostgresClientDoNothing extends PostgresClient {
 	override def insertEvent(event: IngestionEvent): Either[GiantFailure, Unit] = Right(())
 
-	override def insertMetaData(metaData: BlobMetaData): Either[GiantFailure, Unit] = Right(())
+	override def insertMetadata(metaData: BlobMetadata): Either[GiantFailure, Unit] = Right(())
 
 	override def getEvents (ingestId: String, ingestIdIsPrefix: Boolean): Either[GiantFailure, List[BlobStatus]] = Right(List())
 }
@@ -31,7 +31,7 @@ class PostgresClientImpl(postgresConfig: PostgresConfig) extends PostgresClient 
 
 	import EventDetails.detailsFormat
 
-	def insertMetaData(metaData: BlobMetaData): Either[GiantFailure, Unit] = {
+	def insertMetadata(metaData: BlobMetadata): Either[GiantFailure, Unit] = {
 		Try {
 			sql"""
 			INSERT INTO blob_metadata (
@@ -153,7 +153,7 @@ class PostgresClientImpl(postgresConfig: PostgresConfig) extends PostgresClient 
 				GROUP BY 1,2,3,4,5,6
      """.map(rs => {
 				BlobStatus(
-					EventMetaData(
+					EventMetadata(
 						rs.string("blob_id"),
 						rs.string("ingest_id")
 					),
