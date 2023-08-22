@@ -109,7 +109,7 @@ object BlobMetadata {
   implicit val blobMetaDataFormat = Json.format[BlobMetadata]
 }
 
-case class ExtractorStatusUpdate(eventTime: DateTime, status: EventStatus)
+case class ExtractorStatusUpdate(eventTime: Option[DateTime], status: EventStatus)
 object ExtractorStatusUpdate {
   implicit val dateWrites = jodaDateWrites("yyyy-MM-dd'T'HH:mm:ss.SSSZ")
   implicit val dateReads = jodaDateReads("yyyy-MM-dd'T'HH:mm:ss.SSSZ")
@@ -125,10 +125,10 @@ object ExtractorStatus {
     val statusUpdatesParsed = extractorEventTimes.zip(extractorStatuses).map {
       case (times, statuses) => times.split(",").zip(statuses.split(",")).map{
         case (time, status) =>
-          val millisecondsSinceEpoch = (time.toDouble * 1000).toLong
+          val eventTime = if (time == "null") None else Some(new DateTime((time.toDouble * 1000).toLong, DateTimeZone.UTC))
 
           val parsedStatus = if (status == "null") EventStatus.Unknown else EventStatus.withName(status)
-          ExtractorStatusUpdate(new DateTime(millisecondsSinceEpoch, DateTimeZone.UTC), parsedStatus)}.toList
+          ExtractorStatusUpdate(eventTime, parsedStatus)}.toList
     }.toList
 
     extractors.toList.zip(statusUpdatesParsed).map {case (extractor, statusUpdates) => ExtractorStatus(ExtractorType.withName(extractor), statusUpdates)
