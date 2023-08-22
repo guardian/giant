@@ -152,7 +152,7 @@ function IngestionEvents(
         workspaces: WorkspaceMetadata[],
         breakdownByWorkspace: boolean
     }) {
-    const [blobs, updateBlobs] = useState<BlobStatus[]>([])
+    const [blobs, updateBlobs] = useState<BlobStatus[] | undefined>(undefined)
 
     const ingestIdSuffix = ingestId && ingestId !== "all" ? `/${ingestId}` : ""
     const [tableData, setTableData] = useState<IngestionTable[]>([])
@@ -168,11 +168,18 @@ function IngestionEvents(
     }, [collectionId, ingestId, updateBlobs, ingestIdSuffix])
 
     useEffect(() => {
-        if (breakdownByWorkspace) {
-            setTableData(workspaces
-                .map((w:WorkspaceMetadata) => ({title: `Workspace: ${w.name}`, blobs: blobs.filter(b => b.workspaceName === w.name)})))
+        if (blobs) {
+            if (breakdownByWorkspace) {
+                setTableData(workspaces
+                    .map((w: WorkspaceMetadata) => ({
+                        title: `Workspace: ${w.name}`,
+                        blobs: blobs.filter(b => b.workspaceName === w.name)
+                    })))
+            } else {
+                setTableData([{title: `${collectionId}${ingestIdSuffix}`, blobs}])
+            }
         } else {
-            setTableData([{title: `${collectionId}${ingestIdSuffix}`, blobs}])
+            setTableData([])
         }
 
     }, [breakdownByWorkspace, blobs, workspaces, ingestIdSuffix, collectionId])
@@ -185,7 +192,7 @@ function IngestionEvents(
             tableCaption="ingestion events"
             items={t.blobs}
             itemId="metadata.blobId"
-            loading={blobs.length === 0}
+            loading={blobs === undefined}
             columns={columns}
             sorting={true}
         />
