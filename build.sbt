@@ -75,7 +75,7 @@ lazy val root = (project in file("."))
       (cli / Universal / packageZipTarball).value -> s"pfi-public-downloads/${(cli / name).value}.tar.gz",
       file("riff-raff.yaml") -> "riff-raff.yaml"
     )
-  )
+)
 
 lazy val common = (project in file("common"))
   .settings(
@@ -138,8 +138,11 @@ lazy val backend = (project in file("backend"))
       "com.amazonaws" % "aws-java-sdk-cloudwatchmetrics" % awsVersion,
       "com.beachape" %% "enumeratum-play" % "1.7.2",
       "com.iheart" %% "ficus" % "1.5.2",
-      "com.sun.mail" % "javax.mail" % "1.6.2",
+//      "com.sun.mail" % "javax.mail" % "1.6.2",
       "org.jsoup" % "jsoup" % "1.14.2",
+      "org.eclipse.angus" % "jakarta.mail" % "2.0.2",
+      "org.eclipse.angus" % "angus-mail" % "2.0.2",
+      "com.sun.mail" % "mbox" % "1.6.7.payara-p1",
       "com.gu" %% "pan-domain-auth-verification" % "1.2.0",
       "com.amazonaws" % "aws-java-sdk-secretsmanager" % "1.12.528",
 
@@ -197,7 +200,10 @@ lazy val backend = (project in file("backend"))
       "-J-XX:+HeapDumpOnOutOfMemoryError",
       s"-J-Xloggc:/var/log/${name.value}/gc.log",
       s"-J-Dhttp.port=$port"
-    )
+    ),
+
+    resolvers += "Payara repository" at "https://nexus.payara.fish/repository/payara-artifacts/"
+
   )
 
 lazy val cli = (project in file("cli"))

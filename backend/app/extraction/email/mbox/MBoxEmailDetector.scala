@@ -1,8 +1,9 @@
 package extraction.email.mbox
 
 import java.io.InputStream
-
-import extraction.email.{CustomTikaDetector, JavaMail}
+import java.io.InputStream
+import java.util.Properties
+import extraction.email.{CustomTikaDetector, JakartaMail}
 import org.apache.tika.io.TikaInputStream
 import org.apache.tika.mime.MediaType
 
@@ -16,10 +17,13 @@ object MBoxEmailDetector extends CustomTikaDetector {
   override def detectType(input: InputStream): Option[MediaType] = input match {
     case tikaInput: TikaInputStream =>
       val url = s"mbox:${tikaInput.getFile.getAbsolutePath}"
-      val mbox = JavaMail.openStore(url)
+      val mbox = JakartaMail.openStore(url)
+
+      println("*******FOUND AN MBOX great")
 
       try {
         val messageCount = mbox.getMessageCount()
+        println("*******Number of messages:" + messageCount)
 
         if(messageCount >= 2) {
           Some(MediaType.parse(MBOX_MIME_TYPE))
