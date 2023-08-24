@@ -113,12 +113,12 @@ const columns: Array<EuiBasicTableColumn<BlobStatus>> = [
             return <ul>
                 {statuses.map(status => {
                     const mostRecent = status.statusUpdates[status.statusUpdates.length - 1]
-                    const allUpdatesTooltip = <p>{status.statusUpdates.map(u => <>{`${moment(u.eventTime).format("HH:mm:ss")} ${u.status}`}<br/></>)}</p>
+                    const allUpdatesTooltip = <p><b>All {status.extractorType} events</b> <br /> {status.statusUpdates.map(u => <>{`${moment(u.eventTime).format("DD MMM HH:mm:ss")} ${u.status}`}<br/></>)}</p>
                     return <li><EuiFlexGroup>
                         <EuiFlexItem>{status.extractorType.replace("Extractor", "")}</EuiFlexItem>
                         <EuiFlexItem grow={false}>
                             <EuiToolTip content={allUpdatesTooltip}>
-                            <EuiBadge color={statusToColor(mostRecent.status)}>{mostRecent.status} ({moment(mostRecent.eventTime).format("HH:mm:ss")  })</EuiBadge>
+                                {mostRecent.status && <EuiBadge color={statusToColor(mostRecent.status)}>{mostRecent.status} ({moment(mostRecent.eventTime).format("HH:mm:ss")  })</EuiBadge>}
                             </EuiToolTip>
                         </EuiFlexItem>
                     </EuiFlexGroup></li>
@@ -136,13 +136,13 @@ const parseBlobStatus = (status: any): BlobStatus => {
         ingestStart: new Date(status.ingestStart),
         mostRecentEvent: new Date(status.mostRecentEvent),
         extractorStatuses: status.extractorStatuses.map((s: any) => ({
-            ...s,
+            extractorType: s.extractorType.replace("Extractor", ""),
             statusUpdates: _.sortBy(s.statusUpdates
                 // discard empty status updates (does this make sense? Maybe we should tag them as 'unknown status' instead
                 .filter((u: any) => u.eventTime !== undefined && u.status !== undefined)
                 .map((u: any) => ({
-                ...u,
-                eventTime: new Date(u.eventTime)
+                    ...u,
+                    eventTime: new Date(u.eventTime)
             })), update => update.eventTime)
         }))
     }
