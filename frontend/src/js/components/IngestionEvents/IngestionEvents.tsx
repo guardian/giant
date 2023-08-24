@@ -38,8 +38,8 @@ type IngestionTable = {
 type Status = "Unknown" | "Started" | "Success" | "Failure"
 
 type ExtractorStatusUpdate = {
-    eventTime: Date;
-    status: Status
+    eventTime?: Date;
+    status?: Status
 }
 
 type ExtractorStatus = {
@@ -64,7 +64,7 @@ const statusToColor = (status: Status) => extractorStatusColors[status]
 
 const getBlobStatus = (statuses: ExtractorStatus[]) => {
     const failures = statuses.filter(status => status.statusUpdates.find(u => u.status === "Failure") !== undefined)
-    const inProgress = statuses.filter(status => status.statusUpdates.find(u => ["Failure", "Success"].includes(u.status)) === undefined)
+    const inProgress = statuses.filter(status => status.statusUpdates.find(u => !u.status || ["Failure", "Success"].includes(u.status)) === undefined)
     return failures.length > 0 ? blobStatusIcons.completeWithErrors : inProgress.length > 0 ? blobStatusIcons.inProgress : blobStatusIcons.complete
 }
 
@@ -137,7 +137,10 @@ const parseBlobStatus = (status: any): BlobStatus => {
         mostRecentEvent: new Date(status.mostRecentEvent),
         extractorStatuses: status.extractorStatuses.map((s: any) => ({
             ...s,
-            statusUpdates: _.sortBy(s.statusUpdates.map((u: any) => ({
+            statusUpdates: _.sortBy(s.statusUpdates
+                // discard empty status updates (does this make sense? Maybe we should tag them as 'unknown status' instead
+                .filter((u: any) => u.eventTime !== undefined && u.status !== undefined)
+                .map((u: any) => ({
                 ...u,
                 eventTime: new Date(u.eventTime)
             })), update => update.eventTime)

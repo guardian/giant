@@ -40,7 +40,7 @@ object ExtractorType extends Enumeration {
 object EventStatus extends Enumeration {
   type EventStatus = Value
 
-  val Unknown, Started, Success, Failure = Value
+  val Started, Success, Failure = Value
 
   implicit val format: Format[EventStatus] = Json.formatEnum(this)
 }
@@ -109,7 +109,7 @@ object BlobMetadata {
   implicit val blobMetaDataFormat = Json.format[BlobMetadata]
 }
 
-case class ExtractorStatusUpdate(eventTime: Option[DateTime], status: EventStatus)
+case class ExtractorStatusUpdate(eventTime: Option[DateTime], status: Option[EventStatus])
 object ExtractorStatusUpdate {
   implicit val dateWrites = jodaDateWrites("yyyy-MM-dd'T'HH:mm:ss.SSSZ")
   implicit val dateReads = jodaDateReads("yyyy-MM-dd'T'HH:mm:ss.SSSZ")
@@ -127,7 +127,7 @@ object ExtractorStatus {
         case (time, status) =>
           val eventTime = if (time == "null") None else Some(new DateTime((time.toDouble * 1000).toLong, DateTimeZone.UTC))
 
-          val parsedStatus = if (status == "null") EventStatus.Unknown else EventStatus.withName(status)
+          val parsedStatus = if (status == "null") None else Some(EventStatus.withName(status))
           ExtractorStatusUpdate(eventTime, parsedStatus)}.toList
     }.toList
 
