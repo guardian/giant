@@ -1,6 +1,6 @@
 package extraction
 
-import model.English
+import model.{English, Language, Languages}
 import model.manifest.Blob
 import org.apache.commons.io.FileUtils
 import services.{ScratchSpace, Tika}
@@ -36,18 +36,24 @@ class TranscriptionExtractor(index: Index, scratchSpace: ScratchSpace, ingestion
     val stdErrLogger = new OcrStderrLogger(Some(ingestionServices.setProgressNote(blob.uri, this, _)))
 
     val transcriptionLanguage = if (params.languages.length > 1) {
-      logger.warn("More than one language specified. Sorry, just using english but if you write some code we can make whisper auto detect the language in the file")
-      English
-    } else params.languages.headOption.getOrElse(English)
+      logger.warn("More than one language specified. Will tell whisper to autodetect and translate")
+      None
+    } else params.languages.headOption
+
+    println(params.languages)
 
     val result = Either.catchNonFatal{
-      val outputFile = Whisper.invokeWhisper(file.toPath, stdErrLogger, tmpDir, transcriptionLanguage.key)
-      val outputSource = Source.fromFile(outputFile.toFile)
+      val transcriptResult = Whisper.invokeWhisper(file.toPath, tmpDir, translate =false)
+      val translationResult = if (transcriptResult.language != "en") Some(Whisper.invokeWhisper(file.toPath, tmpDir, translate=true)) else None
+      val outputSource = Source.fromFile(transcriptResult.path.toFile)
       val outputText = outputSource.getLines().toList.mkString("\n")
       outputSource.close()
 
+      val translateText = translationResult.map(tr => Source.fromFile(tr.path.toFile).getLines().toList.mkString("\n"))
+
+      println(translateText)
       logger.info(outputText)
-      index.addDocumentTranscription(blob.uri, Some(outputText), transcriptionLanguage)
+      index.addDocumentTranscription(blob.uri, Some(outputText), Languages.getByIso6391Code(transcriptResult.language).getOrElse(English))
       ()
     }.leftMap{ error =>
       logger.error(s"${this.name} error ${stdErrLogger.getOutput}", error)

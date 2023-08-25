@@ -9,6 +9,10 @@ object Languages {
     all.find(l => l.key == key)
   }
 
+  def getByIso6391Code(code: String) : Option[Language] = {
+    all.find(l => l.iso6391Code == code)
+  }
+
   def getByKeyOrThrow(key: String): Language = {
     getByKey(key).getOrElse {
       throw new IllegalStateException(s"Unknown language ${key}")
@@ -20,6 +24,8 @@ sealed trait Language {
   def key: String
   def ocr: String
   def analyzer: String
+
+  def iso6391Code: String
 }
 
 object Language {
@@ -40,24 +46,28 @@ object Language {
 object Arabic extends Language {
   override def key = "arabic"
   override def ocr = "ara"
+  override def iso6391Code = "ar"
   override def analyzer = "arabic"
 }
 
 object English extends Language {
   override def key = "english"
   override def ocr = "eng"
+  override def iso6391Code = "en"
   override def analyzer = "english"
 }
 
 object French extends Language {
   override def key = "french"
   override def ocr = "fra"
+  override def iso6391Code = "fr"
   override def analyzer = "french"
 }
 
 object German extends Language {
   override def key = "german"
   override def ocr ="deu"
+  override def iso6391Code = "de"
   override def analyzer = "german"
 }
 
@@ -70,23 +80,27 @@ object German extends Language {
 object Russian extends Language {
   override def key = "russian"
   override def ocr = "rus"
+  override def iso6391Code = "ru"
   override def analyzer = "russian"
 }
 
 object Portuguese extends Language {
   override def key = "portuguese"
   override def ocr = "por"
+  override def iso6391Code = "pt"
   override def analyzer = "portuguese"
 }
 
 object Persian extends Language {
   override def key = "persian"
   override def ocr = "fas"
+  override def iso6391Code = "fa"
   override def analyzer = "persian"
 }
 
 object Spanish extends Language {
   override def key = "spanish"
   override def ocr = "spa"
+  override def iso6391Code = "es"
   override def analyzer = "spanish"
 }
