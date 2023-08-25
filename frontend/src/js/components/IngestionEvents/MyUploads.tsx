@@ -10,7 +10,7 @@ import {bindActionCreators} from "redux";
 import {getCollections} from "../../actions/collections/getCollections";
 import {Collection} from "../../types/Collection";
 import {getDefaultCollection} from "../Uploads/UploadTarget";
-import IngestionEvents from "./IngestionEvents";
+import {IngestionEvents} from "./IngestionEvents";
 import {PartialUser} from "../../types/User";
 import {EuiProvider, EuiSelect} from "@elastic/eui";
 import {getWorkspacesMetadata} from "../../actions/workspaces/getWorkspacesMetadata";

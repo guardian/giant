@@ -2,15 +2,10 @@
 
 import React, {useEffect, useState} from "react";
 import authFetch from "../../util/auth/authFetch";
-import {GiantState} from "../../types/redux/GiantState";
-import {GiantDispatch} from "../../types/redux/GiantDispatch";
-import {connect} from "react-redux";
 import {EuiFlexItem, EuiToolTip, EuiSpacer, EuiIconTip, EuiBadge, EuiFlexGroup, EuiInMemoryTable, EuiBasicTableColumn, EuiLoadingSpinner} from "@elastic/eui";
 import '@elastic/eui/dist/eui_theme_light.css';
 import hdate from 'human-date';
 import {WorkspaceMetadata} from "../../types/Workspaces";
-import {bindActionCreators} from "redux";
-import {getCollections} from "../../actions/collections/getCollections";
 import moment from "moment";
 import _ from "lodash";
 
@@ -148,7 +143,7 @@ const parseBlobStatus = (status: any): BlobStatus => {
     }
 }
 
-function IngestionEvents(
+export function IngestionEvents(
     {collectionId, ingestId, workspaces, breakdownByWorkspace}: {
         collectionId: string,
         ingestId?: string,
@@ -165,7 +160,7 @@ function IngestionEvents(
         authFetch(`/api/ingestion-events/${collectionId}${ingestIdSuffix}`)
             .then(resp => resp.json())
             .then(json => {
-                const blobStatuses = json.map(parseBlobStatus)
+                const blobStatuses: BlobStatus[] = json.map(parseBlobStatus)
                 updateBlobs(blobStatuses)
         })
     }, [collectionId, ingestId, updateBlobs, ingestIdSuffix])
@@ -203,19 +198,3 @@ function IngestionEvents(
         </>
 }
 
-
-function mapStateToProps(state: GiantState) {
-    return {
-        workspacesMetadata: state.workspaces.workspacesMetadata,
-        currentUser: state.auth.token?.user,
-        collections: state.collections
-    };
-}
-
-function mapDispatchToProps(dispatch: GiantDispatch) {
-    return {
-        getCollections: bindActionCreators(getCollections, dispatch),
-    };
-}
-
-export default connect(mapStateToProps, mapDispatchToProps)(IngestionEvents);

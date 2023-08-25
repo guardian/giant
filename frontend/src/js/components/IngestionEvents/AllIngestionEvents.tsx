@@ -9,7 +9,7 @@ import {WorkspaceMetadata} from "../../types/Workspaces";
 import {bindActionCreators} from "redux";
 import {getCollections} from "../../actions/collections/getCollections";
 import {Collection, Ingestion} from "../../types/Collection";
-import IngestionEvents from "./IngestionEvents";
+import {IngestionEvents} from "./IngestionEvents";
 import {EuiFlexGroup, EuiFlexItem, EuiFormControlLayout, EuiFormLabel, EuiProvider} from "@elastic/eui";
 import {EuiSelect} from "@elastic/eui";
 import {EuiSelectOption} from "@elastic/eui";
