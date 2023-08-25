@@ -6,7 +6,7 @@ import model.manifest.Blob
 import org.joda.time.{DateTime, DateTimeZone}
 import services.index.IngestionData
 import services.observability.ExtractorType.ExtractorType
-import services.observability.IngestionEventType.IngestionEventType
+import services.observability.IngestionEventType.{BlobCopy, IngestionEventType}
 import services.observability.EventStatus.EventStatus
 import play.api.libs.json.JodaWrites.jodaDateWrites
 import play.api.libs.json.JodaReads.jodaDateReads
@@ -111,8 +111,8 @@ object BlobMetadata {
 
 case class ExtractorStatusUpdate(eventTime: Option[DateTime], status: Option[EventStatus])
 object ExtractorStatusUpdate {
-  implicit val dateWrites = jodaDateWrites("yyyy-MM-dd'T'HH:mm:ss.SSSZ")
-  implicit val dateReads = jodaDateReads("yyyy-MM-dd'T'HH:mm:ss.SSSZ")
+  implicit val dateWrites = BlobStatus.dateWrites
+  implicit val dateReads = BlobStatus.dateReads
   implicit val format = Json.format[ExtractorStatusUpdate]
 }
 

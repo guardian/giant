@@ -77,7 +77,9 @@ const columns: Array<EuiBasicTableColumn<BlobStatus>> = [
         name: 'Filename(s)',
         sortable: true,
         truncateText: true,
-        render: (paths: string[]) => paths.map(p => p.split("/").slice(-1)).join("\n")
+        render: (paths: string[]) =>
+            // throw away everything after last / to get the filename from a path
+            paths.map(p => p.split("/").slice(-1)).join("\n")
     },
     {
         field: 'paths',
@@ -151,10 +153,9 @@ export function IngestionEvents(
         breakdownByWorkspace: boolean
     }) {
     const [blobs, updateBlobs] = useState<BlobStatus[] | undefined>(undefined)
-
-    const ingestIdSuffix = ingestId && ingestId !== "all" ? `/${ingestId}` : ""
     const [tableData, setTableData] = useState<IngestionTable[]>([])
 
+    const ingestIdSuffix = ingestId && ingestId !== "all" ? `/${ingestId}` : ""
 
     useEffect(() => {
         authFetch(`/api/ingestion-events/${collectionId}${ingestIdSuffix}`)
@@ -182,19 +183,23 @@ export function IngestionEvents(
 
     }, [breakdownByWorkspace, blobs, workspaces, ingestIdSuffix, collectionId])
 
-    return <>
-        {tableData.map((t: IngestionTable) => <>
+    return (
+        <>
+        {tableData.map((t: IngestionTable) =>
+            <>
             <EuiSpacer size={"m"}/>
-        <h1>{t.title}</h1>
-        <EuiInMemoryTable
-            tableCaption="ingestion events"
-            items={t.blobs}
-            itemId="metadata.blobId"
-            loading={blobs === undefined}
-            columns={columns}
-            sorting={true}
-        />
-    </>)}
+            <h1>{t.title}</h1>
+            <EuiInMemoryTable
+                tableCaption="ingestion events"
+                items={t.blobs}
+                itemId="metadata.blobId"
+                loading={blobs === undefined}
+                columns={columns}
+                sorting={true}
+            />
+            </>
+        )}
         </>
+    )
 }
 

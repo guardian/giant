@@ -31,8 +31,10 @@ class IngestFile(collectionUri: Uri, ingestionUri: Uri, uploadId: String, worksp
       ingestion <- getIngestion()
 
       fileUri = FingerprintServices.createFingerprintFromFile(temporaryFilePath.toFile)
+      // workspace will only be defined for user uploads. If it is defined we want to add a WorkspaceUpload ingestion event
       workspaceEvent = workspace.map(w =>
-        IngestionEvent.workspaceUploadEvent(fileUri, ingestionUri.value, w.workspaceName, EventStatus.Started))
+        IngestionEvent.workspaceUploadEvent(fileUri, ingestionUri.value, w.workspaceName, EventStatus.Started)
+      )
       _ = workspaceEvent.foreach(ingestionServices.recordIngestionEvent)
       metadata = buildMetadata(ingestion, lastModifiedTime, workspace.map(WorkspaceItemContext.fromUpload(fileUri, _)))
       blob <- Attempt.fromEither(ingestionServices.ingestFile(metadata, Uri(fileUri), temporaryFilePath))

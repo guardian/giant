@@ -112,16 +112,16 @@ class PostgresClientImpl(postgresConfig: PostgresConfig) extends PostgresClient 
           SELECT
             blob_extractors.blob_id,
             blob_extractors.extractor,
-        -- As the same status update may happen multiple times if a blob is reingested, it's useful to have the time
-        -- this field is destined to be converted to a string so use epoch time (seconds) to make getting it back into
-        -- a date a bit less of a faff
+            -- As the same status update may happen multiple times if a blob is reingested, it's useful to have the time
+            -- this field is destined to be converted to a string so use epoch time (seconds) to make getting it back into
+            -- a date a bit less of a faff
             ARRAY_AGG(EXTRACT(EPOCH from ingestion_events.event_time)) AS extractor_event_times,
             ARRAY_AGG(ingestion_events.status) AS extractor_event_statuses
             FROM blob_extractors
             LEFT JOIN ingestion_events
             ON blob_extractors.blob_id = ingestion_events.blob_id
             AND blob_extractors.ingest_id = ingestion_events.ingest_id
-        -- there is no index on extractorName but we aren't expecting too many events for the same blob_id/ingest_id
+            -- there is no index on extractorName but we aren't expecting too many events for the same blob_id/ingest_id
             AND blob_extractors.extractor = ingestion_events.details ->> 'extractorName'
             -- A file may be uploaded multiple times within different ingests - use group by to merge them together
             GROUP BY 1,2
