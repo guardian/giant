@@ -83,8 +83,8 @@ case class Neo4JTransientFailure(throwable: Throwable) extends FailureWithThrowa
 case class Neo4JValueFailure(msg: String) extends Failure
 case class AwsSdkFailure(throwable: Throwable) extends FailureWithThrowable
 
-case class PostgresReadFailure(throwable: Throwable, query: String) extends FailureWithThrowable {
-  final override def msg = s"Postgres query failed. Query: ${query}"
+case class PostgresReadFailure(throwable: Throwable, message: String) extends FailureWithThrowable {
+  final override def msg = s"Postgres query failed. Query: ${message}"
 }
 case class PostgresWriteFailure(throwable: Throwable) extends FailureWithThrowable {
   final override def msg = "Failed to write to postgres"

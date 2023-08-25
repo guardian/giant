@@ -109,13 +109,13 @@ const columns: Array<EuiBasicTableColumn<BlobStatus>> = [
         render: (statuses: ExtractorStatus[]) => {
             return <ul>
                 {statuses.map(status => {
-                    const mostRecent = status.statusUpdates[status.statusUpdates.length - 1]
+                    const mostRecent = status.statusUpdates.length > 0 ? status.statusUpdates[status.statusUpdates.length - 1] : undefined
                     const allUpdatesTooltip = <p><b>All {status.extractorType} events</b> <br /> {status.statusUpdates.map(u => <>{`${moment(u.eventTime).format("DD MMM HH:mm:ss")} ${u.status}`}<br/></>)}</p>
                     return <li><EuiFlexGroup>
                         <EuiFlexItem>{status.extractorType.replace("Extractor", "")}</EuiFlexItem>
                         <EuiFlexItem grow={false}>
                             <EuiToolTip content={allUpdatesTooltip}>
-                                {mostRecent.status && <EuiBadge color={statusToColor(mostRecent.status)}>{mostRecent.status} ({moment(mostRecent.eventTime).format("HH:mm:ss")  })</EuiBadge>}
+                                {mostRecent?.status && <EuiBadge color={statusToColor(mostRecent.status)}>{mostRecent.status} ({moment(mostRecent.eventTime).format("HH:mm:ss")  })</EuiBadge>}
                             </EuiToolTip>
                         </EuiFlexItem>
                     </EuiFlexGroup></li>
