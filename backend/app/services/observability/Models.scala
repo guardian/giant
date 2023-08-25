@@ -111,8 +111,9 @@ object BlobMetadata {
 
 case class ExtractorStatusUpdate(eventTime: Option[DateTime], status: Option[EventStatus])
 object ExtractorStatusUpdate {
-  implicit val dateWrites = BlobStatus.dateWrites
-  implicit val dateReads = BlobStatus.dateReads
+  val datePattern = "yyyy-MM-dd'T'HH:mm:ss.SSSZ"
+  implicit val dateWrites = jodaDateWrites(datePattern)
+  implicit val dateReads = jodaDateReads(datePattern)
   implicit val format = Json.format[ExtractorStatusUpdate]
 }
 
@@ -147,7 +148,8 @@ case class BlobStatus(
                        extractorStatuses: List[ExtractorStatus],
                        errors: List[IngestionError])
 object BlobStatus {
-  implicit val dateWrites = jodaDateWrites("yyyy-MM-dd'T'HH:mm:ss.SSSZ")
-  implicit val dateReads = jodaDateReads("yyyy-MM-dd'T'HH:mm:ss.SSSZ")
+  val datePattern = "yyyy-MM-dd'T'HH:mm:ss.SSSZ"
+  implicit val dateWrites = jodaDateWrites(datePattern)
+  implicit val dateReads = jodaDateReads(datePattern)
   implicit val format = Json.format[BlobStatus]
 }
