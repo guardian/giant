@@ -135,10 +135,10 @@ class PostgresClientImpl(postgresConfig: PostgresConfig) extends PostgresClient 
             ie.workspace_name AS "workspaceName",
             ARRAY_AGG(DISTINCT blob_metadata.path ) AS paths,
             (ARRAY_AGG(blob_metadata.file_size))[1] as "fileSize",
-            ARRAY_AGG(extractor_statuses.extractor) AS extractors,
+            ARRAY_REMOVE(ARRAY_AGG(extractor_statuses.extractor), NULL) AS extractors,
             -- You can't array_agg arrays of varying cardinality so here we convert to string
-            ARRAY_AGG(ARRAY_TO_STRING(extractor_statuses.extractor_event_times, ',','null')) AS "extractorEventTimes",
-            ARRAY_AGG(ARRAY_TO_STRING(extractor_statuses.extractor_event_statuses, ',','null')) AS "extractorStatuses"
+            ARRAY_REMOVE(ARRAY_AGG(ARRAY_TO_STRING(extractor_statuses.extractor_event_times, ',','null')), NULL) AS "extractorEventTimes",
+            ARRAY_REMOVE(ARRAY_AGG(ARRAY_TO_STRING(extractor_statuses.extractor_event_statuses, ',','null')), NULL) AS "extractorStatuses"
             FROM (
               SELECT
                 blob_id,
