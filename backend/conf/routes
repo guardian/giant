@@ -11,8 +11,8 @@ POST          /api/collections/:collection/:ingestion                       cont
 DELETE        /api/collections/:collection/:ingestion                       controllers.api.Collections.deleteIngestion(collection, ingestion)
 POST          /api/collections/:collection/:ingestion/verifyFiles           controllers.api.Collections.verifyFiles(collection, ingestion)
 
-GET           /api/ingestion-events/:collection                             controllers.api.IngestionEvents.getCollectionEvents(collection)
-GET           /api/ingestion-events/:collection/:ingestion                  controllers.api.IngestionEvents.getIngestionEvents(collection, ingestion)
+GET           /api/ingestion-events/:collection                             controllers.api.IngestionEvents.getIngestionEvents(collection, None)
+GET           /api/ingestion-events/:collection/:ingestion                  controllers.api.IngestionEvents.getIngestionEvents(collection, Some(ingestion))
 
 
 GET           /api/blobs                                                    controllers.api.Blobs.getBlobs(collection: Option[String], ingestion: Option[String], inMultiple: Option[Boolean], size: Option[Int])

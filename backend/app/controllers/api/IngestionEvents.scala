@@ -19,20 +19,10 @@ class IngestionEvents(override val controllerComponents: AuthControllerComponent
         Attempt.fromEither(postgresClient.getEvents(ingestId, ingestion.isEmpty).map(e => Ok(Json.toJson(e))))
   }
 
-  def getCollectionEvents(collection: String): Action[AnyContent] = ApiAction.attempt { req =>
+  def getIngestionEvents(collection: String, ingestion: Option[String]): Action[AnyContent] = ApiAction.attempt { req =>
     users.canSeeCollection(req.user.username, Uri(collection)).flatMap {
       case true =>
-        getEvents(collection)
-      case false =>
-        // GitHub-style error - a thing exists but we can't see it so tell the user it doesn't exist
-        Attempt.Left(NotFoundFailure(s"$collection does not exist"))
-    }
-  }
-
-  def getIngestionEvents(collection: String, ingestion: String): Action[AnyContent] = ApiAction.attempt { req =>
-    users.canSeeCollection(req.user.username, Uri(collection)).flatMap {
-      case true =>
-        getEvents(collection, Some(ingestion))
+        getEvents(collection, ingestion)
       case false =>
         // GitHub-style error - a thing exists but we can't see it so tell the user it doesn't exist
         Attempt.Left(NotFoundFailure(s"$collection/$ingestion does not exist"))
