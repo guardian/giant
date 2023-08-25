@@ -122,7 +122,7 @@ object ExtractorStatus {
   implicit val format = Json.format[ExtractorStatus]
 
   def parseDbStatusEvents(extractors: Array[String], extractorEventTimes: Array[String], extractorStatuses: Array[String]): List[ExtractorStatus] = {
-    val statusUpdatesParsed = extractorEventTimes.zip(extractorStatuses).map {
+    val statusUpdatesParsed: Seq[List[ExtractorStatusUpdate]] = extractorEventTimes.zip(extractorStatuses).map {
       case (times, statuses) => times.split(",").zip(statuses.split(",")).map{
         case (time, status) =>
           val eventTime = if (time == "null") None else Some(new DateTime((time.toDouble * 1000).toLong, DateTimeZone.UTC))
