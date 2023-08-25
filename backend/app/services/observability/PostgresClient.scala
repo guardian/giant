@@ -180,7 +180,7 @@ class PostgresClientImpl(postgresConfig: PostgresConfig) extends PostgresClient 
         }
         match {
             case Success(results) => Right(results)
-            case Failure(exception) => Left(PostgresReadFailure(exception, "getEvents"))
+            case Failure(exception) => Left(PostgresReadFailure(exception, s"getEvents failed: ${exception.getMessage}"))
         }
     }
 }
