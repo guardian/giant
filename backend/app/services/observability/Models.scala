@@ -11,6 +11,11 @@ import services.observability.EventStatus.EventStatus
 import play.api.libs.json.JodaWrites.jodaDateWrites
 import play.api.libs.json.JodaReads.jodaDateReads
 
+object JodaReadWrites {
+  private val datePattern = "yyyy-MM-dd'T'HH:mm:ss.SSSZ"
+  val dateWrites = jodaDateWrites(datePattern)
+  val dateReads = jodaDateReads(datePattern)
+}
 
 object IngestionEventType extends Enumeration {
   type IngestionEventType = Value
@@ -111,9 +116,8 @@ object BlobMetadata {
 
 case class ExtractorStatusUpdate(eventTime: Option[DateTime], status: Option[EventStatus])
 object ExtractorStatusUpdate {
-  val datePattern = "yyyy-MM-dd'T'HH:mm:ss.SSSZ"
-  implicit val dateWrites = jodaDateWrites(datePattern)
-  implicit val dateReads = jodaDateReads(datePattern)
+  implicit val dateWrites = JodaReadWrites.dateWrites
+  implicit val dateReads = JodaReadWrites.dateReads
   implicit val format = Json.format[ExtractorStatusUpdate]
 }
 
@@ -148,8 +152,7 @@ case class BlobStatus(
                        extractorStatuses: List[ExtractorStatus],
                        errors: List[IngestionError])
 object BlobStatus {
-  val datePattern = "yyyy-MM-dd'T'HH:mm:ss.SSSZ"
-  implicit val dateWrites = jodaDateWrites(datePattern)
-  implicit val dateReads = jodaDateReads(datePattern)
+  implicit val dateWrites = JodaReadWrites.dateWrites
+  implicit val dateReads = JodaReadWrites.dateReads
   implicit val format = Json.format[BlobStatus]
 }
