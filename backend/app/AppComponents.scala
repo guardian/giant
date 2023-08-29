@@ -195,6 +195,7 @@ class AppComponents(context: Context, config: Config)
     val commentsController = new Comments(authControllerComponents, manifest, esResources, annotations)
     val usersController = new Users(authControllerComponents, userProvider)
     val pagesController = new PagesController(authControllerComponents, manifest, esResources, pages2, annotations, previewStorage)
+    val ingestionEventsController = new IngestionEvents(authControllerComponents, postgresClient, users )
 
     val workerControl = config.aws match {
       case Some(awsDiscoveryConfig) =>
@@ -233,6 +234,7 @@ class AppComponents(context: Context, config: Config)
       httpErrorHandler,
       eventsController,
       collectionsController,
+      ingestionEventsController,
       blobsController,
       filtersController,
       searchController,

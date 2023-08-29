@@ -6,6 +6,7 @@ CREATE TABLE ingestion_events (
 	details JSONB,
 	event_time TIMESTAMPTZ NOT NULL
 );
+
 CREATE TABLE blob_metadata (
 	ingest_id TEXT NOT NULL,
 	blob_id TEXT NOT NULL,

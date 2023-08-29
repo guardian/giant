@@ -43,6 +43,8 @@ import { getCurrentResource } from './util/resourceUtils';
 
 import GiantEuiApp from './eui-components/GiantEuiApp';
 import { PageViewerOrFallback } from './components/PageViewerOrFallback';
+import MyUploads from "./components/IngestionEvents/MyUploads";
+import AllIngestionEvents from "./components/IngestionEvents/AllIngestionEvents";
 
 class App extends React.Component {
     static propTypes = {
@@ -88,6 +90,9 @@ class App extends React.Component {
                     <Route path='/settings/about' component={About} />
                     <Route path='/settings/uploads' component={WeeklyUploadsFeed} />
                     <Route path='/workspaces/:id' component={Workspaces} />
+
+                    <Route path = '/settings/my-uploads' component={MyUploads} />
+                    <Route path = '/settings/all-ingestion-events' component={AllIngestionEvents} />
                 </div>
             </div>
             <Route exact path='/' render={() => <Redirect to='/search' />} />

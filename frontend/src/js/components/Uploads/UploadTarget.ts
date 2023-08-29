@@ -15,7 +15,7 @@ export type WorkspaceTarget = {
 // which do not have a default flag. This is a hangover from an age when we uploaded all files
 // to the same collections. The default flag does not make much sense anymore and we might want to
 // rethink this in the future.
-function getDefaultCollection(username: string, collections: Collection[]): Collection | undefined {
+export function getDefaultCollection(username: string, collections: Collection[]): Collection | undefined {
     return collections.find(collection => {
         return collection.ingestions.some(ingestion => ingestion.default) && collection.createdBy === username;
     });

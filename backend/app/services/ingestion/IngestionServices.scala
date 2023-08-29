@@ -15,7 +15,7 @@ import utils.attempt.{Attempt, Failure, NotFoundFailure}
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
-import services.observability.{BlobMetaData, EventDetails, IngestionEvent, IngestionEventType, EventMetaData, PostgresClient, EventStatus}
+import services.observability.{BlobMetadata, EventDetails, IngestionEvent, IngestionEventType, EventMetadata, PostgresClient, EventStatus}
 
 sealed trait UriParent {
   def parent: Uri
@@ -40,6 +40,8 @@ private case class UriJustParent(parent: Uri) extends UriParent
   * Lots of ingestion processes are useful in several places - outside of just the standard ingestion pipeline
   */
 trait IngestionServices {
+
+  def recordIngestionEvent(event: IngestionEvent): Unit
   def ingestEmail(context: EmailContext, sourceMimeType: String): Either[Failure, Unit]
   def ingestFile(context: FileContext, blobUri: Uri, path: Path): Either[Failure, Blob]
   def setProgressNote(blobUri: Uri, extractor: Extractor, note: String): Either[Failure, Unit]
@@ -47,6 +49,8 @@ trait IngestionServices {
 
 object IngestionServices extends Logging {
   def apply(manifest: Manifest, index: Index, objectStorage: ObjectStorage, typeDetector: TypeDetector, mimeTypeMapper: MimeTypeMapper, postgresClient: PostgresClient)(implicit ec: ExecutionContext): IngestionServices = new IngestionServices {
+    override def recordIngestionEvent(event: IngestionEvent) = postgresClient.insertEvent(event)
+
     override def ingestEmail(context: EmailContext, sourceMimeType: String): Either[Failure, Unit] = {
 
       val uriParents: List[UriParent] = UriParent.createPairwiseChain(context.parents)
@@ -66,14 +70,14 @@ object IngestionServices extends Logging {
     }
 
     override def ingestFile(context: FileContext, blobUri: Uri, path: Path): Either[Failure, Blob] = {
-      val ingestionMetaData = EventMetaData(blobUri.value, context.ingestion)
-      postgresClient.insertMetaData(BlobMetaData(
+      val ingestionMetaData = EventMetadata(blobUri.value, context.ingestion)
+      postgresClient.insertMetadata(BlobMetadata(
         ingestId = context.ingestion,
         blobId = blobUri.value,
         fileSize = context.file.size.toInt,
-        path = context.file.uri.value.replaceFirst(context.ingestion + "/", ""))
+        path = context.file.uri.value.substring(context.ingestion.length))
       )
-      postgresClient.insertEvent(IngestionEvent(ingestionMetaData, IngestionEventType.HashComplete, details = EventDetails.workspaceDetails(context.workspace)))
+      postgresClient.insertEvent(IngestionEvent(ingestionMetaData, IngestionEventType.HashComplete))
 
       // see if the Blob already exists in the manifest to avoid doing uneeded processing
       val blob: Either[Failure, Option[Blob]] = manifest.getBlob(blobUri).map(Some(_)).recoverWith {
