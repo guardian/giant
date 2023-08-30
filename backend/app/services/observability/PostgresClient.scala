@@ -29,7 +29,7 @@ class PostgresClientDoNothing extends PostgresClient {
     override def deleteOldBlobMetadata(): Either[GiantFailure, Long] = Right(0)
 }
 
-class PostgresClientImpl(postgresConfig: PostgresConfig) extends PostgresClient with Logging {
+class PostgresClientImpl(postgresConfig: PostgresConfig, eventRetentionDays: Int) extends PostgresClient with Logging {
     val dbHost = s"jdbc:postgresql://${postgresConfig.host}:${postgresConfig.port}/giant"
     // initialize JDBC driver & connection pool
     Class.forName("org.postgresql.Driver")
@@ -196,7 +196,7 @@ class PostgresClientImpl(postgresConfig: PostgresConfig) extends PostgresClient 
   override def deleteOldEvents(): Either[GiantFailure, Long] = {
     Try {
       sql"""
-        DELETE FROM ingestion_events WHERE event_time < (now() - interval '14 days')
+        DELETE FROM ingestion_events WHERE event_time < (now() - interval '${eventRetentionDays} days')
            """.executeUpdate().apply()
 
     } match {
@@ -209,7 +209,7 @@ class PostgresClientImpl(postgresConfig: PostgresConfig) extends PostgresClient 
   override def deleteOldBlobMetadata(): Either[GiantFailure, Long] = {
     Try {
       sql"""
-        DELETE FROM blob_metadata WHERE insert_time < (now() - interval '14 days')
+        DELETE FROM blob_metadata WHERE insert_time < (now() - interval '${eventRetentionDays} days')
            """.executeUpdate().apply()
 
     } match {

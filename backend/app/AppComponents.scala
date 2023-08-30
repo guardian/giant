@@ -96,7 +96,7 @@ class AppComponents(context: Context, config: Config)
     val blobStorage = S3ObjectStorage(s3Client, config.s3.buckets.collections).valueOr(failure => throw new Exception(failure.msg))
 
     val postgresClient = config.postgres match {
-      case Some(postgresConfig) =>  new PostgresClientImpl(postgresConfig)
+      case Some(postgresConfig) =>  new PostgresClientImpl(postgresConfig, eventRetentionDays = 14)
       case None =>
         logger.warn("Postgres config not found, using dummy postgres client!")
         new PostgresClientDoNothing
