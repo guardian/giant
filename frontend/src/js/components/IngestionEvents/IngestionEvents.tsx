@@ -63,6 +63,16 @@ const getBlobStatus = (statuses: ExtractorStatus[]) => {
     return failures.length > 0 ? blobStatusIcons.completeWithErrors : inProgress.length > 0 ? blobStatusIcons.inProgress : blobStatusIcons.complete
 }
 
+const extractorStatusTooltip = (status: ExtractorStatus) => {
+    const statusUpdateStrings = status.statusUpdates.map(u => `${moment(u.eventTime).format("DD MMM HH:mm:ss")} ${u.status}`)
+    return status.statusUpdates.length > 0 ? <>
+        <b>All {status.extractorType} events</b> <br />
+        <ul>
+            {statusUpdateStrings.map(s => <li key={s}>{s}</li>)}
+        </ul>
+    </> : "No events so far"
+}
+
 const columns: Array<EuiBasicTableColumn<BlobStatus>> = [
     {
         field: 'extractorStatuses',
@@ -109,18 +119,11 @@ const columns: Array<EuiBasicTableColumn<BlobStatus>> = [
             return statuses.length > 0 ? (<ul>
                 {statuses.map(status => {
                     const mostRecent = status.statusUpdates.length > 0 ? status.statusUpdates[status.statusUpdates.length - 1] : undefined
-                    const statusUpdateStrings = status.statusUpdates.map(u => `${moment(u.eventTime).format("DD MMM HH:mm:ss")} ${u.status}`)
-                    const allUpdatesTooltip = status.statusUpdates.length > 0 ? <p>
-                        <b>All {status.extractorType} events</b> <br />
-                        <ul>
-                            {statusUpdateStrings.map(s => <li key={s}>{s}</li>)}
-                        </ul>
-                    </p> : <p>No events so far</p>
                     return <li key={status.extractorType}><EuiFlexGroup>
                         <EuiFlexItem>{status.extractorType.replace("Extractor", "")}</EuiFlexItem>
                         <EuiFlexItem grow={false}>
                             {mostRecent?.status ?
-                                (<EuiToolTip content = {allUpdatesTooltip}>
+                                (<EuiToolTip content = {extractorStatusTooltip(status)}>
                                     <EuiBadge color={statusToColor(mostRecent.status)}>
                                         {mostRecent.status} ({moment(mostRecent.eventTime).format("HH:mm:ss")  })
                                     </EuiBadge>
