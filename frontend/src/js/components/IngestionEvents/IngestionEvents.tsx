@@ -17,7 +17,7 @@ type Metadata = {
 type BlobStatus =  {
     metadata: Metadata;
     paths: string[];
-    fileSize: number;
+    fileSize?: number;
     ingestStart: Date;
     mostRecentEvent: Date;
     extractorStatuses: ExtractorStatus[];
@@ -70,7 +70,6 @@ const columns: Array<EuiBasicTableColumn<BlobStatus>> = [
         render: (statuses: ExtractorStatus[]) => {
             return getBlobStatus(statuses)
         }
-
     },
     {
         field: 'paths',

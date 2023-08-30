@@ -70,8 +70,8 @@ class PostgresClientImpl(postgresConfig: PostgresConfig) extends PostgresClient 
                 details,
                 event_time
             ) VALUES (
-                ${event.metaData.blobId},
-                ${event.metaData.ingestId},
+                ${event.metadata.blobId},
+                ${event.metadata.ingestId},
                 ${event.eventType.toString()},
                 ${event.status.toString()},
                 $detailsJson::JSONB,
@@ -82,7 +82,7 @@ class PostgresClientImpl(postgresConfig: PostgresConfig) extends PostgresClient 
             case Failure(exception) =>
                 logger.warn(s"""
           An exception occurred while inserting ingestion event
-          blobId: ${event.metaData.blobId}, ingestId: ${event.metaData.ingestId} eventType: ${event.eventType.toString()}
+          blobId: ${event.metadata.blobId}, ingestId: ${event.metadata.ingestId} eventType: ${event.eventType.toString()}
           exception: ${exception.getMessage()}"""
                 )
                 Left(PostgresWriteFailure(exception))
@@ -161,7 +161,7 @@ class PostgresClientImpl(postgresConfig: PostgresConfig) extends PostgresClient 
                         rs.string("ingest_id")
                     ),
                     rs.array("paths").getArray().asInstanceOf[Array[String]].toList,
-                    rs.long("fileSize"),
+                    rs.longOpt("fileSize"),
                     rs.stringOpt("workspaceName"),
                     new DateTime(rs.dateTime("ingest_start").toInstant.toEpochMilli, DateTimeZone.UTC),
                     new DateTime(rs.dateTime("most_recent_event").toInstant.toEpochMilli, DateTimeZone.UTC),

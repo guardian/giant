@@ -91,7 +91,7 @@ object EventMetadata {
 }
 
 case class IngestionEvent(
-                           metaData: EventMetadata,
+                           metadata: EventMetadata,
                            eventType: IngestionEventType,
                            status: EventStatus = EventStatus.Success,
                            details: Option[EventDetails] = None
@@ -143,9 +143,9 @@ object ExtractorStatus {
 }
 
 case class BlobStatus(
-                       metaData: EventMetadata,
+                       metadata: EventMetadata,
                        paths: List[String],
-                       fileSize: Long,
+                       fileSize: Option[Long],
                        workspaceName: Option[String],
                        ingestStart: DateTime,
                        mostRecentEvent: DateTime,
