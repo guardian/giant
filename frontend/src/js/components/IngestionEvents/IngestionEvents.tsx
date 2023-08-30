@@ -106,20 +106,30 @@ const columns: Array<EuiBasicTableColumn<BlobStatus>> = [
         field: 'extractorStatuses',
         name: 'Extractors',
         render: (statuses: ExtractorStatus[]) => {
-            return <ul>
+            return statuses.length > 0 ? (<ul>
                 {statuses.map(status => {
                     const mostRecent = status.statusUpdates.length > 0 ? status.statusUpdates[status.statusUpdates.length - 1] : undefined
-                    const allUpdatesTooltip = <p><b>All {status.extractorType} events</b> <br /> {status.statusUpdates.map(u => <>{`${moment(u.eventTime).format("DD MMM HH:mm:ss")} ${u.status}`}<br/></>)}</p>
-                    return <li><EuiFlexGroup>
+                    const statusUpdateStrings = status.statusUpdates.map(u => `${moment(u.eventTime).format("DD MMM HH:mm:ss")} ${u.status}`)
+                    const allUpdatesTooltip = status.statusUpdates.length > 0 ? <p>
+                        <b>All {status.extractorType} events</b> <br />
+                        <ul>
+                            {statusUpdateStrings.map(s => <li key={s}>{s}</li>)}
+                        </ul>
+                    </p> : <p>No events so far</p>
+                    return <li key={status.extractorType}><EuiFlexGroup>
                         <EuiFlexItem>{status.extractorType.replace("Extractor", "")}</EuiFlexItem>
                         <EuiFlexItem grow={false}>
-                            <EuiToolTip content={allUpdatesTooltip}>
-                                {mostRecent?.status && <EuiBadge color={statusToColor(mostRecent.status)}>{mostRecent.status} ({moment(mostRecent.eventTime).format("HH:mm:ss")  })</EuiBadge>}
-                            </EuiToolTip>
+                            {mostRecent?.status ?
+                                (<EuiToolTip content = {allUpdatesTooltip}>
+                                    <EuiBadge color={statusToColor(mostRecent.status)}>
+                                        {mostRecent.status} ({moment(mostRecent.eventTime).format("HH:mm:ss")  })
+                                    </EuiBadge>
+                            </EuiToolTip>) : <>No updates</>
+                            }
                         </EuiFlexItem>
                     </EuiFlexGroup></li>
             })}
-            </ul>
+            </ul>) : <></>
 
         },
         width: "300"
@@ -185,18 +195,18 @@ export function IngestionEvents(
     return (
         <>
         {tableData.map((t: IngestionTable) =>
-            <>
+            <div key={t.title}>
             <EuiSpacer size={"m"}/>
             <h1>{t.title}</h1>
             <EuiInMemoryTable
                 tableCaption="ingestion events"
                 items={t.blobs}
-                itemId="metadata.blobId"
-                loading={blobs === undefined}
+                itemId={(row: BlobStatus) => `${row.metadata.ingestUri}-${row.metadata.blobId}`}
+                loading={t.blobs === undefined}
                 columns={columns}
                 sorting={true}
             />
-            </>
+            </div>
         )}
         </>
     )
