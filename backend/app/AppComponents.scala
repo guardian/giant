@@ -33,7 +33,7 @@ import services.events.ElasticsearchEvents
 import services.index.{ElasticsearchPages, ElasticsearchResources, Pages2}
 import services.ingestion.IngestionServices
 import services.manifest.Neo4jManifest
-import services.observability.{ObservabilityCleaner, PostgresClientDoNothing, PostgresClientImpl}
+import services.observability.{ObservabilityPurger, PostgresClientDoNothing, PostgresClientImpl}
 import services.previewing.PreviewService
 import services.table.ElasticsearchTable
 import services.users.Neo4jUserManagement
@@ -228,8 +228,8 @@ class AppComponents(context: Context, config: Config)
       workerControl.start(pekkoActorSystem.scheduler)(workerExecutionContext)
       applicationLifecycle.addStopHook(() => workerControl.stop())
     }
-    val observabilityCleaner = new ObservabilityCleaner(pekkoActorSystem, postgresClient)
-    observabilityCleaner.start()
+    val observabilityPurger = new ObservabilityPurger(pekkoActorSystem, postgresClient)
+    observabilityPurger.start()
 
     // Router
     new Routes(

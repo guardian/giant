@@ -11,7 +11,7 @@ import scala.concurrent.{ExecutionContext, Future}
   * Observability events are only needed for debugging/verification purposes. This service makes sure observability data
   * is deleted after a certain time period
   */
-class ObservabilityCleaner(actorSystem: ActorSystem, postgresClient: PostgresClient)(implicit ec: ExecutionContext) extends Logging {
+class ObservabilityPurger(actorSystem: ActorSystem, postgresClient: PostgresClient)(implicit ec: ExecutionContext) extends Logging {
   var cancellable:Option[Cancellable] = None
 
   def start(): Unit = {
@@ -24,13 +24,13 @@ class ObservabilityCleaner(actorSystem: ActorSystem, postgresClient: PostgresCli
 
   def go(): Unit = {
     logger.info("Starting postgres events cleaner")
-    postgresClient.cleanOldEvents() match {
+    postgresClient.deleteOldEvents() match {
       case Right(rowsCleaned) =>
         logger.info(s"Cleaned ${rowsCleaned} ingestion events from postgres")
       case Left(failure) =>
         logger.error(s"Failed to clean ingestion events", failure.toThrowable)
     }
-    postgresClient.cleanOldBlobMetadata() match {
+    postgresClient.deleteOldBlobMetadata() match {
       case Right(rowsCleaned) =>
         logger.info(s"Cleaned ${rowsCleaned} blob metadata rows from postgres")
       case Left(failure) =>

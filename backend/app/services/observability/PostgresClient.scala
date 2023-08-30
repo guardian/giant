@@ -12,9 +12,9 @@ trait PostgresClient {
     def insertEvent(event: IngestionEvent): Either[GiantFailure, Unit]
     def insertMetadata(metaData: BlobMetadata): Either[GiantFailure, Unit]
     def getEvents (ingestId: String, ingestIdIsPrefix: Boolean): Either[GiantFailure, List[BlobStatus]]
-  def cleanOldEvents(): Either[GiantFailure, Long]
+  def deleteOldEvents(): Either[GiantFailure, Long]
 
-  def cleanOldBlobMetadata(): Either[GiantFailure, Long]
+  def deleteOldBlobMetadata(): Either[GiantFailure, Long]
 }
 
 class PostgresClientDoNothing extends PostgresClient {
@@ -24,9 +24,9 @@ class PostgresClientDoNothing extends PostgresClient {
 
     override def getEvents (ingestId: String, ingestIdIsPrefix: Boolean): Either[GiantFailure, List[BlobStatus]] = Right(List())
 
-    override def cleanOldEvents(): Either[GiantFailure, Long] = Right(0)
+    override def deleteOldEvents(): Either[GiantFailure, Long] = Right(0)
 
-    override def cleanOldBlobMetadata(): Either[GiantFailure, Long] = Right(0)
+    override def deleteOldBlobMetadata(): Either[GiantFailure, Long] = Right(0)
 }
 
 class PostgresClientImpl(postgresConfig: PostgresConfig) extends PostgresClient with Logging {
@@ -193,7 +193,7 @@ class PostgresClientImpl(postgresConfig: PostgresConfig) extends PostgresClient 
         }
     }
 
-  override def cleanOldEvents(): Either[GiantFailure, Long] = {
+  override def deleteOldEvents(): Either[GiantFailure, Long] = {
     Try {
       sql"""
         DELETE FROM ingestion_events WHERE event_time < (now() - interval '14 days')
@@ -206,7 +206,7 @@ class PostgresClientImpl(postgresConfig: PostgresConfig) extends PostgresClient 
     }
   }
 
-  override def cleanOldBlobMetadata(): Either[GiantFailure, Long] = {
+  override def deleteOldBlobMetadata(): Either[GiantFailure, Long] = {
     Try {
       sql"""
         DELETE FROM blob_metadata WHERE insert_time < (now() - interval '14 days')
