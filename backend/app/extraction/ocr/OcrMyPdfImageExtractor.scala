@@ -42,7 +42,7 @@ class OcrMyPdfImageExtractor(config: OcrConfig, scratch: ScratchSpace, index: In
   }
 
   private def removeAlphaChannel(inputFile: File, tmpDir: Path, stderr: OcrStderrLogger): Option[File] = {
-    val tempFile = tmpDir.resolve(s"${inputFile.toPath.getFileName}.alphaRemoved.pdf")
+    val tempFile = tmpDir.resolve(s"${inputFile.toPath.getFileName}.alphaRemoved.png")
     val stdout = mutable.Buffer.empty[String]
 
     val cmd = s"convert ${inputFile.toPath.toAbsolutePath} -alpha off ${tempFile.toAbsolutePath}"
