@@ -7,6 +7,8 @@ import extraction.email.{CustomTikaDetector, JakartaMail}
 import org.apache.tika.io.TikaInputStream
 import org.apache.tika.mime.MediaType
 
+import scala.util.control.NonFatal
+
 /*
  * Not really a standard but pretty common place
  *  https://www.loc.gov/preservation/digital/formats/fdd/fdd000383.shtml
@@ -19,17 +21,19 @@ object MBoxEmailDetector extends CustomTikaDetector {
       val url = s"mbox:${tikaInput.getFile.getAbsolutePath}"
       val mbox = JakartaMail.openStore(url)
 
-      println("*******FOUND AN MBOX great")
 
       try {
         val messageCount = mbox.getMessageCount()
-        println("*******Number of messages:" + messageCount)
-
         if(messageCount >= 2) {
           Some(MediaType.parse(MBOX_MIME_TYPE))
         } else {
+          logger.error(s"Mbox file had ${messageCount} messages - this could be because JakartaMail failed to properly open the MBOX file. ")
           None
         }
+      } catch  {
+        case NonFatal(e) =>
+          logger.error("Failed to open mbox", e)
+          None
       } finally {
         mbox.close()
       }

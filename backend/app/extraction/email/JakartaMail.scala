@@ -1,11 +1,11 @@
 package extraction.email
 
+
+import jakarta.mail.internet.MimeMessage
 import jakarta.mail.{Folder, Session, URLName}
 
 import java.io.InputStream
 import java.util.Properties
-import jakarta.mail.internet.MimeMessage;
-import org.eclipse.angus.mail.imap.IMAPStore
 
 object JakartaMail {
 
@@ -21,17 +21,11 @@ object JakartaMail {
     "mail.mime.base64.ignoreerrors" -> "true",
     // Handle `?=` encoding in filenames
     "mail.mime.decodefilename" -> "true",
-    "mail.mbox.class" -> "com.sun.mail.mbox.MboxShjvtore"
   ))
 
   def openStore(url: String): Folder = {
-    println(url)
-    println("UHIUHOUHO")
     val folder = session.getFolder(new URLName(url))
-    println("got the folder")
-
     folder.open(Folder.READ_ONLY)
-    println("opened the folder")
     folder
   }
 
