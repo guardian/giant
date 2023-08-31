@@ -138,11 +138,8 @@ lazy val backend = (project in file("backend"))
       "com.amazonaws" % "aws-java-sdk-cloudwatchmetrics" % awsVersion,
       "com.beachape" %% "enumeratum-play" % "1.7.2",
       "com.iheart" %% "ficus" % "1.5.2",
-//      "com.sun.mail" % "javax.mail" % "1.6.2",
       "org.jsoup" % "jsoup" % "1.14.2",
-      "org.eclipse.angus" % "jakarta.mail" % "2.0.2",
       "org.eclipse.angus" % "angus-mail" % "2.0.2",
-      "com.sun.mail" % "mbox" % "1.6.7.payara-p1",
       "com.gu" %% "pan-domain-auth-verification" % "1.2.0",
       "com.amazonaws" % "aws-java-sdk-secretsmanager" % "1.12.528",
 
