@@ -146,7 +146,7 @@ class PostgresClientImpl(postgresConfig: PostgresConfig) extends PostgresClient 
                 MIN(event_time) AS ingest_start,
                 Max(event_time) AS most_recent_event,
                 ARRAY_AGG(details -> 'errors') as errors,
-                (ARRAY_AGG(details ->> 'workspaceName'))[1] AS workspace_name
+                (ARRAY_AGG(details ->> 'workspaceName')  FILTER (WHERE details ->> 'workspaceName' IS NOT NULL))[1] as workspace_name
               FROM ingestion_events
               WHERE ingest_id LIKE ${if(ingestIdIsPrefix) LikeConditionEscapeUtil.beginsWith(ingestId) else ingestId}
               GROUP BY 1,2
