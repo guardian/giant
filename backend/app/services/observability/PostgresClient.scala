@@ -70,8 +70,8 @@ class PostgresClientImpl(postgresConfig: PostgresConfig) extends PostgresClient 
                 details,
                 event_time
             ) VALUES (
-                ${event.metaData.blobId},
-                ${event.metaData.ingestId},
+                ${event.metadata.blobId},
+                ${event.metadata.ingestId},
                 ${event.eventType.toString()},
                 ${event.status.toString()},
                 $detailsJson::JSONB,
@@ -82,7 +82,7 @@ class PostgresClientImpl(postgresConfig: PostgresConfig) extends PostgresClient 
             case Failure(exception) =>
                 logger.warn(s"""
           An exception occurred while inserting ingestion event
-          blobId: ${event.metaData.blobId}, ingestId: ${event.metaData.ingestId} eventType: ${event.eventType.toString()}
+          blobId: ${event.metadata.blobId}, ingestId: ${event.metadata.ingestId} eventType: ${event.eventType.toString()}
           exception: ${exception.getMessage()}"""
                 )
                 Left(PostgresWriteFailure(exception))
@@ -146,7 +146,7 @@ class PostgresClientImpl(postgresConfig: PostgresConfig) extends PostgresClient 
                 MIN(event_time) AS ingest_start,
                 Max(event_time) AS most_recent_event,
                 ARRAY_AGG(details -> 'errors') as errors,
-                (ARRAY_AGG(details ->> 'workspaceName'))[1] AS workspace_name
+                (ARRAY_AGG(details ->> 'workspaceName')  FILTER (WHERE details ->> 'workspaceName' IS NOT NULL))[1] as workspace_name
               FROM ingestion_events
               WHERE ingest_id LIKE ${if(ingestIdIsPrefix) LikeConditionEscapeUtil.beginsWith(ingestId) else ingestId}
               GROUP BY 1,2
@@ -161,7 +161,7 @@ class PostgresClientImpl(postgresConfig: PostgresConfig) extends PostgresClient 
                         rs.string("ingest_id")
                     ),
                     rs.array("paths").getArray().asInstanceOf[Array[String]].toList,
-                    rs.long("fileSize"),
+                    rs.longOpt("fileSize"),
                     rs.stringOpt("workspaceName"),
                     new DateTime(rs.dateTime("ingest_start").toInstant.toEpochMilli, DateTimeZone.UTC),
                     new DateTime(rs.dateTime("most_recent_event").toInstant.toEpochMilli, DateTimeZone.UTC),
