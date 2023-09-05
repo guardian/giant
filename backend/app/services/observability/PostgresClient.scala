@@ -111,6 +111,7 @@ class PostgresClientImpl(postgresConfig: PostgresConfig) extends PostgresClient 
           -- Aggregate all the status updates for the relevant extractors for a given blob
           SELECT
             blob_extractors.blob_id,
+            blob_extractors.ingest_id,
             blob_extractors.extractor,
             -- As the same status update may happen multiple times if a blob is reingested, it's useful to have the time
             -- this field is destined to be converted to a string so use epoch time (seconds) to make getting it back into
@@ -124,7 +125,7 @@ class PostgresClientImpl(postgresConfig: PostgresConfig) extends PostgresClient 
             -- there is no index on extractorName but we aren't expecting too many events for the same blob_id/ingest_id
             AND blob_extractors.extractor = ingestion_events.details ->> 'extractorName'
             -- A file may be uploaded multiple times within different ingests - use group by to merge them together
-            GROUP BY 1,2
+            GROUP BY 1,2,3
           )
           SELECT
             ie.blob_id,
@@ -152,8 +153,9 @@ class PostgresClientImpl(postgresConfig: PostgresConfig) extends PostgresClient 
               GROUP BY 1,2
             ) AS ie
             LEFT JOIN blob_metadata USING(ingest_id, blob_id)
-            LEFT JOIN extractor_statuses USING(blob_id)
+            LEFT JOIN extractor_statuses on extractor_statuses.blob_id = ie.blob_id and extractor_statuses.ingest_id = ie.ingest_id
             GROUP BY 1,2,3,4,5,6
+            ORDER by ingest_start desc
      """.map(rs => {
                 BlobStatus(
                     EventMetadata(
