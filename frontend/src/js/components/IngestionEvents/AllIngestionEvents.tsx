@@ -10,10 +10,11 @@ import {bindActionCreators} from "redux";
 import {getCollections} from "../../actions/collections/getCollections";
 import {Collection, Ingestion} from "../../types/Collection";
 import {IngestionEvents} from "./IngestionEvents";
-import {EuiFlexGroup, EuiFlexItem, EuiFormControlLayout, EuiFormLabel, EuiProvider} from "@elastic/eui";
+import {EuiButtonGroup, EuiFlexGroup, EuiFlexItem, EuiFormControlLayout, EuiFormLabel, EuiProvider} from "@elastic/eui";
 import {EuiSelect} from "@elastic/eui";
 import {EuiSelectOption} from "@elastic/eui";
 import styles from "./IngestionEvents.module.css";
+import { css } from "@emotion/react";
 
 function getCollection(collectionId: string, collections: Collection[]) {
     return collections.find((collection: Collection) => collection.uri === collectionId)
@@ -29,6 +30,7 @@ export function AllIngestionEvents(
     const [selectedCollectionId, setSelectedCollectionId] = useState<string>("")
     const [ingestOptions, setIngestOptions] = useState<EuiSelectOption[]>([])
     const [ingestId, setIngestId] = useState<string>("all")
+    const [toggleIdSelected, setToggleIdSelected] = useState(`all__0`);
 
     useEffect(() => {
         getCollections({})
@@ -47,43 +49,66 @@ export function AllIngestionEvents(
         })).concat([{value: "all", text: "All ingestions"}]))
     }, [selectedCollectionId, collections])
 
+    const toggleFilterButtons = [
+        { id: `all__0`, label: 'all' },
+        { id: `errors__1`, label: 'errors only' },
+      ];
 
-    return             <div className='app__main-content'>
-        <h1 className='page-title'>
-            All ingestion events</h1>
+    return (
+        <div className='app__main-content'>
+            <h1 className='page-title'>All ingestion events</h1>
             <EuiProvider globalStyles={false} colorMode="light">
+                <EuiFlexGroup wrap alignItems={"flexStart"} >
+                    {collections.length > 0 && <EuiFlexItem grow={false}>
+                        <EuiFormControlLayout className={styles.dropdown} prepend={<EuiFormLabel htmlFor={"collection-picker"}>Collection</EuiFormLabel>}>
+                            <EuiSelect
+                                hasNoInitialSelection={true}
+                                value={selectedCollectionId}
+                                onChange={(e) => setSelectedCollectionId(e.target.value)}
+                                options={collectionOptions}>
+                                id={"collection-picker"}
+                            </EuiSelect>
+                        </EuiFormControlLayout>
+                    </EuiFlexItem>
+                    }
 
-            <EuiFlexGroup alignItems={"flexStart"} >
-        {collections.length > 0 && <EuiFlexItem grow={false}>
-            <EuiFormControlLayout className={styles.dropdown} prepend={<EuiFormLabel htmlFor={"collection-picker"}>Collection</EuiFormLabel>}>
-                <EuiSelect
-                    hasNoInitialSelection={true}
-                    value={selectedCollectionId}
-                    onChange={(e) => setSelectedCollectionId(e.target.value)}
-                    options={collectionOptions}>
-                    id={"collection-picker"}
-                </EuiSelect>
-            </EuiFormControlLayout>
-        </EuiFlexItem>
-        }
+                    {ingestOptions &&
+                        <EuiFlexItem grow={false}>
+                        <EuiFormControlLayout  className={styles.dropdown} prepend={<EuiFormLabel htmlFor={"ingest-picker"}>Ingest</EuiFormLabel>}>
+                            <EuiSelect
+                                value={ingestId}
+                                onChange={(e) => setIngestId(e.target.value)} options={ingestOptions}>
+                                id={"ingest-picker"}
 
-        {ingestOptions &&
-            <EuiFlexItem grow={false}>
-            <EuiFormControlLayout  className={styles.dropdown} prepend={<EuiFormLabel htmlFor={"ingest-picker"}>Ingest</EuiFormLabel>}>
-                <EuiSelect
-                    value={ingestId}
-                    onChange={(e) => setIngestId(e.target.value)} options={ingestOptions}>
-                    id={"ingest-picker"}
+                            </EuiSelect>
+                        </EuiFormControlLayout>
+                        </EuiFlexItem>
+                    }
 
-                </EuiSelect>
-            </EuiFormControlLayout>
-            </EuiFlexItem>
-            }
-            </EuiFlexGroup>
+                    <EuiButtonGroup 
+                        css={css`border: none;`}
+                        legend="selection group to show all events or just the errors"
+                        options={toggleFilterButtons} 
+                        idSelected={toggleIdSelected}
+                        onChange={(id) => {
+                            console.log(`status changed to ${id}`);
+                            setToggleIdSelected(id);
+                        }}
+                    /> 
+                </EuiFlexGroup>
 
-        {selectedCollectionId && <IngestionEvents collectionId={selectedCollectionId} ingestId={ingestId} workspaces={workspacesMetadata} breakdownByWorkspace={false}></IngestionEvents>}
-    </EuiProvider>
-    </div>
+                {selectedCollectionId && 
+                    <IngestionEvents 
+                        collectionId={selectedCollectionId} 
+                        ingestId={ingestId} 
+                        workspaces={workspacesMetadata} 
+                        breakdownByWorkspace={false}
+                        showErrorsOnly={toggleIdSelected === 'errors__1'}
+                    />
+                }
+            </EuiProvider>
+        </div>
+    );  
 }
 
 

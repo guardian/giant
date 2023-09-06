@@ -11,7 +11,7 @@ import _ from "lodash";
 
 type Metadata = {
     blobId: string;
-    ingestUri: string;
+    ingestId: string;
 }
 
 type BlobStatus =  {
@@ -57,8 +57,17 @@ const blobStatusIcons = {
 
 const statusToColor = (status: Status) => extractorStatusColors[status]
 
+const getFailedStatuses = (statuses: ExtractorStatus[]) => 
+    statuses.filter(status => status.statusUpdates.find(u => u.status === "Failure") !== undefined);
+
+const getFailedBlobs = (blobs: BlobStatus[]) => {
+    return  blobs.filter(wb => {                
+        return getFailedStatuses(wb.extractorStatuses).length > 0;        
+    });
+}
+
 const getBlobStatus = (statuses: ExtractorStatus[]) => {
-    const failures = statuses.filter(status => status.statusUpdates.find(u => u.status === "Failure") !== undefined)
+    const failures = getFailedStatuses(statuses);
     const inProgress = statuses.filter(status => status.statusUpdates.find(u => !u.status || ["Failure", "Success"].includes(u.status)) === undefined)
     return failures.length > 0 ? blobStatusIcons.completeWithErrors : inProgress.length > 0 ? blobStatusIcons.inProgress : blobStatusIcons.complete
 }
@@ -158,11 +167,12 @@ const parseBlobStatus = (status: any): BlobStatus => {
 }
 
 export function IngestionEvents(
-    {collectionId, ingestId, workspaces, breakdownByWorkspace}: {
+    {collectionId, ingestId, workspaces, breakdownByWorkspace, showErrorsOnly}: {
         collectionId: string,
         ingestId?: string,
         workspaces: WorkspaceMetadata[],
-        breakdownByWorkspace: boolean
+        breakdownByWorkspace: boolean,
+        showErrorsOnly?: boolean,
     }) {
     const [blobs, updateBlobs] = useState<BlobStatus[] | undefined>(undefined)
     const [tableData, setTableData] = useState<IngestionTable[]>([])
@@ -178,37 +188,49 @@ export function IngestionEvents(
         })
     }, [collectionId, ingestId, updateBlobs, ingestIdSuffix])
 
+    const getWorkspaceBlobs = (allBlobs: BlobStatus[], workspaceName: string, errorsOnly: boolean | undefined) => {       
+        const workspaceBlobs = allBlobs.filter(b => b.workspaceName === workspaceName);
+
+        if (errorsOnly) return getFailedBlobs(workspaceBlobs);
+        
+        return workspaceBlobs;
+    }
+
     useEffect(() => {
         if (blobs) {
             if (breakdownByWorkspace) {
                 setTableData(workspaces
                     .map((w: WorkspaceMetadata) => ({
                         title: `Workspace: ${w.name}`,
-                        blobs: blobs.filter(b => b.workspaceName === w.name)
+                        blobs: getWorkspaceBlobs(blobs, w.name, showErrorsOnly)
                     })))
             } else {
-                setTableData([{title: `${collectionId}${ingestIdSuffix}`, blobs}])
+                setTableData([
+                    {
+                        title: `${collectionId}${ingestIdSuffix}`,
+                        blobs: showErrorsOnly ? getFailedBlobs(blobs) : blobs
+                    }])
             }
         } else {
             setTableData([])
         }
 
-    }, [breakdownByWorkspace, blobs, workspaces, ingestIdSuffix, collectionId])
+    }, [breakdownByWorkspace, blobs, workspaces, ingestIdSuffix, collectionId, showErrorsOnly])
 
     return (
         <>
         {tableData.map((t: IngestionTable) =>
             <div key={t.title}>
-            <EuiSpacer size={"m"}/>
-            <h1>{t.title}</h1>
-            <EuiInMemoryTable
-                tableCaption="ingestion events"
-                items={t.blobs}
-                itemId={(row: BlobStatus) => `${row.metadata.ingestUri}-${row.metadata.blobId}`}
-                loading={t.blobs === undefined}
-                columns={columns}
-                sorting={true}
-            />
+                <EuiSpacer size={"m"}/>
+                <h1>{t.title}</h1>
+                <EuiInMemoryTable
+                    tableCaption="ingestion events"
+                    items={t.blobs}
+                    itemId={(row: BlobStatus) => `${row.metadata.ingestId}-${row.metadata.blobId}`}
+                    loading={t.blobs === undefined}
+                    columns={columns}
+                    sorting={true}
+                />
             </div>
         )}
         </>

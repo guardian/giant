@@ -1,6 +1,6 @@
 
 
-import React, {useEffect, useState} from "react";
+import {useEffect, useState} from "react";
 import {GiantState} from "../../types/redux/GiantState";
 import {GiantDispatch} from "../../types/redux/GiantDispatch";
 import {connect} from "react-redux";
@@ -12,10 +12,13 @@ import {Collection} from "../../types/Collection";
 import {getDefaultCollection} from "../Uploads/UploadTarget";
 import {IngestionEvents} from "./IngestionEvents";
 import {PartialUser} from "../../types/User";
-import {EuiProvider, EuiSelect} from "@elastic/eui";
+import {EuiButtonGroup, EuiFlexGroup, EuiProvider, EuiSelect} from "@elastic/eui";
 import {getWorkspacesMetadata} from "../../actions/workspaces/getWorkspacesMetadata";
 import {EuiFormControlLayout} from "@elastic/eui";
 import {EuiFormLabel} from "@elastic/eui";
+import { css } from "@emotion/react";
+
+
 
 
 function MyUploads(
@@ -28,7 +31,9 @@ function MyUploads(
           }) {
     const [defaultCollection, setDefaultCollection] = useState<Collection>()
 
-    const [selectedWorkspace, setSelectedWorkspace] = useState<string>("all")
+    const [selectedWorkspace, setSelectedWorkspace] = useState<string>("all");
+
+    const [toggleIdSelected, setToggleIdSelected] = useState(`all__0`);      
 
     useEffect(() => {
         getCollections({})
@@ -41,6 +46,10 @@ function MyUploads(
         }
     }, [collections, currentUser])
 
+    const toggleFilterButtons = [
+        { id: `all__0`, label: 'all' },
+        { id: `errors__1`, label: 'errors only' },
+      ];
 
     return (
         <div className='app__main-content'>
@@ -49,24 +58,35 @@ function MyUploads(
             {defaultCollection &&
                 <>
                 {workspacesMetadata.length > 0 &&
+                <EuiFlexGroup>
                     <EuiFormControlLayout prepend={<EuiFormLabel htmlFor={"workspace-picker"}>Workspace</EuiFormLabel>}>
-                    <EuiSelect
-                        value={selectedWorkspace}
-                        onChange={(e) => setSelectedWorkspace(e.target.value)}
-                        id={"workspace-picker"}
-                        options={
-                        [{value: "all", text: "All workspaces"}].concat(
-                            workspacesMetadata.map((w: WorkspaceMetadata) =>
-                                ({value: w.name, text: w.name}))
-                        )
-                    }>
-                    </EuiSelect>
+                        <EuiSelect
+                            value={selectedWorkspace}
+                            onChange={(e) => setSelectedWorkspace(e.target.value)}
+                            id={"workspace-picker"}
+                            options={
+                                [{value: "all", text: "All workspaces"}].concat(
+                                    workspacesMetadata.map((w: WorkspaceMetadata) =>
+                                        ({value: w.name, text: w.name}))
+                                )
+                            }>
+                        </EuiSelect>                     
                     </EuiFormControlLayout>
+                    <EuiButtonGroup 
+                        css={css`border: none;`}
+                        legend="selection group to show all events or just the errors"
+                        options={toggleFilterButtons} 
+                        idSelected={toggleIdSelected}
+                        onChange={(id) => setToggleIdSelected(id)}
+                    >                                
+                    </EuiButtonGroup> 
+                </EuiFlexGroup>
                 }
                  <IngestionEvents
                      collectionId={defaultCollection.uri}
                      workspaces={workspacesMetadata.filter((w) => selectedWorkspace === "all" || w.name === selectedWorkspace)}
                      breakdownByWorkspace={true}
+                     showErrorsOnly={toggleIdSelected === 'errors__1'}
                  ></IngestionEvents>
                 </>
             }
