@@ -17,9 +17,7 @@ import {getWorkspacesMetadata} from "../../actions/workspaces/getWorkspacesMetad
 import {EuiFormControlLayout} from "@elastic/eui";
 import {EuiFormLabel} from "@elastic/eui";
 import { css } from "@emotion/react";
-
-
-
+import { FilterState } from "./types";
 
 function MyUploads(
     {getCollections, getWorkspacesMetadata, collections, currentUser, workspacesMetadata}: {
@@ -30,13 +28,11 @@ function MyUploads(
         workspacesMetadata: WorkspaceMetadata[],
           }) {
 
-    const ALL_FILTER_ID = 'all__0';
-    const ERRORS_FILTER_ID = 'errors__1';
     const [defaultCollection, setDefaultCollection] = useState<Collection>()
 
     const [selectedWorkspace, setSelectedWorkspace] = useState<string>("all");
 
-    const [toggleIdSelected, setToggleIdSelected] = useState(ALL_FILTER_ID);      
+    const [toggleIdSelected, setToggleIdSelected] = useState<FilterState>("all");      
 
     useEffect(() => {
         getCollections({})
@@ -49,9 +45,9 @@ function MyUploads(
         }
     }, [collections, currentUser])
 
-    const toggleFilterButtons = [
-        { id: ALL_FILTER_ID, label: 'all' },
-        { id: ERRORS_FILTER_ID, label: 'errors only' },
+    const toggleFilterButtons: {id: FilterState, label: string}[] = [
+        { id: "all", label: 'all' },
+        { id: "errorsOnly", label: 'errors only' },
       ];
 
     return (
@@ -80,7 +76,7 @@ function MyUploads(
                         legend="selection group to show all events or just the errors"
                         options={toggleFilterButtons} 
                         idSelected={toggleIdSelected}
-                        onChange={(id) => setToggleIdSelected(id)}
+                        onChange={(id) => setToggleIdSelected(id as FilterState)}
                     >                                
                     </EuiButtonGroup> 
                 </EuiFlexGroup>
@@ -89,7 +85,7 @@ function MyUploads(
                      collectionId={defaultCollection.uri}
                      workspaces={workspacesMetadata.filter((w) => selectedWorkspace === "all" || w.name === selectedWorkspace)}
                      breakdownByWorkspace={true}
-                     showErrorsOnly={toggleIdSelected === ERRORS_FILTER_ID}
+                     showErrorsOnly={toggleIdSelected === "errorsOnly"}
                  ></IngestionEvents>
                 </>
             }

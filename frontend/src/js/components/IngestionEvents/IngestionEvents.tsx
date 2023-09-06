@@ -8,46 +8,7 @@ import hdate from 'human-date';
 import {WorkspaceMetadata} from "../../types/Workspaces";
 import moment from "moment";
 import _ from "lodash";
-
-type Metadata = {
-    blobId: string;
-    ingestId: string;
-}
-
-type BlobStatus =  {
-    metadata: Metadata;
-    paths: string[];
-    fileSize?: number;
-    ingestStart: Date;
-    mostRecentEvent: Date;
-    extractorStatuses: ExtractorStatus[];
-    errors: string[];
-    workspaceName: string;
-}
-
-type IngestionTable = {
-    title: string;
-    blobs: BlobStatus[]
-}
-
-type Status = "Unknown" | "Started" | "Success" | "Failure"
-
-type ExtractorStatusUpdate = {
-    eventTime?: Date;
-    status?: Status
-}
-
-type ExtractorStatus = {
-    extractorType: string;
-    statusUpdates: ExtractorStatusUpdate[];
-}
-
-const extractorStatusColors = {
-    "Success": "success",
-    "Started": "primary",
-    "Failure": "danger",
-    "Unknown": "default"
-}
+import { BlobStatus, ExtractorStatus, IngestionTable, Status, extractorStatusColors } from "./types";
 
 const blobStatusIcons = {
     complete: <EuiIconTip type="checkInCircleFilled" />,
