@@ -10,6 +10,7 @@ export default function urlParams(state = {
     pageSize: undefined,
     sortBy: undefined,
     highlight: undefined,
+    currentWorkspace: undefined
 }, action: UrlParamsAction): UrlParamsState {
     switch (action.type) {
         case UrlParamsActionType.SEARCHQUERY_FILTERS_UPDATE:
@@ -59,6 +60,12 @@ export default function urlParams(state = {
                 ...state,
                 highlight: action.highlight
             };
+        case UrlParamsActionType.SET_INGESTION_EVENTS_WORKSPACE_IN_URL:
+            console.log(state, action)
+            return {
+                ...state,
+                currentWorkspace: action.currentWorkspace
+            }
 
         case UrlParamsActionType.URLPARAMS_UPDATE:
             return {

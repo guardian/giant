@@ -42,6 +42,7 @@ export interface UrlParamsState {
     pageSize?: number,
     sortBy?: string,
     highlight?: string,
+    currentWorkspace?: string
 }
 
 export type ExpandedFiltersState = { [key: string]: boolean }
@@ -83,5 +84,5 @@ export interface GiantState {
     urlParams: UrlParamsState,
     search: SearchState,
     isLoadingResource: LoadingState,
-    pages: PagesState
+    pages: PagesState,
 }
