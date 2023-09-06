@@ -97,7 +97,9 @@ export enum UrlParamsActionType {
     SET_DETAILS_VIEW = 'SET_DETAILS_VIEW',
     SET_CURRENT_HIGHLIGHT_IN_URL = 'SET_CURRENT_HIGHLIGHT_IN_URL',
     URLPARAMS_UPDATE = 'URLPARAMS_UPDATE',
-    SET_INGESTION_EVENTS_WORKSPACE_IN_URL = 'SET_INGESTION_EVENTS_WORKSPACE_IN_URL'
+    SET_INGESTION_EVENTS_WORKSPACE_IN_URL = 'SET_INGESTION_EVENTS_WORKSPACE_IN_URL',
+    SET_INGESTION_EVENTS_COLLECTION_IN_URL = 'SET_INGESTION_EVENTS_COLLECTION_IN_URL',
+    SET_INGESTION_EVENTS_INGESTION_IN_URL = 'SET_INGESTION_EVENTS_INGESTION_IN_URL'
 }
 
 interface SearchQueryFiltersUpdateType {
@@ -141,6 +143,16 @@ interface SetIngestionEventsWorkspaceInUrl {
     currentWorkspace: string
 }
 
+interface SetIngestionEventsCollectionInUrl {
+    type: UrlParamsActionType.SET_INGESTION_EVENTS_COLLECTION_IN_URL,
+    currentCollection: string
+}
+
+interface SetIngestionEventsIngestionInUrl {
+    type: UrlParamsActionType.SET_INGESTION_EVENTS_INGESTION_IN_URL,
+    currentIngestion: string
+}
+
 export enum HighlightsActionType {
     UPDATE_HIGHLIGHTS = 'UPDATE_HIGHLIGHTS',
 }
@@ -166,6 +178,8 @@ export type UrlParamsAction =
     | SetCurrentHighlightInUrl
     | UrlParamsUpdateType
     | SetIngestionEventsWorkspaceInUrl
+    | SetIngestionEventsCollectionInUrl
+    | SetIngestionEventsIngestionInUrl
 
 
 

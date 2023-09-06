@@ -43,6 +43,8 @@ export interface UrlParamsState {
     sortBy?: string,
     highlight?: string,
     currentWorkspace?: string
+    currentCollection?: string
+    currentIngestion?: string
 }
 
 export type ExpandedFiltersState = { [key: string]: boolean }
