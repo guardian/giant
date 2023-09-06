@@ -18,6 +18,7 @@ import { css } from "@emotion/react";
 import { FilterState } from "./types";
 import { updateCurrentCollection } from "./updateCurrentCollection";
 import { updateCurrentIngestion } from "./updateCurrentIngestion";
+import _ from 'underscore'
 
 function getCollection(collectionId: string, collections: Collection[]) {
     return collections.find((collection: Collection) => collection.uri === collectionId)
@@ -41,25 +42,28 @@ export function AllIngestionEvents(
         getCollections({})
     }, [getCollections])
 
-    const collectionOptions: EuiSelectOption[] = collections.sort(
-        (a, b) => a.display < b.display ? -1 : 1
+    const collectionOptions: EuiSelectOption[] = _.sortBy(
+        collections,
+        (c) => c.display
     ).map((collection: Collection) => ({
         value: collection.uri,
-        text: collection.display
+        text: collection.display,
     }))
 
     useEffect(() => {
         if (currentCollection) {
             const sc = getCollection(currentCollection, collections)
-            sc && setIngestOptions(
-                [{value: "all", text: "All ingestions"}].concat(
-                    sc.ingestions.sort(
-                        (a, b) => a.display < b.display ? -1 : 1
-                    ).map((ingestion: Ingestion) => ({
-                        value: ingestion.path,
-                        text: ingestion.display
-                    }))
-            ))
+            sc &&
+                setIngestOptions(
+                    [{ value: "all", text: "All ingestions" }].concat(
+                        _.sortBy(sc.ingestions, (i) => i.display).map(
+                            (ingestion: Ingestion) => ({
+                                value: ingestion.path,
+                                text: ingestion.display,
+                            })
+                        )
+                    )
+                )
             if (sc?.ingestions && sc?.ingestions.find((i) => i.display === currentIngestion) === undefined){
                 updateCurrentIngestion(undefined)
             }
