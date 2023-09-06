@@ -54,9 +54,12 @@ export function AllIngestionEvents(
                 value: ingestion.path,
                 text: ingestion.display
             })).concat([{value: "all", text: "All ingestions"}]))
-            updateCurrentIngestion(undefined)
+            console.log("ingestions", sc?.ingestions)
+            if (sc?.ingestions.find((i) => i.display === currentIngestion) === undefined){
+                updateCurrentIngestion(undefined)
+            }
         }
-    }, [currentCollection, collections, updateCurrentIngestion])
+    }, [currentCollection, collections, currentIngestion, updateCurrentIngestion])
 
     const toggleFilterButtons = [
         { id: FilterState.All, label: 'all' },
