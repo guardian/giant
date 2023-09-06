@@ -27,10 +27,12 @@ export function AllIngestionEvents(
         workspacesMetadata: WorkspaceMetadata[],
     }) {
 
+    const ALL_FILTER_ID = 'all__0';
+    const ERRORS_FILTER_ID = 'errors__1';
     const [selectedCollectionId, setSelectedCollectionId] = useState<string>("")
     const [ingestOptions, setIngestOptions] = useState<EuiSelectOption[]>([])
     const [ingestId, setIngestId] = useState<string>("all")
-    const [toggleIdSelected, setToggleIdSelected] = useState(`all__0`);
+    const [toggleIdSelected, setToggleIdSelected] = useState(ALL_FILTER_ID);
 
     useEffect(() => {
         getCollections({})
@@ -50,8 +52,8 @@ export function AllIngestionEvents(
     }, [selectedCollectionId, collections])
 
     const toggleFilterButtons = [
-        { id: `all__0`, label: 'all' },
-        { id: `errors__1`, label: 'errors only' },
+        { id: ALL_FILTER_ID, label: 'all' },
+        { id: ERRORS_FILTER_ID, label: 'errors only' },
       ];
 
     return (
@@ -90,10 +92,7 @@ export function AllIngestionEvents(
                         legend="selection group to show all events or just the errors"
                         options={toggleFilterButtons} 
                         idSelected={toggleIdSelected}
-                        onChange={(id) => {
-                            console.log(`status changed to ${id}`);
-                            setToggleIdSelected(id);
-                        }}
+                        onChange={(id) => setToggleIdSelected(id)}
                     /> 
                 </EuiFlexGroup>
 
@@ -103,7 +102,7 @@ export function AllIngestionEvents(
                         ingestId={ingestId} 
                         workspaces={workspacesMetadata} 
                         breakdownByWorkspace={false}
-                        showErrorsOnly={toggleIdSelected === 'errors__1'}
+                        showErrorsOnly={toggleIdSelected === ERRORS_FILTER_ID}
                     />
                 }
             </EuiProvider>

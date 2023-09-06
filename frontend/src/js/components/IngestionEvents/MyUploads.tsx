@@ -29,11 +29,14 @@ function MyUploads(
         currentUser?: PartialUser,
         workspacesMetadata: WorkspaceMetadata[],
           }) {
+
+    const ALL_FILTER_ID = 'all__0';
+    const ERRORS_FILTER_ID = 'errors__1';
     const [defaultCollection, setDefaultCollection] = useState<Collection>()
 
     const [selectedWorkspace, setSelectedWorkspace] = useState<string>("all");
 
-    const [toggleIdSelected, setToggleIdSelected] = useState(`all__0`);      
+    const [toggleIdSelected, setToggleIdSelected] = useState(ALL_FILTER_ID);      
 
     useEffect(() => {
         getCollections({})
@@ -47,8 +50,8 @@ function MyUploads(
     }, [collections, currentUser])
 
     const toggleFilterButtons = [
-        { id: `all__0`, label: 'all' },
-        { id: `errors__1`, label: 'errors only' },
+        { id: ALL_FILTER_ID, label: 'all' },
+        { id: ERRORS_FILTER_ID, label: 'errors only' },
       ];
 
     return (
@@ -86,13 +89,12 @@ function MyUploads(
                      collectionId={defaultCollection.uri}
                      workspaces={workspacesMetadata.filter((w) => selectedWorkspace === "all" || w.name === selectedWorkspace)}
                      breakdownByWorkspace={true}
-                     showErrorsOnly={toggleIdSelected === 'errors__1'}
+                     showErrorsOnly={toggleIdSelected === ERRORS_FILTER_ID}
                  ></IngestionEvents>
                 </>
             }
         </EuiProvider>
-                </div>
-
+        </div>
     )
 }
 
