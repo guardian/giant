@@ -133,7 +133,7 @@ export function IngestionEvents(
         ingestId?: string,
         workspaces: WorkspaceMetadata[],
         breakdownByWorkspace: boolean,
-        showErrorsOnly?: boolean,
+        showErrorsOnly: boolean,
     }) {
     const [blobs, updateBlobs] = useState<BlobStatus[] | undefined>(undefined)
     const [tableData, setTableData] = useState<IngestionTable[]>([])
