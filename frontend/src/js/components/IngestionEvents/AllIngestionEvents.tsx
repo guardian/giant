@@ -15,6 +15,7 @@ import {EuiSelect} from "@elastic/eui";
 import {EuiSelectOption} from "@elastic/eui";
 import styles from "./IngestionEvents.module.css";
 import { css } from "@emotion/react";
+import { FilterState } from "./types";
 
 function getCollection(collectionId: string, collections: Collection[]) {
     return collections.find((collection: Collection) => collection.uri === collectionId)
@@ -27,12 +28,10 @@ export function AllIngestionEvents(
         workspacesMetadata: WorkspaceMetadata[],
     }) {
 
-    const ALL_FILTER_ID = 'all__0';
-    const ERRORS_FILTER_ID = 'errors__1';
     const [selectedCollectionId, setSelectedCollectionId] = useState<string>("")
     const [ingestOptions, setIngestOptions] = useState<EuiSelectOption[]>([])
     const [ingestId, setIngestId] = useState<string>("all")
-    const [toggleIdSelected, setToggleIdSelected] = useState(ALL_FILTER_ID);
+    const [toggleIdSelected, setToggleIdSelected] = useState<FilterState>(FilterState.All);
 
     useEffect(() => {
         getCollections({})
@@ -52,8 +51,8 @@ export function AllIngestionEvents(
     }, [selectedCollectionId, collections])
 
     const toggleFilterButtons = [
-        { id: ALL_FILTER_ID, label: 'all' },
-        { id: ERRORS_FILTER_ID, label: 'errors only' },
+        { id: FilterState.All, label: 'all' },
+        { id: FilterState.ErrorsOnly, label: 'errors only' },
       ];
 
     return (
@@ -92,7 +91,7 @@ export function AllIngestionEvents(
                         legend="selection group to show all events or just the errors"
                         options={toggleFilterButtons} 
                         idSelected={toggleIdSelected}
-                        onChange={(id) => setToggleIdSelected(id)}
+                        onChange={(id) => setToggleIdSelected(id as FilterState)}
                     /> 
                 </EuiFlexGroup>
 
@@ -102,7 +101,7 @@ export function AllIngestionEvents(
                         ingestId={ingestId} 
                         workspaces={workspacesMetadata} 
                         breakdownByWorkspace={false}
-                        showErrorsOnly={toggleIdSelected === ERRORS_FILTER_ID}
+                        showErrorsOnly={toggleIdSelected === FilterState.ErrorsOnly}
                     />
                 }
             </EuiProvider>

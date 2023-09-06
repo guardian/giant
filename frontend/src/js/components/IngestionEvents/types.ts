@@ -38,4 +38,7 @@ export const extractorStatusColors = {
     "Unknown": "default"
 }
 
-export type FilterState = "all" | "errorsOnly"
+export enum FilterState {
+    All = "all",
+    ErrorsOnly = "errorsOnly"
+}
