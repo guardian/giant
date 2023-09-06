@@ -51,10 +51,15 @@ export function AllIngestionEvents(
     useEffect(() => {
         if (currentCollection) {
             const sc = getCollection(currentCollection, collections)
-            sc && setIngestOptions(sc.ingestions.map((ingestion: Ingestion) => ({
-                value: ingestion.path,
-                text: ingestion.display
-            })).concat([{value: "all", text: "All ingestions"}]))
+            sc && setIngestOptions(
+                [{value: "all", text: "All ingestions"}].concat(
+                    sc.ingestions.sort(
+                        (a, b) => a.display < b.display ? -1 : 1
+                    ).map((ingestion: Ingestion) => ({
+                        value: ingestion.path,
+                        text: ingestion.display
+                    }))
+            ))
             if (sc?.ingestions && sc?.ingestions.find((i) => i.display === currentIngestion) === undefined){
                 updateCurrentIngestion(undefined)
             }
