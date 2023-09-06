@@ -41,7 +41,9 @@ export function AllIngestionEvents(
         getCollections({})
     }, [getCollections])
 
-    const collectionOptions: EuiSelectOption[] = collections.map((collection: Collection) => ({
+    const collectionOptions: EuiSelectOption[] = collections.sort(
+        (a, b) => a.display < b.display ? -1 : 1
+    ).map((collection: Collection) => ({
         value: collection.uri,
         text: collection.display
     }))
