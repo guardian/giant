@@ -42,11 +42,12 @@ export function AllIngestionEvents(
         getCollections({})
     }, [getCollections])
 
-    const collectionOptions: EuiSelectOption[] = collections.sort(
-        (a, b) => a.display < b.display ? -1 : 1
+    const collectionOptions: EuiSelectOption[] = _.sortBy(
+        collections,
+        (c) => c.display
     ).map((collection: Collection) => ({
         value: collection.uri,
-        text: collection.display
+        text: collection.display,
     }))
 
     useEffect(() => {
