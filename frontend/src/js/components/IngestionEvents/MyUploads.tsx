@@ -19,7 +19,7 @@ import {EuiFormLabel} from "@elastic/eui";
 import { css } from "@emotion/react";
 import { FilterState } from "./types";
 import { updateCurrentWorkspace } from "../../actions/ingestEvents/updateCurrentWorkspace";
-
+import _ from 'underscore'
 
 function MyUploads(
     {getCollections, getWorkspacesMetadata, updateCurrentWorkspace, collections, currentUser, workspacesMetadata, currentWorkspace = "all"}: {
@@ -72,12 +72,12 @@ function MyUploads(
                             onChange={(e) => updateCurrentWorkspace(e.target.value)}
                             id={"workspace-picker"}
                             options={
-                            [{value: "all", text: "All workspaces"}].concat(
-                                workspacesMetadata.map((w: WorkspaceMetadata) =>
-                                    ({value: w.name, text: w.name}))
-                            )
-                        }>
-                        </EuiSelect>
+                                [{value: "all", text: "All workspaces"}].concat(
+                                    _.sortBy(workspacesMetadata, (w) => w.name).map((w: WorkspaceMetadata) =>
+                                        ({value: w.name, text: w.name}))
+                                )
+                            }
+                        ></EuiSelect>
                     </EuiFormControlLayout>
                     <EuiButtonGroup
                         css={css`border: none;`}
