@@ -3,6 +3,11 @@ export type Metadata = {
     ingestId: string;
 }
 
+type IngestionError = {
+    message: string;
+    stackTrace?: string;
+}
+
 export type BlobStatus =  {
     metadata: Metadata;
     paths: string[];
@@ -10,8 +15,9 @@ export type BlobStatus =  {
     ingestStart: Date;
     mostRecentEvent: Date;
     extractorStatuses: ExtractorStatus[];
-    errors: string[];
+    errors: IngestionError[];
     workspaceName: string;
+    mimeTypes: string[];
 }
 
 export type IngestionTable = {
