@@ -35,7 +35,6 @@ export function AllIngestionEvents(
     }) {
 
     const [ingestOptions, setIngestOptions] = useState<EuiSelectOption[]>([])
-    const [ingestId, setIngestId] = useState<string>("all")
     const [toggleIdSelected, setToggleIdSelected] = useState<FilterState>(FilterState.All);
 
     useEffect(() => {
@@ -54,8 +53,7 @@ export function AllIngestionEvents(
                 value: ingestion.path,
                 text: ingestion.display
             })).concat([{value: "all", text: "All ingestions"}]))
-            console.log("ingestions", sc?.ingestions)
-            if (sc?.ingestions.find((i) => i.display === currentIngestion) === undefined){
+            if (sc?.ingestions && sc?.ingestions.find((i) => i.display === currentIngestion) === undefined){
                 updateCurrentIngestion(undefined)
             }
         }
@@ -88,8 +86,8 @@ export function AllIngestionEvents(
                         <EuiFlexItem grow={false}>
                         <EuiFormControlLayout  className={styles.dropdown} prepend={<EuiFormLabel htmlFor={"ingest-picker"}>Ingest</EuiFormLabel>}>
                             <EuiSelect
-                                value={ingestId}
-                                onChange={(e) => setIngestId(e.target.value)} options={ingestOptions}>
+                                value={currentIngestion}
+                                onChange={(e) => updateCurrentIngestion(e.target.value)} options={ingestOptions}>
                                 id={"ingest-picker"}
 
                             </EuiSelect>
