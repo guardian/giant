@@ -18,6 +18,7 @@ import { css } from "@emotion/react";
 import { FilterState } from "./types";
 import { updateCurrentCollection } from "./updateCurrentCollection";
 import { updateCurrentIngestion } from "./updateCurrentIngestion";
+import _ from "lodash";
 
 function getCollection(collectionId: string, collections: Collection[]) {
     return collections.find((collection: Collection) => collection.uri === collectionId)
@@ -53,9 +54,7 @@ export function AllIngestionEvents(
             const sc = getCollection(currentCollection, collections)
             sc && setIngestOptions(
                 [{value: "all", text: "All ingestions"}].concat(
-                    sc.ingestions.sort(
-                        (a, b) => a.display < b.display ? -1 : 1
-                    ).map((ingestion: Ingestion) => ({
+                    _.sortBy(sc.ingestions, (i) => i.display).map((ingestion: Ingestion) => ({
                         value: ingestion.path,
                         text: ingestion.display
                     }))

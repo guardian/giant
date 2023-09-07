@@ -19,7 +19,7 @@ import {EuiFormLabel} from "@elastic/eui";
 import { css } from "@emotion/react";
 import { FilterState } from "./types";
 import { updateCurrentWorkspace } from "../../actions/ingestEvents/updateCurrentWorkspace";
-import _ from 'underscore'
+import _ from 'lodash'
 
 function MyUploads(
     {getCollections, getWorkspacesMetadata, updateCurrentWorkspace, collections, currentUser, workspacesMetadata, currentWorkspace = "all"}: {
