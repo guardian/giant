@@ -58,7 +58,13 @@ const columns: Array<EuiBasicTableColumn<BlobStatus>> = [
         truncateText: true,
         render: (paths: string[]) =>
             // throw away everything after last / to get the filename from a path
-            paths.map(p => p.split("/").slice(-1)).join("\n")
+            paths.length > 0 ? paths.map(p => p.split("/").slice(-1)).join("\n") : <>unknown<EuiIconTip
+                aria-label="Info"
+                size="m"
+                type="iInCircle"
+                color="primary"
+                content={"Filenames are removed after 28 days"}
+            /></>
     },
     {
         field: 'paths',

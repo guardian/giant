@@ -12,7 +12,7 @@ trait PostgresClient {
     def insertEvent(event: IngestionEvent): Either[GiantFailure, Unit]
     def insertMetadata(metaData: BlobMetadata): Either[GiantFailure, Unit]
     def getEvents (ingestId: String, ingestIdIsPrefix: Boolean): Either[GiantFailure, List[BlobStatus]]
-  def deleteOldEvents(): Either[GiantFailure, Long]
+  def anonymiseOldEvents(): Either[GiantFailure, Long]
 
   def deleteOldBlobMetadata(): Either[GiantFailure, Long]
 }
@@ -24,7 +24,7 @@ class PostgresClientDoNothing extends PostgresClient {
 
     override def getEvents (ingestId: String, ingestIdIsPrefix: Boolean): Either[GiantFailure, List[BlobStatus]] = Right(List())
 
-    override def deleteOldEvents(): Either[GiantFailure, Long] = Right(0)
+    override def anonymiseOldEvents(): Either[GiantFailure, Long] = Right(0)
 
     override def deleteOldBlobMetadata(): Either[GiantFailure, Long] = Right(0)
 }
@@ -169,7 +169,7 @@ class PostgresClientImpl(postgresConfig: PostgresConfig, eventRetentionDays: Int
                         rs.string("blob_id"),
                         rs.string("ingest_id")
                     ),
-                    rs.array("paths").getArray().asInstanceOf[Array[String]].toList,
+                    rs.array("paths").getArray().asInstanceOf[Array[String]].toList.filter(_ != null),
                     rs.longOpt("fileSize"),
                     rs.stringOpt("workspaceName"),
                     new DateTime(rs.dateTime("ingest_start").toInstant.toEpochMilli, DateTimeZone.UTC),
@@ -193,10 +193,13 @@ class PostgresClientImpl(postgresConfig: PostgresConfig, eventRetentionDays: Int
         }
     }
 
-  override def deleteOldEvents(): Either[GiantFailure, Long] = {
+  override def anonymiseOldEvents(): Either[GiantFailure, Long] = {
+    // ingest_id is likely to include the name of the user - redact it here
     Try {
       sql"""
-        DELETE FROM ingestion_events WHERE event_time < (now() - interval '${eventRetentionDays} days')
+        UPDATE ingestion_events
+        SET ingest_id = MD5(ingest_id)
+        WHERE event_time < (now() - interval '${eventRetentionDays} days')
            """.executeUpdate().apply()
 
     } match {

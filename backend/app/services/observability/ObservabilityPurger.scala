@@ -24,7 +24,7 @@ class ObservabilityPurger(actorSystem: ActorSystem, postgresClient: PostgresClie
 
   def go(): Unit = {
     logger.info("Starting postgres events cleaner")
-    postgresClient.deleteOldEvents() match {
+    postgresClient.anonymiseOldEvents() match {
       case Right(rowsCleaned) =>
         logger.info(s"Purged ${rowsCleaned} ingestion events from postgres")
       case Left(failure) =>
