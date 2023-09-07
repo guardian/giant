@@ -116,7 +116,7 @@ class Worker(
               IngestionEventType.RunExtractor,
               EventStatus.Failure,
               details = EventDetails.extractorErrorDetails(
-                extractor.name, failure.msg, failure.cause.map(throwable => throwable.getStackTrace.toString)
+                extractor.name, failure.msg, failure.toThrowable.getStackTrace.map(element => element.toString).mkString("\n")
               )
             )
           )
