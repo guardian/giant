@@ -316,7 +316,7 @@ export default function UploadFiles(props: Props) {
             </button>
             <Modal isOpen={open} dismiss={onDismiss} isDismissable={!isUploading}>
                 <Form onSubmit={onSubmit}>
-                    <h2 className='form__title'>Upload Files</h2>
+                    <h2 className='form__title'>Upload Files (limit {MAX_FILE_UPLOAD_SIZE_MBYTES}MB per file)</h2>
                     { focusedWorkspaceRelativePath ? <div className='form__row'>Uploading to folder {focusedWorkspaceRelativePath}</div> : false}
                     <Form.Field>
                         <FilePicker
