@@ -17,7 +17,7 @@ trait Annotations {
   def getWorkspaceContents(currentUser: String, id: String): Attempt[TreeEntry[WorkspaceEntry]]
   def insertWorkspace(username: String, id: String, name: String, isPublic: Boolean, tagColor: String): Attempt[Unit]
   def updateWorkspaceName(currentUser: String, id: String, name: String): Attempt[Unit]
-  def updateWorkspaceIsPublic(currentUser: String, id: String, isPublic: Boolean): Attempt[Unit]
+  def updateWorkspaceIsPublic(currentUser: String, id: String, isPublic: Boolean, userIsAdmin: Boolean): Attempt[Unit]
   def updateWorkspaceFollowers(currentUser: String, id: String, followers: List[String]): Attempt[Unit]
   def deleteWorkspace(currentUser: String, workspace: String): Attempt[Unit]
   def addFolder(currentUser: String, workspaceId: String, parentFolderId: String, folderName: String): Attempt[String]

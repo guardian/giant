@@ -2,7 +2,7 @@ import React from 'react';
 import { WorkspaceMetadata, WorkspaceEntry, Workspace } from '../../types/Workspaces';
 import ModalAction from '../UtilComponents/ModalAction';
 import { Label, Popup } from 'semantic-ui-react';
-import { PartialUser } from '../../types/User';
+import {PartialUser, User} from '../../types/User';
 import { setWorkspaceFollowers } from '../../actions/workspaces/setWorkspaceFollowers';
 import { setWorkspaceIsPublic } from '../../actions/workspaces/setWorkspaceIsPublic';
 import { renameWorkspace } from '../../actions/workspaces/renameWorkspace';
@@ -16,6 +16,7 @@ import ShareWorkspaceModal from './ShareWorkspaceModal';
 type Props = {
     workspace: Workspace,
     currentUser: PartialUser,
+    myPermissions: any,
     users: PartialUser[],
     setWorkspaceFollowers: typeof setWorkspaceFollowers,
     setWorkspaceIsPublic: typeof setWorkspaceIsPublic,
@@ -31,6 +32,7 @@ type Props = {
 export default function WorkspaceSummary({
     workspace,
     currentUser,
+    myPermissions,
     users,
     setWorkspaceFollowers,
     setWorkspaceIsPublic,
@@ -77,6 +79,7 @@ export default function WorkspaceSummary({
                 workspaceUsers={workspaceUsers}
                 allUsers={users}
                 currentUser={currentUser}
+                myPermissions={myPermissions}
                 setWorkspaceFollowers={setWorkspaceFollowers}
                 setWorkspaceIsPublic={setWorkspaceIsPublic}
             />

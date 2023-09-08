@@ -12,6 +12,7 @@ import org.neo4j.driver.v1.Values.parameters
 import play.api.libs.json.Json
 import services.Neo4jQueryLoggingConfig
 import services.annotations.Annotations.{AffectedResource, DeleteItemResult, MoveItemResult}
+import services.users.UserManagement
 import utils._
 import utils.attempt.{Attempt, ClientFailure, Failure, IllegalStateFailure, NotFoundFailure}
 
@@ -198,10 +199,11 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
     }
   }
 
-  override def updateWorkspaceIsPublic(currentUser: String, id: String, isPublic: Boolean): Attempt[Unit] = attemptTransaction { tx =>
+  override def updateWorkspaceIsPublic(currentUser: String, id: String, isPublic: Boolean, userIsAdmin: Boolean): Attempt[Unit] = attemptTransaction { tx =>
     tx.run(
       """
-        |MATCH (workspace :Workspace {id: {workspaceId}})<-[:CREATED]-(creator :User {username: {username}})
+        |MATCH (workspace :Workspace {id: {workspaceId}})<-[:CREATED]-(creator :User })
+        |WHERE {userIsAdmin} or creator.username = {username}
         |
         |SET workspace.isPublic = {isPublic}
         |
@@ -209,7 +211,8 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
       parameters(
         "workspaceId", id,
         "username", currentUser,
-        "isPublic", Boolean.box(isPublic)
+        "isPublic", Boolean.box(isPublic),
+        "userIsAdmin", Boolean.box(userIsAdmin)
       )
     ).flatMap {
       case r if r.summary().counters().propertiesSet() != 1 =>

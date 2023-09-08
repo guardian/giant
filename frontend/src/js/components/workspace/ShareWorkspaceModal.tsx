@@ -3,7 +3,7 @@ import { Dropdown } from 'semantic-ui-react';
 import _ from 'lodash';
 import Modal from '../UtilComponents/Modal';
 import { Workspace } from '../../types/Workspaces';
-import { PartialUser } from '../../types/User';
+import {PartialUser, User} from '../../types/User';
 import uniq from 'lodash/uniq';
 import { setWorkspaceFollowers } from '../../actions/workspaces/setWorkspaceFollowers';
 import { Checkbox } from '../UtilComponents/Checkbox';
@@ -16,6 +16,7 @@ type Props = {
     workspaceUsers: PartialUser[],
     allUsers: PartialUser[],
     currentUser: PartialUser,
+    myPermissions: any,
     setWorkspaceFollowers: typeof setWorkspaceFollowers
     setWorkspaceIsPublic: typeof setWorkspaceIsPublic
 }
@@ -74,7 +75,7 @@ export default function ShareWorkspaceModal(props: Props) {
         {/* The component that triggers the modal (pass-through rendering of children) */}
         <button
             className='btn workspace__button'
-            disabled={props.currentUser.username !== props.workspace.owner.username}
+            disabled={!props.myPermissions.includes("'CanPerformAdminOperations'") && props.currentUser.username !== props.workspace.owner.username}
             onClick={() => setOpen(true)}
         >
             Share Workspace

@@ -3,6 +3,7 @@ package controllers.api
 import model.Uri
 import model.annotations.Workspace
 import model.frontend.TreeEntry
+import model.user.UserPermission.CanPerformAdminOperations
 import net.logstash.logback.marker.LogstashMarker
 import net.logstash.logback.marker.Markers.append
 import play.api.libs.json._
@@ -10,6 +11,7 @@ import services.manifest.Manifest
 import services.annotations.Annotations
 import services.annotations.Annotations.AffectedResource
 import services.index.Index
+import services.users.UserManagement
 import utils.Logging
 import utils.attempt._
 import utils.auth.{User, UserIdentityRequest}
@@ -56,7 +58,7 @@ object MoveItemData {
   implicit val format = Json.format[MoveItemData]
 }
 
-class Workspaces(override val controllerComponents: AuthControllerComponents, annotation: Annotations, index: Index, manifest: Manifest) extends AuthApiController with Logging {
+class Workspaces(override val controllerComponents: AuthControllerComponents, annotation: Annotations, index: Index, manifest: Manifest, users: UserManagement) extends AuthApiController with Logging {
 
   def create = ApiAction.attempt(parse.json) { req =>
     for {
@@ -143,17 +145,20 @@ class Workspaces(override val controllerComponents: AuthControllerComponents, an
   def updateWorkspaceIsPublic(workspaceId: String) = ApiAction.attempt(parse.json) { req =>
     for {
       data <- req.body.validate[UpdateWorkspaceIsPublic].toAttempt
+      isAdmin <- users.hasPermission(req.user.username, CanPerformAdminOperations)
 
       _ = logAction(req.user, workspaceId, s"Set workspace isPublic. Data: $data")
       _ <- annotation.updateWorkspaceIsPublic(
         req.user.username,
         workspaceId,
-        data.isPublic
+        data.isPublic,
+        isAdmin
       )
     } yield {
       NoContent
     }
   }
+
 
   def updateWorkspaceName(workspaceId: String) = ApiAction.attempt(parse.json) { req =>
     for {

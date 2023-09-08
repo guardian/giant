@@ -110,8 +110,8 @@ class AppComponents(context: Context, config: Config)
 
     val neo4jDriver = GraphDatabase.driver(config.neo4j.url, AuthTokens.basic(config.neo4j.user, config.neo4j.password))
     val manifest = Neo4jManifest.setupManifest(neo4jDriver, neo4jExecutionContext, config.neo4j.queryLogging).valueOr(failure => throw new Exception(failure.msg))
+    val users = Neo4jUserManagement(neo4jDriver, neo4jExecutionContext, config.neo4j.queryLogging, manifest, esResources, esPages)
     val annotations = Neo4jAnnotations.setupAnnotations(neo4jDriver, neo4jExecutionContext, config.neo4j.queryLogging).valueOr(failure => throw new Exception(failure.msg))
-    val users = Neo4jUserManagement(neo4jDriver, neo4jExecutionContext, config.neo4j.queryLogging, manifest, esResources, esPages, annotations)
     val metricsService = config.aws.map(new CloudwatchMetricsService(_)).getOrElse(new NoOpMetricsService())
 
     val userProvider = config.auth.provider match {
@@ -191,7 +191,7 @@ class AppComponents(context: Context, config: Config)
     val emailController = new Emails(authControllerComponents, manifest, esResources, annotations)
     val mimeTypesController = new MimeTypes(authControllerComponents, manifest)
     val previewController = new Previews(authControllerComponents, manifest, esResources, previewService, users, annotations, config.auth.timeouts.maxDownloadAuthAge)
-    val workspacesController = new Workspaces(authControllerComponents, annotations, esResources, manifest)
+    val workspacesController = new Workspaces(authControllerComponents, annotations, esResources, manifest, users)
     val commentsController = new Comments(authControllerComponents, manifest, esResources, annotations)
     val usersController = new Users(authControllerComponents, userProvider)
     val pagesController = new PagesController(authControllerComponents, manifest, esResources, pages2, annotations, previewStorage)

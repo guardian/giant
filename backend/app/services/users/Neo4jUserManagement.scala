@@ -21,8 +21,8 @@ import scala.concurrent.ExecutionContext
 import scala.util.control.NonFatal
 
 object Neo4jUserManagement {
-  def apply(driver: Driver, executionContext: ExecutionContext, queryLoggingConfig: Neo4jQueryLoggingConfig, manifest: Manifest, index: Index, pages: Pages, annotations: Annotations): UserManagement = {
-    val neo4jUserManagement = new Neo4jUserManagement(driver, executionContext, queryLoggingConfig, manifest, index, pages, annotations)
+  def apply(driver: Driver, executionContext: ExecutionContext, queryLoggingConfig: Neo4jQueryLoggingConfig, manifest: Manifest, index: Index, pages: Pages): UserManagement = {
+    val neo4jUserManagement = new Neo4jUserManagement(driver, executionContext, queryLoggingConfig, manifest, index, pages)
 
     neo4jUserManagement.setup() match {
       case Left(err) => throw err.toThrowable
@@ -31,7 +31,7 @@ object Neo4jUserManagement {
   }
 }
 
-class Neo4jUserManagement(neo4jDriver: Driver, executionContext: ExecutionContext, queryLoggingConfig: Neo4jQueryLoggingConfig, manifest: Manifest, index: Index, pages: Pages, annotations: Annotations)
+class Neo4jUserManagement(neo4jDriver: Driver, executionContext: ExecutionContext, queryLoggingConfig: Neo4jQueryLoggingConfig, manifest: Manifest, index: Index, pages: Pages)
   extends Neo4jHelper(neo4jDriver, executionContext, queryLoggingConfig) with UserManagement {
   import Neo4jHelper._
 

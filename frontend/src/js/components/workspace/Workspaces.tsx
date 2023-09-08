@@ -43,6 +43,7 @@ import { setFocusedEntry } from '../../actions/workspaces/setFocusedEntry';
 import { processingStageToString, workspaceHasProcessingFiles } from '../../util/workspaceUtils';
 import { setWorkspaceIsPublic } from '../../actions/workspaces/setWorkspaceIsPublic';
 import { RouteComponentProps } from 'react-router-dom';
+import {getMyPermissions} from "../../actions/users/getMyPermissions";
 
 
 type Props = ReturnType<typeof mapStateToProps>
@@ -235,6 +236,7 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
 
     componentDidUpdate(prevProps: Props) {
         this.setTitle();
+        this.props.getMyPermissions()
         if (localStorage.getItem('selectedWorkspaceId') !== this.props.match.params.id) {
             localStorage.setItem('selectedWorkspaceId', this.props.match.params.id);
         }
@@ -498,6 +500,7 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
                 <WorkspaceSummary
                     workspace={this.props.currentWorkspace}
                     currentUser={this.props.currentUser}
+                    myPermissions={this.props.myPermissions}
                     users={this.props.users}
                     setWorkspaceFollowers={this.props.setWorkspaceFollowers}
                     setWorkspaceIsPublic={this.props.setWorkspaceIsPublic}
@@ -535,7 +538,8 @@ function mapStateToProps(state: GiantState) {
         currentUser: state.auth.token?.user,
         users: state.users.userList,
         expandedNodes: state.workspaces.expandedNodes,
-        collections: state.collections
+        collections: state.collections,
+        myPermissions: state.users.myPermissions
     };
 }
 
@@ -565,7 +569,8 @@ function mapDispatchToProps(dispatch: GiantDispatch) {
         listUsers: bindActionCreators(listUsers, dispatch),
         getCollections: bindActionCreators(getCollections, dispatch),
         getWorkspacesMetadata: bindActionCreators(getWorkspacesMetadata, dispatch),
-        getWorkspace: bindActionCreators(getWorkspace, dispatch)
+        getWorkspace: bindActionCreators(getWorkspace, dispatch),
+        getMyPermissions: bindActionCreators(getMyPermissions, dispatch)
     };
 }
 
