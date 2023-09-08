@@ -20,6 +20,11 @@ import { isTreeLeaf, isTreeNode, TreeEntry, TreeNode } from '../../types/Tree';
 import { getWorkspace } from '../../actions/workspaces/getWorkspace';
 import { useDispatch } from 'react-redux';
 import { AppActionType } from '../../types/redux/GiantActions';
+import {BasicResource, BasicResourceWithSingleBlobChild} from "../../types/Resource";
+
+const MAX_FILE_UPLOAD_SIZE_MBYTES = 250 // should correspond to http.parser.maxDiskBuffer in application.conf
+const MAX_FILE_UPLOAD_SIZE_BYTES = MAX_FILE_UPLOAD_SIZE_MBYTES*1024*1024
+
 
 type InProgressFileUploadState = {
     description: 'uploading',
@@ -27,11 +32,20 @@ type InProgressFileUploadState = {
     totalBytes: number
 };
 
+type FailedFileUploadState = {
+    description: 'failed',
+    failureReason?: string
+}
+
 type FileUploadState =
     { description: 'pending' } |
     InProgressFileUploadState |
     { description: 'uploaded' } |
-    { description: 'failed' };
+    FailedFileUploadState;
+
+export function isFailedFileUploadState(uploadState: FileUploadState): uploadState is FailedFileUploadState {
+    return uploadState.description === "failed"
+}
 
 export type WorkspaceUploadMetadata = {
     workspaceId: string,
@@ -155,19 +169,24 @@ async function uploadFiles(target: WorkspaceTarget, files: Map<string, UploadFil
         const state: FileUploadState = { description: 'uploading', totalBytes: file.size };
         dispatch({ type: 'Set_Upload_State', file: path, state });
 
-        try {
-            function onProgress(loadedBytes: number, totalBytes: number) {
-                const state: FileUploadState = { description: 'uploading', loadedBytes, totalBytes };
-                dispatch({ type: 'Set_Upload_State', file: path, state });
+        if (file.size > MAX_FILE_UPLOAD_SIZE_BYTES) {
+            console.error(`Error uploading ${path}: file is too large (limit ${MAX_FILE_UPLOAD_SIZE_MBYTES}MB`)
+            dispatch({ type: "Set_Upload_State", file: path, state: { description: 'failed', failureReason: `File too large (limit ${MAX_FILE_UPLOAD_SIZE_MBYTES}MB)` }});
+        } else {
+            try {
+                function onProgress(loadedBytes: number, totalBytes: number) {
+                    const state: FileUploadState = { description: 'uploading', loadedBytes, totalBytes };
+                    dispatch({ type: 'Set_Upload_State', file: path, state });
+                }
+
+                const metadata = await buildWorkspaceUploadMetadata(path, target, workspaceFolderCache);
+                await uploadFileToIngestion(target.ingestion, uploadId, file, path, metadata, onProgress);
+
+                dispatch({ type: "Set_Upload_State", file: path, state: { description: 'uploaded' }});
+            } catch(e) {
+                console.error(`Error uploading ${path}: ${e}`);
+                dispatch({ type: "Set_Upload_State", file: path, state: { description: 'failed' }});
             }
-
-            const metadata = await buildWorkspaceUploadMetadata(path, target, workspaceFolderCache);
-            await uploadFileToIngestion(target.ingestion, uploadId, file, path, metadata, onProgress);
-
-            dispatch({ type: "Set_Upload_State", file: path, state: { description: 'uploaded' }});
-        } catch(e) {
-            console.error(`Error uploading ${path}: ${e}`);
-            dispatch({ type: "Set_Upload_State", file: path, state: { description: 'failed' }});
         }
 
         if(files.length > 1) {
