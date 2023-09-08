@@ -22,6 +22,10 @@ class PostgresClientDoNothing extends PostgresClient {
     override def getEvents (ingestId: String, ingestIdIsPrefix: Boolean): Either[GiantFailure, List[BlobStatus]] = Right(List())
 }
 
+object PostgresHelpers {
+  def postgresEpochToDateTime(epoch: Double) = new DateTime((epoch*1000).toLong, DateTimeZone.UTC)
+}
+
 class PostgresClientImpl(postgresConfig: PostgresConfig) extends PostgresClient with Logging {
     val dbHost = s"jdbc:postgresql://${postgresConfig.host}:${postgresConfig.port}/giant"
     // initialize JDBC driver & connection pool
@@ -134,6 +138,7 @@ class PostgresClientImpl(postgresConfig: PostgresConfig) extends PostgresClient 
             ie.most_recent_event,
             ie.errors,
             ie.workspace_name AS "workspaceName",
+            ie.mime_types AS "mimeTypes",
             ARRAY_AGG(DISTINCT blob_metadata.path ) AS paths,
             (ARRAY_AGG(blob_metadata.file_size))[1] as "fileSize",
             ARRAY_REMOVE(ARRAY_AGG(extractor_statuses.extractor), NULL) AS extractors,
@@ -144,17 +149,18 @@ class PostgresClientImpl(postgresConfig: PostgresConfig) extends PostgresClient 
               SELECT
                 blob_id,
                 ingest_id,
-                MIN(event_time) AS ingest_start,
-                Max(event_time) AS most_recent_event,
+                MIN(EXTRACT(EPOCH from event_time)) AS ingest_start,
+                MAX(EXTRACT(EPOCH from event_time)) AS most_recent_event,
                 ARRAY_AGG(details -> 'errors') as errors,
-                (ARRAY_AGG(details ->> 'workspaceName')  FILTER (WHERE details ->> 'workspaceName' IS NOT NULL))[1] as workspace_name
+                (ARRAY_AGG(details ->> 'workspaceName')  FILTER (WHERE details ->> 'workspaceName' IS NOT NULL))[1] as workspace_name,
+                (ARRAY_AGG(details ->> 'mimeTypes')  FILTER (WHERE details ->> 'mimeTypes' IS NOT NULL))[1] as mime_types
               FROM ingestion_events
               WHERE ingest_id LIKE ${if(ingestIdIsPrefix) LikeConditionEscapeUtil.beginsWith(ingestId) else ingestId}
               GROUP BY 1,2
             ) AS ie
             LEFT JOIN blob_metadata USING(ingest_id, blob_id)
             LEFT JOIN extractor_statuses on extractor_statuses.blob_id = ie.blob_id and extractor_statuses.ingest_id = ie.ingest_id
-            GROUP BY 1,2,3,4,5,6
+            GROUP BY 1,2,3,4,5,6,7
             ORDER by ingest_start desc
      """.map(rs => {
                 BlobStatus(
@@ -165,8 +171,8 @@ class PostgresClientImpl(postgresConfig: PostgresConfig) extends PostgresClient 
                     rs.array("paths").getArray().asInstanceOf[Array[String]].toList,
                     rs.longOpt("fileSize"),
                     rs.stringOpt("workspaceName"),
-                    new DateTime(rs.dateTime("ingest_start").toInstant.toEpochMilli, DateTimeZone.UTC),
-                    new DateTime(rs.dateTime("most_recent_event").toInstant.toEpochMilli, DateTimeZone.UTC),
+                  PostgresHelpers.postgresEpochToDateTime(rs.double("ingest_start")),
+                  PostgresHelpers.postgresEpochToDateTime(rs.double("most_recent_event")),
                     rs.arrayOpt("extractors").map { extractors =>
                         ExtractorStatus.parseDbStatusEvents(
                             extractors.getArray().asInstanceOf[Array[String]],
@@ -174,7 +180,9 @@ class PostgresClientImpl(postgresConfig: PostgresConfig) extends PostgresClient 
                             rs.array("extractorStatuses").getArray().asInstanceOf[Array[String]]
                         )
                     }.getOrElse(List()),
-                    List() // need to implement this - something like: rs.array("errors").getArray.asInstanceOf[Array[String]].map(e => Json.parse(e).as[IngestionError]).toList
+                  IngestionError.parseIngestionErrors(rs.array("errors").getArray.asInstanceOf[Array[String]]),
+                  rs.stringOpt("mimeTypes")
+
                 )
             }
             ).list().apply()
