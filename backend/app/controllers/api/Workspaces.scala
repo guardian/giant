@@ -1,15 +1,18 @@
 package controllers.api
 
+import commands.DeleteResource
 import model.Uri
 import model.annotations.Workspace
 import model.frontend.TreeEntry
 import net.logstash.logback.marker.LogstashMarker
 import net.logstash.logback.marker.Markers.append
 import play.api.libs.json._
+import services.ObjectStorage
 import services.manifest.Manifest
 import services.annotations.Annotations
 import services.annotations.Annotations.AffectedResource
 import services.index.Index
+import services.users.UserManagement
 import utils.Logging
 import utils.attempt._
 import utils.auth.{User, UserIdentityRequest}
@@ -56,7 +59,8 @@ object MoveItemData {
   implicit val format = Json.format[MoveItemData]
 }
 
-class Workspaces(override val controllerComponents: AuthControllerComponents, annotation: Annotations, index: Index, manifest: Manifest) extends AuthApiController with Logging {
+class Workspaces(override val controllerComponents: AuthControllerComponents, annotation: Annotations, index: Index, manifest: Manifest,
+                 users: UserManagement, objectStorage: ObjectStorage, previewStorage: ObjectStorage) extends AuthApiController with Logging {
 
   def create = ApiAction.attempt(parse.json) { req =>
     for {
@@ -257,6 +261,26 @@ class Workspaces(override val controllerComponents: AuthControllerComponents, an
     for {
       result <- annotation.deleteWorkspaceItem(req.user.username, workspaceId, itemId)
       _ <- Attempt.sequence(result.resourcesRemoved.map(r => index.removeResourceFromWorkspace(r.uri, workspaceId, r.workspaceNodeId)))
+    } yield {
+      NoContent
+    }
+  }
+
+  def deleteBlobOrRemoveFromWorkspace(workspaceId: String, blobUri: String) = ApiAction.attempt { req =>
+    logAction(req.user, workspaceId, s"Delete resource from Giant. Node ID: $blobUri")
+    for {
+      isTheOnlyOwnerOfBlob <- users.isOnlyOwnerOfBlob(blobUri, req.user.username)
+      _ <-
+        if (isTheOnlyOwnerOfBlob) {
+          logAction(req.user, workspaceId, s"Delete resource from Giant. Node ID: $blobUri")
+          val deleteResource = new DeleteResource(manifest, index, previewStorage, objectStorage)
+          deleteResource.deleteBlobCheckChildren(blobUri)
+        } else {
+          logAction(req.user, workspaceId, s"Remove workspace item. Node ID: $blobUri")
+          annotation.deleteWorkspaceItem(req.user.username, workspaceId, blobUri).map {
+            result => result.resourcesRemoved.foreach(r => index.removeResourceFromWorkspace(r.uri, workspaceId, r.workspaceNodeId))
+          }
+        }
     } yield {
       NoContent
     }

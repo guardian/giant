@@ -33,4 +33,6 @@ trait UserManagement {
 
   def hasPermission(user: String, permission: UserPermission)(implicit ec: ExecutionContext): Attempt[Boolean] =
     getPermissions(user).map(_.hasPermission(permission))
+
+  def isOnlyOwnerOfBlob(blobUri: String, username: String): Attempt[Boolean]
 }
