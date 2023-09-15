@@ -1,0 +1,27 @@
+import { deleteOrRemoveItem as deleteOrRemoveItemApi } from '../../services/WorkspaceApi';
+import { getWorkspace } from './getWorkspace';
+import { ThunkAction } from 'redux-thunk';
+import { AppAction, AppActionType, WorkspacesAction } from '../../types/redux/GiantActions';
+import { GiantState } from '../../types/redux/GiantState';
+
+export function deleteOrRemoveItem(
+    workspaceId: string,
+    itemId: string,
+    blobUri: string
+): ThunkAction<void, GiantState, null, WorkspacesAction | AppAction> {
+    return dispatch => {
+        return deleteOrRemoveItemApi(workspaceId, itemId, blobUri)
+            .then(() => {
+                dispatch(getWorkspace(workspaceId));
+            })
+            .catch(error => dispatch(errorRenamingItem(error)));
+    };
+}
+
+function errorRenamingItem(error: Error): AppAction {    
+    return {
+        type:        AppActionType.APP_SHOW_ERROR,
+        message:     `Failed to delete or remove`,
+        error:       error,
+    };
+}

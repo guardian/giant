@@ -14,6 +14,7 @@ import { deleteWorkspace } from '../../actions/workspaces/deleteWorkspace';
 import { renameItem } from '../../actions/workspaces/renameItem';
 import { moveItems } from '../../actions/workspaces/moveItem';
 import { deleteItem } from '../../actions/workspaces/deleteItem';
+import { deleteOrRemoveItem } from '../../actions/workspaces/deleteOrRemoveItem';
 import { setSelectedEntries } from '../../actions/workspaces/setSelectedEntries';
 import { setEntryBeingRenamed } from '../../actions/workspaces/setEntryBeingRenamed';
 import { renameWorkspace } from '../../actions/workspaces/renameWorkspace';
@@ -398,16 +399,20 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
         });
     };
 
-    renderContextMenu(entry: TreeEntry<WorkspaceEntry>, positionX: number, positionY: number) {
-
+    renderContextMenu(entry: TreeEntry<WorkspaceEntry>, positionX: number, positionY: number, state: State) {
+        const items = [
+            // or 'pencil alternate'
+            { key: "rename", content: "Rename", icon: "pen square" },
+            { key: "remove", content: "Remove from workspace", icon: "trash" },         
+        ];
+        if (state.contextMenu.entry?.data.type === "file") {
+            console.log("delete file added to item,s");
+            items.push({ key: "deleteOrRemove", content: "Delete file", icon: "trash" });
+        }
         return <DetectClickOutside onClickOutside={this.closeContextMenu}>
             <Menu
                 style={{ position: 'absolute', left: positionX, top: positionY }}
-                items={[
-                    // or 'pencil alternate'
-                    { key: "rename", content: "Rename", icon: "pen square" },
-                    { key: "remove", content: "Remove from workspace", icon: "trash" },
-                ]}
+                items={items}
                 vertical
                 onItemClick={(e, menuItemProps) => {
                     if (menuItemProps.content === 'Rename') {
@@ -418,6 +423,14 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
                         const workspaceId = this.props.match.params.id;
                         this.props.deleteItem(workspaceId, entry.id);
                         this.props.resetFocusedAndSelectedEntries();
+                    }
+
+                    if (menuItemProps.content === "Delete file") {
+                        const workspaceId = this.props.match.params.id;
+                        if (state.contextMenu.entry?.data.uri) {
+                            this.props.deleteOrRemoveItem(workspaceId, entry.id, state.contextMenu.entry?.data.uri);
+                            this.props.resetFocusedAndSelectedEntries();
+                        }
                     }
 
                     this.closeContextMenu();
@@ -516,7 +529,8 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
                     ? this.renderContextMenu(
                         this.state.contextMenu.entry,
                         this.state.contextMenu.positionX,
-                        this.state.contextMenu.positionY
+                        this.state.contextMenu.positionY,
+                        this.state
                     )
                     : null
                 }
@@ -544,6 +558,7 @@ function mapDispatchToProps(dispatch: GiantDispatch) {
         moveItems: bindActionCreators(moveItems, dispatch),
         renameItem: bindActionCreators(renameItem, dispatch),
         deleteItem: bindActionCreators(deleteItem, dispatch),
+        deleteOrRemoveItem: bindActionCreators(deleteOrRemoveItem, dispatch),
         addFolderToWorkspace: bindActionCreators(addFolderToWorkspace, dispatch),
         deleteWorkspace: bindActionCreators(deleteWorkspace, dispatch),
         resetFocusedAndSelectedEntries: () => {
