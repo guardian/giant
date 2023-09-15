@@ -28,7 +28,7 @@ import DocumentIcon from 'react-icons/lib/ti/document';
 import { Icon, Loader, Menu } from 'semantic-ui-react';
 import WorkspaceSummary from './WorkspaceSummary';
 import { ColumnsConfig, isTreeLeaf, isTreeNode, TreeEntry, TreeLeaf } from '../../types/Tree';
-import { isWorkspaceLeaf, Workspace, WorkspaceEntry } from '../../types/Workspaces';
+import {isWorkspaceLeaf, Workspace, WorkspaceEntry, WorkspaceLeaf} from '../../types/Workspaces';
 import { GiantState } from '../../types/redux/GiantState';
 import { GiantDispatch } from '../../types/redux/GiantDispatch';
 import DetectClickOutside from '../UtilComponents/DetectClickOutside';
@@ -43,6 +43,7 @@ import { setFocusedEntry } from '../../actions/workspaces/setFocusedEntry';
 import { processingStageToString, workspaceHasProcessingFiles } from '../../util/workspaceUtils';
 import { setWorkspaceIsPublic } from '../../actions/workspaces/setWorkspaceIsPublic';
 import { RouteComponentProps } from 'react-router-dom';
+import { reprocessBlob } from '../../actions/workspaces/reprocessBlob';
 
 
 type Props = ReturnType<typeof mapStateToProps>
@@ -399,25 +400,34 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
     };
 
     renderContextMenu(entry: TreeEntry<WorkspaceEntry>, positionX: number, positionY: number) {
+        const items = [
+            { key: "rename", content: "Rename", icon: "pen square" },
+            { key: "remove", content: "Remove from workspace", icon: "trash" },
+        ]
+        const itemsWithReprocess = [
+            { key: "rename", content: "Rename", icon: "pen square" },
+            { key: "remove", content: "Remove from workspace", icon: "trash" },
+            { key: "reprocess", content: "Reprocess", icon: "refresh" },
+        ]
 
         return <DetectClickOutside onClickOutside={this.closeContextMenu}>
             <Menu
                 style={{ position: 'absolute', left: positionX, top: positionY }}
-                items={[
-                    // or 'pencil alternate'
-                    { key: "rename", content: "Rename", icon: "pen square" },
-                    { key: "remove", content: "Remove from workspace", icon: "trash" },
-                ]}
+                items={isWorkspaceLeaf(entry.data)? itemsWithReprocess : items}
                 vertical
                 onItemClick={(e, menuItemProps) => {
+                    const workspaceId = this.props.match.params.id;
                     if (menuItemProps.content === 'Rename') {
                         this.props.setEntryBeingRenamed(entry);
                     }
 
                     if (menuItemProps.content === 'Remove from workspace') {
-                        const workspaceId = this.props.match.params.id;
                         this.props.deleteItem(workspaceId, entry.id);
                         this.props.resetFocusedAndSelectedEntries();
+                    }
+
+                    if (menuItemProps.content === 'Reprocess' && (isWorkspaceLeaf(entry.data))) {
+                        this.props.reprocessBlob(workspaceId, entry.data.uri)
                     }
 
                     this.closeContextMenu();
@@ -544,6 +554,7 @@ function mapDispatchToProps(dispatch: GiantDispatch) {
         moveItems: bindActionCreators(moveItems, dispatch),
         renameItem: bindActionCreators(renameItem, dispatch),
         deleteItem: bindActionCreators(deleteItem, dispatch),
+        reprocessBlob: bindActionCreators(reprocessBlob, dispatch),
         addFolderToWorkspace: bindActionCreators(addFolderToWorkspace, dispatch),
         deleteWorkspace: bindActionCreators(deleteWorkspace, dispatch),
         resetFocusedAndSelectedEntries: () => {

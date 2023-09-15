@@ -58,6 +58,7 @@ class Blobs(override val controllerComponents: AuthControllerComponents, manifes
   def reprocess(id: String, rerunSuccessfulParam: Option[Boolean], rerunFailedParam: Option[Boolean]) = ApiAction.attempt { req =>
     checkPermission(CanPerformAdminOperations, req) {
       val uri = Uri(id)
+      println("uri:", uri)
 
       def rerunFailedIfRequested() = {
         if(rerunFailedParam.getOrElse(true)) {
