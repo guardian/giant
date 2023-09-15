@@ -255,7 +255,7 @@ class Workspaces(override val controllerComponents: AuthControllerComponents, an
     }
   }
 
-  def deleteItem(workspaceId: String, itemId: String) = ApiAction.attempt { req =>
+  def removeItem(workspaceId: String, itemId: String) = ApiAction.attempt { req =>
     logAction(req.user, workspaceId, s"Rename workspace item. Node ID: $itemId")
 
     for {
@@ -266,23 +266,37 @@ class Workspaces(override val controllerComponents: AuthControllerComponents, an
     }
   }
 
-  def deleteBlobOrRemoveFromWorkspace(workspaceId: String, blobUri: String) = ApiAction.attempt { req =>
-    logAction(req.user, workspaceId, s"Delete resource from Giant. Node ID: $blobUri")
-    for {
-      isTheOnlyOwnerOfBlob <- users.isOnlyOwnerOfBlob(blobUri, req.user.username)
-      _ <-
-        if (isTheOnlyOwnerOfBlob) {
-          logAction(req.user, workspaceId, s"Delete resource from Giant. Node ID: $blobUri")
-          val deleteResource = new DeleteResource(manifest, index, previewStorage, objectStorage)
-          deleteResource.deleteBlobCheckChildren(blobUri)
-        } else {
-          logAction(req.user, workspaceId, s"Remove workspace item. Node ID: $blobUri")
-          annotation.deleteWorkspaceItem(req.user.username, workspaceId, blobUri).map {
-            result => result.resourcesRemoved.foreach(r => index.removeResourceFromWorkspace(r.uri, workspaceId, r.workspaceNodeId))
-          }
-        }
-    } yield {
-      NoContent
+  def deleteBlobOrRemoveFromWorkspace(workspaceId: String, itemId: String, blobUri: String) = ApiAction.attempt { req =>
+    users.isOnlyOwnerOfBlob(blobUri, req.user.username).flatMap { isTheOnlyOwnerOfBlob =>
+      if (isTheOnlyOwnerOfBlob) {
+        deleteResourceIfNoChildrenOrRemove(req.user, workspaceId, itemId, blobUri)
+      } else {
+        println("removing from workspace as user is NOT the only owner")
+        removeFromWorkspace(req.user, workspaceId, itemId)
+      }
+    } map (_ => NoContent)
+  }
+
+  private def deleteResourceIfNoChildrenOrRemove(user: User, workspaceId: String, itemId: String, blobUri: String) = {
+    val deleteResult = manifest.getResource(Uri(blobUri)).toOption map { resource =>
+      if (resource.children.isEmpty) {
+        logAction(user, workspaceId, s"Delete resource from Giant. Resource uri: $blobUri")
+        val deleteResource = new DeleteResource(manifest, index, previewStorage, objectStorage)
+        deleteResource.deleteBlob(blobUri)
+      } else {
+        logAction(user, workspaceId, s"Can't delete resource due to its children, removing it instead. Resource uri: $blobUri")
+        removeFromWorkspace(user, workspaceId, itemId)
+      }
+    }
+
+    deleteResult.getOrElse(Attempt.Left(DeleteFailure("Failed to fetch resource")))
+  }
+
+  private def removeFromWorkspace(user: User, workspaceId: String, itemId: String) = {
+    logAction(user, workspaceId, s"Can't delete resource due to multiple owners, removing it instead. Item id: $itemId")
+
+    annotation.deleteWorkspaceItem(user.username, workspaceId, itemId).map {
+      result => result.resourcesRemoved.foreach(r => index.removeResourceFromWorkspace(r.uri, workspaceId, r.workspaceNodeId))
     }
   }
 

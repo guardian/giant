@@ -63,8 +63,8 @@ POST          /api/workspaces/:workspaceId/reprocess                        cont
 POST          /api/workspaces/:workspaceId/nodes                            controllers.api.Workspaces.addItemToWorkspace(workspaceId: String)
 PUT           /api/workspaces/:workspaceId/nodes/:itemId/name               controllers.api.Workspaces.renameItem(workspaceId: String, itemId: String)
 PUT           /api/workspaces/:workspaceId/nodes/:itemId/parent             controllers.api.Workspaces.moveItem(workspaceId: String, itemId: String)
-DELETE        /api/workspaces/:workspaceId/nodes/:itemId                    controllers.api.Workspaces.deleteItem(workspaceId: String, itemId: String)
-POST          /api/workspaces/:workspaceId/nodes/delete/:itemId             controllers.api.Workspaces.deleteBlobOrRemoveFromWorkspace(workspaceId: String, itemId: String)
+DELETE        /api/workspaces/:workspaceId/nodes/:itemId                    controllers.api.Workspaces.removeItem(workspaceId: String, itemId: String)
+POST          /api/workspaces/:workspaceId/nodes/delete/:itemId/:blobUri    controllers.api.Workspaces.deleteBlobOrRemoveFromWorkspace(workspaceId: String, itemId: String, blobUri: String)
 DELETE        /api/workspaces/:workspaceId                                  controllers.api.Workspaces.deleteWorkspace(workspaceId: String)
 
 HEAD          /api/preview/download/:uri                                    controllers.api.Previews.getPreviewMetadata(uri: model.Uri)

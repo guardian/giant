@@ -51,12 +51,14 @@ sealed trait WorkspaceEntry {
   def addedBy: PartialUser
   def addedOn: Option[Long]
   def maybeParentId: Option[String]
+  def `type`: String
 }
 
 case class WorkspaceNode(
   addedBy: PartialUser,
   addedOn: Option[Long],
   maybeParentId: Option[String],
+  `type`: String
 
 ) extends WorkspaceEntry
 
@@ -71,6 +73,7 @@ case class WorkspaceLeaf(
   // there are nodes in Playground where this is null, which breaks things
   // if I don't make it optional
   size: Option[Long],
+  `type`: String
 ) extends WorkspaceEntry
 
 
@@ -113,7 +116,8 @@ object WorkspaceEntry {
         data = WorkspaceNode(
           addedBy = createdBy,
           addedOn = v.get("addedOn").optionally(_.asLong()),
-          maybeParentId = maybeParentId
+          maybeParentId = maybeParentId,
+          `type` = v.get("type").asString()
         ),
         children = List.empty
       )
@@ -133,6 +137,7 @@ object WorkspaceEntry {
           // there are nodes in Playground where this is null, which breaks things
           // if I don't make it optional
           size = v.get("addedOn").optionally(_.asLong()),
+          `type` = v.get("type").asString()
         )
       )
     }
