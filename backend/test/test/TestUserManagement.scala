@@ -172,6 +172,8 @@ class TestUserManagement(initialUsers: TestUserManagement.Storage) extends UserM
   override def setPermissions(username: String, permissions: UserPermissions): Attempt[Unit] =
     updateField(username, r => r.copy(permissions = permissions)).map(_ => ())
 
+  override def isOnlyOwnerOfBlob(blobUri: String, username: String): Attempt[Boolean] = ???
+
   private def updateField(username: String, f: TestUserRegistration => TestUserRegistration): Attempt[TestUserRegistration] = {
     val maybeUpdatedUser = users
       .get(username)

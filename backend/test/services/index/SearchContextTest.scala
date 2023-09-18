@@ -9,10 +9,10 @@ import org.scalatest.matchers.must.Matchers
 
 class SearchContextTest extends AnyFreeSpec with Matchers {
   val barry = PartialUser("barry", "Barry")
-  val folder = WorkspaceNode(barry, None, None)
+  val folder = WorkspaceNode(barry, None, None, "folder")
 
   def leaf(uri: String): WorkspaceLeaf =
-    WorkspaceLeaf(barry, None, None, ProcessingStage.Processed, uri, "text/test", None)
+    WorkspaceLeaf(barry, None, None, ProcessingStage.Processed, uri, "text/test", None, "file")
 
   "findBlobsInWorkspaceFolder" - {
     "find a nested blob" in {

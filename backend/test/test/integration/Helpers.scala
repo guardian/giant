@@ -125,7 +125,7 @@ object Helpers extends Matchers with Logging with OptionValues with Inside {
   }
 
   def removeFileFromWorkspace(workspaceId: String, itemId: String)(implicit controllers: Controllers, timeout: Timeout): Future[Result] = {
-    controllers.workspace.deleteItem(workspaceId, itemId)
+    controllers.workspace.removeItem(workspaceId, itemId)
       .apply(FakeRequest())
   }
 
@@ -251,7 +251,7 @@ object Helpers extends Matchers with Logging with OptionValues with Inside {
       val collectionsController = new Collections(controllerComponents, manifest, userManagement, elasticsearch.elasticResources, s3Config, elasticsearch.elasticEvents, elasticsearch.elasticPages, ingestionServices, annotations)
       val resourceController = new Resource(controllerComponents, manifest, elasticsearch.elasticResources, elasticsearch.elasticPages,  annotations, null)
       val filtersController = new Filters(controllerComponents, manifest, annotations)
-      val workspaceController = new Workspaces(controllerComponents, annotations, elasticsearch.elasticResources, manifest)
+      val workspaceController = new Workspaces(controllerComponents, annotations, elasticsearch.elasticResources, manifest, userManagement, null, null)
       val searchController = new Search(controllerComponents, userManagement, elasticsearch.elasticResources, annotations)
       val documentsController = new Documents(controllerComponents, manifest, elasticsearch.elasticResources, null, userManagement, annotations, downloadExpiryPeriod)
       val previewsController = new Previews(controllerComponents, manifest, elasticsearch.elasticResources, new TestPreviewService, userManagement, annotations, downloadExpiryPeriod)
