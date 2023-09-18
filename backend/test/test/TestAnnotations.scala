@@ -31,4 +31,5 @@ class TestAnnotations(usersToWorkspaces: Map[String, List[String]] = Map.empty) 
   override def deleteComment(currentUser: String, commentId: String): Attempt[Unit] = Attempt.Left(UnsupportedOperationFailure(""))
   override def getWorkspaceContents(currentUser: String, id: String): Attempt[TreeEntry[WorkspaceEntry]] = Attempt.Left(UnsupportedOperationFailure(""))
   override def getWorkspaceMetadata(currentUser: String, id: String): Attempt[WorkspaceMetadata] = Attempt.Left(UnsupportedOperationFailure(""))
+  override def isOnlyOwnerOfBlob(blobUri: String, username: String): Attempt[Boolean] = Attempt.Left(UnsupportedOperationFailure(""))
 }

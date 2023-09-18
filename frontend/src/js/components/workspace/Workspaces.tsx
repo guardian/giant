@@ -399,14 +399,13 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
         });
     };
 
-    renderContextMenu(entry: TreeEntry<WorkspaceEntry>, positionX: number, positionY: number, state: State) {
+    renderContextMenu(entry: TreeEntry<WorkspaceEntry>, positionX: number, positionY: number) {
         const items = [
             // or 'pencil alternate'
             { key: "rename", content: "Rename", icon: "pen square" },
             { key: "remove", content: "Remove from workspace", icon: "trash" },         
         ];
-        if (state.contextMenu.entry?.data.type === "file") {
-            console.log("delete file added to item,s");
+        if (isWorkspaceLeaf(entry.data)) {
             items.push({ key: "deleteOrRemove", content: "Delete file", icon: "trash" });
         }
         return <DetectClickOutside onClickOutside={this.closeContextMenu}>
@@ -427,8 +426,8 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
 
                     if (menuItemProps.content === "Delete file") {
                         const workspaceId = this.props.match.params.id;
-                        if (state.contextMenu.entry?.data.uri) {
-                            this.props.deleteOrRemoveItem(workspaceId, entry.id, state.contextMenu.entry?.data.uri);
+                        if (isWorkspaceLeaf(entry.data)) {
+                            this.props.deleteOrRemoveItem(workspaceId, entry.id, entry.data.uri);
                             this.props.resetFocusedAndSelectedEntries();
                         }
                     }
@@ -529,8 +528,7 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
                     ? this.renderContextMenu(
                         this.state.contextMenu.entry,
                         this.state.contextMenu.positionX,
-                        this.state.contextMenu.positionY,
-                        this.state
+                        this.state.contextMenu.positionY
                     )
                     : null
                 }

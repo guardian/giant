@@ -29,6 +29,7 @@ trait Annotations {
   def postComment(currentUser: String, uri: Uri, text: String, anchor: Option[CommentAnchor]): Attempt[Unit]
   def getComments(uri: Uri): Attempt[List[Comment]]
   def deleteComment(currentUser: String, commentId: String): Attempt[Unit]
+  def isOnlyOwnerOfBlob(blobUri: String, username: String): Attempt[Boolean]
 }
 
 object Annotations {

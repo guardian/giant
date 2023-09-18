@@ -357,25 +357,6 @@ class Neo4jUserManagement(neo4jDriver: Driver, executionContext: ExecutionContex
     }
   }
 
-  def isOnlyOwnerOfBlob(blobUri: String, username: String): Attempt[Boolean] = attemptTransaction { tx =>
-    tx.run(
-      """
-        | MATCH (b:Blob:Resource {uri: {blob}})-[r:PARENT*]->(c:Collection)
-        | RETURN DISTINCT c.createdBy AS owner
-        """.stripMargin,
-      parameters(
-        "blob", blobUri
-      )
-    ).map { result =>
-      val users: Set[String] = result.list.asScala.map(_.get("owner").asString()).toSet
-      if (users.size == 1) {
-        users.head == username
-      } else {
-        false
-      }
-    }
-  }
-
   private def singleUser(username: String, statementResult: StatementResult, field: String = "user"): Attempt[DBUser] = {
     statementResult.hasKeyOrFailure(field, UserDoesNotExistFailure(username)).map { result =>
       DBUser.fromNeo4jValue(result.get(field))

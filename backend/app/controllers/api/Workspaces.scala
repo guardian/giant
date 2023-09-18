@@ -267,7 +267,7 @@ class Workspaces(override val controllerComponents: AuthControllerComponents, an
   }
 
   def deleteBlobOrRemoveFromWorkspace(workspaceId: String, itemId: String, blobUri: String) = ApiAction.attempt { req =>
-    users.isOnlyOwnerOfBlob(blobUri, req.user.username).flatMap { isTheOnlyOwnerOfBlob =>
+    annotation.isOnlyOwnerOfBlob(blobUri, req.user.username).flatMap { isTheOnlyOwnerOfBlob =>
       if (isTheOnlyOwnerOfBlob) {
         deleteResourceIfNoChildrenOrRemove(req.user, workspaceId, itemId, blobUri)
       } else {

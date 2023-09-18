@@ -7,8 +7,6 @@ export interface BaseWorkspaceEntry {
     addedBy: PartialUser,
     addedOn?: number,
     maybeParentId?: string
-    uri?: string,
-    type?: string
 }
 
 export interface WorkspaceNode extends BaseWorkspaceEntry {}
