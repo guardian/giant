@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { MenuChevron } from '../UtilComponents/MenuChevron';
 import { Loader, Icon, Button, Message } from 'semantic-ui-react';
-import { UploadFile } from './UploadFiles';
+import {isFailedFileUploadState, UploadFile} from './UploadFiles';
 
 // Returns an array containing all the intermediate paths of the files,
 // e.g. ['/path/to/file.pdf'] => ['/path', /path/to', '/path/to/file.pdf']
@@ -85,7 +85,11 @@ export default function FileList({ files, disabled, removeByPath }: { files: Map
 
     const filesAndFolders = buildTree(filePaths, Array.from(collapsed));
 
-    const anyFailed = [...files.values()].some(({ state }) => state.description === 'failed');
+    const failedFiles = [...files.values()].filter(f => isFailedFileUploadState(f.state));
+    const anyFailed = failedFiles.length > 0
+    const failureReasons = failedFiles
+        .map(s => ({file: s.file.name, failureReason: isFailedFileUploadState(s.state) ? s.state.failureReason : undefined }))
+        .filter(fr => fr.failureReason !== undefined)
 
     return (
         <React.Fragment>
@@ -123,6 +127,14 @@ export default function FileList({ files, disabled, removeByPath }: { files: Map
             {anyFailed ?
             <Message negative>
                 <Message.Header>Some uploads failed</Message.Header>
+                {failureReasons.length > 0 && (<p>Failure reasons:
+                    <ul>
+                    {failureReasons.map((fr) => (
+                        <li>{fr.file}: {fr.failureReason}</li>
+                    ))}
+                    </ul>
+                </p>)}
+
                 <p>Please contact your administrator</p>
             </Message> : false}
         </React.Fragment>
