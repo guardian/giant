@@ -26,7 +26,7 @@ class SettingsSidebar extends React.Component {
     renderAdminLinks = () => {
         return <React.Fragment>
             <SidebarSearchLink className='sidebar__item' to='/settings/uploads'>
-                <div className='sidebar__item__text'>Uploads</div>
+                <div className='sidebar__item__text'>Upload calendar</div>
             </SidebarSearchLink>
             <SidebarSearchLink className='sidebar__item' to='/settings/users'>
                 <div className='sidebar__item__text'>Users</div>
