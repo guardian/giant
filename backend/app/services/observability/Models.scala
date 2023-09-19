@@ -12,6 +12,7 @@ import play.api.libs.json.JodaWrites.jodaDateWrites
 import play.api.libs.json.JodaReads.jodaDateReads
 import utils.Logging
 
+import java.security.MessageDigest
 import scala.util.{Failure, Try, Success => TrySuccess}
 
 object JodaReadWrites {
@@ -178,9 +179,32 @@ object BlobStatus {
   implicit val format = Json.format[BlobStatus]
 
   def parsePathsArray(paths: Array[String]): List[String] = {
-    val nonNullPaths = paths.filter(p => p != null )
+    val nonNullPaths = paths.filter(p => p != null)
     if (nonNullPaths.isEmpty) {
       List("unknown filename")
     } else nonNullPaths.toList
+  }
+
+  private def md5(string:String): String = MessageDigest.getInstance("MD5").digest(string.getBytes).map(_.toChar).mkString
+
+  /**
+    * Aims to remove all information from blob status that is likely to identify the user who uploaded it or the file itself
+    * @param status
+    * @return
+    */
+  def anonymise(status: BlobStatus): BlobStatus = {
+    status.copy(
+      metadata = status.metadata.copy(ingestId = md5(status.metadata.ingestId)),
+      paths = List("redacted"),
+      workspaceName = status.workspaceName.map(md5)
+    )
+  }
+
+  def anonymiseEventsOlderThanTwoWeeks(sortedStatuses: List[BlobStatus]): List[BlobStatus] = {
+    sortedStatuses.map{ status =>
+      if (status.ingestStart.isBefore(new DateTime().minusDays(14))) {
+        anonymise(status)
+      } else status
+    }
   }
 }
