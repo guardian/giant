@@ -78,9 +78,16 @@ object Ocr extends Logging {
     val tempFile = tmpDir.resolve(s"${inputFilePath.getFileName}.ocr.pdf")
     val stdout = mutable.Buffer.empty[String]
 
-    def process(flag: OcrMyPdfFlag): Int = {
-      val cmd = s"ocrmypdf ${flag.flag} -l $lang ${dpi.map(dpi => s"--image-dpi $dpi").getOrElse("")} ${inputFilePath.toAbsolutePath} ${tempFile.toAbsolutePath}"
+    def process(flag: OcrMyPdfFlag, overrideFile: Option[Path] = None): Int = {
+      val sourceFilePath = overrideFile.getOrElse(inputFilePath)
+      val cmd = s"ocrmypdf ${flag.flag} -l $lang ${dpi.map(dpi => s"--image-dpi $dpi").getOrElse("")} ${sourceFilePath.toAbsolutePath} ${tempFile.toAbsolutePath}"
       val process = Process(cmd, cwd = None, extraEnv = "TMPDIR" -> tmpDir.toAbsolutePath.toString)
+      process.!(ProcessLogger(stdout.append(_), stderr.append))
+    }
+
+    def decryptWithQpdf(decryptTempFile: Path): Unit = {
+      val cmd = s"qpdf --decrypt ${inputFilePath.toAbsolutePath} ${decryptTempFile.toAbsolutePath}"
+      val process = Process(cmd, cwd = None)
       process.!(ProcessLogger(stdout.append(_), stderr.append))
     }
 
@@ -91,7 +98,16 @@ object Ocr extends Logging {
       // be ocrd with --redo-ocr set. See https://github.com/guardian/giant/pull/68 for details of --skip-text vs --redo-ocr
       logger.info(s"Got input file error from ocrmypdf with --redo-ocr for ${inputFilePath.getFileName}, attempting with --skip-text")
       process(SkipText)
-    } else redoOcrExitCode
+    } else if (redoOcrExitCode == 8) {
+      // exit code 8 indicates that the file is encrypted. If it has a user password we can go no further, but if it only
+      // has an 'owner' password we can remove the password protection with qpdf - see
+      // https://ocrmypdf.readthedocs.io/en/latest/pdfsecurity.html#password-protected-pdfs
+      logger.info("PDF password protected, attempting to remove protection with qpdf")
+      val decryptTempFile = tmpDir.resolve(s"${inputFilePath.getFileName}.decrypt.pdf")
+      decryptWithQpdf(decryptTempFile)
+      process(RedoOcr, Some(decryptTempFile))
+    }
+    else redoOcrExitCode
 
     exitCode match {
       // 0: success
