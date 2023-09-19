@@ -407,7 +407,7 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
         const itemsWithReprocess = [
             { key: "rename", content: "Rename", icon: "pen square" },
             { key: "remove", content: "Remove from workspace", icon: "trash" },
-            { key: "reprocess", content: "Reprocess", icon: "refresh" },
+            { key: "reprocess", content: "Reprocess source file", icon: "refresh" },
         ]
 
         return <DetectClickOutside onClickOutside={this.closeContextMenu}>
@@ -426,7 +426,7 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
                         this.props.resetFocusedAndSelectedEntries();
                     }
 
-                    if (menuItemProps.content === 'Reprocess' && (isWorkspaceLeaf(entry.data))) {
+                    if (menuItemProps.content === 'Reprocess source file' && (isWorkspaceLeaf(entry.data))) {
                         this.props.reprocessBlob(workspaceId, entry.data.uri)
                     }
 
