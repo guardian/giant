@@ -10,8 +10,6 @@ import model.manifest.Blob
 import utils.Logging
 import utils.attempt.Failure
 
-import java.util.Properties
-import scala.util.control.NonFatal
 
 class MBoxEmailExtractor(emlParser: EmlParser) extends FileExtractor(emlParser.scratch) with Logging {
   override def canProcessMimeType = Set(MBoxEmailDetector.MBOX_MIME_TYPE).contains

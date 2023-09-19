@@ -7,6 +7,8 @@ import jakarta.mail.{Folder, Session, URLName}
 import java.io.InputStream
 import java.util.Properties
 
+// Jakarta mail doesn't include mbox support out of the box so we compile a jar locally and check it in - see
+// https://eclipse-ee4j.github.io/angus-mail/Mbox-Store for details
 object JakartaMail {
 
   private val session: Session = Session.getInstance(properties(
