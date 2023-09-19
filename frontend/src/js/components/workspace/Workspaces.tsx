@@ -28,7 +28,7 @@ import DocumentIcon from 'react-icons/lib/ti/document';
 import { Icon, Loader, Menu } from 'semantic-ui-react';
 import WorkspaceSummary from './WorkspaceSummary';
 import { ColumnsConfig, isTreeLeaf, isTreeNode, TreeEntry, TreeLeaf } from '../../types/Tree';
-import {isWorkspaceLeaf, Workspace, WorkspaceEntry, WorkspaceLeaf} from '../../types/Workspaces';
+import {isWorkspaceLeaf, Workspace, WorkspaceEntry} from '../../types/Workspaces';
 import { GiantState } from '../../types/redux/GiantState';
 import { GiantDispatch } from '../../types/redux/GiantDispatch';
 import DetectClickOutside from '../UtilComponents/DetectClickOutside';
