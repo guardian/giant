@@ -44,6 +44,7 @@ import { setFocusedEntry } from '../../actions/workspaces/setFocusedEntry';
 import { processingStageToString, workspaceHasProcessingFiles } from '../../util/workspaceUtils';
 import { setWorkspaceIsPublic } from '../../actions/workspaces/setWorkspaceIsPublic';
 import { RouteComponentProps } from 'react-router-dom';
+import { DeleteModal } from './DeleteModal';
 
 
 type Props = ReturnType<typeof mapStateToProps>
@@ -60,7 +61,11 @@ type State = {
         positionY: number
     },
     columnsConfig: ColumnsConfig<WorkspaceEntry>,
-    previousShiftClickSelectedEntries: TreeEntry<WorkspaceEntry>[]
+    previousShiftClickSelectedEntries: TreeEntry<WorkspaceEntry>[],
+    deleteModalContext: {
+        isOpen: boolean,
+        entry: null | TreeEntry<WorkspaceEntry>,
+    }
 }
 
 class WorkspacesUnconnected extends React.Component<Props, State> {
@@ -220,7 +225,11 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
                 ...this.allColumns
             ]
         },
-        previousShiftClickSelectedEntries: []
+        previousShiftClickSelectedEntries: [],
+        deleteModalContext: {
+            isOpen: false,
+            entry: null
+        }
     };
 
     poller: NodeJS.Timeout | null = null;
@@ -344,6 +353,22 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
         }
     };
 
+    onDeleteModalOpen = (isOpen: boolean) => {
+        const modalContext = this.state.deleteModalContext;
+
+        if (isOpen)
+            this.setState({deleteModalContext: {...modalContext, isOpen}});
+        else 
+            this.setState({deleteModalContext: {entry: null, isOpen}});
+    }
+
+    onDeleteItem = (workspaceId: string, entry: TreeEntry<WorkspaceEntry> | null) => () => {        
+        if (entry && isWorkspaceLeaf(entry.data)) {   
+            this.props.deleteOrRemoveItem(workspaceId, entry.id, entry.data.uri);
+            this.props.resetFocusedAndSelectedEntries();
+        }
+    }
+
     onClickColumn = (column: string) => {
         if (this.state.columnsConfig.sortColumn === column) {
 
@@ -425,11 +450,10 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
                     }
 
                     if (menuItemProps.content === "Delete file") {
-                        const workspaceId = this.props.match.params.id;
-                        if (isWorkspaceLeaf(entry.data)) {
-                            this.props.deleteOrRemoveItem(workspaceId, entry.id, entry.data.uri);
-                            this.props.resetFocusedAndSelectedEntries();
-                        }
+                        this.setState({deleteModalContext: {
+                            isOpen: true,
+                            entry
+                        }});
                     }
 
                     this.closeContextMenu();
@@ -532,6 +556,11 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
                     )
                     : null
                 }
+                <DeleteModal 
+                    deleteItemHandler={this.onDeleteItem(this.props.match.params.id, this.state.deleteModalContext.entry)} 
+                    isOpen={this.state.deleteModalContext.isOpen} 
+                    setModalOpen={this.onDeleteModalOpen}
+                />           
             </div>
         );
     }
