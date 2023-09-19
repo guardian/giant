@@ -176,4 +176,11 @@ object BlobStatus {
   implicit val dateWrites = JodaReadWrites.dateWrites
   implicit val dateReads = JodaReadWrites.dateReads
   implicit val format = Json.format[BlobStatus]
+
+  def parsePathsArray(paths: Array[String]): List[String] = {
+    val nonNullPaths = paths.filter(p => p != null )
+    if (nonNullPaths.isEmpty) {
+      List("unknown filename")
+    } else nonNullPaths.toList
+  }
 }

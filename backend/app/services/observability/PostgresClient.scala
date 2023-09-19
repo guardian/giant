@@ -168,7 +168,7 @@ class PostgresClientImpl(postgresConfig: PostgresConfig) extends PostgresClient 
                         rs.string("blob_id"),
                         rs.string("ingest_id")
                     ),
-                    rs.array("paths").getArray().asInstanceOf[Array[String]].toList,
+                    BlobStatus.parsePathsArray(rs.array("paths").getArray().asInstanceOf[Array[String]]),
                     rs.longOpt("fileSize"),
                     rs.stringOpt("workspaceName"),
                   PostgresHelpers.postgresEpochToDateTime(rs.double("ingest_start")),
