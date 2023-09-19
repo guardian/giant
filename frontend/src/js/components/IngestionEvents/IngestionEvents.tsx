@@ -180,6 +180,47 @@ const renderExpandedRow = (blobStatus: BlobStatus) => {
     </EuiText>
 }
 
+function IngestionEventsTable({
+    blobs,
+    columnsWithExpandingRow,
+    itemIdToExpandedRowMap,
+}: {
+    blobs: BlobStatus[]
+    columnsWithExpandingRow: Array<EuiBasicTableColumn<BlobStatus>>
+    itemIdToExpandedRowMap: Record<string, ReactNode>
+}) {
+    const [pageIndex, setPageIndex] = useState(0)
+    const [pageSize, setPageSize] = useState(10)
+
+    const pagination = {
+        pageIndex,
+        pageSize,
+        pageSizeOptions: [10, 100, 250],
+    }
+
+    const onTableChange = ({ page }: Criteria<BlobStatus>) => {
+        if (page) {
+            const { index: pageIndex, size: pageSize } = page
+            setPageIndex(pageIndex)
+            setPageSize(pageSize)
+        }
+    }
+
+    return (
+        <EuiInMemoryTable
+            tableCaption="ingestion events"
+            items={blobs}
+            itemId={blobStatusId}
+            loading={blobs === undefined}
+            columns={columnsWithExpandingRow}
+            sorting={true}
+            itemIdToExpandedRowMap={itemIdToExpandedRowMap}
+            pagination={pagination}
+            onTableChange={onTableChange}
+        />
+    )
+}
+
 export function IngestionEvents(
     {collectionId, ingestId, workspaces, breakdownByWorkspace, showErrorsOnly}: {
         collectionId: string,
@@ -188,8 +229,6 @@ export function IngestionEvents(
         breakdownByWorkspace: boolean,
         showErrorsOnly: boolean,
     }) {
-    const [pageIndex, setPageIndex] = useState(0);
-    const [pageSize, setPageSize] = useState(10);
     const [blobs, updateBlobs] = useState<BlobStatus[] | undefined>(undefined)
     const [tableData, setTableData] = useState<IngestionTable[]>([])
 
@@ -278,39 +317,19 @@ export function IngestionEvents(
         }
     }, [breakdownByWorkspace, blobs, workspaces, ingestIdSuffix, collectionId, showErrorsOnly, setItemIdToExpandedRowMap])
 
-    const pagination = {
-        pageIndex,
-        pageSize,
-        pageSizeOptions: [10, 100, 250],
-    };
-
-    const onTableChange = ({ page }: Criteria<BlobStatus>) => {
-        if (page) {
-          const { index: pageIndex, size: pageSize } = page;
-          setPageIndex(pageIndex);
-          setPageSize(pageSize);
-        }
-    };
-
     return (
         <>
-        {tableData.map((t: IngestionTable) =>
-            <div key={t.title}>
-            <EuiSpacer size={"m"}/>
-            <h1>{t.title}</h1>
-            <EuiInMemoryTable
-                tableCaption="ingestion events"
-                items={t.blobs}
-                itemId={blobStatusId}
-                loading={t.blobs === undefined}
-                columns={columnsWithExpandingRow}
-                sorting={true}
-                itemIdToExpandedRowMap={itemIdToExpandedRowMap}
-                pagination={pagination}
-                onTableChange={onTableChange}
-            />
-            </div>
-        )}
+            {tableData.map((t: IngestionTable) => (
+                <div key={t.title}>
+                    <EuiSpacer size={"m"} />
+                    <h1>{t.title}</h1>
+                    <IngestionEventsTable
+                        blobs={t.blobs}
+                        columnsWithExpandingRow={columnsWithExpandingRow}
+                        itemIdToExpandedRowMap={itemIdToExpandedRowMap}
+                    />
+                </div>
+            ))}
         </>
     )
 }
