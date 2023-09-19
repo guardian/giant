@@ -131,6 +131,7 @@ const columns: Array<EuiBasicTableColumn<BlobStatus>> = [
 const parseBlobStatus = (status: any): BlobStatus => {
     return {
         ...status,
+        paths: status.paths.map((p: any) => p ? p : "unknown-filename"),
         ingestStart: new Date(status.ingestStart),
         mostRecentEvent: new Date(status.mostRecentEvent),
         mimeTypes: status.mimeTypes?.split(","),
