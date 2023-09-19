@@ -197,10 +197,7 @@ lazy val backend = (project in file("backend"))
       "-J-XX:+HeapDumpOnOutOfMemoryError",
       s"-J-Xloggc:/var/log/${name.value}/gc.log",
       s"-J-Dhttp.port=$port"
-    ),
-
-    resolvers += "Payara repository" at "https://nexus.payara.fish/repository/payara-artifacts/"
-
+    )
   )
 
 lazy val cli = (project in file("cli"))

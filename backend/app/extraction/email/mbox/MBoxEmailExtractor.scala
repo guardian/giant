@@ -19,11 +19,8 @@ class MBoxEmailExtractor(emlParser: EmlParser) extends FileExtractor(emlParser.s
   override def priority = 3
   override def extract(blob: Blob, file: File, params: ExtractionParams): Either[Failure, Unit] = {
 
-    println("****Trying to extract an mbox innit, counting the messages")
     val context = IngestionContextBuilder(blob.uri, params)
     val folder = JakartaMail.openStore(s"mbox:${file.getAbsolutePath}")
-    println("**HI")
-    println(folder.getMessageCount())
 
     try {
       folder.getMessages.zipWithIndex.foreach { case (message, ix) =>

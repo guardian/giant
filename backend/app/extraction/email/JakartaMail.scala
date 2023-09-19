@@ -20,7 +20,7 @@ object JakartaMail {
     "mail.mime.parameters.strict" -> "false",
     "mail.mime.base64.ignoreerrors" -> "true",
     // Handle `?=` encoding in filenames
-    "mail.mime.decodefilename" -> "true",
+    "mail.mime.decodefilename" -> "true"
   ))
 
   def openStore(url: String): Folder = {
