@@ -12,6 +12,10 @@ trait PostgresClient {
     def insertEvent(event: IngestionEvent): Either[GiantFailure, Unit]
     def insertMetadata(metaData: BlobMetadata): Either[GiantFailure, Unit]
     def getEvents (ingestId: String, ingestIdIsPrefix: Boolean): Either[GiantFailure, List[BlobStatus]]
+
+    def deleteBlobIngestionEvents(blobId: String): Either[GiantFailure, Long]
+
+    def deleteBlobMetadata(blobId: String): Either[GiantFailure, Long]
 }
 
 class PostgresClientDoNothing extends PostgresClient {
@@ -20,6 +24,10 @@ class PostgresClientDoNothing extends PostgresClient {
     override def insertMetadata(metaData: BlobMetadata): Either[GiantFailure, Unit] = Right(())
 
     override def getEvents (ingestId: String, ingestIdIsPrefix: Boolean): Either[GiantFailure, List[BlobStatus]] = Right(List())
+
+    def deleteBlobIngestionEvents(blobId: String): Either[GiantFailure, Long] = Right(0)
+
+    def deleteBlobMetadata(blobId: String): Either[GiantFailure, Long] = Right(0)
 }
 
 object PostgresHelpers {
@@ -193,4 +201,30 @@ class PostgresClientImpl(postgresConfig: PostgresConfig) extends PostgresClient 
             case Failure(exception) => Left(PostgresReadFailure(exception, s"getEvents failed: ${exception.getMessage}"))
         }
     }
+
+  def deleteBlobIngestionEvents(blobId: String): Either[GiantFailure, Long] = {
+    Try {
+      sql"""
+        DELETE FROM ingestion_events WHERE blob_id = ${blobId}
+           """.executeUpdate().apply()
+
+    } match {
+      case Success(numRowsDeleted) =>
+        Right(numRowsDeleted)
+      case Failure(exception) => Left(PostgresWriteFailure(exception))
+    }
+  }
+
+  def deleteBlobMetadata(blobId: String): Either[GiantFailure, Long] = {
+    Try {
+      sql"""
+        DELETE FROM blob_metadata WHERE blob_id = ${blobId}
+           """.executeUpdate().apply()
+
+    } match {
+      case Success(numRowsDeleted) =>
+        Right(numRowsDeleted)
+      case Failure(exception) => Left(PostgresWriteFailure(exception))
+    }
+  }
 }

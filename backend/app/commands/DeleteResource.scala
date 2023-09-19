@@ -6,6 +6,7 @@ import play.api.mvc.Results.NoContent
 import services.ObjectStorage
 import services.index.Index
 import services.manifest.Manifest
+import services.observability.PostgresClient
 import services.previewing.PreviewService
 import utils.{Logging, Timing}
 import utils.attempt.{Attempt, DeleteFailure, IllegalStateFailure}
@@ -13,7 +14,7 @@ import utils.attempt.{Attempt, DeleteFailure, IllegalStateFailure}
 import scala.concurrent.ExecutionContext
 
 
-class DeleteResource( manifest: Manifest, index: Index, previewStorage: ObjectStorage, objectStorage: ObjectStorage)  (implicit ec: ExecutionContext)
+class DeleteResource( manifest: Manifest, index: Index, previewStorage: ObjectStorage, objectStorage: ObjectStorage, postgresClient: PostgresClient)  (implicit ec: ExecutionContext)
    extends Timing {
 
      private def deleteFromS3Preview(blobUri: Uri, pagePreviewKeys: Set[String]): Attempt[Iterator[Unit]] = {
@@ -69,6 +70,9 @@ class DeleteResource( manifest: Manifest, index: Index, previewStorage: ObjectSt
          // it would think the blob no longer exists even though there may
          // be traces in neo4j or S3).
          _ <- timeAsync("Delete blob from elasticsearch", index.delete(uri.value))
+         // clean up observability data
+         _ <- Attempt.fromEither(timeSync("Deleting blob ingest events", postgresClient.deleteBlobIngestionEvents(uri.value)))
+         _ <- Attempt.fromEither(timeSync("Deleting blob metadata (observability)", postgresClient.deleteBlobMetadata(uri.value)))
          _ <- successAttempt
        } yield {
          ()

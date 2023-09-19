@@ -8,6 +8,7 @@ import play.api.mvc.{Action, AnyContent, Request, Result}
 import services.ObjectStorage
 import services.index.Index
 import services.manifest.Manifest
+import services.observability.PostgresClient
 import services.previewing.PreviewService
 import utils.Logging
 import utils.attempt.{Attempt, DeleteFailure}
@@ -15,7 +16,7 @@ import utils.controller.{AuthApiController, AuthControllerComponents, FailureToR
 
 
 class Blobs(override val controllerComponents: AuthControllerComponents, manifest: Manifest, index: Index,
-            objectStorage: ObjectStorage, previewStorage: ObjectStorage, previewService: PreviewService)
+            objectStorage: ObjectStorage, previewStorage: ObjectStorage, postgresClient: PostgresClient)
   extends AuthApiController with Logging {
 
   def param(name: String, req: Request[AnyContent]): Option[String] = req.queryString.get(name).flatMap(_.headOption)
@@ -89,7 +90,7 @@ class Blobs(override val controllerComponents: AuthControllerComponents, manifes
 
   def delete(id: String, checkChildren: Boolean): Action[AnyContent] = ApiAction.attempt { req =>
     import scala.language.existentials
-    val deleteResource = new DeleteResource(manifest, index, previewStorage, objectStorage)
+    val deleteResource = new DeleteResource(manifest, index, previewStorage, objectStorage, postgresClient)
     checkPermission(CanPerformAdminOperations, req) {
       val result = if (checkChildren) deleteResource.deleteBlobCheckChildren(id)
       else deleteResource.deleteBlob(id)

@@ -9,4 +9,8 @@ class TestPostgresClient extends PostgresClient{
   override def insertMetadata(metaData: BlobMetadata): Either[Failure, Unit] = Right(())
 
   def getEvents (ingestId: String, ingestIdIsPrefix: Boolean): Either[Failure, List[BlobStatus]] = Right(List())
+
+  def deleteBlobIngestionEvents(blobId: String): Either[Failure, Long] = Right(0)
+
+  def deleteBlobMetadata(blobId: String): Either[Failure, Long] = Right(0)
 }
