@@ -184,18 +184,23 @@ function IngestionEventsTable({
     blobs,
     columnsWithExpandingRow,
     itemIdToExpandedRowMap,
+    breakdownByWorkspace,
 }: {
     blobs: BlobStatus[]
     columnsWithExpandingRow: Array<EuiBasicTableColumn<BlobStatus>>
     itemIdToExpandedRowMap: Record<string, ReactNode>
+    breakdownByWorkspace: boolean
 }) {
+    const defaultPageSize = breakdownByWorkspace ? 10 : 100
     const [pageIndex, setPageIndex] = useState(0)
-    const [pageSize, setPageSize] = useState(10)
+    const [pageSize, setPageSize] = useState(defaultPageSize)
 
     const pagination = {
         pageIndex,
         pageSize,
-        pageSizeOptions: [10, 100, 250],
+        pageSizeOptions: breakdownByWorkspace
+            ? [defaultPageSize, 100, 250]
+            : [defaultPageSize, 250, 500],
     }
 
     const onTableChange = ({ page }: Criteria<BlobStatus>) => {
@@ -327,6 +332,7 @@ export function IngestionEvents(
                         blobs={t.blobs}
                         columnsWithExpandingRow={columnsWithExpandingRow}
                         itemIdToExpandedRowMap={itemIdToExpandedRowMap}
+                        breakdownByWorkspace={breakdownByWorkspace}
                     />
                 </div>
             ))}
