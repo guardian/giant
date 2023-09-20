@@ -85,10 +85,14 @@ object Ocr extends Logging {
       process.!(ProcessLogger(stdout.append(_), stderr.append))
     }
 
-    def decryptWithQpdf(decryptTempFile: Path): Unit = {
+    def decryptWithQpdf(decryptTempFile: Path): Boolean = {
       val cmd = s"qpdf --decrypt ${inputFilePath.toAbsolutePath} ${decryptTempFile.toAbsolutePath}"
       val process = Process(cmd, cwd = None)
-      process.!(ProcessLogger(stdout.append(_), stderr.append))
+      val qpdfExitCode = process.!(ProcessLogger(stdout.append(_), stderr.append))
+      if (qpdfExitCode != 0) {
+        logger.info(s"Failed to decrypt with qpdf (exit code ${qpdfExitCode} - file is likely encrypted with a user password.")
+      }
+      qpdfExitCode == 0
     }
 
     val redoOcrExitCode = process(RedoOcr)
@@ -104,8 +108,13 @@ object Ocr extends Logging {
       // https://ocrmypdf.readthedocs.io/en/latest/pdfsecurity.html#password-protected-pdfs
       logger.info("PDF password protected, attempting to remove protection with qpdf")
       val decryptTempFile = tmpDir.resolve(s"${inputFilePath.getFileName}.decrypt.pdf")
-      decryptWithQpdf(decryptTempFile)
-      process(RedoOcr, Some(decryptTempFile))
+      val qpdfResult = decryptWithQpdf(decryptTempFile)
+      // If we managed to decrypt the file, have another go at running ocrmypdf
+      if (qpdfResult) {
+        process(RedoOcr, Some(decryptTempFile))
+      } else {
+        redoOcrExitCode
+      }
     }
     else redoOcrExitCode
 
