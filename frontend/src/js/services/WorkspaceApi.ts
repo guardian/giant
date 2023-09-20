@@ -74,8 +74,8 @@ export function deleteItem(workspaceId: string, itemId: string) {
     });
 }
 
-export function deleteOrRemoveItem(workspaceId: string, itemId: string, blobUri: string) {
-    return authFetch(`/api/workspaces/${workspaceId}/nodes/delete/${itemId}/${blobUri}`, {
+export function deleteOrRemoveItem(workspaceId: string, blobUri: string) {
+    return authFetch(`/api/workspaces/${workspaceId}/nodes/delete/${blobUri}`, {
         method: 'POST',
     });
 }

@@ -373,7 +373,7 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
 
     onDeleteItem = (workspaceId: string, entry: TreeEntry<WorkspaceEntry> | null) => () => {        
         if (entry && isWorkspaceLeaf(entry.data)) {   
-            this.props.deleteOrRemoveItem(workspaceId, entry.id, entry.data.uri, this.onDeleteCompleteHandler);            
+            this.props.deleteOrRemoveItem(workspaceId, entry.data.uri, this.onDeleteCompleteHandler);            
             this.props.resetFocusedAndSelectedEntries();
         }
     }

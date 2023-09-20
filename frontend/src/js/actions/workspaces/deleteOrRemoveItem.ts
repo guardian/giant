@@ -6,12 +6,11 @@ import { GiantState } from '../../types/redux/GiantState';
 
 export function deleteOrRemoveItem(
     workspaceId: string,
-    itemId: string,
     blobUri: string,
     onCompleteHandler: (error: Error | undefined) => void
 ): ThunkAction<void, GiantState, null, WorkspacesAction | AppAction> {
     return dispatch => {
-        return deleteOrRemoveItemApi(workspaceId, itemId, blobUri)
+        return deleteOrRemoveItemApi(workspaceId, blobUri)
             .then(() => {
                 dispatch(getWorkspace(workspaceId));
                 onCompleteHandler(undefined);
