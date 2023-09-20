@@ -1,10 +1,12 @@
 package extraction.email.eml
 
-import java.io.InputStream
 
+import extraction.email.JakartaMail
 import cats.syntax.either._
+
+
+import java.io.InputStream
 import extraction.{ExtractionParams, Extractor}
-import extraction.email.JavaMail
 import ingestion.IngestionContextBuilder
 import model.Language
 import model.manifest.Blob
@@ -23,7 +25,7 @@ class EmlEmailExtractor(emlParser: EmlParser) extends Extractor with Logging {
   override def extract(blob: Blob, stream: InputStream, params: ExtractionParams): Either[Failure, Unit] = {
     Either.catchNonFatal {
       val message = try {
-        JavaMail.parseMessage(stream)
+        JakartaMail.parseMessage(stream)
       } finally {
         stream.close()
       }
