@@ -65,6 +65,8 @@ type State = {
     deleteModalContext: {
         isOpen: boolean,
         entry: null | TreeEntry<WorkspaceEntry>,
+        completed: boolean,
+        error: string | undefined
     }
 }
 
@@ -228,7 +230,9 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
         previousShiftClickSelectedEntries: [],
         deleteModalContext: {
             isOpen: false,
-            entry: null
+            entry: null,
+            completed: false,
+            error: undefined
         }
     };
 
@@ -359,12 +363,17 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
         if (isOpen)
             this.setState({deleteModalContext: {...modalContext, isOpen}});
         else 
-            this.setState({deleteModalContext: {entry: null, isOpen}});
+            this.setState({deleteModalContext: {entry: null, isOpen, completed: false, error: undefined}});
+    }
+
+    onDeleteCompleteHandler = (error: Error | undefined) => {
+        const modalContext = this.state.deleteModalContext;
+        this.setState({deleteModalContext: {...modalContext, completed: true, error: error?.message}});
     }
 
     onDeleteItem = (workspaceId: string, entry: TreeEntry<WorkspaceEntry> | null) => () => {        
         if (entry && isWorkspaceLeaf(entry.data)) {   
-            this.props.deleteOrRemoveItem(workspaceId, entry.id, entry.data.uri);
+            this.props.deleteOrRemoveItem(workspaceId, entry.id, entry.data.uri, this.onDeleteCompleteHandler);            
             this.props.resetFocusedAndSelectedEntries();
         }
     }
@@ -452,7 +461,9 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
                     if (menuItemProps.content === "Delete file") {
                         this.setState({deleteModalContext: {
                             isOpen: true,
-                            entry
+                            entry,
+                            completed: false,
+                            error: undefined
                         }});
                     }
 
@@ -560,6 +571,8 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
                     deleteItemHandler={this.onDeleteItem(this.props.match.params.id, this.state.deleteModalContext.entry)} 
                     isOpen={this.state.deleteModalContext.isOpen} 
                     setModalOpen={this.onDeleteModalOpen}
+                    completed={this.state.deleteModalContext.completed}
+                    error={this.state.deleteModalContext.error}
                 />           
             </div>
         );
@@ -576,7 +589,7 @@ function mapStateToProps(state: GiantState) {
         currentUser: state.auth.token?.user,
         users: state.users.userList,
         expandedNodes: state.workspaces.expandedNodes,
-        collections: state.collections
+        collections: state.collections,
     };
 }
 
