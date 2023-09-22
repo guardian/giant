@@ -1,18 +1,16 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { GiantState } from '../../types/redux/GiantState';
 import { connect } from 'react-redux';
 import Modal from "../UtilComponents/Modal";
 import {ProgressAnimation} from "../UtilComponents/ProgressAnimation";
 
-type DeleteStatus = "unconfirmed" | "deleting" | "deleted" | "failed"
+export type DeleteStatus = "unconfirmed" | "deleting" | "deleted" | "failed"
 
-export function DeleteModal({ deleteItemHandler, isOpen, setModalOpen, completed, error }: 
+export function DeleteModal({ deleteItemHandler, isOpen, setModalOpen, deleteStatus }: 
     {   deleteItemHandler: () => void, 
         isOpen: boolean, 
         setModalOpen: (value: boolean) => void, 
-        completed: boolean,
-        error: string | undefined }) {
-    const [deleteStatus, setDeleteStatus] = useState<DeleteStatus>("unconfirmed");
+        deleteStatus: DeleteStatus }) {
     
     const modalTitle: Record<DeleteStatus, string> = {
         unconfirmed: "Delete item?",
@@ -28,20 +26,8 @@ export function DeleteModal({ deleteItemHandler, isOpen, setModalOpen, completed
         failed: "Failed to delete item. Please contact the admin to delete this item."
     }
 
-    useEffect(() => {
-        if (completed) {
-            if (error) {
-                setDeleteStatus("failed");
-            } else {
-                setDeleteStatus("deleted");
-            }            
-        } 
-    }, [completed, error]);
-
-    const deleteItem = async () => {
+    const deleteItem = () => {
         try {
-            
-            setDeleteStatus("deleting");
             deleteItemHandler();            
         }
         catch (e){
@@ -51,7 +37,6 @@ export function DeleteModal({ deleteItemHandler, isOpen, setModalOpen, completed
 
     const onDismiss = () => {
         setModalOpen(false);
-        setDeleteStatus("unconfirmed");
     }
 
     const spinner = deleteStatus === "deleting" ? <ProgressAnimation /> : false;

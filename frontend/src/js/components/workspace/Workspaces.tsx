@@ -44,7 +44,7 @@ import { setFocusedEntry } from '../../actions/workspaces/setFocusedEntry';
 import { processingStageToString, workspaceHasProcessingFiles } from '../../util/workspaceUtils';
 import { setWorkspaceIsPublic } from '../../actions/workspaces/setWorkspaceIsPublic';
 import { RouteComponentProps } from 'react-router-dom';
-import { DeleteModal } from './DeleteModal';
+import { DeleteModal, DeleteStatus } from './DeleteModal';
 
 
 type Props = ReturnType<typeof mapStateToProps>
@@ -65,8 +65,7 @@ type State = {
     deleteModalContext: {
         isOpen: boolean,
         entry: null | TreeEntry<WorkspaceEntry>,
-        completed: boolean,
-        error: string | undefined
+        status: DeleteStatus,
     }
 }
 
@@ -231,8 +230,7 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
         deleteModalContext: {
             isOpen: false,
             entry: null,
-            completed: false,
-            error: undefined
+            status: "unconfirmed",
         }
     };
 
@@ -358,21 +356,24 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
     };
 
     onDeleteModalOpen = (isOpen: boolean) => {
-        const modalContext = this.state.deleteModalContext;
-
         if (isOpen)
-            this.setState({deleteModalContext: {...modalContext, isOpen}});
+            this.setState({deleteModalContext: {entry: this.state.deleteModalContext.entry, isOpen, status: "unconfirmed"}});
         else 
-            this.setState({deleteModalContext: {entry: null, isOpen, completed: false, error: undefined}});
+            this.setState({deleteModalContext: {entry: null, isOpen, status: "unconfirmed"}});
     }
 
-    onDeleteCompleteHandler = (error: Error | undefined) => {
+    onDeleteCompleteHandler = (isSuccess: boolean) => {
         const modalContext = this.state.deleteModalContext;
-        this.setState({deleteModalContext: {...modalContext, completed: true, error: error?.message}});
+        if (modalContext.isOpen) {
+            const status = isSuccess ? "deleted" : "failed"
+            this.setState({deleteModalContext: {...modalContext, status}});
+        }
     }
 
     onDeleteItem = (workspaceId: string, entry: TreeEntry<WorkspaceEntry> | null) => () => {        
-        if (entry && isWorkspaceLeaf(entry.data)) {   
+        if (entry && isWorkspaceLeaf(entry.data)) {
+            const deleteContext = this.state.deleteModalContext;
+            this.setState({deleteModalContext: {...deleteContext, status: "deleting"}});
             this.props.deleteOrRemoveItem(workspaceId, entry.data.uri, this.onDeleteCompleteHandler);            
             this.props.resetFocusedAndSelectedEntries();
         }
@@ -462,8 +463,7 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
                         this.setState({deleteModalContext: {
                             isOpen: true,
                             entry,
-                            completed: false,
-                            error: undefined
+                            status: "unconfirmed",
                         }});
                     }
 
@@ -571,8 +571,7 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
                     deleteItemHandler={this.onDeleteItem(this.props.match.params.id, this.state.deleteModalContext.entry)} 
                     isOpen={this.state.deleteModalContext.isOpen} 
                     setModalOpen={this.onDeleteModalOpen}
-                    completed={this.state.deleteModalContext.completed}
-                    error={this.state.deleteModalContext.error}
+                    deleteStatus={this.state.deleteModalContext.status}
                 />           
             </div>
         );
