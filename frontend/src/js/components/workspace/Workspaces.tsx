@@ -45,6 +45,7 @@ import { processingStageToString, workspaceHasProcessingFiles } from '../../util
 import { setWorkspaceIsPublic } from '../../actions/workspaces/setWorkspaceIsPublic';
 import { RouteComponentProps } from 'react-router-dom';
 import { DeleteModal, DeleteStatus } from './DeleteModal';
+import { PartialUser } from '../../types/User';
 
 
 type Props = ReturnType<typeof mapStateToProps>
@@ -434,13 +435,14 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
         });
     };
 
-    renderContextMenu(entry: TreeEntry<WorkspaceEntry>, positionX: number, positionY: number) {
+    renderContextMenu(entry: TreeEntry<WorkspaceEntry>, positionX: number, positionY: number, currentUser: PartialUser) {
         const items = [
             // or 'pencil alternate'
             { key: "rename", content: "Rename", icon: "pen square" },
             { key: "remove", content: "Remove from workspace", icon: "trash" },         
         ];
-        if (isWorkspaceLeaf(entry.data)) {
+        
+        if (entry.data.addedBy.username === currentUser.username && isWorkspaceLeaf(entry.data)) {
             items.push({ key: "deleteOrRemove", content: "Delete file", icon: "trash" });
         }
         return <DetectClickOutside onClickOutside={this.closeContextMenu}>
@@ -563,7 +565,8 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
                     ? this.renderContextMenu(
                         this.state.contextMenu.entry,
                         this.state.contextMenu.positionX,
-                        this.state.contextMenu.positionY
+                        this.state.contextMenu.positionY,
+                        this.props.currentUser
                     )
                     : null
                 }
