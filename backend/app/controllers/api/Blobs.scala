@@ -92,7 +92,7 @@ class Blobs(override val controllerComponents: AuthControllerComponents, manifes
 
   def delete(id: String, checkChildren: Boolean, isAdminDelete: Boolean): Action[AnyContent] = ApiAction.attempt { req =>
     import scala.language.existentials
-    val deleteResource = new DeleteResource(manifest, index, previewStorage, objectStorage)
+    val deleteResource = new DeleteResource(manifest, index, previewStorage, objectStorage, postgresClient)
     if (isAdminDelete) {
       checkPermission(CanPerformAdminOperations, req) {
         val result = if (checkChildren) deleteResource.deleteBlobCheckChildren(id)
@@ -111,7 +111,7 @@ class Blobs(override val controllerComponents: AuthControllerComponents, manifes
       // OR if the requesting user is the only creator of the blob
       if ((collections.size == 1 && collections.head._2.contains(user.username)) || collections.forall(c => c._1.createdBy == Some(user.username))) {
         logAction(user, s"Deleting resource from Giant if no children. Resource uri: $blobUri")
-        val deleteResource = new DeleteResource(manifest, index, previewStorage, objectStorage)
+        val deleteResource = new DeleteResource(manifest, index, previewStorage, objectStorage, postgresClient)
         deleteResource.deleteBlobCheckChildren(blobUri)
       } else {
         logAction(user, s"Can't delete resource due to file ownership conflict. Resource uri: $blobUri")
