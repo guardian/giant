@@ -20,10 +20,10 @@ export function DeleteModal({ deleteItemHandler, isOpen, setModalOpen, deleteSta
     }
 
     const modalMessage: Record<DeleteStatus, string> = {
-        unconfirmed: "Are you sure you want to delete this item? This action will permanently delete the resource.",
+        unconfirmed: "Are you sure you want to delete this item? This action will permanently delete the item from giant.",
         deleting: "",
         deleted: "This item has been successfully deleted.",
-        failed: "Failed to delete item. Please contact the admin to delete this item."
+        failed: "Failed to delete item. Please contact the administrator to delete this item."
     }
 
     const deleteItem = () => {
