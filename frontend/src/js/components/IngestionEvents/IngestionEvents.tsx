@@ -1,6 +1,6 @@
 import React, {ReactNode, useEffect, useState} from "react";
 import authFetch from "../../util/auth/authFetch";
-import {EuiFlexItem, EuiToolTip, EuiText, EuiButtonIcon, EuiScreenReaderOnly, EuiSpacer, EuiIconTip, EuiBadge, EuiFlexGroup, EuiInMemoryTable, EuiBasicTableColumn, EuiLoadingSpinner, EuiCodeBlock} from "@elastic/eui";
+import {EuiFlexItem, EuiToolTip, EuiText, EuiButtonIcon, EuiScreenReaderOnly, EuiSpacer, EuiIconTip, EuiBadge, EuiFlexGroup, EuiInMemoryTable, EuiBasicTableColumn, EuiLoadingSpinner, EuiCodeBlock, Criteria} from "@elastic/eui";
 import '@elastic/eui/dist/eui_theme_light.css';
 import hdate from 'human-date';
 import {WorkspaceMetadata} from "../../types/Workspaces";
@@ -21,12 +21,12 @@ const SHORT_READABLE_DATE = "DD MMM HH:mm:ss"
 
 const statusToColor = (status: Status) => extractorStatusColors[status]
 
-const getFailedStatuses = (statuses: ExtractorStatus[]) => 
+const getFailedStatuses = (statuses: ExtractorStatus[]) =>
     statuses.filter(status => status.statusUpdates.find(u => u.status === "Failure") !== undefined);
 
 const getFailedBlobs = (blobs: BlobStatus[]) => {
-    return  blobs.filter(wb => {                
-        return getFailedStatuses(wb.extractorStatuses).length > 0;        
+    return  blobs.filter(wb => {
+        return getFailedStatuses(wb.extractorStatuses).length > 0;
     });
 }
 
@@ -181,6 +181,52 @@ const renderExpandedRow = (blobStatus: BlobStatus) => {
     </EuiText>
 }
 
+function IngestionEventsTable({
+    blobs,
+    columnsWithExpandingRow,
+    itemIdToExpandedRowMap,
+    breakdownByWorkspace,
+}: {
+    blobs: BlobStatus[]
+    columnsWithExpandingRow: Array<EuiBasicTableColumn<BlobStatus>>
+    itemIdToExpandedRowMap: Record<string, ReactNode>
+    breakdownByWorkspace: boolean
+}) {
+    const defaultPageSize = breakdownByWorkspace ? 10 : 100
+    const [pageIndex, setPageIndex] = useState(0)
+    const [pageSize, setPageSize] = useState(defaultPageSize)
+
+    const pagination = {
+        pageIndex,
+        pageSize,
+        pageSizeOptions: breakdownByWorkspace
+            ? [defaultPageSize, 100, 250]
+            : [defaultPageSize, 250, 500],
+    }
+
+    const onTableChange = ({ page }: Criteria<BlobStatus>) => {
+        if (page) {
+            const { index: pageIndex, size: pageSize } = page
+            setPageIndex(pageIndex)
+            setPageSize(pageSize)
+        }
+    }
+
+    return (
+        <EuiInMemoryTable
+            tableCaption="ingestion events"
+            items={blobs}
+            itemId={blobStatusId}
+            loading={blobs === undefined}
+            columns={columnsWithExpandingRow}
+            sorting={true}
+            itemIdToExpandedRowMap={itemIdToExpandedRowMap}
+            pagination={pagination}
+            onTableChange={onTableChange}
+        />
+    )
+}
+
 export function IngestionEvents(
     {collectionId, ingestId, workspaces, breakdownByWorkspace, showErrorsOnly}: {
         collectionId: string,
@@ -249,11 +295,11 @@ export function IngestionEvents(
         })
     }, [collectionId, ingestId, updateBlobs, ingestIdSuffix])
 
-    const getWorkspaceBlobs = (allBlobs: BlobStatus[], workspaceName: string, errorsOnly: boolean | undefined) => {       
+    const getWorkspaceBlobs = (allBlobs: BlobStatus[], workspaceName: string, errorsOnly: boolean | undefined) => {
         const workspaceBlobs = allBlobs.filter(b => b.workspaceName === workspaceName);
 
         if (errorsOnly) return getFailedBlobs(workspaceBlobs);
-        
+
         return workspaceBlobs;
     }
 
@@ -279,21 +325,18 @@ export function IngestionEvents(
 
     return (
         <>
-        {tableData.map((t: IngestionTable) =>
-            <div key={t.title}>
-            <EuiSpacer size={"m"}/>
-            <h1>{t.title}</h1>
-            <EuiInMemoryTable
-                tableCaption="ingestion events"
-                items={t.blobs}
-                itemId={blobStatusId}
-                loading={t.blobs === undefined}
-                columns={columnsWithExpandingRow}
-                sorting={true}
-                itemIdToExpandedRowMap={itemIdToExpandedRowMap}
-            />
-            </div>
-        )}
+            {tableData.map((t: IngestionTable) => (
+                <div key={t.title}>
+                    <EuiSpacer size={"m"} />
+                    <h1>{t.title}</h1>
+                    <IngestionEventsTable
+                        blobs={t.blobs}
+                        columnsWithExpandingRow={columnsWithExpandingRow}
+                        itemIdToExpandedRowMap={itemIdToExpandedRowMap}
+                        breakdownByWorkspace={breakdownByWorkspace}
+                    />
+                </div>
+            ))}
         </>
     )
 }
