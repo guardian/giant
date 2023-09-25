@@ -35,7 +35,7 @@ class IngestionEvents(override val controllerComponents: AuthControllerComponent
         Attempt.fromEither(anonymisedEvents.map(e => Ok(Json.toJson(e))))
       case _ =>
         // GitHub-style error - a thing exists but we can't see it so tell the user it doesn't exist
-        Attempt.Left(NotFoundFailure(s"$collection/$ingestion does not exist"))
+        Attempt.Left(NotFoundFailure(s"$collection/${ingestion.getOrElse("")} does not exist"))
       }
   }
 
