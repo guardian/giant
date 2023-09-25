@@ -97,14 +97,15 @@ object Ocr extends Logging {
       qpdfExitCode == 0
     }
 
-    /**
-      * We may reattempt the ocrmypdf process with different flags/cleaned input files. This recursive function handles
-      * the different posssible flows.
-      * @param flag option to pass my ocrmypdf - probably --redo-ocr or --skip-text
-      * @param previousExitCode needed to prevent an infinite loop where ocrmypdf keeps failing with the same exit code
-      * @param overrideFile used where a file has been e.g decrypted and we want to run ocrmypdf on the new file
-      * @return
-      */
+/*
+  * We may reattempt the ocrmypdf process with different flags/cleaned input files. This recursive function handles
+  * the different posssible flows.
+  *
+  * @param flag             option to pass my ocrmypdf - probably --redo-ocr or --skip-text
+  * @param previousExitCode needed to prevent an infinite loop where ocrmypdf keeps failing with the same exit code
+  * @param overrideFile     used where a file has been e.g decrypted and we want to run ocrmypdf on the new file
+  * @return final exit code
+  */
     @tailrec
     def process(flag: OcrMyPdfFlag, previousExitCode: Option[Int] = None, overrideFile: Option[Path] = None): Int = {
 
