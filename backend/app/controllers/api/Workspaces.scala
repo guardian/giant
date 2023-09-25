@@ -9,6 +9,7 @@ import net.logstash.logback.marker.Markers.append
 import play.api.libs.json._
 import services.ObjectStorage
 import services.manifest.Manifest
+import services.observability.PostgresClient
 import services.annotations.Annotations
 import services.annotations.Annotations.AffectedResource
 import services.index.Index
@@ -60,7 +61,7 @@ object MoveItemData {
 }
 
 class Workspaces(override val controllerComponents: AuthControllerComponents, annotation: Annotations, index: Index, manifest: Manifest,
-                 users: UserManagement, objectStorage: ObjectStorage, previewStorage: ObjectStorage) extends AuthApiController with Logging {
+                 users: UserManagement, objectStorage: ObjectStorage, previewStorage: ObjectStorage, postgresClient: PostgresClient) extends AuthApiController with Logging {
 
   def create = ApiAction.attempt(parse.json) { req =>
     for {
@@ -270,7 +271,7 @@ class Workspaces(override val controllerComponents: AuthControllerComponents, an
     annotation.getBlobOwners(blobUri).flatMap { owners =>
       if (owners.size == 1 && owners.head == req.user.username) {
         logAction(req.user, workspaceId, s"Deleting resource from Giant if no children. Resource uri: $blobUri")
-        val deleteResource = new DeleteResource(manifest, index, previewStorage, objectStorage)
+        val deleteResource = new DeleteResource(manifest, index, previewStorage, objectStorage, postgresClient)
         deleteResource.deleteBlobCheckChildren(blobUri)
       } else {
         logAction(req.user, workspaceId, s"Can't delete resource due to file ownership conflict. Resource uri: $blobUri")
