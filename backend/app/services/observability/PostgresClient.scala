@@ -110,7 +110,14 @@ class PostgresClientImpl(postgresConfig: PostgresConfig) extends PostgresClient 
             *
             */
           val results = sql"""
-          WITH blob_extractors AS (
+          WITH problem_blobs AS (
+            SELECT blob_id
+            from ingestion_events
+            WHERE ingest_id LIKE ${if(ingestIdIsPrefix) LikeConditionEscapeUtil.beginsWith(ingestId) else ingestId}
+            group by 1
+            having count(*) > 100
+          ),
+          blob_extractors AS (
             -- get all the extractors expected for a given blob
             SELECT ingest_id, blob_id, jsonb_array_elements_text(details -> 'extractors') as extractor from ingestion_events
             WHERE ingest_id LIKE ${if(ingestIdIsPrefix) LikeConditionEscapeUtil.beginsWith(ingestId) else ingestId} AND
@@ -127,14 +134,14 @@ class PostgresClientImpl(postgresConfig: PostgresConfig) extends PostgresClient 
               -- a date a bit less of a faff
               ARRAY_AGG(EXTRACT(EPOCH from ingestion_events.event_time)) AS extractor_event_times,
               ARRAY_AGG(ingestion_events.status) AS extractor_event_statuses
-              FROM blob_extractors
-              LEFT JOIN ingestion_events
+            FROM blob_extractors
+            LEFT JOIN ingestion_events
               ON blob_extractors.blob_id = ingestion_events.blob_id
               AND blob_extractors.ingest_id = ingestion_events.ingest_id
               -- there is no index on extractorName but we aren't expecting too many events for the same blob_id/ingest_id
               AND blob_extractors.extractor = ingestion_events.details ->> 'extractorName'
               -- A file may be uploaded multiple times within different ingests - use group by to merge them together
-              GROUP BY 1,2,3
+            GROUP BY 1,2,3
           )
           SELECT
             ie.blob_id,
@@ -161,6 +168,7 @@ class PostgresClientImpl(postgresConfig: PostgresConfig) extends PostgresClient 
               (ARRAY_AGG(details ->> 'mimeTypes')  FILTER (WHERE details ->> 'mimeTypes' IS NOT NULL))[1] as mime_types
             FROM ingestion_events
             WHERE ingest_id LIKE ${if(ingestIdIsPrefix) LikeConditionEscapeUtil.beginsWith(ingestId) else ingestId}
+            AND blob_id NOT IN (SELECT blob_id FROM problem_blobs)
             GROUP BY 1,2
           ) AS ie
           LEFT JOIN blob_metadata USING(ingest_id, blob_id)
