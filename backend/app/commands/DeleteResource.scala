@@ -56,6 +56,8 @@ class DeleteResource( manifest: Manifest, index: Index, previewStorage: ObjectSt
      private def deleteResource(uri: Uri): Attempt[Unit] = timeAsync("Total to delete resource", {
        val successAttempt = Attempt.Right(())
        for {
+         // clean up observability data
+         _ <- Attempt.fromEither(timeSync("Deleting blob observability events", postgresClient.deleteBlobIngestionEventsAndMetadata(uri.value)))
          // For blobs not processed by the OcrMyPdfExtractor, ocrLanguages will be an empty list
          ocrLanguages <- timeAsync("Getting langs from neo4j", manifest.getLanguagesProcessedByOcrMyPdf(uri))
          // Not everything has a preview but S3 returns success for deleting an object that doesn't exist so we're fine
@@ -70,9 +72,6 @@ class DeleteResource( manifest: Manifest, index: Index, previewStorage: ObjectSt
          // it would think the blob no longer exists even though there may
          // be traces in neo4j or S3).
          _ <- timeAsync("Delete blob from elasticsearch", index.delete(uri.value))
-         // clean up observability data
-         _ <- Attempt.fromEither(timeSync("Deleting blob ingest events", postgresClient.deleteBlobIngestionEvents(uri.value)))
-         _ <- Attempt.fromEither(timeSync("Deleting blob metadata (observability)", postgresClient.deleteBlobMetadata(uri.value)))
          _ <- successAttempt
        } yield {
          ()

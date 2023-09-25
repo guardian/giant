@@ -13,9 +13,7 @@ trait PostgresClient {
     def insertMetadata(metaData: BlobMetadata): Either[GiantFailure, Unit]
     def getEvents (ingestId: String, ingestIdIsPrefix: Boolean): Either[GiantFailure, List[BlobStatus]]
 
-    def deleteBlobIngestionEvents(blobId: String): Either[GiantFailure, Long]
-
-    def deleteBlobMetadata(blobId: String): Either[GiantFailure, Long]
+    def deleteBlobIngestionEventsAndMetadata(blobId: String): Either[GiantFailure, Long]
 }
 
 class PostgresClientDoNothing extends PostgresClient {
@@ -25,9 +23,8 @@ class PostgresClientDoNothing extends PostgresClient {
 
     override def getEvents (ingestId: String, ingestIdIsPrefix: Boolean): Either[GiantFailure, List[BlobStatus]] = Right(List())
 
-    def deleteBlobIngestionEvents(blobId: String): Either[GiantFailure, Long] = Right(0)
+    def deleteBlobIngestionEventsAndMetadata(blobId: String): Either[GiantFailure, Long] = Right(0)
 
-    def deleteBlobMetadata(blobId: String): Either[GiantFailure, Long] = Right(0)
 }
 
 object PostgresHelpers {
@@ -202,12 +199,13 @@ class PostgresClientImpl(postgresConfig: PostgresConfig) extends PostgresClient 
         }
     }
 
-  def deleteBlobIngestionEvents(blobId: String): Either[GiantFailure, Long] = {
+  def deleteBlobIngestionEventsAndMetadata(blobId: String): Either[GiantFailure, Long] = {
     Try {
-      sql"""
-        DELETE FROM ingestion_events WHERE blob_id = ${blobId}
-           """.executeUpdate().apply()
-
+      DB.localTx { implicit session =>
+        val numIngestionDeleted = sql"DELETE FROM ingestion_events WHERE blob_id = ${blobId}".executeUpdate().apply()
+        val numBlobMetadataDeleted = sql"DELETE FROM blob_metadata WHERE blob_id = ${blobId}".executeUpdate().apply()
+        numIngestionDeleted + numBlobMetadataDeleted
+      }
     } match {
       case Success(numRowsDeleted) =>
         Right(numRowsDeleted)
@@ -215,16 +213,4 @@ class PostgresClientImpl(postgresConfig: PostgresConfig) extends PostgresClient 
     }
   }
 
-  def deleteBlobMetadata(blobId: String): Either[GiantFailure, Long] = {
-    Try {
-      sql"""
-        DELETE FROM blob_metadata WHERE blob_id = ${blobId}
-           """.executeUpdate().apply()
-
-    } match {
-      case Success(numRowsDeleted) =>
-        Right(numRowsDeleted)
-      case Failure(exception) => Left(PostgresWriteFailure(exception))
-    }
-  }
 }

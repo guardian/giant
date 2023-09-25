@@ -10,7 +10,6 @@ class TestPostgresClient extends PostgresClient{
 
   def getEvents (ingestId: String, ingestIdIsPrefix: Boolean): Either[Failure, List[BlobStatus]] = Right(List())
 
-  def deleteBlobIngestionEvents(blobId: String): Either[Failure, Long] = Right(0)
+  def deleteBlobIngestionEventsAndMetadata(blobId: String): Either[Failure, Long] = Right(0)
 
-  def deleteBlobMetadata(blobId: String): Either[Failure, Long] = Right(0)
 }
