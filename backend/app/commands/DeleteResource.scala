@@ -76,13 +76,13 @@ class DeleteResource( manifest: Manifest, index: Index, previewStorage: ObjectSt
      })
 
      // Deletes resource after checking it has no child nodes
-     def deleteBlobCheckChildren(id: String): Attempt[_ <: Unit] = {
+     def deleteBlobCheckChildren(id: String): Attempt[Unit] = {
        val uri = Uri(id)
 
        // casting to an option here because Attempt[Resource] and Attempt[Unit] are incompatible - so can't use a for comprehension with toAttempt
        val deleteResult = manifest.getResource(uri).toOption map { resource =>
          if (resource.children.isEmpty) deleteResource(uri)
-         else Attempt.Left(IllegalStateFailure(s"Cannot delete $uri as it has child nodes"))
+         else Attempt.Left[Unit](IllegalStateFailure(s"Cannot delete $uri as it has child nodes"))
        }
        deleteResult.getOrElse(Attempt.Left(DeleteFailure("Failed to fetch resource")))
      }

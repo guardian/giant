@@ -56,8 +56,7 @@ sealed trait WorkspaceEntry {
 case class WorkspaceNode(
   addedBy: PartialUser,
   addedOn: Option[Long],
-  maybeParentId: Option[String],
-
+  maybeParentId: Option[String]
 ) extends WorkspaceEntry
 
 case class WorkspaceLeaf(
@@ -113,7 +112,7 @@ object WorkspaceEntry {
         data = WorkspaceNode(
           addedBy = createdBy,
           addedOn = v.get("addedOn").optionally(_.asLong()),
-          maybeParentId = maybeParentId
+          maybeParentId = maybeParentId,
         ),
         children = List.empty
       )
