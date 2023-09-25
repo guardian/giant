@@ -14,7 +14,7 @@ import { deleteWorkspace } from '../../actions/workspaces/deleteWorkspace';
 import { renameItem } from '../../actions/workspaces/renameItem';
 import { moveItems } from '../../actions/workspaces/moveItem';
 import { deleteItem } from '../../actions/workspaces/deleteItem';
-import { deleteOrRemoveItem } from '../../actions/workspaces/deleteOrRemoveItem';
+import { deleteResourceFromWorkspace } from '../../actions/workspaces/deleteResourceFromWorkspace';
 import { setSelectedEntries } from '../../actions/workspaces/setSelectedEntries';
 import { setEntryBeingRenamed } from '../../actions/workspaces/setEntryBeingRenamed';
 import { renameWorkspace } from '../../actions/workspaces/renameWorkspace';
@@ -375,7 +375,7 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
         if (entry && isWorkspaceLeaf(entry.data)) {
             const deleteContext = this.state.deleteModalContext;
             this.setState({deleteModalContext: {...deleteContext, status: "deleting"}});
-            this.props.deleteOrRemoveItem(workspaceId, entry.data.uri, this.onDeleteCompleteHandler);            
+            this.props.deleteResourceFromWorkspace(workspaceId, entry.data.uri, this.onDeleteCompleteHandler);            
             this.props.resetFocusedAndSelectedEntries();
         }
     }
@@ -600,7 +600,7 @@ function mapDispatchToProps(dispatch: GiantDispatch) {
         moveItems: bindActionCreators(moveItems, dispatch),
         renameItem: bindActionCreators(renameItem, dispatch),
         deleteItem: bindActionCreators(deleteItem, dispatch),
-        deleteOrRemoveItem: bindActionCreators(deleteOrRemoveItem, dispatch),
+        deleteResourceFromWorkspace: bindActionCreators(deleteResourceFromWorkspace, dispatch),
         addFolderToWorkspace: bindActionCreators(addFolderToWorkspace, dispatch),
         deleteWorkspace: bindActionCreators(deleteWorkspace, dispatch),
         resetFocusedAndSelectedEntries: () => {
