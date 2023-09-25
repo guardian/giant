@@ -3,6 +3,7 @@ package services.observability
 import extraction.Extractor
 import play.api.libs.json.{Format, Json}
 import model.manifest.Blob
+import org.apache.commons.codec.digest.DigestUtils
 import org.joda.time.{DateTime, DateTimeZone}
 import services.index.IngestionData
 import services.observability.ExtractorType.ExtractorType
@@ -185,18 +186,15 @@ object BlobStatus {
     } else nonNullPaths.toList
   }
 
-  private def md5(string:String): String = MessageDigest.getInstance("MD5").digest(string.getBytes).map(_.toChar).mkString
-
   /**
     * Aims to remove all information from blob status that is likely to identify the user who uploaded it or the file itself
     * @param status
     * @return
     */
-  def anonymise(status: BlobStatus): BlobStatus = {
+  private def anonymise(status: BlobStatus): BlobStatus = {
     status.copy(
-      metadata = status.metadata.copy(ingestId = md5(status.metadata.ingestId)),
       paths = List("redacted"),
-      workspaceName = status.workspaceName.map(md5)
+      workspaceName = status.workspaceName.map(DigestUtils.md5Hex)
     )
   }
 
