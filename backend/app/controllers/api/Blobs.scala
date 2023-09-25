@@ -3,6 +3,7 @@ package controllers.api
 import commands.DeleteResource
 import model.Uri
 import model.user.UserPermission.CanPerformAdminOperations
+import net.logstash.logback.marker.LogstashMarker
 import play.api.libs.json.Json
 import play.api.mvc.{Action, AnyContent, Request, Result}
 import services.ObjectStorage
@@ -12,6 +13,7 @@ import services.observability.PostgresClient
 import services.previewing.PreviewService
 import utils.Logging
 import utils.attempt.{Attempt, DeleteFailure}
+import utils.auth.User
 import utils.controller.{AuthApiController, AuthControllerComponents, FailureToResultMapper}
 
 
@@ -88,13 +90,39 @@ class Blobs(override val controllerComponents: AuthControllerComponents, manifes
   }
 
 
-  def delete(id: String, checkChildren: Boolean): Action[AnyContent] = ApiAction.attempt { req =>
+  def delete(id: String, checkChildren: Boolean, isAdminDelete: Boolean): Action[AnyContent] = ApiAction.attempt { req =>
     import scala.language.existentials
-    val deleteResource = new DeleteResource(manifest, index, previewStorage, objectStorage, postgresClient)
-    checkPermission(CanPerformAdminOperations, req) {
-      val result = if (checkChildren) deleteResource.deleteBlobCheckChildren(id)
-      else deleteResource.deleteBlob(id)
-      result.map(_ => NoContent)
+    val deleteResource = new DeleteResource(manifest, index, previewStorage, objectStorage)
+    if (isAdminDelete) {
+      checkPermission(CanPerformAdminOperations, req) {
+        val result = if (checkChildren) deleteResource.deleteBlobCheckChildren(id)
+        else deleteResource.deleteBlob(id)
+        result.map(_ => NoContent)
+      }
+    } else {
+      deleteForNoneAdmin(req.user, id).map(_ => NoContent)
     }
   }
+
+  private def deleteForNoneAdmin(user: User, blobUri: String): Attempt[Unit] = {
+    manifest.getCollectionsForBlob(blobUri).flatMap { collections =>
+      // Here we check either of 2 followings:
+      // if there's only 1 collection holding the blob and if the requesting user has view access to the collection
+      // OR if the requesting user is the only creator of the blob
+      if ((collections.size == 1 && collections.head._2.contains(user.username)) || collections.forall(c => c._1.createdBy == Some(user.username))) {
+        logAction(user, s"Deleting resource from Giant if no children. Resource uri: $blobUri")
+        val deleteResource = new DeleteResource(manifest, index, previewStorage, objectStorage)
+        deleteResource.deleteBlobCheckChildren(blobUri)
+      } else {
+        logAction(user, s"Can't delete resource due to file ownership conflict. Resource uri: $blobUri")
+        Attempt.Left[Unit](DeleteFailure("Failed to delete resource"))
+      }
+    }
+  }
+
+  private def logAction(user: User, message: String) = {
+    val markers: LogstashMarker = user.asLogMarker
+    logger.info(markers, message)
+  }
+
 }

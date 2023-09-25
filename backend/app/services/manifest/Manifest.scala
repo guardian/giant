@@ -48,6 +48,8 @@ trait Manifest extends WorkerManifest {
 
   def getCollections: Attempt[List[Collection]]
 
+  def getCollectionsForBlob(blobUri: String): Attempt[Map[Collection, Seq[String]]]
+
   def getResource(resourceUri: Uri): Either[Failure, BasicResource]
 
   def getIngestions(collection: Uri): Attempt[Seq[Ingestion]]
