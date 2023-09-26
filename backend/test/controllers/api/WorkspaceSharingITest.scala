@@ -195,7 +195,7 @@ class WorkspaceSharingITest extends AnyFunSuite with Neo4jTestService with Elast
       status(deleteFileFromWorkspace(
         workspaceId = paulWorkspace.id,
         blobUri = paulBlobAndNodeId.blobId
-      )) should be(500)
+      )) should be(403)
     }
   }
 

@@ -72,6 +72,26 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
     }
   }
 
+
+  override def getCollectionsForBlob(blobUri: String): Attempt[Map[Collection, Seq[String]]] = attemptTransaction { tx =>
+    val statementResult = tx.run(
+      """
+        |MATCH (b:Blob:Resource {uri: {blob}})-[r:PARENT*]->(c:Collection)
+        |OPTIONAL MATCH (u:User)-[:CAN_SEE]->(c:Collection)
+        |RETURN DISTINCT c, COLLECT(DISTINCT u.username) as usernames
+      """.stripMargin,
+      parameters(
+        "blob", blobUri,
+      ))
+
+    for {
+      summary <- statementResult
+      results = summary.list().asScala.toList
+    } yield {
+      Collection.mergeCollectionAndUsers(results)
+    }
+  }
+
   override def getCollection(collection: Uri): Attempt[Collection] = attemptTransaction { tx =>
     val statementResult = tx.run(
       """

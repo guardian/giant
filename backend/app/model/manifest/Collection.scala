@@ -4,6 +4,8 @@ import model.{RichValue, Uri}
 import org.neo4j.driver.v1.{Record, Value}
 import play.api.libs.json._
 
+import scala.jdk.CollectionConverters._
+
 case class Collection(uri: Uri, display: String, ingestions: List[Ingestion], createdBy: Option[String])
 
 object Collection {
@@ -31,6 +33,18 @@ object Collection {
     List.empty,
     collection.get("createdBy").optionally(_.asString())
   )
+
+  def mergeCollectionAndUsers(results: Seq[Record]): Map[Collection, Seq[String]] = {
+    results.map(r => {
+      val cValue = r.get("c")
+      val uri: String = cValue.get("uri").asString()
+      val display: String = cValue.get("display").asString()
+      val createdBy = cValue.get("createdBy").optionally(_.asString())
+      val users = r.get("usernames").asList((v: Value) => v.asString()).asScala.toSeq
+
+      Collection(Uri(uri), display, List.empty, createdBy) -> users
+    }).toMap
+  }
 }
 
 case class CollectionWithUsers(uri: Uri, display: String, ingestions: List[Ingestion], createdBy: Option[String], users: Set[String])

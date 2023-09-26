@@ -4,6 +4,7 @@ import DeleteButton from './DeleteButtonModal';
 import AddToWorkspaceModal from './AddToWorkspaceModal';
 import { resourcePropType } from '../../types/Resource';
 import PropTypes from 'prop-types';
+import { deleteBlob, deleteBlobForAdmin } from '../../services/BlobApi';
 
 export default class ViewerActions extends React.Component {
     static propTypes = {
@@ -27,7 +28,9 @@ export default class ViewerActions extends React.Component {
                     </button>
                     <DownloadButton />
 
-                    {!this.props.disableDelete && this.props.isAdmin && this.props.resource && <DeleteButton />  }
+                    <DeleteButton deleteBlob={deleteBlob} />
+
+                    {!this.props.disableDelete && this.props.isAdmin && this.props.resource && <DeleteButton deleteBlob={deleteBlobForAdmin} buttonTitle='Admin delete' />  }
 
                 </div>
 

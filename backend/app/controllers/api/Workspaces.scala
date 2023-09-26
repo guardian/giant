@@ -275,7 +275,7 @@ class Workspaces(override val controllerComponents: AuthControllerComponents, an
         deleteResource.deleteBlobCheckChildren(blobUri)
       } else {
         logAction(req.user, workspaceId, s"Can't delete resource due to file ownership conflict. Resource uri: $blobUri")
-        Attempt.Left[Unit](DeleteFailure("Failed to delete resource"))
+        Attempt.Left[Unit](DeleteNotAllowed("Failed to delete resource"))
       }
     } map (_ => NoContent)
   }
