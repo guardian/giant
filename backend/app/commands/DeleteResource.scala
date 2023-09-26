@@ -6,6 +6,7 @@ import play.api.mvc.Results.NoContent
 import services.ObjectStorage
 import services.index.Index
 import services.manifest.Manifest
+import services.observability.PostgresClient
 import services.previewing.PreviewService
 import utils.{Logging, Timing}
 import utils.attempt.{Attempt, DeleteFailure, IllegalStateFailure}
@@ -13,7 +14,7 @@ import utils.attempt.{Attempt, DeleteFailure, IllegalStateFailure}
 import scala.concurrent.ExecutionContext
 
 
-class DeleteResource( manifest: Manifest, index: Index, previewStorage: ObjectStorage, objectStorage: ObjectStorage)  (implicit ec: ExecutionContext)
+class DeleteResource( manifest: Manifest, index: Index, previewStorage: ObjectStorage, objectStorage: ObjectStorage, postgresClient: PostgresClient)  (implicit ec: ExecutionContext)
    extends Timing {
 
      private def deleteFromS3Preview(blobUri: Uri, pagePreviewKeys: Set[String]): Attempt[Iterator[Unit]] = {
@@ -55,6 +56,8 @@ class DeleteResource( manifest: Manifest, index: Index, previewStorage: ObjectSt
      private def deleteResource(uri: Uri): Attempt[Unit] = timeAsync("Total to delete resource", {
        val successAttempt = Attempt.Right(())
        for {
+         // clean up observability data
+         _ <- Attempt.fromEither(timeSync("Deleting blob observability events", postgresClient.deleteBlobIngestionEventsAndMetadata(uri.value)))
          // For blobs not processed by the OcrMyPdfExtractor, ocrLanguages will be an empty list
          ocrLanguages <- timeAsync("Getting langs from neo4j", manifest.getLanguagesProcessedByOcrMyPdf(uri))
          // Not everything has a preview but S3 returns success for deleting an object that doesn't exist so we're fine
@@ -76,13 +79,13 @@ class DeleteResource( manifest: Manifest, index: Index, previewStorage: ObjectSt
      })
 
      // Deletes resource after checking it has no child nodes
-     def deleteBlobCheckChildren(id: String): Attempt[_ <: Unit] = {
+     def deleteBlobCheckChildren(id: String): Attempt[Unit] = {
        val uri = Uri(id)
 
        // casting to an option here because Attempt[Resource] and Attempt[Unit] are incompatible - so can't use a for comprehension with toAttempt
        val deleteResult = manifest.getResource(uri).toOption map { resource =>
          if (resource.children.isEmpty) deleteResource(uri)
-         else Attempt.Left(IllegalStateFailure(s"Cannot delete $uri as it has child nodes"))
+         else Attempt.Left[Unit](IllegalStateFailure(s"Cannot delete $uri as it has child nodes"))
        }
        deleteResult.getOrElse(Attempt.Left(DeleteFailure("Failed to fetch resource")))
      }

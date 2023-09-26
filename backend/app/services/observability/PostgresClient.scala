@@ -12,6 +12,8 @@ trait PostgresClient {
     def insertEvent(event: IngestionEvent): Either[GiantFailure, Unit]
     def insertMetadata(metaData: BlobMetadata): Either[GiantFailure, Unit]
     def getEvents (ingestId: String, ingestIdIsPrefix: Boolean): Either[GiantFailure, List[BlobStatus]]
+
+    def deleteBlobIngestionEventsAndMetadata(blobId: String): Either[GiantFailure, Long]
 }
 
 class PostgresClientDoNothing extends PostgresClient {
@@ -20,6 +22,13 @@ class PostgresClientDoNothing extends PostgresClient {
     override def insertMetadata(metaData: BlobMetadata): Either[GiantFailure, Unit] = Right(())
 
     override def getEvents (ingestId: String, ingestIdIsPrefix: Boolean): Either[GiantFailure, List[BlobStatus]] = Right(List())
+
+    def deleteBlobIngestionEventsAndMetadata(blobId: String): Either[GiantFailure, Long] = Right(0)
+
+}
+
+object PostgresHelpers {
+  def postgresEpochToDateTime(epoch: Double) = new DateTime((epoch*1000).toLong, DateTimeZone.UTC)
 }
 
 class PostgresClientImpl(postgresConfig: PostgresConfig) extends PostgresClient with Logging {
@@ -101,30 +110,41 @@ class PostgresClientImpl(postgresConfig: PostgresConfig) extends PostgresClient 
             *
             */
           val results = sql"""
-      WITH blob_extractors AS (
-      -- get all the extractors expected for a given blob
-       SELECT ingest_id, blob_id, jsonb_array_elements_text(details -> 'extractors') as extractor from ingestion_events
-       WHERE ingest_id LIKE ${if(ingestIdIsPrefix) LikeConditionEscapeUtil.beginsWith(ingestId) else ingestId} AND
-       type = ${IngestionEventType.MimeTypeDetected.toString}
+          WITH problem_blobs AS (
+            -- assume that blobs with more than 100 ingestion_events are failing to be ingested in an infinite loop
+            SELECT blob_id
+            from ingestion_events
+            WHERE ingest_id LIKE ${if(ingestIdIsPrefix) LikeConditionEscapeUtil.beginsWith(ingestId) else ingestId}
+            group by 1
+            having count(*) > 100
+          ),
+          blob_extractors AS (
+            -- get all the extractors expected for a given blob
+            SELECT ingest_id, blob_id, jsonb_array_elements_text(details -> 'extractors') as extractor from ingestion_events
+            WHERE ingest_id LIKE ${if(ingestIdIsPrefix) LikeConditionEscapeUtil.beginsWith(ingestId) else ingestId}
+            AND type = ${IngestionEventType.MimeTypeDetected.toString}
+            AND blob_id NOT IN (SELECT blob_id FROM problem_blobs)
           ),
           extractor_statuses as (
-          -- Aggregate all the status updates for the relevant extractors for a given blob
-          SELECT
-            blob_extractors.blob_id,
-            blob_extractors.extractor,
-            -- As the same status update may happen multiple times if a blob is reingested, it's useful to have the time
-            -- this field is destined to be converted to a string so use epoch time (seconds) to make getting it back into
-            -- a date a bit less of a faff
-            ARRAY_AGG(EXTRACT(EPOCH from ingestion_events.event_time)) AS extractor_event_times,
-            ARRAY_AGG(ingestion_events.status) AS extractor_event_statuses
+            -- Aggregate all the status updates for the relevant extractors for a given blob
+            SELECT
+              blob_extractors.blob_id,
+              blob_extractors.ingest_id,
+              blob_extractors.extractor,
+              -- As the same status update may happen multiple times if a blob is reingested, it's useful to have the time
+              -- this field is destined to be converted to a string so use epoch time (seconds) to make getting it back into
+              -- a date a bit less of a faff
+              ARRAY_AGG(EXTRACT(EPOCH from ingestion_events.event_time)) AS extractor_event_times,
+              ARRAY_AGG(ingestion_events.status) AS extractor_event_statuses
             FROM blob_extractors
             LEFT JOIN ingestion_events
-            ON blob_extractors.blob_id = ingestion_events.blob_id
-            AND blob_extractors.ingest_id = ingestion_events.ingest_id
-            -- there is no index on extractorName but we aren't expecting too many events for the same blob_id/ingest_id
-            AND blob_extractors.extractor = ingestion_events.details ->> 'extractorName'
+              ON blob_extractors.blob_id = ingestion_events.blob_id
+              AND blob_extractors.ingest_id = ingestion_events.ingest_id
+              -- there is no index on extractorName but we aren't expecting too many events for the same blob_id/ingest_id
+              AND blob_extractors.extractor = ingestion_events.details ->> 'extractorName'
+            WHERE ingestion_events.type = 'RunExtractor'
             -- A file may be uploaded multiple times within different ingests - use group by to merge them together
-            GROUP BY 1,2
+            GROUP BY 1,2,3
           )
           SELECT
             ie.blob_id,
@@ -133,38 +153,42 @@ class PostgresClientImpl(postgresConfig: PostgresConfig) extends PostgresClient 
             ie.most_recent_event,
             ie.errors,
             ie.workspace_name AS "workspaceName",
+            ie.mime_types AS "mimeTypes",
             ARRAY_AGG(DISTINCT blob_metadata.path ) AS paths,
             (ARRAY_AGG(blob_metadata.file_size))[1] as "fileSize",
             ARRAY_REMOVE(ARRAY_AGG(extractor_statuses.extractor), NULL) AS extractors,
             -- You can't array_agg arrays of varying cardinality so here we convert to string
             ARRAY_REMOVE(ARRAY_AGG(ARRAY_TO_STRING(extractor_statuses.extractor_event_times, ',','null')), NULL) AS "extractorEventTimes",
             ARRAY_REMOVE(ARRAY_AGG(ARRAY_TO_STRING(extractor_statuses.extractor_event_statuses, ',','null')), NULL) AS "extractorStatuses"
-            FROM (
-              SELECT
-                blob_id,
-                ingest_id,
-                MIN(event_time) AS ingest_start,
-                Max(event_time) AS most_recent_event,
-                ARRAY_AGG(details -> 'errors') as errors,
-                (ARRAY_AGG(details ->> 'workspaceName')  FILTER (WHERE details ->> 'workspaceName' IS NOT NULL))[1] as workspace_name
-              FROM ingestion_events
-              WHERE ingest_id LIKE ${if(ingestIdIsPrefix) LikeConditionEscapeUtil.beginsWith(ingestId) else ingestId}
-              GROUP BY 1,2
-            ) AS ie
-            LEFT JOIN blob_metadata USING(ingest_id, blob_id)
-            LEFT JOIN extractor_statuses USING(blob_id)
-            GROUP BY 1,2,3,4,5,6
+          FROM (
+            SELECT
+              blob_id,
+              ingest_id,
+              MIN(EXTRACT(EPOCH from event_time)) AS ingest_start,
+              MAX(EXTRACT(EPOCH from event_time)) AS most_recent_event,
+              ARRAY_AGG(details -> 'errors') as errors,
+              (ARRAY_AGG(details ->> 'workspaceName')  FILTER (WHERE details ->> 'workspaceName' IS NOT NULL))[1] as workspace_name,
+              (ARRAY_AGG(details ->> 'mimeTypes')  FILTER (WHERE details ->> 'mimeTypes' IS NOT NULL))[1] as mime_types
+            FROM ingestion_events
+            WHERE ingest_id LIKE ${if(ingestIdIsPrefix) LikeConditionEscapeUtil.beginsWith(ingestId) else ingestId}
+            AND blob_id NOT IN (SELECT blob_id FROM problem_blobs)
+            GROUP BY 1,2
+          ) AS ie
+          LEFT JOIN blob_metadata USING(ingest_id, blob_id)
+          LEFT JOIN extractor_statuses on extractor_statuses.blob_id = ie.blob_id and extractor_statuses.ingest_id = ie.ingest_id
+          GROUP BY 1,2,3,4,5,6,7
+          ORDER by ingest_start desc
      """.map(rs => {
                 BlobStatus(
                     EventMetadata(
                         rs.string("blob_id"),
                         rs.string("ingest_id")
                     ),
-                    rs.array("paths").getArray().asInstanceOf[Array[String]].toList,
+                    BlobStatus.parsePathsArray(rs.array("paths").getArray().asInstanceOf[Array[String]]),
                     rs.longOpt("fileSize"),
                     rs.stringOpt("workspaceName"),
-                    new DateTime(rs.dateTime("ingest_start").toInstant.toEpochMilli, DateTimeZone.UTC),
-                    new DateTime(rs.dateTime("most_recent_event").toInstant.toEpochMilli, DateTimeZone.UTC),
+                  PostgresHelpers.postgresEpochToDateTime(rs.double("ingest_start")),
+                  PostgresHelpers.postgresEpochToDateTime(rs.double("most_recent_event")),
                     rs.arrayOpt("extractors").map { extractors =>
                         ExtractorStatus.parseDbStatusEvents(
                             extractors.getArray().asInstanceOf[Array[String]],
@@ -172,7 +196,9 @@ class PostgresClientImpl(postgresConfig: PostgresConfig) extends PostgresClient 
                             rs.array("extractorStatuses").getArray().asInstanceOf[Array[String]]
                         )
                     }.getOrElse(List()),
-                    List() // need to implement this - something like: rs.array("errors").getArray.asInstanceOf[Array[String]].map(e => Json.parse(e).as[IngestionError]).toList
+                  IngestionError.parseIngestionErrors(rs.array("errors").getArray.asInstanceOf[Array[String]]),
+                  rs.stringOpt("mimeTypes")
+
                 )
             }
             ).list().apply()
@@ -183,4 +209,19 @@ class PostgresClientImpl(postgresConfig: PostgresConfig) extends PostgresClient 
             case Failure(exception) => Left(PostgresReadFailure(exception, s"getEvents failed: ${exception.getMessage}"))
         }
     }
+
+  def deleteBlobIngestionEventsAndMetadata(blobId: String): Either[GiantFailure, Long] = {
+    Try {
+      DB.localTx { implicit session =>
+        val numIngestionDeleted = sql"DELETE FROM ingestion_events WHERE blob_id = ${blobId}".executeUpdate().apply()
+        val numBlobMetadataDeleted = sql"DELETE FROM blob_metadata WHERE blob_id = ${blobId}".executeUpdate().apply()
+        numIngestionDeleted + numBlobMetadataDeleted
+      }
+    } match {
+      case Success(numRowsDeleted) =>
+        Right(numRowsDeleted)
+      case Failure(exception) => Left(PostgresWriteFailure(exception))
+    }
+  }
+
 }

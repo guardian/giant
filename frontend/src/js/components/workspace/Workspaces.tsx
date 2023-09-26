@@ -14,6 +14,7 @@ import { deleteWorkspace } from '../../actions/workspaces/deleteWorkspace';
 import { renameItem } from '../../actions/workspaces/renameItem';
 import { moveItems } from '../../actions/workspaces/moveItem';
 import { deleteItem } from '../../actions/workspaces/deleteItem';
+import { deleteResourceFromWorkspace } from '../../actions/workspaces/deleteResourceFromWorkspace';
 import { setSelectedEntries } from '../../actions/workspaces/setSelectedEntries';
 import { setEntryBeingRenamed } from '../../actions/workspaces/setEntryBeingRenamed';
 import { renameWorkspace } from '../../actions/workspaces/renameWorkspace';
@@ -44,6 +45,8 @@ import { processingStageToString, workspaceHasProcessingFiles } from '../../util
 import { setWorkspaceIsPublic } from '../../actions/workspaces/setWorkspaceIsPublic';
 import { RouteComponentProps } from 'react-router-dom';
 import { reprocessBlob } from '../../actions/workspaces/reprocessBlob';
+import { DeleteModal, DeleteStatus } from './DeleteModal';
+import { PartialUser } from '../../types/User';
 
 
 type Props = ReturnType<typeof mapStateToProps>
@@ -61,7 +64,12 @@ type State = {
         positionY: number
     },
     columnsConfig: ColumnsConfig<WorkspaceEntry>,
-    previousShiftClickSelectedEntries: TreeEntry<WorkspaceEntry>[]
+    previousShiftClickSelectedEntries: TreeEntry<WorkspaceEntry>[],
+    deleteModalContext: {
+        isOpen: boolean,
+        entry: null | TreeEntry<WorkspaceEntry>,
+        status: DeleteStatus,
+    }
 }
 
 class WorkspacesUnconnected extends React.Component<Props, State> {
@@ -275,7 +283,12 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
                 ...this.allColumns
             ]
         },
-        previousShiftClickSelectedEntries: []
+        previousShiftClickSelectedEntries: [],
+        deleteModalContext: {
+            isOpen: false,
+            entry: null,
+            status: "unconfirmed",
+        }
     };
 
     poller: NodeJS.Timeout | null = null;
@@ -399,6 +412,30 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
         }
     };
 
+    onDeleteModalOpen = (isOpen: boolean) => {
+        if (isOpen)
+            this.setState({deleteModalContext: {entry: this.state.deleteModalContext.entry, isOpen, status: "unconfirmed"}});
+        else 
+            this.setState({deleteModalContext: {entry: null, isOpen, status: "unconfirmed"}});
+    }
+
+    onDeleteCompleteHandler = (isSuccess: boolean) => {
+        const modalContext = this.state.deleteModalContext;
+        if (modalContext.isOpen) {
+            const status = isSuccess ? "deleted" : "failed"
+            this.setState({deleteModalContext: {...modalContext, status}});
+        }
+    }
+
+    onDeleteItem = (workspaceId: string, entry: TreeEntry<WorkspaceEntry> | null) => () => {        
+        if (entry && isWorkspaceLeaf(entry.data)) {
+            const deleteContext = this.state.deleteModalContext;
+            this.setState({deleteModalContext: {...deleteContext, status: "deleting"}});
+            this.props.deleteResourceFromWorkspace(workspaceId, entry.data.uri, this.onDeleteCompleteHandler);            
+            this.props.resetFocusedAndSelectedEntries();
+        }
+    }
+
     onClickColumn = (column: string) => {
         if (this.state.columnsConfig.sortColumn === column) {
 
@@ -454,21 +491,26 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
         });
     };
 
-    renderContextMenu(entry: TreeEntry<WorkspaceEntry>, positionX: number, positionY: number) {
+
+    renderContextMenu(entry: TreeEntry<WorkspaceEntry>, positionX: number, positionY: number, currentUser: PartialUser) {
         const items = [
+            // or 'pencil alternate'
             { key: "rename", content: "Rename", icon: "pen square" },
-            { key: "remove", content: "Remove from workspace", icon: "trash" },
-        ]
-        const itemsWithReprocess = [
-            { key: "rename", content: "Rename", icon: "pen square" },
-            { key: "remove", content: "Remove from workspace", icon: "trash" },
-            { key: "reprocess", content: "Reprocess source file", icon: "redo" },
-        ]
+            { key: "remove", content: "Remove from workspace", icon: "trash" },         
+        ];
+        
+        if (entry.data.addedBy.username === currentUser.username && isWorkspaceLeaf(entry.data)) {
+            items.push({ key: "deleteOrRemove", content: "Delete file", icon: "trash" });
+        }
+
+        if (isWorkspaceLeaf(entry.data)){
+            items.push({ key: "reprocess", content: "Reprocess source file", icon: "redo" });
+        }
 
         return <DetectClickOutside onClickOutside={this.closeContextMenu}>
             <Menu
                 style={{ position: 'absolute', left: positionX, top: positionY }}
-                items={isWorkspaceLeaf(entry.data)? itemsWithReprocess : items}
+                items={items}
                 vertical
                 onItemClick={(e, menuItemProps) => {
                     const workspaceId = this.props.match.params.id;
@@ -481,10 +523,20 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
                         this.props.resetFocusedAndSelectedEntries();
                     }
 
+
+                    if (menuItemProps.content === "Delete file") {
+                        this.setState({
+                            deleteModalContext: {
+                                isOpen: true,
+                                entry,
+                                status: "unconfirmed",
+                            }
+                        });
+                    }
+
                     if (menuItemProps.content === 'Reprocess source file' && (isWorkspaceLeaf(entry.data))) {
                         this.props.reprocessBlob(workspaceId, entry.data.uri)
                     }
-
                     this.closeContextMenu();
                 }}
             />
@@ -581,10 +633,17 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
                     ? this.renderContextMenu(
                         this.state.contextMenu.entry,
                         this.state.contextMenu.positionX,
-                        this.state.contextMenu.positionY
+                        this.state.contextMenu.positionY,
+                        this.props.currentUser
                     )
                     : null
                 }
+                <DeleteModal 
+                    deleteItemHandler={this.onDeleteItem(this.props.match.params.id, this.state.deleteModalContext.entry)} 
+                    isOpen={this.state.deleteModalContext.isOpen} 
+                    setModalOpen={this.onDeleteModalOpen}
+                    deleteStatus={this.state.deleteModalContext.status}
+                />           
             </div>
         );
     }
@@ -600,7 +659,7 @@ function mapStateToProps(state: GiantState) {
         currentUser: state.auth.token?.user,
         users: state.users.userList,
         expandedNodes: state.workspaces.expandedNodes,
-        collections: state.collections
+        collections: state.collections,
     };
 }
 
@@ -610,6 +669,7 @@ function mapDispatchToProps(dispatch: GiantDispatch) {
         renameItem: bindActionCreators(renameItem, dispatch),
         deleteItem: bindActionCreators(deleteItem, dispatch),
         reprocessBlob: bindActionCreators(reprocessBlob, dispatch),
+        deleteResourceFromWorkspace: bindActionCreators(deleteResourceFromWorkspace, dispatch),
         addFolderToWorkspace: bindActionCreators(addFolderToWorkspace, dispatch),
         deleteWorkspace: bindActionCreators(deleteWorkspace, dispatch),
         resetFocusedAndSelectedEntries: () => {

@@ -75,7 +75,7 @@ lazy val root = (project in file("."))
       (cli / Universal / packageZipTarball).value -> s"pfi-public-downloads/${(cli / name).value}.tar.gz",
       file("riff-raff.yaml") -> "riff-raff.yaml"
     )
-  )
+)
 
 lazy val common = (project in file("common"))
   .settings(
@@ -138,8 +138,10 @@ lazy val backend = (project in file("backend"))
       "com.amazonaws" % "aws-java-sdk-cloudwatchmetrics" % awsVersion,
       "com.beachape" %% "enumeratum-play" % "1.7.2",
       "com.iheart" %% "ficus" % "1.5.2",
-      "com.sun.mail" % "javax.mail" % "1.6.2",
       "org.jsoup" % "jsoup" % "1.14.2",
+      // angus mail is the implementation of jakarta mail. If updating this you may also need to update the mbox provider jar file
+      // see https://github.com/guardian/giant/pull/131
+      "org.eclipse.angus" % "angus-mail" % "2.0.2",
       "com.gu" %% "pan-domain-auth-verification" % "1.2.0",
       "com.amazonaws" % "aws-java-sdk-secretsmanager" % "1.12.528",
 

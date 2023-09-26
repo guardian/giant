@@ -558,4 +558,18 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
     }
   }
 
+  override def getBlobOwners(blobUri: String): Attempt[Set[String]] = attemptTransaction { tx =>
+    tx.run(
+      """
+        | MATCH (b:Blob:Resource {uri: {blob}})-[r:PARENT*]->(c:Collection)
+        | RETURN DISTINCT c.createdBy AS owner
+        """.stripMargin,
+      parameters(
+        "blob", blobUri
+      )
+    ).map { result =>
+      result.list.asScala.map(_.get("owner").asString()).toSet
+    }
+  }
+
 }

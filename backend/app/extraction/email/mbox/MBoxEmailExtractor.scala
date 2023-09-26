@@ -1,25 +1,24 @@
 package extraction.email.mbox
 
-import java.io.File
+import extraction.email.JakartaMail
 
+import java.io.File
 import extraction.{ExtractionParams, FileExtractor}
-import extraction.email.JavaMail
 import extraction.email.eml.EmlParser
 import ingestion.IngestionContextBuilder
 import model.manifest.Blob
 import utils.Logging
 import utils.attempt.Failure
 
-import scala.util.control.NonFatal
 
 class MBoxEmailExtractor(emlParser: EmlParser) extends FileExtractor(emlParser.scratch) with Logging {
   override def canProcessMimeType = Set(MBoxEmailDetector.MBOX_MIME_TYPE).contains
   override def indexing: Boolean = true
   override def priority = 3
-
   override def extract(blob: Blob, file: File, params: ExtractionParams): Either[Failure, Unit] = {
+
     val context = IngestionContextBuilder(blob.uri, params)
-    val folder = JavaMail.openStore(s"mbox:${file.getAbsolutePath}")
+    val folder = JakartaMail.openStore(s"mbox:${file.getAbsolutePath}")
 
     try {
       folder.getMessages.zipWithIndex.foreach { case (message, ix) =>

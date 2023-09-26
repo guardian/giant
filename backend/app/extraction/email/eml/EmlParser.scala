@@ -8,8 +8,8 @@ import java.security.DigestInputStream
 import com.amazonaws.util.IOUtils
 import com.google.common.net.MediaType
 import ingestion.IngestionContextBuilder
-import javax.mail.Message
-import javax.mail.internet._
+import jakarta.mail.Message
+import jakarta.mail.internet._
 import model._
 import model.manifest.{Blob, MimeType}
 import org.apache.commons.io.FileUtils

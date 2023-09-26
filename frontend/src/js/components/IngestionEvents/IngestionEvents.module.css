@@ -8,3 +8,7 @@
 .dropdown {
     min-width: 300px;
 }
+
+.expandedRowExtractorStatus {
+    margin-left: 20px;
+}

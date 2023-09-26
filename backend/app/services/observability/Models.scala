@@ -3,6 +3,7 @@ package services.observability
 import extraction.Extractor
 import play.api.libs.json.{Format, Json}
 import model.manifest.Blob
+import org.apache.commons.codec.digest.DigestUtils
 import org.joda.time.{DateTime, DateTimeZone}
 import services.index.IngestionData
 import services.observability.ExtractorType.ExtractorType
@@ -10,6 +11,10 @@ import services.observability.IngestionEventType.{BlobCopy, IngestionEventType}
 import services.observability.EventStatus.EventStatus
 import play.api.libs.json.JodaWrites.jodaDateWrites
 import play.api.libs.json.JodaReads.jodaDateReads
+import utils.Logging
+
+import java.security.MessageDigest
+import scala.util.{Failure, Try, Success => TrySuccess}
 
 object JodaReadWrites {
   private val datePattern = "yyyy-MM-dd'T'HH:mm:ss.SSSZ"
@@ -52,8 +57,22 @@ object EventStatus extends Enumeration {
 
 case class IngestionError(message: String, stackTrace: Option[String] = None)
 
-object IngestionError {
+object IngestionError extends Logging {
   implicit val format = Json.format[IngestionError]
+
+  def parseIngestionErrors(errors: Array[String]): List[IngestionError] = {
+    errors.toList.flatMap{ e =>
+      if (e == null) List() else {
+        Try(Json.parse(e).as[List[IngestionError]]) match {
+          case TrySuccess(value) =>
+            value
+          case Failure(exception: Throwable) =>
+            logger.error("Failed to parse ingestion errors. Returning empty list", exception)
+            List()
+        }
+      }
+    }
+  }
 }
 
 case class EventDetails(
@@ -62,7 +81,8 @@ case class EventDetails(
                     blob: Option[Blob] = None,
                     ingestionData: Option[IngestionData] = None,
                     extractorName: Option[ExtractorType] = None,
-                    workspaceName: Option[String] = None
+                    workspaceName: Option[String] = None,
+                    mimeTypes: Option[String] = None
                   )
 
 object EventDetails {
@@ -70,15 +90,17 @@ object EventDetails {
 
   def errorDetails(message: String, stackTrace: Option[String] = None): Option[EventDetails] = Some(EventDetails(Some(List(IngestionError(message, stackTrace)))))
 
-  def extractorErrorDetails(extractorName: String, message: String, stackTrace: Option[String] = None): Option[EventDetails] =
+  def extractorErrorDetails(extractorName: String, message: String, stackTrace: String): Option[EventDetails] =
     Some(EventDetails(
-      errors = Some(List(IngestionError(message, stackTrace))),
+      errors = Some(List(IngestionError(message, Some(stackTrace)))),
       extractorName = Some(ExtractorType.withNameCustom(extractorName)))
     )
 
-  def ingestionDataDetails(data: IngestionData, extractors: List[Extractor]) = Some(EventDetails(
+  def ingestionDataDetails(data: IngestionData, extractors: List[Extractor]): Option[EventDetails] = Some(EventDetails(
     extractors = Some(extractors.map(e => ExtractorType.withNameCustom(e.name))),
-    ingestionData = Some(data)))
+    ingestionData = Some(data),
+    mimeTypes = Some(data.mimeTypes.map(_.mimeType).mkString(","))
+  ))
 
   def extractorDetails(extractorName: String) = Some(EventDetails(extractorName = Some(ExtractorType.withNameCustom(extractorName))))
 
@@ -130,7 +152,7 @@ object ExtractorStatus {
     val statusUpdatesParsed: Seq[List[ExtractorStatusUpdate]] = extractorEventTimes.zip(extractorStatuses).map {
       case (times, statuses) => times.split(",").zip(statuses.split(",")).map{
         case (time, status) =>
-          val eventTime = if (time == "null") None else Some(new DateTime((time.toDouble * 1000).toLong, DateTimeZone.UTC))
+          val eventTime = if (time == "null") None else Some(PostgresHelpers.postgresEpochToDateTime(time.toDouble))
 
           val parsedStatus = if (status == "null") None else Some(EventStatus.withName(status))
           ExtractorStatusUpdate(eventTime, parsedStatus)}.toList
@@ -150,9 +172,37 @@ case class BlobStatus(
                        ingestStart: DateTime,
                        mostRecentEvent: DateTime,
                        extractorStatuses: List[ExtractorStatus],
-                       errors: List[IngestionError])
+                       errors: List[IngestionError],
+                       mimeTypes: Option[String])
 object BlobStatus {
   implicit val dateWrites = JodaReadWrites.dateWrites
   implicit val dateReads = JodaReadWrites.dateReads
   implicit val format = Json.format[BlobStatus]
+
+  def parsePathsArray(paths: Array[String]): List[String] = {
+    val nonNullPaths = paths.filter(p => p != null)
+    if (nonNullPaths.isEmpty) {
+      List("unknown filename")
+    } else nonNullPaths.toList
+  }
+
+  /**
+    * Aims to remove all information from blob status that is likely to identify the user who uploaded it or the file itself
+    * @param status
+    * @return
+    */
+  private def anonymise(status: BlobStatus): BlobStatus = {
+    status.copy(
+      paths = List("[REDACTED]"),
+      workspaceName = status.workspaceName.map(DigestUtils.md5Hex)
+    )
+  }
+
+  def anonymiseEventsOlderThanTwoWeeks(sortedStatuses: List[BlobStatus]): List[BlobStatus] = {
+    sortedStatuses.map{ status =>
+      if (status.ingestStart.isBefore(new DateTime().minusDays(14))) {
+        anonymise(status)
+      } else status
+    }
+  }
 }

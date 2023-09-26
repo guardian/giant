@@ -6,6 +6,7 @@ import java.nio.file.{Files, Path}
 import services.TesseractOcrConfig
 import utils.attempt.Failure
 
+import scala.annotation.tailrec
 import scala.collection.mutable
 import scala.sys.process._
 
@@ -72,26 +73,69 @@ object Ocr extends Logging {
     }
   }
 
+
   // TODO MRB: allow OcrMyPdf to read DPI if set in metadata
   // OCRmyPDF is a wrapper for Tesseract that we use to overlay the OCR as a text layer in the resulting PDF
   def invokeOcrMyPdf(lang: String, inputFilePath: Path, dpi: Option[Int], stderr: OcrStderrLogger, tmpDir: Path): Path = {
     val tempFile = tmpDir.resolve(s"${inputFilePath.getFileName}.ocr.pdf")
     val stdout = mutable.Buffer.empty[String]
 
-    def process(flag: OcrMyPdfFlag): Int = {
-      val cmd = s"ocrmypdf ${flag.flag} -l $lang ${dpi.map(dpi => s"--image-dpi $dpi").getOrElse("")} ${inputFilePath.toAbsolutePath} ${tempFile.toAbsolutePath}"
+    def ocrWithOcrMyPdf(flag: OcrMyPdfFlag, overrideFile: Option[Path] = None): Int = {
+      val sourceFilePath = overrideFile.getOrElse(inputFilePath)
+      val cmd = s"ocrmypdf ${flag.flag} -l $lang ${dpi.map(dpi => s"--image-dpi $dpi").getOrElse("")} ${sourceFilePath.toAbsolutePath} ${tempFile.toAbsolutePath}"
       val process = Process(cmd, cwd = None, extraEnv = "TMPDIR" -> tmpDir.toAbsolutePath.toString)
       process.!(ProcessLogger(stdout.append(_), stderr.append))
     }
 
-    val redoOcrExitCode = process(RedoOcr)
-    val exitCode = if (redoOcrExitCode == 2) {
-      // Exit code 2 from ocrmypdf is an input file error, we've noticed that this can be an error with --redo-ocr, and that
-      // running with --skip-text instead results in success. For example, if a PDF has a user fillable form then it can't
-      // be ocrd with --redo-ocr set. See https://github.com/guardian/giant/pull/68 for details of --skip-text vs --redo-ocr
-      logger.info(s"Got input file error from ocrmypdf with --redo-ocr for ${inputFilePath.getFileName}, attempting with --skip-text")
-      process(SkipText)
-    } else redoOcrExitCode
+    def decryptWithQpdf(decryptTempFile: Path): Boolean = {
+      val cmd = s"qpdf --decrypt ${inputFilePath.toAbsolutePath} ${decryptTempFile.toAbsolutePath}"
+      val process = Process(cmd, cwd = None)
+      val qpdfExitCode = process.!(ProcessLogger(stdout.append(_), stderr.append))
+      if (qpdfExitCode != 0) {
+        logger.info(s"Failed to decrypt with qpdf (exit code ${qpdfExitCode} - file is likely encrypted with a user password.")
+      }
+      qpdfExitCode == 0
+    }
+
+/*
+  * We may reattempt the ocrmypdf process with different flags/cleaned input files. This recursive function handles
+  * the different posssible flows.
+  *
+  * @param flag             option to pass my ocrmypdf - probably --redo-ocr or --skip-text
+  * @param previousExitCode needed to prevent an infinite loop where ocrmypdf keeps failing with the same exit code
+  * @param overrideFile     used where a file has been e.g decrypted and we want to run ocrmypdf on the new file
+  * @return final exit code
+  */
+    @tailrec
+    def process(flag: OcrMyPdfFlag, previousExitCode: Option[Int] = None, overrideFile: Option[Path] = None): Int = {
+
+      val redoOcrExitCode = ocrWithOcrMyPdf(flag, overrideFile)
+      redoOcrExitCode match {
+        case 2 if !previousExitCode.contains(2) =>
+          // Exit code 2 from ocrmypdf is an input file error, we've noticed that this can be an error with --redo-ocr, and that
+          // running with --skip-text instead results in success. For example, if a PDF has a user fillable form then it can't
+          // be ocrd with --redo-ocr set. See https://github.com/guardian/giant/pull/68 for details of --skip-text vs --redo-ocr
+          logger.info(s"Got input file error from ocrmypdf with --redo-ocr for ${inputFilePath.getFileName}, attempting with --skip-text")
+          process(SkipText, Some(redoOcrExitCode), overrideFile)
+        case 8 if !previousExitCode.contains(8) =>
+          // exit code 8 indicates that the file is encrypted. If it has a user password we can go no further, but if it only
+          // has an 'owner' password we can remove the password protection with qpdf - see
+          // https://ocrmypdf.readthedocs.io/en/latest/pdfsecurity.html#password-protected-pdfs
+          logger.info("PDF password protected, attempting to remove protection with qpdf")
+          val decryptTempFile = tmpDir.resolve(s"${inputFilePath.getFileName}.decrypt.pdf")
+          val qpdfResult = decryptWithQpdf(decryptTempFile)
+          // If we managed to decrypt the file, have another go at running ocrmypdf
+          if (qpdfResult) {
+            process(RedoOcr, Some(redoOcrExitCode), Some(decryptTempFile))
+          } else {
+            redoOcrExitCode
+          }
+        case _ => redoOcrExitCode
+
+      }
+    }
+
+    val exitCode = process(RedoOcr)
 
     exitCode match {
       // 0: success

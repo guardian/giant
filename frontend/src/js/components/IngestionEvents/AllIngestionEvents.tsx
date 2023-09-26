@@ -10,93 +10,136 @@ import {bindActionCreators} from "redux";
 import {getCollections} from "../../actions/collections/getCollections";
 import {Collection, Ingestion} from "../../types/Collection";
 import {IngestionEvents} from "./IngestionEvents";
-import {EuiFlexGroup, EuiFlexItem, EuiFormControlLayout, EuiFormLabel, EuiProvider} from "@elastic/eui";
+import {EuiButtonGroup, EuiFlexGroup, EuiFlexItem, EuiFormControlLayout, EuiFormLabel, EuiProvider} from "@elastic/eui";
 import {EuiSelect} from "@elastic/eui";
 import {EuiSelectOption} from "@elastic/eui";
 import styles from "./IngestionEvents.module.css";
+import { css } from "@emotion/react";
+import { FilterState } from "./types";
+import { updateCurrentCollection } from "./updateCurrentCollection";
+import { updateCurrentIngestion } from "./updateCurrentIngestion";
+import _ from "lodash";
 
 function getCollection(collectionId: string, collections: Collection[]) {
     return collections.find((collection: Collection) => collection.uri === collectionId)
 }
 
 export function AllIngestionEvents(
-    {getCollections, collections, workspacesMetadata}: {
+    {getCollections, updateCurrentCollection, updateCurrentIngestion, collections, workspacesMetadata, currentCollection, currentIngestion = "all"}: {
         getCollections: (dispatch: any) => any,
+        updateCurrentCollection: (dispatch: any) => any,
+        updateCurrentIngestion: (dispatch: any) => any,
         collections: Collection[],
         workspacesMetadata: WorkspaceMetadata[],
+        currentCollection?: string,
+        currentIngestion?: string
     }) {
 
-    const [selectedCollectionId, setSelectedCollectionId] = useState<string>("")
     const [ingestOptions, setIngestOptions] = useState<EuiSelectOption[]>([])
-    const [ingestId, setIngestId] = useState<string>("all")
+    const [toggleIdSelected, setToggleIdSelected] = useState<FilterState>(FilterState.All);
 
     useEffect(() => {
         getCollections({})
     }, [getCollections])
 
-    const collectionOptions: EuiSelectOption[] = collections.map((collection: Collection) => ({
+    const collectionOptions: EuiSelectOption[] = _.sortBy(
+        collections,
+        (c) => c.display
+    ).map((collection: Collection) => ({
         value: collection.uri,
-        text: collection.display
+        text: collection.display,
     }))
 
     useEffect(() => {
-        const sc = getCollection(selectedCollectionId, collections)
-        sc && setIngestOptions(sc.ingestions.map((ingestion: Ingestion) => ({
-            value: ingestion.path,
-            text: ingestion.display
-        })).concat([{value: "all", text: "All ingestions"}]))
-    }, [selectedCollectionId, collections])
-
-
-    return             <div className='app__main-content'>
-        <h1 className='page-title'>
-            All ingestion events</h1>
-            <EuiProvider globalStyles={false} colorMode="light">
-
-            <EuiFlexGroup alignItems={"flexStart"} >
-        {collections.length > 0 && <EuiFlexItem grow={false}>
-            <EuiFormControlLayout className={styles.dropdown} prepend={<EuiFormLabel htmlFor={"collection-picker"}>Collection</EuiFormLabel>}>
-                <EuiSelect
-                    hasNoInitialSelection={true}
-                    value={selectedCollectionId}
-                    onChange={(e) => setSelectedCollectionId(e.target.value)}
-                    options={collectionOptions}>
-                    id={"collection-picker"}
-                </EuiSelect>
-            </EuiFormControlLayout>
-        </EuiFlexItem>
-        }
-
-        {ingestOptions &&
-            <EuiFlexItem grow={false}>
-            <EuiFormControlLayout  className={styles.dropdown} prepend={<EuiFormLabel htmlFor={"ingest-picker"}>Ingest</EuiFormLabel>}>
-                <EuiSelect
-                    value={ingestId}
-                    onChange={(e) => setIngestId(e.target.value)} options={ingestOptions}>
-                    id={"ingest-picker"}
-
-                </EuiSelect>
-            </EuiFormControlLayout>
-            </EuiFlexItem>
+        if (currentCollection) {
+            const sc = getCollection(currentCollection, collections)
+            sc && setIngestOptions(
+                [{value: "all", text: "All ingestions"}].concat(
+                    _.sortBy(sc.ingestions, (i) => i.display).map((ingestion: Ingestion) => ({
+                        value: ingestion.path,
+                        text: ingestion.display
+                    }))
+            ))
+            if (sc?.ingestions && sc?.ingestions.find((i) => i.display === currentIngestion) === undefined){
+                updateCurrentIngestion(undefined)
             }
-            </EuiFlexGroup>
+        }
+    }, [currentCollection, collections, currentIngestion, updateCurrentIngestion])
 
-        {selectedCollectionId && <IngestionEvents collectionId={selectedCollectionId} ingestId={ingestId} workspaces={workspacesMetadata} breakdownByWorkspace={false}></IngestionEvents>}
-    </EuiProvider>
-    </div>
+    const toggleFilterButtons = [
+        { id: FilterState.All, label: 'all' },
+        { id: FilterState.ErrorsOnly, label: 'errors only' },
+      ];
+
+    return (
+        <div className='app__main-content'>
+            <h1 className='page-title'>All ingestion events</h1>
+            <EuiProvider globalStyles={false} colorMode="light">
+                <EuiFlexGroup wrap alignItems={"flexStart"} >
+                    {collections.length > 0 && <EuiFlexItem grow={false}>
+                        <EuiFormControlLayout className={styles.dropdown} prepend={<EuiFormLabel htmlFor={"collection-picker"}>Collection</EuiFormLabel>}>
+                            <EuiSelect
+                                hasNoInitialSelection={true}
+                                value={currentCollection}
+                                onChange={(e) => updateCurrentCollection(e.target.value)}
+                                options={collectionOptions}>
+                                id={"collection-picker"}
+                            </EuiSelect>
+                        </EuiFormControlLayout>
+                    </EuiFlexItem>
+                    }
+
+                    {ingestOptions &&
+                        <EuiFlexItem grow={false}>
+                        <EuiFormControlLayout  className={styles.dropdown} prepend={<EuiFormLabel htmlFor={"ingest-picker"}>Ingest</EuiFormLabel>}>
+                            <EuiSelect
+                                value={currentIngestion}
+                                onChange={(e) => updateCurrentIngestion(e.target.value)} options={ingestOptions}>
+                                id={"ingest-picker"}
+
+                            </EuiSelect>
+                        </EuiFormControlLayout>
+                        </EuiFlexItem>
+                    }
+
+                    <EuiButtonGroup
+                        css={css`border: none;`}
+                        legend="selection group to show all events or just the errors"
+                        options={toggleFilterButtons}
+                        idSelected={toggleIdSelected}
+                        onChange={(id) => setToggleIdSelected(id as FilterState)}
+                    />
+                </EuiFlexGroup>
+
+                {currentCollection &&
+                    <IngestionEvents
+                        collectionId={currentCollection}
+                        ingestId={currentIngestion}
+                        workspaces={workspacesMetadata}
+                        breakdownByWorkspace={false}
+                        showErrorsOnly={toggleIdSelected === FilterState.ErrorsOnly}
+                    />
+                }
+            </EuiProvider>
+        </div>
+    );
 }
 
 
 function mapStateToProps(state: GiantState) {
     return {
         workspacesMetadata: state.workspaces.workspacesMetadata,
-        collections: state.collections
+        collections: state.collections,
+        currentCollection: state.urlParams.currentCollection,
+        currentIngestion: state.urlParams.currentIngestion,
     };
 }
 
 function mapDispatchToProps(dispatch: GiantDispatch) {
     return {
         getCollections: bindActionCreators(getCollections, dispatch),
+        updateCurrentCollection: bindActionCreators(updateCurrentCollection, dispatch),
+        updateCurrentIngestion: bindActionCreators(updateCurrentIngestion, dispatch)
     };
 }
 

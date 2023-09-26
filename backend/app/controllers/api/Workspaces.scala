@@ -1,15 +1,19 @@
 package controllers.api
 
+import commands.DeleteResource
 import model.Uri
 import model.annotations.Workspace
 import model.frontend.TreeEntry
 import net.logstash.logback.marker.LogstashMarker
 import net.logstash.logback.marker.Markers.append
 import play.api.libs.json._
+import services.ObjectStorage
 import services.manifest.Manifest
+import services.observability.PostgresClient
 import services.annotations.Annotations
 import services.annotations.Annotations.AffectedResource
 import services.index.Index
+import services.users.UserManagement
 import utils.Logging
 import utils.attempt._
 import utils.auth.{User, UserIdentityRequest}
@@ -56,7 +60,8 @@ object MoveItemData {
   implicit val format = Json.format[MoveItemData]
 }
 
-class Workspaces(override val controllerComponents: AuthControllerComponents, annotation: Annotations, index: Index, manifest: Manifest) extends AuthApiController with Logging {
+class Workspaces(override val controllerComponents: AuthControllerComponents, annotation: Annotations, index: Index, manifest: Manifest,
+                 users: UserManagement, objectStorage: ObjectStorage, previewStorage: ObjectStorage, postgresClient: PostgresClient) extends AuthApiController with Logging {
 
   def create = ApiAction.attempt(parse.json) { req =>
     for {
@@ -251,7 +256,7 @@ class Workspaces(override val controllerComponents: AuthControllerComponents, an
     }
   }
 
-  def deleteItem(workspaceId: String, itemId: String) = ApiAction.attempt { req =>
+  def removeItem(workspaceId: String, itemId: String) = ApiAction.attempt { req =>
     logAction(req.user, workspaceId, s"Rename workspace item. Node ID: $itemId")
 
     for {
@@ -260,6 +265,19 @@ class Workspaces(override val controllerComponents: AuthControllerComponents, an
     } yield {
       NoContent
     }
+  }
+
+  def deleteBlob(workspaceId: String, blobUri: String) = ApiAction.attempt { req =>
+    annotation.getBlobOwners(blobUri).flatMap { owners =>
+      if (owners.size == 1 && owners.head == req.user.username) {
+        logAction(req.user, workspaceId, s"Deleting resource from Giant if no children. Resource uri: $blobUri")
+        val deleteResource = new DeleteResource(manifest, index, previewStorage, objectStorage, postgresClient)
+        deleteResource.deleteBlobCheckChildren(blobUri)
+      } else {
+        logAction(req.user, workspaceId, s"Can't delete resource due to file ownership conflict. Resource uri: $blobUri")
+        Attempt.Left[Unit](DeleteFailure("Failed to delete resource"))
+      }
+    } map (_ => NoContent)
   }
 
   private def logAction(user: User, workspaceId: String, message: String) = {

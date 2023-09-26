@@ -188,6 +188,17 @@ class WorkspaceSharingITest extends AnyFunSuite with Neo4jTestService with Elast
     }
   }
 
+  test("Barry cannot delete a file from Pauls workspace") {
+    val paulBlobAndNodeId = uploadAndAddFileToWorkspaceAsPaul()
+
+    asUser("barry") { implicit controllers =>
+      status(deleteFileFromWorkspace(
+        workspaceId = paulWorkspace.id,
+        blobUri = paulBlobAndNodeId.blobId
+      )) should be(500)
+    }
+  }
+
   test("Barry cannot rename a file in Pauls workspace") {
     val paulBlobAndNodeId = uploadAndAddFileToWorkspaceAsPaul()
 

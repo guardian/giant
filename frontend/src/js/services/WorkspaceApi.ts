@@ -74,6 +74,12 @@ export function deleteItem(workspaceId: string, itemId: string) {
     });
 }
 
+export function deleteResourceFromWorkspace(workspaceId: string, blobUri: string) {
+    return authFetch(`/api/workspaces/${workspaceId}/nodes/delete/${blobUri}`, {
+        method: 'POST',
+    });
+}
+
 export function addFolderToWorkspace(workspaceId: string, parentId: string, name:  string) {
     return addItemToWorkspace(workspaceId, parentId, name, undefined, 'folder', {});
 }
