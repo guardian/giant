@@ -123,3 +123,5 @@ case object SubprocessInterruptedFailure extends Failure {
 case class ContentTooLongFailure(msg: String) extends Failure
 
 case class DeleteFailure(msg: String) extends Failure
+
+case class DeleteNotAllowed(msg: String) extends Failure

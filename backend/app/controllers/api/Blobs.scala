@@ -5,14 +5,13 @@ import model.Uri
 import model.user.UserPermission.CanPerformAdminOperations
 import net.logstash.logback.marker.LogstashMarker
 import play.api.libs.json.Json
-import play.api.mvc.{Action, AnyContent, Request, Result}
+import play.api.mvc.{Action, AnyContent, Request}
 import services.ObjectStorage
 import services.index.Index
 import services.manifest.Manifest
 import services.observability.PostgresClient
-import services.previewing.PreviewService
 import utils.Logging
-import utils.attempt.{Attempt, DeleteFailure}
+import utils.attempt.{Attempt, DeleteNotAllowed}
 import utils.auth.User
 import utils.controller.{AuthApiController, AuthControllerComponents, FailureToResultMapper}
 
@@ -115,7 +114,7 @@ class Blobs(override val controllerComponents: AuthControllerComponents, manifes
         deleteResource.deleteBlobCheckChildren(blobUri)
       } else {
         logAction(user, s"Can't delete resource due to file ownership conflict. Resource uri: $blobUri")
-        Attempt.Left[Unit](DeleteFailure("Failed to delete resource"))
+        Attempt.Left[Unit](DeleteNotAllowed("Failed to delete resource"))
       }
     }
   }
