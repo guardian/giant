@@ -107,7 +107,7 @@ class Blobs(override val controllerComponents: AuthControllerComponents, manifes
     manifest.getCollectionsForBlob(blobUri).flatMap { collections =>
       // Here we check either of 2 followings:
       // if there's only 1 collection holding the blob and if the requesting user has view access to the collection
-      // OR if the requesting user is the only creator of the blob
+      // OR if the requesting user is the only creator of the blob e.g. if a user has uploaded the same file to multiple workspaces
       if ((collections.size == 1 && collections.head._2.contains(user.username)) || collections.forall(c => c._1.createdBy == Some(user.username))) {
         logAction(user, s"Deleting resource from Giant if no children. Resource uri: $blobUri")
         val deleteResource = new DeleteResource(manifest, index, previewStorage, objectStorage, postgresClient)
