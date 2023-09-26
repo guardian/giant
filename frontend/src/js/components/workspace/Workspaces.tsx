@@ -53,6 +53,7 @@ type Props = ReturnType<typeof mapStateToProps>
 
 type State = {
     createFolderModalOpen: boolean,
+    hoverOverReprocessIconEntry: null | TreeEntry<WorkspaceEntry>;
     contextMenu: {
         isOpen: boolean,
         entry: null | TreeEntry<WorkspaceEntry>,
@@ -96,6 +97,56 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
         }
 
     };
+
+  renderReprocessIcon = (entry: TreeEntry<WorkspaceEntry>) => {
+    const reprocessAction = (entry: TreeEntry<WorkspaceEntry>) => {
+      if (isWorkspaceLeaf(entry.data)) {
+        const workspaceId = this.props.match.params.id;
+        this.props.reprocessBlob(workspaceId, entry.data.uri);
+      }
+    };
+
+    const handleMouseEnter = () => {
+      this.setState({
+        hoverOverReprocessIconEntry: entry,
+      });
+    };
+
+    const handleMouseLeave = () => {
+      this.setState({
+        hoverOverReprocessIconEntry: null,
+      });
+    };
+
+    const buttonStyle= {
+      paddingLeft: '0.4em',
+      color: this.state.hoverOverReprocessIconEntry == entry ? 'black' : 'grey',
+    }
+    return (
+        <button style = {buttonStyle} onClick={() => reprocessAction(entry)}>
+          <Icon
+              name="redo"
+              inline
+              size="small"
+              className="file-browser__icon"
+              onMouseEnter={handleMouseEnter}
+              onMouseLeave={handleMouseLeave}
+          />
+        </button>
+    );
+  };
+
+  renderStatus = (entry: TreeEntry<any>) =>{
+    if (isTreeLeaf<WorkspaceEntry>(entry) && isWorkspaceLeaf(entry.data)) {
+      return (
+          <React.Fragment>
+            {processingStageToString(entry.data.processingStage)}
+            {entry.data.processingStage.type == "failed" && this.renderReprocessIcon(entry)}
+          </React.Fragment>
+      )
+    }
+    return (<></>)
+  }
 
     allColumns = [
         {
@@ -186,10 +237,9 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
             style: {
                 width: '120px',
             },
-            render: (entry: TreeEntry<WorkspaceEntry>) =>
-                <React.Fragment>
-                    {isTreeLeaf<WorkspaceEntry>(entry) && isWorkspaceLeaf(entry.data) ? processingStageToString(entry.data.processingStage) : ''}
-                </React.Fragment>,
+            render: (entry: TreeEntry<WorkspaceEntry>) => (
+                this.renderStatus(entry)
+            ),
             sort: (a: TreeEntry<WorkspaceEntry>, b: TreeEntry<WorkspaceEntry>) => {
                 // Sort folders on top (or bottom)
                 let aVal = '';
@@ -207,6 +257,7 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
 
     state: State = {
         createFolderModalOpen: false,
+        hoverOverReprocessIconEntry: null,
         contextMenu: {
             isOpen: false,
             entry: null,
@@ -407,7 +458,7 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
         const itemsWithReprocess = [
             { key: "rename", content: "Rename", icon: "pen square" },
             { key: "remove", content: "Remove from workspace", icon: "trash" },
-            { key: "reprocess", content: "Reprocess source file", icon: "refresh" },
+            { key: "reprocess", content: "Reprocess source file", icon: "redo" },
         ]
 
         return <DetectClickOutside onClickOutside={this.closeContextMenu}>
