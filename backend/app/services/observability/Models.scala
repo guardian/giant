@@ -3,6 +3,7 @@ package services.observability
 import extraction.Extractor
 import play.api.libs.json.{Format, Json}
 import model.manifest.Blob
+import org.apache.commons.codec.digest.DigestUtils
 import org.joda.time.{DateTime, DateTimeZone}
 import services.index.IngestionData
 import services.observability.ExtractorType.ExtractorType
@@ -12,6 +13,7 @@ import play.api.libs.json.JodaWrites.jodaDateWrites
 import play.api.libs.json.JodaReads.jodaDateReads
 import utils.Logging
 
+import java.security.MessageDigest
 import scala.util.{Failure, Try, Success => TrySuccess}
 
 object JodaReadWrites {
@@ -178,9 +180,29 @@ object BlobStatus {
   implicit val format = Json.format[BlobStatus]
 
   def parsePathsArray(paths: Array[String]): List[String] = {
-    val nonNullPaths = paths.filter(p => p != null )
+    val nonNullPaths = paths.filter(p => p != null)
     if (nonNullPaths.isEmpty) {
       List("unknown filename")
     } else nonNullPaths.toList
+  }
+
+  /**
+    * Aims to remove all information from blob status that is likely to identify the user who uploaded it or the file itself
+    * @param status
+    * @return
+    */
+  private def anonymise(status: BlobStatus): BlobStatus = {
+    status.copy(
+      paths = List("[REDACTED]"),
+      workspaceName = status.workspaceName.map(DigestUtils.md5Hex)
+    )
+  }
+
+  def anonymiseEventsOlderThanTwoWeeks(sortedStatuses: List[BlobStatus]): List[BlobStatus] = {
+    sortedStatuses.map{ status =>
+      if (status.ingestStart.isBefore(new DateTime().minusDays(14))) {
+        anonymise(status)
+      } else status
+    }
   }
 }
