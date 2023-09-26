@@ -111,6 +111,7 @@ class PostgresClientImpl(postgresConfig: PostgresConfig) extends PostgresClient 
             */
           val results = sql"""
           WITH problem_blobs AS (
+            -- assume that blobs with more than 100 ingestion_events are failing to be ingested in an infinite loop
             SELECT blob_id
             from ingestion_events
             WHERE ingest_id LIKE ${if(ingestIdIsPrefix) LikeConditionEscapeUtil.beginsWith(ingestId) else ingestId}
