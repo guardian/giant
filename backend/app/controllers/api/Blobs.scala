@@ -99,11 +99,11 @@ class Blobs(override val controllerComponents: AuthControllerComponents, manifes
         result.map(_ => NoContent)
       }
     } else {
-      deleteForNoneAdmin(req.user, id).map(_ => NoContent)
+      deleteForNonAdmin(req.user, id).map(_ => NoContent)
     }
   }
 
-  private def deleteForNoneAdmin(user: User, blobUri: String): Attempt[Unit] = {
+  private def deleteForNonAdmin(user: User, blobUri: String): Attempt[Unit] = {
     manifest.getCollectionsForBlob(blobUri).flatMap { collections =>
       // Here we check either of 2 followings:
       // if there's only 1 collection holding the blob and if the requesting user has view access to the collection
