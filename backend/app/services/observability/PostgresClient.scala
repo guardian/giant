@@ -110,29 +110,39 @@ class PostgresClientImpl(postgresConfig: PostgresConfig) extends PostgresClient 
             *
             */
           val results = sql"""
-      WITH blob_extractors AS (
-      -- get all the extractors expected for a given blob
-       SELECT ingest_id, blob_id, jsonb_array_elements_text(details -> 'extractors') as extractor from ingestion_events
-       WHERE ingest_id LIKE ${if(ingestIdIsPrefix) LikeConditionEscapeUtil.beginsWith(ingestId) else ingestId} AND
-       type = ${IngestionEventType.MimeTypeDetected.toString}
+          WITH problem_blobs AS (
+            -- assume that blobs with more than 100 ingestion_events are failing to be ingested in an infinite loop
+            SELECT blob_id
+            from ingestion_events
+            WHERE ingest_id LIKE ${if(ingestIdIsPrefix) LikeConditionEscapeUtil.beginsWith(ingestId) else ingestId}
+            group by 1
+            having count(*) > 100
+          ),
+          blob_extractors AS (
+            -- get all the extractors expected for a given blob
+            SELECT ingest_id, blob_id, jsonb_array_elements_text(details -> 'extractors') as extractor from ingestion_events
+            WHERE ingest_id LIKE ${if(ingestIdIsPrefix) LikeConditionEscapeUtil.beginsWith(ingestId) else ingestId}
+            AND type = ${IngestionEventType.MimeTypeDetected.toString}
+            AND blob_id NOT IN (SELECT blob_id FROM problem_blobs)
           ),
           extractor_statuses as (
-          -- Aggregate all the status updates for the relevant extractors for a given blob
-          SELECT
-            blob_extractors.blob_id,
-            blob_extractors.ingest_id,
-            blob_extractors.extractor,
-            -- As the same status update may happen multiple times if a blob is reingested, it's useful to have the time
-            -- this field is destined to be converted to a string so use epoch time (seconds) to make getting it back into
-            -- a date a bit less of a faff
-            ARRAY_AGG(EXTRACT(EPOCH from ingestion_events.event_time)) AS extractor_event_times,
-            ARRAY_AGG(ingestion_events.status) AS extractor_event_statuses
+            -- Aggregate all the status updates for the relevant extractors for a given blob
+            SELECT
+              blob_extractors.blob_id,
+              blob_extractors.ingest_id,
+              blob_extractors.extractor,
+              -- As the same status update may happen multiple times if a blob is reingested, it's useful to have the time
+              -- this field is destined to be converted to a string so use epoch time (seconds) to make getting it back into
+              -- a date a bit less of a faff
+              ARRAY_AGG(EXTRACT(EPOCH from ingestion_events.event_time)) AS extractor_event_times,
+              ARRAY_AGG(ingestion_events.status) AS extractor_event_statuses
             FROM blob_extractors
             LEFT JOIN ingestion_events
-            ON blob_extractors.blob_id = ingestion_events.blob_id
-            AND blob_extractors.ingest_id = ingestion_events.ingest_id
-            -- there is no index on extractorName but we aren't expecting too many events for the same blob_id/ingest_id
-            AND blob_extractors.extractor = ingestion_events.details ->> 'extractorName'
+              ON blob_extractors.blob_id = ingestion_events.blob_id
+              AND blob_extractors.ingest_id = ingestion_events.ingest_id
+              -- there is no index on extractorName but we aren't expecting too many events for the same blob_id/ingest_id
+              AND blob_extractors.extractor = ingestion_events.details ->> 'extractorName'
+            WHERE ingestion_events.type = 'RunExtractor'
             -- A file may be uploaded multiple times within different ingests - use group by to merge them together
             GROUP BY 1,2,3
           )
@@ -150,23 +160,24 @@ class PostgresClientImpl(postgresConfig: PostgresConfig) extends PostgresClient 
             -- You can't array_agg arrays of varying cardinality so here we convert to string
             ARRAY_REMOVE(ARRAY_AGG(ARRAY_TO_STRING(extractor_statuses.extractor_event_times, ',','null')), NULL) AS "extractorEventTimes",
             ARRAY_REMOVE(ARRAY_AGG(ARRAY_TO_STRING(extractor_statuses.extractor_event_statuses, ',','null')), NULL) AS "extractorStatuses"
-            FROM (
-              SELECT
-                blob_id,
-                ingest_id,
-                MIN(EXTRACT(EPOCH from event_time)) AS ingest_start,
-                MAX(EXTRACT(EPOCH from event_time)) AS most_recent_event,
-                ARRAY_AGG(details -> 'errors') as errors,
-                (ARRAY_AGG(details ->> 'workspaceName')  FILTER (WHERE details ->> 'workspaceName' IS NOT NULL))[1] as workspace_name,
-                (ARRAY_AGG(details ->> 'mimeTypes')  FILTER (WHERE details ->> 'mimeTypes' IS NOT NULL))[1] as mime_types
-              FROM ingestion_events
-              WHERE ingest_id LIKE ${if(ingestIdIsPrefix) LikeConditionEscapeUtil.beginsWith(ingestId) else ingestId}
-              GROUP BY 1,2
-            ) AS ie
-            LEFT JOIN blob_metadata USING(ingest_id, blob_id)
-            LEFT JOIN extractor_statuses on extractor_statuses.blob_id = ie.blob_id and extractor_statuses.ingest_id = ie.ingest_id
-            GROUP BY 1,2,3,4,5,6,7
-            ORDER by ingest_start desc
+          FROM (
+            SELECT
+              blob_id,
+              ingest_id,
+              MIN(EXTRACT(EPOCH from event_time)) AS ingest_start,
+              MAX(EXTRACT(EPOCH from event_time)) AS most_recent_event,
+              ARRAY_AGG(details -> 'errors') as errors,
+              (ARRAY_AGG(details ->> 'workspaceName')  FILTER (WHERE details ->> 'workspaceName' IS NOT NULL))[1] as workspace_name,
+              (ARRAY_AGG(details ->> 'mimeTypes')  FILTER (WHERE details ->> 'mimeTypes' IS NOT NULL))[1] as mime_types
+            FROM ingestion_events
+            WHERE ingest_id LIKE ${if(ingestIdIsPrefix) LikeConditionEscapeUtil.beginsWith(ingestId) else ingestId}
+            AND blob_id NOT IN (SELECT blob_id FROM problem_blobs)
+            GROUP BY 1,2
+          ) AS ie
+          LEFT JOIN blob_metadata USING(ingest_id, blob_id)
+          LEFT JOIN extractor_statuses on extractor_statuses.blob_id = ie.blob_id and extractor_statuses.ingest_id = ie.ingest_id
+          GROUP BY 1,2,3,4,5,6,7
+          ORDER by ingest_start desc
      """.map(rs => {
                 BlobStatus(
                     EventMetadata(
