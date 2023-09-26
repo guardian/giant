@@ -120,7 +120,7 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
 
     const buttonStyle= {
       paddingLeft: '0.4em',
-      color: this.state.hoverOverReprocessIconEntry == entry ? 'black' : 'grey',
+      color: this.state.hoverOverReprocessIconEntry === entry ? 'black' : 'grey',
     }
     return (
         <button style = {buttonStyle} onClick={() => reprocessAction(entry)}>
@@ -141,7 +141,7 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
       return (
           <React.Fragment>
             {processingStageToString(entry.data.processingStage)}
-            {entry.data.processingStage.type == "failed" && this.renderReprocessIcon(entry)}
+            {entry.data.processingStage.type === "failed" && this.renderReprocessIcon(entry)}
           </React.Fragment>
       )
     }
