@@ -25,7 +25,7 @@ import { setNodeAsCollapsed } from '../../actions/workspaces/setNodeAsCollapsed'
 import { setNodeAsExpanded } from '../../actions/workspaces/setNodeAsExpanded';
 import { listUsers } from '../../actions/users/listUsers';
 import DocumentIcon from 'react-icons/lib/ti/document';
-import { Icon, Loader, Menu } from 'semantic-ui-react';
+import {Icon, Loader, Menu, Popup} from 'semantic-ui-react';
 import WorkspaceSummary from './WorkspaceSummary';
 import { ColumnsConfig, isTreeLeaf, isTreeNode, TreeEntry, TreeLeaf } from '../../types/Tree';
 import {isWorkspaceLeaf, Workspace, WorkspaceEntry} from '../../types/Workspaces';
@@ -123,16 +123,20 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
       color: this.state.hoverOverReprocessIconEntry === entry ? 'black' : 'grey',
     }
     return (
-        <button style = {buttonStyle} onClick={() => reprocessAction(entry)}>
-          <Icon
-              name="redo"
-              inline
-              size="small"
-              className="file-browser__icon"
-              onMouseEnter={handleMouseEnter}
-              onMouseLeave={handleMouseLeave}
-          />
-        </button>
+        <Popup content='Reprocess source file'
+            trigger={
+                <button style = {buttonStyle} onClick={() => reprocessAction(entry)}>
+                  <Icon
+                      name="redo"
+                      inline
+                      size="small"
+                      className="file-browser__icon"
+                      onMouseEnter={handleMouseEnter}
+                      onMouseLeave={handleMouseLeave}
+                  />
+                </button>
+            }
+        />
     );
   };
 
