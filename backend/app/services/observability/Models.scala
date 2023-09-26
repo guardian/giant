@@ -193,7 +193,7 @@ object BlobStatus {
     */
   private def anonymise(status: BlobStatus): BlobStatus = {
     status.copy(
-      paths = List("redacted"),
+      paths = List("[REDACTED]"),
       workspaceName = status.workspaceName.map(DigestUtils.md5Hex)
     )
   }
