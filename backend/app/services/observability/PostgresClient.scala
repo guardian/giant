@@ -141,6 +141,7 @@ class PostgresClientImpl(postgresConfig: PostgresConfig) extends PostgresClient 
               -- there is no index on extractorName but we aren't expecting too many events for the same blob_id/ingest_id
               AND blob_extractors.extractor = ingestion_events.details ->> 'extractorName'
               -- A file may be uploaded multiple times within different ingests - use group by to merge them together
+            WHERE ingestion_events.type = 'RunExtractor'
             GROUP BY 1,2,3
           )
           SELECT
