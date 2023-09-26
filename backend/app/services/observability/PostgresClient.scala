@@ -120,8 +120,9 @@ class PostgresClientImpl(postgresConfig: PostgresConfig) extends PostgresClient 
           blob_extractors AS (
             -- get all the extractors expected for a given blob
             SELECT ingest_id, blob_id, jsonb_array_elements_text(details -> 'extractors') as extractor from ingestion_events
-            WHERE ingest_id LIKE ${if(ingestIdIsPrefix) LikeConditionEscapeUtil.beginsWith(ingestId) else ingestId} AND
-            type = ${IngestionEventType.MimeTypeDetected.toString}
+            WHERE ingest_id LIKE ${if(ingestIdIsPrefix) LikeConditionEscapeUtil.beginsWith(ingestId) else ingestId}
+            AND type = ${IngestionEventType.MimeTypeDetected.toString}
+            AND blob_id NOT IN (SELECT blob_id FROM problem_blobs)
           ),
           extractor_statuses as (
             -- Aggregate all the status updates for the relevant extractors for a given blob
