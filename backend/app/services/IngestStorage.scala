@@ -20,9 +20,11 @@ trait IngestStorage {
   def getData(key: Key): Either[Failure, InputStream]
   def getMetadata(key: Key): Either[Failure, FileContext]
   def delete(key: Key): Either[Failure, Unit]
+  def sendToDeadLetterBucket(key: Key): Either[Failure, Unit]
+  def retryDeadLetters(): Either[Failure, Unit]
 }
 
-class S3IngestStorage private(client: S3Client, bucket: String) extends IngestStorage with Logging {
+class S3IngestStorage private(client: S3Client, ingestBucket: String, deadLetterBucket: String) extends IngestStorage with Logging {
   private def parseKey(item: S3ObjectSummary): (Long, UUID) = {
     val components = item.getKey.stripPrefix(dataPrefix).stripSuffix(".data").split('_')
     val timestamp = components(0).toLong
@@ -33,18 +35,18 @@ class S3IngestStorage private(client: S3Client, bucket: String) extends IngestSt
 
   override def list = {
     Either.catchNonFatal {
-      val result = client.aws.listObjects(bucket, dataPrefix)
+      val result = client.aws.listObjects(ingestBucket, dataPrefix)
       val objs = result.getObjectSummaries.asScala
       objs.map(parseKey)
     }.leftMap(UnknownFailure.apply)
   }
 
   override def getData(key: Key): Either[Failure, InputStream] = {
-    Either.catchNonFatal(client.aws.getObject(bucket, dataKey(key)).getObjectContent).leftMap(UnknownFailure.apply)
+    Either.catchNonFatal(client.aws.getObject(ingestBucket, dataKey(key)).getObjectContent).leftMap(UnknownFailure.apply)
   }
 
   override def getMetadata(key: Key): Either[Failure, FileContext] = {
-    Either.catchNonFatal(client.aws.getObject(bucket, metadataKey(key))).leftMap(UnknownFailure.apply).flatMap { s3Object =>
+    Either.catchNonFatal(client.aws.getObject(ingestBucket, metadataKey(key))).leftMap(UnknownFailure.apply).flatMap { s3Object =>
       // turn stream back into the original object
       val stream = s3Object.getObjectContent
 
@@ -63,19 +65,49 @@ class S3IngestStorage private(client: S3Client, bucket: String) extends IngestSt
 
   override def delete(key: (Long, UUID)) = {
     Either.catchNonFatal{
-      client.aws.deleteObject(bucket, dataKey(key))
-      client.aws.deleteObject(bucket, metadataKey(key))
+      client.aws.deleteObject(ingestBucket, dataKey(key))
+      client.aws.deleteObject(ingestBucket, metadataKey(key))
+    }.leftMap(UnknownFailure.apply)
+  }
+
+  override def sendToDeadLetterBucket(key: Key): Either[Failure, Unit] = {
+    Either.catchNonFatal {
+      client.aws.copyObject(ingestBucket, dataKey(key), deadLetterBucket, dataKey(key))
+      client.aws.copyObject(ingestBucket, metadataKey(key), deadLetterBucket, metadataKey(key))
+    } match {
+      // if copy succeeded, delete the files from the ingest bucket
+      case Right(_) => delete(key)
+      case Left(failure) => Left(UnknownFailure(failure))
+    }
+  }
+
+  override def retryDeadLetters() = {
+    Either.catchNonFatal {
+      val result = client.aws.listObjects(deadLetterBucket)
+      if (!result.isTruncated) {
+        logger.info(s"Sending ${result.getObjectSummaries.size()} files from dead letter bucket to ingest bucket.")
+        result.getObjectSummaries.forEach{summary =>
+          client.aws.copyObject(deadLetterBucket, summary.getKey, ingestBucket, summary.getKey)
+        }
+      } else {
+        val msg = "Too many dead letter files to resync via API. Try using aws cli e.g aws s3 sync s3://deadletterbucket s3://ingestbucket"
+        logger.error(msg)
+        throw new Error(msg)
+      }
     }.leftMap(UnknownFailure.apply)
   }
 }
 
+
 object S3IngestStorage {
-  def apply(client: S3Client, bucketName: String): Either[Failure, S3IngestStorage] = {
+  def apply(client: S3Client, ingestBucketName: String, deadLetterBucketName: String): Either[Failure, S3IngestStorage] = {
     try {
-      if (!client.doesBucketExist(bucketName)) {
-        Left(IllegalStateFailure(s"Bucket $bucketName does not exist"))
-      } else {
-        Right(new S3IngestStorage(client, bucketName))
+      if (!client.doesBucketExist(ingestBucketName)) {
+        Left(IllegalStateFailure(s"Bucket $ingestBucketName does not exist"))
+      } else if (!client.doesBucketExist(deadLetterBucketName)) {
+        Left(IllegalStateFailure(s"Bucket $deadLetterBucketName does not exist"))
+      }else {
+        Right(new S3IngestStorage(client, ingestBucketName, deadLetterBucketName))
       }
     } catch {
       case ex: Exception => Left(UnknownFailure(ex))

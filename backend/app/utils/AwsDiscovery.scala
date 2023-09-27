@@ -158,6 +158,7 @@ object AwsDiscovery extends Logging {
 
     val after = BucketConfig(
       ingestion = s"$stack-${before.ingestion}-$lowerCaseStage",
+      deadLetter = s"$stack-${before.deadLetter}-$lowerCaseStage",
       collections = s"$stack-${before.collections}-$lowerCaseStage",
       preview = s"$stack-${before.preview}-$lowerCaseStage"
     )
