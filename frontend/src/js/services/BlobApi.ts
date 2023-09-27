@@ -8,3 +8,14 @@ export function deleteBlobForAdmin(uri: string): Promise<Response> {
 export function deleteBlob(blobUri: string) {
     return authFetch(`/api/blobs/${blobUri}?checkChildren=true&isAdminDelete=false`, {method: "DELETE"});
 }
+
+export function reprocessBlob(itemId: string) {
+    return authFetch(`/api/blobs/${itemId}/reprocess`, {
+        headers: new Headers({'Content-Type': 'application/json'}),
+        method: 'POST',
+        body: JSON.stringify({
+            "rerunFailed": true,
+            "rerun": true
+        })
+    }).then(res => res.status === 204);
+}

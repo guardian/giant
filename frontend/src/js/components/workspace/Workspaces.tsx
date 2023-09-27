@@ -26,10 +26,10 @@ import { setNodeAsCollapsed } from '../../actions/workspaces/setNodeAsCollapsed'
 import { setNodeAsExpanded } from '../../actions/workspaces/setNodeAsExpanded';
 import { listUsers } from '../../actions/users/listUsers';
 import DocumentIcon from 'react-icons/lib/ti/document';
-import { Icon, Loader, Menu } from 'semantic-ui-react';
+import {Icon, Loader, Menu, Popup} from 'semantic-ui-react';
 import WorkspaceSummary from './WorkspaceSummary';
 import { ColumnsConfig, isTreeLeaf, isTreeNode, TreeEntry, TreeLeaf } from '../../types/Tree';
-import { isWorkspaceLeaf, Workspace, WorkspaceEntry } from '../../types/Workspaces';
+import {isWorkspaceLeaf, Workspace, WorkspaceEntry} from '../../types/Workspaces';
 import { GiantState } from '../../types/redux/GiantState';
 import { GiantDispatch } from '../../types/redux/GiantDispatch';
 import DetectClickOutside from '../UtilComponents/DetectClickOutside';
@@ -44,6 +44,7 @@ import { setFocusedEntry } from '../../actions/workspaces/setFocusedEntry';
 import { processingStageToString, workspaceHasProcessingFiles } from '../../util/workspaceUtils';
 import { setWorkspaceIsPublic } from '../../actions/workspaces/setWorkspaceIsPublic';
 import { RouteComponentProps } from 'react-router-dom';
+import { reprocessBlob } from '../../actions/workspaces/reprocessBlob';
 import { DeleteModal, DeleteStatus } from './DeleteModal';
 import { PartialUser } from '../../types/User';
 
@@ -55,6 +56,7 @@ type Props = ReturnType<typeof mapStateToProps>
 
 type State = {
     createFolderModalOpen: boolean,
+    hoverOverReprocessIconEntry: null | TreeEntry<WorkspaceEntry>;
     contextMenu: {
         isOpen: boolean,
         entry: null | TreeEntry<WorkspaceEntry>,
@@ -103,6 +105,60 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
         }
 
     };
+
+  renderReprocessIcon = (entry: TreeEntry<WorkspaceEntry>) => {
+    const reprocessAction = (entry: TreeEntry<WorkspaceEntry>) => {
+      if (isWorkspaceLeaf(entry.data)) {
+        const workspaceId = this.props.match.params.id;
+        this.props.reprocessBlob(workspaceId, entry.data.uri);
+      }
+    };
+
+    const handleMouseEnter = () => {
+      this.setState({
+        hoverOverReprocessIconEntry: entry,
+      });
+    };
+
+    const handleMouseLeave = () => {
+      this.setState({
+        hoverOverReprocessIconEntry: null,
+      });
+    };
+
+    const buttonStyle= {
+      paddingLeft: '0.4em',
+      color: this.state.hoverOverReprocessIconEntry === entry ? 'black' : 'grey',
+    }
+    return (
+        <Popup content='Reprocess source file'
+            trigger={
+                <button style = {buttonStyle} onClick={() => reprocessAction(entry)}>
+                  <Icon
+                      name="redo"
+                      inline
+                      size="small"
+                      className="file-browser__icon"
+                      onMouseEnter={handleMouseEnter}
+                      onMouseLeave={handleMouseLeave}
+                  />
+                </button>
+            }
+        />
+    );
+  };
+
+  renderStatus = (entry: TreeEntry<any>) =>{
+    if (isTreeLeaf<WorkspaceEntry>(entry) && isWorkspaceLeaf(entry.data)) {
+      return (
+          <React.Fragment>
+            {processingStageToString(entry.data.processingStage)}
+            {entry.data.processingStage.type === "failed" && this.renderReprocessIcon(entry)}
+          </React.Fragment>
+      )
+    }
+    return (<></>)
+  }
 
     allColumns = [
         {
@@ -193,10 +249,9 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
             style: {
                 width: '120px',
             },
-            render: (entry: TreeEntry<WorkspaceEntry>) =>
-                <React.Fragment>
-                    {isTreeLeaf<WorkspaceEntry>(entry) && isWorkspaceLeaf(entry.data) ? processingStageToString(entry.data.processingStage) : ''}
-                </React.Fragment>,
+            render: (entry: TreeEntry<WorkspaceEntry>) => (
+                this.renderStatus(entry)
+            ),
             sort: (a: TreeEntry<WorkspaceEntry>, b: TreeEntry<WorkspaceEntry>) => {
                 // Sort folders on top (or bottom)
                 let aVal = '';
@@ -214,6 +269,7 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
 
     state: State = {
         createFolderModalOpen: false,
+        hoverOverReprocessIconEntry: null,
         contextMenu: {
             isOpen: false,
             entry: null,
@@ -435,6 +491,7 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
         });
     };
 
+
     renderContextMenu(entry: TreeEntry<WorkspaceEntry>, positionX: number, positionY: number, currentUser: PartialUser) {
         const items = [
             // or 'pencil alternate'
@@ -445,30 +502,41 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
         if (entry.data.addedBy.username === currentUser.username && isWorkspaceLeaf(entry.data)) {
             items.push({ key: "deleteOrRemove", content: "Delete file", icon: "trash" });
         }
+
+        if (isWorkspaceLeaf(entry.data)){
+            items.push({ key: "reprocess", content: "Reprocess source file", icon: "redo" });
+        }
+
         return <DetectClickOutside onClickOutside={this.closeContextMenu}>
             <Menu
                 style={{ position: 'absolute', left: positionX, top: positionY }}
                 items={items}
                 vertical
                 onItemClick={(e, menuItemProps) => {
+                    const workspaceId = this.props.match.params.id;
                     if (menuItemProps.content === 'Rename') {
                         this.props.setEntryBeingRenamed(entry);
                     }
 
                     if (menuItemProps.content === 'Remove from workspace') {
-                        const workspaceId = this.props.match.params.id;
                         this.props.deleteItem(workspaceId, entry.id);
                         this.props.resetFocusedAndSelectedEntries();
                     }
 
+
                     if (menuItemProps.content === "Delete file") {
-                        this.setState({deleteModalContext: {
-                            isOpen: true,
-                            entry,
-                            status: "unconfirmed",
-                        }});
+                        this.setState({
+                            deleteModalContext: {
+                                isOpen: true,
+                                entry,
+                                status: "unconfirmed",
+                            }
+                        });
                     }
 
+                    if (menuItemProps.content === 'Reprocess source file' && (isWorkspaceLeaf(entry.data))) {
+                        this.props.reprocessBlob(workspaceId, entry.data.uri)
+                    }
                     this.closeContextMenu();
                 }}
             />
@@ -600,6 +668,7 @@ function mapDispatchToProps(dispatch: GiantDispatch) {
         moveItems: bindActionCreators(moveItems, dispatch),
         renameItem: bindActionCreators(renameItem, dispatch),
         deleteItem: bindActionCreators(deleteItem, dispatch),
+        reprocessBlob: bindActionCreators(reprocessBlob, dispatch),
         deleteResourceFromWorkspace: bindActionCreators(deleteResourceFromWorkspace, dispatch),
         addFolderToWorkspace: bindActionCreators(addFolderToWorkspace, dispatch),
         deleteWorkspace: bindActionCreators(deleteWorkspace, dispatch),
