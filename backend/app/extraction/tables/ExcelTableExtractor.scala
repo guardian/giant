@@ -67,7 +67,8 @@ class ExcelTableExtractor(scratch: ScratchSpace, tableOps: Tables)(implicit ec: 
           if (xmlReader.isStartElement)
             if (xmlReader.getLocalName.equals("row")) {
               val dataRow = getDataRow(xmlReader, stringsTable, sheetName, stylesTable)
-              dataRows :+= dataRow
+              if (dataRow.isDefined)
+                dataRows :+= dataRow.get
             }
           if (dataRows.size == batchSize) break()
         }
@@ -76,13 +77,13 @@ class ExcelTableExtractor(scratch: ScratchSpace, tableOps: Tables)(implicit ec: 
     if (dataRows.nonEmpty) tableOps.addDocumentRows(blob.uri, dataRows) else Attempt.Right(())
   }
 
-  private def getDataRow(xmlReader: XMLStreamReader, stringsTable: ReadOnlySharedStringsTable, sheetName: String, stylesTable: StylesTable): TableRow = {
+  private def getDataRow(xmlReader: XMLStreamReader, stringsTable: ReadOnlySharedStringsTable, sheetName: String, stylesTable: StylesTable): Option[TableRow] = {
     var rowValues: List[String] = List.empty
     var cellReference: CellReference = null
     breakable {
       while (xmlReader.hasNext) {
         xmlReader.next
-        if (xmlReader.isStartElement)
+        if (xmlReader.isStartElement) {
           if (xmlReader.getLocalName.equals("c")) {
             cellReference = new CellReference(xmlReader.getAttributeValue(null, "r"))
             // Fill in the possible blank cells!
@@ -92,10 +93,13 @@ class ExcelTableExtractor(scratch: ScratchSpace, tableOps: Tables)(implicit ec: 
             val cellValue = getCellValue(cellType, xmlReader, stringsTable, stylesTable, cellStyleStr)
             rowValues :+= cellValue
           }
+        }
         if (xmlReader.isEndElement && xmlReader.getLocalName.equals("row")) break()
       }
     }
-    TableRow(Some(sheetName), cellReference.getRow, rowValues.zipWithIndex.map{ case (cell, index) => index.toString -> cell }.toMap)
+    if (cellReference != null)
+      Some(TableRow(Some(sheetName), cellReference.getRow, rowValues.zipWithIndex.map{ case (cell, index) => index.toString -> cell }.toMap))
+    else None
   }
 
   private def getCellValue(cellType: String, xmlReader: XMLStreamReader, stringsTable: ReadOnlySharedStringsTable, stylesTable: StylesTable, cellStyleStr: String): String = {
