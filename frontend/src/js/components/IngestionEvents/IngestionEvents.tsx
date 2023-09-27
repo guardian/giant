@@ -62,8 +62,12 @@ const statusIconColumn = {
         field: 'extractorStatuses',
         name: '',
         width: '40',
-        render: (statuses: ExtractorStatus[]) => {
-            return blobStatusIcons[getBlobStatus(statuses)]
+        render: (statuses: ExtractorStatus[], row: BlobStatus) => {
+            const totalErrors = row.errors.length
+            const extractorStatus = getBlobStatus(statuses)
+            // if extractors have finished but there are other non-extractor related errors, show an error icon
+            const combinedStatus = extractorStatus === "complete" && totalErrors > 0 ? "completeWithErrors" : extractorStatus
+            return blobStatusIcons[combinedStatus]
         }
     }
 
