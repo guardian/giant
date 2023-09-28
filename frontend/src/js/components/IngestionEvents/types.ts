@@ -8,14 +8,28 @@ type IngestionError = {
     stackTrace?: string;
 }
 
+type IngestionErrorWithEventType = {
+    eventType: string;
+    errors: IngestionError[]
+}
+
+export type Status = "Unknown" | "Started" | "Success" | "Failure"
+
+export type IngestionEventStatus = {
+    eventTime: Date;
+    eventType: string;
+    eventStatus: Status;
+}
+
 export type BlobStatus =  {
     metadata: Metadata;
     paths: string[];
     fileSize?: number;
     ingestStart: Date;
     mostRecentEvent: Date;
+    eventStatuses: IngestionEventStatus[];
     extractorStatuses: ExtractorStatus[];
-    errors: IngestionError[];
+    errors: IngestionErrorWithEventType[];
     workspaceName: string;
     mimeTypes: string[];
 }
@@ -24,8 +38,6 @@ export type IngestionTable = {
     title: string;
     blobs: BlobStatus[]
 }
-
-export type Status = "Unknown" | "Started" | "Success" | "Failure"
 
 export type ExtractorStatusUpdate = {
     eventTime?: Date;

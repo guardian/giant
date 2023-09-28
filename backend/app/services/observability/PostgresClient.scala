@@ -151,6 +151,9 @@ class PostgresClientImpl(postgresConfig: PostgresConfig) extends PostgresClient 
             ie.ingest_id,
             ie.ingest_start,
             ie.most_recent_event,
+            ie.event_types,
+            ie.event_times,
+            ie.event_statuses,
             ie.errors,
             ie.workspace_name AS "workspaceName",
             ie.mime_types AS "mimeTypes",
@@ -166,6 +169,9 @@ class PostgresClientImpl(postgresConfig: PostgresConfig) extends PostgresClient 
               ingest_id,
               MIN(EXTRACT(EPOCH from event_time)) AS ingest_start,
               MAX(EXTRACT(EPOCH from event_time)) AS most_recent_event,
+              ARRAY_AGG(type) as event_types,
+              ARRAY_AGG(EXTRACT(EPOCH from event_time)) as event_times,
+              ARRAY_AGG(status) as event_statuses,
               ARRAY_AGG(details -> 'errors') as errors,
               (ARRAY_AGG(details ->> 'workspaceName')  FILTER (WHERE details ->> 'workspaceName' IS NOT NULL))[1] as workspace_name,
               (ARRAY_AGG(details ->> 'mimeTypes')  FILTER (WHERE details ->> 'mimeTypes' IS NOT NULL))[1] as mime_types
@@ -176,9 +182,10 @@ class PostgresClientImpl(postgresConfig: PostgresConfig) extends PostgresClient 
           ) AS ie
           LEFT JOIN blob_metadata USING(ingest_id, blob_id)
           LEFT JOIN extractor_statuses on extractor_statuses.blob_id = ie.blob_id and extractor_statuses.ingest_id = ie.ingest_id
-          GROUP BY 1,2,3,4,5,6,7
+          GROUP BY 1,2,3,4,5,6,7,8,9,10
           ORDER by ingest_start desc
      """.map(rs => {
+            val eventTypes = rs.array("event_types").getArray.asInstanceOf[Array[String]]
                 BlobStatus(
                     EventMetadata(
                         rs.string("blob_id"),
@@ -189,6 +196,10 @@ class PostgresClientImpl(postgresConfig: PostgresConfig) extends PostgresClient 
                     rs.stringOpt("workspaceName"),
                   PostgresHelpers.postgresEpochToDateTime(rs.double("ingest_start")),
                   PostgresHelpers.postgresEpochToDateTime(rs.double("most_recent_event")),
+                  IngestionEventStatus.parseEventStatus(
+                    rs.array("event_times").getArray.asInstanceOf[Array[java.math.BigDecimal]].map(t =>PostgresHelpers.postgresEpochToDateTime(t.doubleValue)),
+                    eventTypes,
+                    rs.array("event_statuses").getArray.asInstanceOf[Array[String]]),
                     rs.arrayOpt("extractors").map { extractors =>
                         ExtractorStatus.parseDbStatusEvents(
                             extractors.getArray().asInstanceOf[Array[String]],
@@ -196,7 +207,10 @@ class PostgresClientImpl(postgresConfig: PostgresConfig) extends PostgresClient 
                             rs.array("extractorStatuses").getArray().asInstanceOf[Array[String]]
                         )
                     }.getOrElse(List()),
-                  IngestionError.parseIngestionErrors(rs.array("errors").getArray.asInstanceOf[Array[String]]),
+                  IngestionError.parseIngestionErrors(
+                    rs.array("errors").getArray.asInstanceOf[Array[String]],
+                    eventTypes
+                  ),
                   rs.stringOpt("mimeTypes")
 
                 )

@@ -7,7 +7,7 @@ import org.apache.commons.codec.digest.DigestUtils
 import org.joda.time.{DateTime, DateTimeZone}
 import services.index.IngestionData
 import services.observability.ExtractorType.ExtractorType
-import services.observability.IngestionEventType.{BlobCopy, IngestionEventType}
+import services.observability.IngestionEventType.{IngestionEventType, RunExtractor}
 import services.observability.EventStatus.EventStatus
 import play.api.libs.json.JodaWrites.jodaDateWrites
 import play.api.libs.json.JodaReads.jodaDateReads
@@ -56,24 +56,31 @@ object EventStatus extends Enumeration {
 }
 
 case class IngestionError(message: String, stackTrace: Option[String] = None)
+case class IngestionErrorsWithEventType(eventType: IngestionEventType, errors: List[IngestionError])
 
 object IngestionError extends Logging {
   implicit val format = Json.format[IngestionError]
 
-  def parseIngestionErrors(errors: Array[String]): List[IngestionError] = {
-    errors.toList.flatMap{ e =>
-      if (e == null) List() else {
+  def parseIngestionErrors(errors: Array[String], eventTypes: Array[String]): List[IngestionErrorsWithEventType] = {
+    errors.toList.zip(eventTypes.toList).flatMap{
+      case (e, eventType) =>
+      if (e == null) None else {
         Try(Json.parse(e).as[List[IngestionError]]) match {
           case TrySuccess(value) =>
-            value
+            Some(IngestionErrorsWithEventType(IngestionEventType.withName(eventType), value))
           case Failure(exception: Throwable) =>
             logger.error("Failed to parse ingestion errors. Returning empty list", exception)
-            List()
+            None
         }
       }
     }
   }
 }
+
+object IngestionErrorsWithEventType {
+  implicit val format = Json.format[IngestionErrorsWithEventType]
+}
+
 
 case class EventDetails(
                     errors: Option[List[IngestionError]] = None,
@@ -102,7 +109,7 @@ object EventDetails {
     mimeTypes = Some(data.mimeTypes.map(_.mimeType).mkString(","))
   ))
 
-  def extractorDetails(extractorName: String) = Some(EventDetails(extractorName = Some(ExtractorType.withNameCustom(extractorName))))
+  def extractorDetails(extractorName: String): Option[EventDetails] = Some(EventDetails(extractorName = Some(ExtractorType.withNameCustom(extractorName))))
 
 }
 
@@ -143,6 +150,22 @@ object ExtractorStatusUpdate {
   implicit val format = Json.format[ExtractorStatusUpdate]
 }
 
+case class IngestionEventStatus(eventTime: DateTime, eventType: IngestionEventType, eventStatus: EventStatus)
+object IngestionEventStatus {
+  implicit val dateWrites = JodaReadWrites.dateWrites
+  implicit val dateReads = JodaReadWrites.dateReads
+  implicit val format = Json.format[IngestionEventStatus]
+
+  def parseEventStatus(eventTimes: Array[DateTime], eventTypes: Array[String], eventStatuses: Array[String]): List[IngestionEventStatus] = {
+    val allEventStatuses =  eventTimes.lazyZip(eventTypes).lazyZip(eventStatuses).toList.map {
+      case (eventTime, eventType, eventStatus) =>
+        IngestionEventStatus(eventTime, IngestionEventType.withName(eventType), EventStatus.withName(eventStatus))
+    }
+    // discard extractor events as we have a separate ExtractorStatus field
+    allEventStatuses.filter(es => es.eventType != RunExtractor)
+  }
+}
+
 
 case class ExtractorStatus(extractorType: ExtractorType, statusUpdates: List[ExtractorStatusUpdate])
 object ExtractorStatus {
@@ -171,8 +194,9 @@ case class BlobStatus(
                        workspaceName: Option[String],
                        ingestStart: DateTime,
                        mostRecentEvent: DateTime,
+                       eventStatuses: List[IngestionEventStatus],
                        extractorStatuses: List[ExtractorStatus],
-                       errors: List[IngestionError],
+                       errors: List[IngestionErrorsWithEventType],
                        mimeTypes: Option[String])
 object BlobStatus {
   implicit val dateWrites = JodaReadWrites.dateWrites

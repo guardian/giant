@@ -1,12 +1,19 @@
 import React, {ReactNode, useEffect, useState} from "react";
 import authFetch from "../../util/auth/authFetch";
-import {EuiFlexItem, EuiToolTip, EuiText, EuiButtonIcon, EuiScreenReaderOnly, EuiSpacer, EuiIconTip, EuiBadge, EuiFlexGroup, EuiInMemoryTable, EuiBasicTableColumn, EuiLoadingSpinner, EuiCodeBlock, Criteria} from "@elastic/eui";
+import {EuiFlexItem, EuiBasicTable, EuiToolTip, EuiText, EuiButtonIcon, EuiScreenReaderOnly, EuiSpacer, EuiIconTip, EuiBadge, EuiFlexGroup, EuiInMemoryTable, EuiBasicTableColumn, EuiLoadingSpinner, EuiCodeBlock, Criteria} from "@elastic/eui";
 import '@elastic/eui/dist/eui_theme_light.css';
 import hdate from 'human-date';
 import {WorkspaceMetadata} from "../../types/Workspaces";
 import moment from "moment";
 import _ from "lodash";
-import { BlobStatus, ExtractorStatus, IngestionTable, Status, extractorStatusColors } from "./types";
+import {
+    BlobStatus,
+    ExtractorStatus,
+    IngestionTable,
+    Status,
+    extractorStatusColors,
+    IngestionEventStatus
+} from "./types";
 import styles from "./IngestionEvents.module.css";
 
 type BlobProgress = "complete" | "completeWithErrors" | "inProgress"
@@ -135,6 +142,7 @@ const parseBlobStatus = (status: any): BlobStatus => {
         ingestStart: new Date(status.ingestStart),
         mostRecentEvent: new Date(status.mostRecentEvent),
         mimeTypes: status.mimeTypes?.split(","),
+        eventStatuses: status.eventStatuses.map((es: any) => ({...es, eventTime: new Date(es.eventTime)})),
         extractorStatuses: status.extractorStatuses.map((s: any) => ({
             extractorType: s.extractorType.replace("Extractor", ""),
             statusUpdates: _.sortBy(s.statusUpdates
@@ -151,6 +159,24 @@ const parseBlobStatus = (status: any): BlobStatus => {
 const blobStatusId = (blobStatus: BlobStatus) => `${blobStatus.metadata.ingestId}-${blobStatus.metadata.blobId}`
 
 const renderExpandedRow = (blobStatus: BlobStatus) => {
+    const columns: Array<EuiBasicTableColumn<IngestionEventStatus>> = [
+        {
+            field: 'eventTime',
+            name: 'Event time',
+        },
+        {
+            field: 'eventType',
+            name: 'Event',
+        },
+        {
+            field: 'eventStatus',
+            name: 'Status',
+            render: (status: Status) => {
+                return <EuiBadge color={statusToColor(status)}>{status}</EuiBadge>
+            },
+        },
+    ];
+
     return <EuiText>
         <h3>{pathsToFileNames(blobStatus.paths)}</h3>
         <p>Full file path(s) : {blobStatus.paths.join(", ")}. Ingestion started on {hdate.prettyPrint(blobStatus.ingestStart)}</p>
@@ -172,10 +198,22 @@ const renderExpandedRow = (blobStatus: BlobStatus) => {
                 </p></>
             })}
         </div>
+        <h4>All ingestion events</h4>
+        <EuiBasicTable
+            tableCaption="Demo of EuiBasicTable"
+            items={blobStatus.eventStatuses}
+            columns={columns}
+        />
         {blobStatus.errors.length > 0 &&
             <>
                 <h4>Errors encountered processing this file</h4>
-                {blobStatus.errors.map(error => <EuiCodeBlock>{error.message}</EuiCodeBlock>)}
+                {blobStatus.errors.map(error =>
+                    <div>
+                        <h5>{error.eventType}</h5>
+                        {error.errors.map(e => <EuiCodeBlock>{e.message}</EuiCodeBlock>)}
+                    </div>
+                )
+                }
             </>
         }
     </EuiText>
