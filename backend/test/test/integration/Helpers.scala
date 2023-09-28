@@ -242,7 +242,7 @@ object Helpers extends Matchers with Logging with OptionValues with Inside {
 
     elasticsearch.resetIndices()
 
-    val s3Config = S3Config("fake", BucketConfig("fake", "fake", "fake"), None, None, None, None)
+    val s3Config = S3Config("fake", BucketConfig("fake", "fake", "fake", "fake"), None, None, None, None)
     val downloadExpiryPeriod = 1.minute
 
     val userManagement = Neo4jUserManagement(neo4jDriver, ec, queryLoggingConfig, manifest, elasticsearch.elasticResources, elasticsearch.elasticPages, annotations)
