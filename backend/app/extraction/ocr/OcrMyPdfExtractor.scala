@@ -45,7 +45,8 @@ class OcrMyPdfExtractor(scratch: ScratchSpace, index: Index, pageService: Pages,
 
     try {
       pdDocuments = params.languages.map { lang =>
-        val pdfPath = Ocr.invokeOcrMyPdf(lang.ocr, file.toPath, None, stdErrLogger, tmpDir)
+        val preProcessPdf = Ocr.preProcessPdf(file.toPath, tmpDir, stdErrLogger)
+        val pdfPath = Ocr.invokeOcrMyPdf(lang.ocr, preProcessPdf.getOrElse(file.toPath), None, stdErrLogger, tmpDir)
         val pdfDoc = PDDocument.load(pdfPath.toFile)
 
         lang -> (pdfPath, pdfDoc)
