@@ -52,6 +52,7 @@ export class Giant extends GuStack {
 			engine: DatabaseInstanceEngine.postgres({
 				version: PostgresEngineVersion.VER_15
 			}),
+            allowMajorVersionUpgrade: true,
 			allocatedStorage: dbStorage,
 			maxAllocatedStorage: dbStorage + 20,
 			autoMinorVersionUpgrade: true,
