@@ -163,6 +163,7 @@ const renderExpandedRow = (blobStatus: BlobStatus) => {
         {
             field: 'eventTime',
             name: 'Event time',
+            render: (time: Date) => moment(time).format(SHORT_READABLE_DATE)
         },
         {
             field: 'eventType',
@@ -198,10 +199,10 @@ const renderExpandedRow = (blobStatus: BlobStatus) => {
                 </p></>
             })}
         </div>
-        <h4>All ingestion events</h4>
+        <h4>All ingestion events prior to extraction</h4>
         <EuiBasicTable
             tableCaption="Demo of EuiBasicTable"
-            items={blobStatus.eventStatuses}
+            items={_.sortBy(blobStatus.eventStatuses, s => s.eventTime.toISOString() )}
             columns={columns}
         />
         {blobStatus.errors.length > 0 &&

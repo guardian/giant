@@ -161,7 +161,7 @@ object IngestionEventStatus {
       case (eventTime, eventType, eventStatus) =>
         IngestionEventStatus(eventTime, IngestionEventType.withName(eventType), EventStatus.withName(eventStatus))
     }
-    // discard extractor events as we have a separate ExtractorStatus field
+    // discard extractor events as we have a separate ExtractorStatus field, and 'RunExtractor' by itself without context of which extractor isn't very helpful
     allEventStatuses.filter(es => es.eventType != RunExtractor)
   }
 }
