@@ -1,9 +1,6 @@
 import type { GuStackProps } from '@guardian/cdk/lib/constructs/core';
 import {
-	AppIdentity,
-	GuParameter,
 	GuStack,
-	GuStringParameter,
 } from '@guardian/cdk/lib/constructs/core';
 import { GuVpc, SubnetType } from '@guardian/cdk/lib/constructs/ec2/vpc';
 import type { App } from 'aws-cdk-lib';
@@ -53,7 +50,7 @@ export class Giant extends GuStack {
 				}),
 			},
 			engine: DatabaseInstanceEngine.postgres({
-				version: PostgresEngineVersion.VER_13,
+				version: PostgresEngineVersion.VER_15
 			}),
 			allocatedStorage: dbStorage,
 			maxAllocatedStorage: dbStorage + 20,
