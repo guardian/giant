@@ -73,6 +73,32 @@ object Ocr extends Logging {
     }
   }
 
+  // Reduces the ppi of the images within the pdf to 300 if they are over this limit.
+  // This improves the performance of ocrMyPdf but also reduced the chance of ocr failures
+  // because ocrMyPdf can not handle images sizes over 500000000 pixels
+  def preProcessPdf(inputFilePath: Path, tmpDir: Path, stderr: OcrStderrLogger): Option[Path] = {
+    val tempDownSampledFile = tmpDir.resolve(s"${inputFilePath.getFileName}.downsampled.pdf")
+
+    val cmd = new StringBuilder("gs ")
+    cmd.append("-sDEVICE=pdfwrite ")
+    cmd.append("-dDownsampleColorImages=true ")
+    cmd.append("-dDownsampleGrayImages=true ")
+    cmd.append("-dDownsampleMonoImages=true ")
+    cmd.append("-dColorImageResolution=300 ")
+    cmd.append("-dGrayImageResolution=300 ")
+    cmd.append("-dMonoImageResolution=300 ")
+    cmd.append(s"-o $tempDownSampledFile ")
+    cmd.append(inputFilePath.toAbsolutePath)
+
+    val exitCode = Process(cmd.toString()).!(ProcessLogger(stdout.append(_), stderr.append))
+    exitCode match {
+      case 0 =>
+        Some(tempDownSampledFile)
+      case _ =>
+        logger.warn(s"Failed to down sample the file ${inputFilePath.getFileName}. exit code ${exitCode} .")
+        None
+    }
+  }
 
   // TODO MRB: allow OcrMyPdf to read DPI if set in metadata
   // OCRmyPDF is a wrapper for Tesseract that we use to overlay the OCR as a text layer in the resulting PDF
@@ -108,7 +134,6 @@ object Ocr extends Logging {
   */
     @tailrec
     def process(flag: OcrMyPdfFlag, previousExitCode: Option[Int] = None, overrideFile: Option[Path] = None): Int = {
-
       val redoOcrExitCode = ocrWithOcrMyPdf(flag, overrideFile)
       redoOcrExitCode match {
         case 2 if !previousExitCode.contains(2) =>
