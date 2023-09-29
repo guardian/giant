@@ -86,10 +86,13 @@ class S3IngestStorage private(client: S3Client, ingestBucket: String, deadLetter
       val result = client.aws.listObjects(deadLetterBucket)
       if (!result.isTruncated) {
         logger.info(s"Sending ${result.getObjectSummaries.size()} files from dead letter bucket to ingest bucket.")
-        result.getObjectSummaries.forEach{ summary =>
-          Try(client.aws.copyObject(deadLetterBucket, summary.getKey, ingestBucket, summary.getKey))
+        val (meta, data) = result.getObjectSummaries.asScala.toList.map(_.getKey).partition(k => k.startsWith("meta"))
+        // ingestion starts once a 'data' file is available, so copy meta files first
+        val keysWithMetaFirst = meta.concat(data)
+        keysWithMetaFirst.foreach{ key =>
+          Try(client.aws.copyObject(deadLetterBucket, key, ingestBucket, key))
             // on success, clean up the file from the dead letter bucket
-            .map(_ => client.aws.deleteObject(deadLetterBucket, summary.getKey))
+            .map(_ => client.aws.deleteObject(deadLetterBucket, key))
         }
       } else {
         val msg = "Too many dead letter files to resync via API. Try using aws cli e.g aws s3 sync s3://deadletterbucket s3://ingestbucket"
