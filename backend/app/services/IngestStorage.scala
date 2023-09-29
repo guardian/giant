@@ -2,7 +2,6 @@ package services
 
 import java.io.InputStream
 import java.util.UUID
-
 import cats.syntax.either._
 import com.amazonaws.services.s3.model.S3ObjectSummary
 import model.{Languages, Uri}
@@ -13,6 +12,7 @@ import utils.attempt.{Failure, IllegalStateFailure, JsonParseFailure, UnknownFai
 import utils.aws.S3Client
 
 import scala.jdk.CollectionConverters._
+import scala.util.Try
 import scala.util.control.NonFatal
 
 trait IngestStorage {
@@ -81,13 +81,15 @@ class S3IngestStorage private(client: S3Client, ingestBucket: String, deadLetter
     }
   }
 
-  override def retryDeadLetters() = {
+  override def retryDeadLetters(): Either[UnknownFailure, Unit] = {
     Either.catchNonFatal {
       val result = client.aws.listObjects(deadLetterBucket)
       if (!result.isTruncated) {
         logger.info(s"Sending ${result.getObjectSummaries.size()} files from dead letter bucket to ingest bucket.")
-        result.getObjectSummaries.forEach{summary =>
-          client.aws.copyObject(deadLetterBucket, summary.getKey, ingestBucket, summary.getKey)
+        result.getObjectSummaries.forEach{ summary =>
+          Try(client.aws.copyObject(deadLetterBucket, summary.getKey, ingestBucket, summary.getKey))
+            // on success, clean up the file from the dead letter bucket
+            .map(_ => client.aws.deleteObject(deadLetterBucket, summary.getKey))
         }
       } else {
         val msg = "Too many dead letter files to resync via API. Try using aws cli e.g aws s3 sync s3://deadletterbucket s3://ingestbucket"
