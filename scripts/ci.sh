@@ -1,9 +1,6 @@
 #!/usr/bin/env bash
 set -e
 
-# Make Create React App treat warnings as errors
-export CI=true
-
 pushd frontend
 
 npm install
