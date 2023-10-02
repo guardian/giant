@@ -26,7 +26,6 @@ jobs:
         with:
           role-to-assume: ${{ secrets.GU_RIFF_RAFF_ROLE_ARN }}
           aws-region: eu-west-1
-          unset-current-credentials: true
 
       # Setup Node, checking common Node config files to determine the version of Node to use.
       # Configuring caching is also recommended.
