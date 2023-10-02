@@ -27,7 +27,6 @@ jobs:
           role-to-assume: ${{ secrets.GU_RIFF_RAFF_ROLE_ARN }}
           aws-region: eu-west-1
 
-      # Setup Node, checking common Node config files to determine the version of Node to use.
       # Configuring caching is also recommended.
       # See https://github.com/guardian/actions-setup-node
       - name: Setup Node
@@ -43,9 +42,6 @@ jobs:
           java-version: '11'
           distribution: 'adopt'
 
-      # 1. Seed the build number with last number from TeamCity.
-      #    Update `LAST_TEAMCITY_BUILD` as needed or remove entirely if changing Riff-Raff project name.
-      # See https://github.com/github/scripts-to-rule-them-all
       - name: Run script/teamcity
         run: |
           LAST_TEAMCITY_BUILD=5000
