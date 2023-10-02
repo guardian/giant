@@ -50,5 +50,5 @@ jobs:
       - name: Run script/teamcity
         run: |
           LAST_TEAMCITY_BUILD=5000
-          export BUILD_NUMBER=$(( $GITHUB_RUN_NUMBER + $LAST_TEAMCITY_BUILD ))
-           ./scripts/teamcity.sh
+          export GITHUB_RUN_NUMBER=$(( $GITHUB_RUN_NUMBER + $LAST_TEAMCITY_BUILD ))
+          ./scripts/teamcity.sh
