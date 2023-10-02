@@ -2,12 +2,12 @@
 name: CI
 
 on:
-  pull_request:
-
   # Manual invocation.
   workflow_dispatch:
 
-  push:
+  # None of the projects in this build are in use so all auto-building is disabled
+#  push:
+#  pull_request:
 
 jobs:
   CI:
@@ -53,4 +53,4 @@ jobs:
         run: |
           LAST_TEAMCITY_BUILD=5000
           export BUILD_NUMBER=$(( $GITHUB_RUN_NUMBER + $LAST_TEAMCITY_BUILD ))
-          ./scripts/teamcity.sh
+           ./scripts/teamcity.sh
