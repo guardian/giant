@@ -5,9 +5,7 @@ on:
   # Manual invocation.
   workflow_dispatch:
 
-  # None of the projects in this build are in use so all auto-building is disabled
-#  push:
-#  pull_request:
+  push:
 
 jobs:
   CI:
