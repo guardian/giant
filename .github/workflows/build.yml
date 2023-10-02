@@ -8,8 +8,7 @@ on:
   workflow_dispatch:
 
   push:
-    branches:
-      - "main"
+
 jobs:
   CI:
     runs-on: ubuntu-latest
