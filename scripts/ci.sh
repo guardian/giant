@@ -4,12 +4,6 @@ set -e
 # Make Create React App treat warnings as errors
 export CI=true
 
-export NVM_DIR="$HOME/.nvm"
-[[ -s "$NVM_DIR/nvm.sh" ]] && . "$NVM_DIR/nvm.sh"  # This loads nvm
-
-nvm install
-nvm use
-
 pushd frontend
 
 npm install
