@@ -181,6 +181,13 @@ const renderExpandedRow = (blobStatus: BlobStatus) => {
     return <EuiText>
         <h3>{pathsToFileNames(blobStatus.paths)}</h3>
         <p>Full file path(s) : {blobStatus.paths.join(", ")}. Ingestion started on {hdate.prettyPrint(blobStatus.ingestStart)}</p>
+        <h4>All ingestion events prior to extraction</h4>
+        <EuiBasicTable
+            tableCaption="Demo of EuiBasicTable"
+            items={_.sortBy(blobStatus.eventStatuses, s => s.eventTime.toISOString() )}
+            columns={columns}
+        />
+        <h4>Extraction events</h4>
         {blobStatus.mimeTypes && `This file is of type ${blobStatus.mimeTypes.join(",")}.`} Giant has run the following extractors on the file:
         <div className={styles.expandedRowExtractorStatus}>
             {blobStatus.extractorStatuses.map(extractorStatus => {
@@ -196,15 +203,9 @@ const renderExpandedRow = (blobStatus: BlobStatus) => {
                         {extractorStatusList(extractorStatus)}
 
 
-                </p></>
+                    </p></>
             })}
         </div>
-        <h4>All ingestion events prior to extraction</h4>
-        <EuiBasicTable
-            tableCaption="Demo of EuiBasicTable"
-            items={_.sortBy(blobStatus.eventStatuses, s => s.eventTime.toISOString() )}
-            columns={columns}
-        />
         {blobStatus.errors.length > 0 &&
             <>
                 <h4>Errors encountered processing this file</h4>
