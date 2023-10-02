@@ -152,10 +152,11 @@ case class S3Config(
 
 case class BucketConfig(
   ingestion: String,
+  deadLetter: String,
   collections: String,
   preview: String
 ) {
-  val all: List[String] = List(ingestion, collections, preview)
+  val all: List[String] = List(ingestion, deadLetter, collections, preview)
 }
 
 case class AWSDiscoveryConfig(

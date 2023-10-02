@@ -92,7 +92,7 @@ class AppComponents(context: Context, config: Config)
     scratchSpace.setup().await()
 
     // data storage services
-    val ingestStorage = S3IngestStorage(s3Client, config.s3.buckets.ingestion).valueOr(failure => throw new Exception(failure.msg))
+    val ingestStorage = S3IngestStorage(s3Client, config.s3.buckets.ingestion, config.s3.buckets.deadLetter).valueOr(failure => throw new Exception(failure.msg))
     val blobStorage = S3ObjectStorage(s3Client, config.s3.buckets.collections).valueOr(failure => throw new Exception(failure.msg))
 
     val postgresClient = config.postgres match {
@@ -195,6 +195,7 @@ class AppComponents(context: Context, config: Config)
     val commentsController = new Comments(authControllerComponents, manifest, esResources, annotations)
     val usersController = new Users(authControllerComponents, userProvider)
     val pagesController = new PagesController(authControllerComponents, manifest, esResources, pages2, annotations, previewStorage)
+    val ingestionController = new Ingestion(authControllerComponents, ingestStorage)
     val ingestionEventsController = new IngestionEvents(authControllerComponents, postgresClient, users )
 
     val workerControl = config.aws match {
@@ -234,6 +235,7 @@ class AppComponents(context: Context, config: Config)
       httpErrorHandler,
       eventsController,
       collectionsController,
+      ingestionController,
       ingestionEventsController,
       blobsController,
       filtersController,
