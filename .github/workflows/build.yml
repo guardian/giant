@@ -36,7 +36,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v3
         with:
-          node-version-file: frontend/.nvmrc
+          node-version-file: .nvmrc
 
       # Configuring caching is also recommended.
       # See https://github.com/actions/setup-java
