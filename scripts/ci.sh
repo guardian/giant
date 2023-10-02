@@ -1,15 +1,6 @@
 #!/usr/bin/env bash
 set -e
 
-# Make Create React App treat warnings as errors
-export CI=true
-
-export NVM_DIR="$HOME/.nvm"
-[[ -s "$NVM_DIR/nvm.sh" ]] && . "$NVM_DIR/nvm.sh"  # This loads nvm
-
-nvm install
-nvm use
-
 pushd frontend
 
 npm install
@@ -21,7 +12,10 @@ popd
 cp -r frontend/build/* backend/public
 # Replace the symbolic link we use in dev with the actual file.
 # On Teamcity the JDeb build doesn't seem to follow the symbolic link while packaging, weirdly
-cp frontend/node_modules/pdfjs-dist/build/pdf.worker.min.js backend/public/third-party/pdf.worker.min.js
+# NOTE: On Github actions this seems to work, and in fact it will complain if you try and run the below line
+# because it thinks that the two files are the same. So  could be removed at some point but let's leave it for
+# a bit in case e.g. github actions custom runners have similar issues
+#cp frontend/node_modules/pdfjs-dist/build/pdf.worker.min.js backend/public/third-party/pdf.worker.min.js
 
 #Use java 11
 export JAVA_HOME=/usr/lib/jvm/java-11-amazon-corretto

@@ -1,4 +1,4 @@
-# We implement deploying to multiple stages by doing multiple builds in `teamcity.sh`
+# We implement deploying to multiple stages by doing multiple builds in `ci.sh`
 # updating all references to `pfi-playground` in this file between each.
 stacks: [pfi-playground]
 regions: [eu-west-1]
