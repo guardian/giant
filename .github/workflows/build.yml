@@ -27,14 +27,13 @@ jobs:
           role-to-assume: ${{ secrets.GU_RIFF_RAFF_ROLE_ARN }}
           aws-region: eu-west-1
 
-      # Configuring caching is also recommended.
-      # See https://github.com/guardian/actions-setup-node
+      # TODO: configure caching
       - name: Setup Node
         uses: actions/setup-node@v3
         with:
           node-version-file: .nvmrc
 
-      # Configuring caching is also recommended.
+      # TODO: configure caching
       # See https://github.com/actions/setup-java
       - name: Setup Java 8
         uses: actions/setup-java@v3
