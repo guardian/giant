@@ -118,8 +118,12 @@ class ExcelTableExtractor(scratch: ScratchSpace, tableOps: Tables)(implicit ec: 
               val formatIndex = style.getDataFormat
               val formatString = style.getDataFormatString
 
-              if(DateUtil.isADateFormat(formatIndex, formatString)) value = DateUtil.getJavaDate(Some(xmlReader.getElementText.toDouble).getOrElse(0)).toString
-              else value = xmlReader.getElementText
+              if(DateUtil.isADateFormat(formatIndex, formatString)) {
+                val date = DateUtil.getJavaDate(xmlReader.getElementText.toDouble)
+                if (date != null) {
+                  value = date.toString
+                }
+              } else value = xmlReader.getElementText
             }
           }
         }
