@@ -49,6 +49,12 @@ const blobStatusIcons = {
             <EuiLoadingSpinner />
         </EuiToolTip>
     ),
+    infiniteLoop: (
+        <EuiIconTip
+            type="alert"
+            content={"Ingestion failing in infinite loop"}
+        />
+    ),
 }
 
 const SHORT_READABLE_DATE = "DD MMM HH:mm:ss"
@@ -125,6 +131,9 @@ const statusIconColumn = {
     name: "",
     width: "40",
     render: (statuses: ExtractorStatus[], row: BlobStatus) => {
+        if (row.infiniteLoop) {
+            return blobStatusIcons["infiniteLoop"]
+        }
         const totalErrors = row.errors.length
         const extractorStatus = getBlobStatus(statuses)
         // if extractors have finished but there are other non-extractor related errors, show an error icon
@@ -304,60 +313,79 @@ const renderExpandedRow = (blobStatus: BlobStatus) => {
                 Full file path(s) : {blobStatus.paths.join(", ")}. Ingestion
                 started on {hdate.prettyPrint(blobStatus.ingestStart)}
             </p>
-            <h4>All ingestion events prior to extraction</h4>
-            <EuiBasicTable
-                tableCaption="Demo of EuiBasicTable"
-                items={_.sortBy(blobStatus.eventStatuses, (s) =>
-                    s.eventTime.toISOString()
-                )}
-                columns={columns}
-            />
-            <h4>Extraction events</h4>
-            {blobStatus.mimeTypes &&
-                `This file is of type ${blobStatus.mimeTypes.join(",")}.`}{" "}
-            Giant has run the following extractors on the file:
-            <div className={styles.expandedRowExtractorStatus}>
-                {blobStatus.extractorStatuses.map((extractorStatus) => {
-                    const numErrors = extractorStatus.statusUpdates.filter(
-                        (su) => su.status === "Failure"
-                    ).length
-                    const numStarted = extractorStatus.statusUpdates.filter(
-                        (su) => su.status === "Started"
-                    ).length
-                    const mostRecent =
-                        extractorStatus.statusUpdates.length > 0
-                            ? extractorStatus.statusUpdates[
-                                  extractorStatus.statusUpdates.length - 1
-                              ]
-                            : undefined
-                    return (
-                        <>
-                            <h4>{extractorStatus.extractorType}</h4>
-                            <p>
-                                The extractor {extractorStatus.extractorType}{" "}
-                                has been started {numStarted} times. There have
-                                been {numErrors} errors.
-                                <br />
-                                {mostRecent ? (
-                                    <>
-                                        The most recent status event is '
-                                        {mostRecent.status}' which happened on{" "}
-                                        {hdate.prettyPrint(
-                                            mostRecent.eventTime,
-                                            { showTime: true }
-                                        )}
-                                    </>
-                                ) : (
-                                    ""
-                                )}{" "}
-                                <br /> <br />
-                                All {extractorStatus.extractorType} events:
-                                {extractorStatusList(extractorStatus)}
-                            </p>
-                        </>
-                    )
-                })}
-            </div>
+            {blobStatus.infiniteLoop && (
+                <>
+                    <h4>Ingestion failing in infinite loop</h4>
+                    <p>blob id {blobStatus.metadata.blobId}</p>
+                </>
+            )}
+            {!blobStatus.infiniteLoop && (
+                <>
+                    <h4>All ingestion events prior to extraction</h4>
+                    <EuiBasicTable
+                        tableCaption="Demo of EuiBasicTable"
+                        items={_.sortBy(blobStatus.eventStatuses, (s) =>
+                            s.eventTime.toISOString()
+                        )}
+                        columns={columns}
+                    />
+                    <h4>Extraction events</h4>
+                    {blobStatus.mimeTypes &&
+                        `This file is of type ${blobStatus.mimeTypes.join(
+                            ","
+                        )}.`}{" "}
+                    Giant has run the following extractors on the file:
+                    <div className={styles.expandedRowExtractorStatus}>
+                        {blobStatus.extractorStatuses.map((extractorStatus) => {
+                            const numErrors =
+                                extractorStatus.statusUpdates.filter(
+                                    (su) => su.status === "Failure"
+                                ).length
+                            const numStarted =
+                                extractorStatus.statusUpdates.filter(
+                                    (su) => su.status === "Started"
+                                ).length
+                            const mostRecent =
+                                extractorStatus.statusUpdates.length > 0
+                                    ? extractorStatus.statusUpdates[
+                                          extractorStatus.statusUpdates.length -
+                                              1
+                                      ]
+                                    : undefined
+                            return (
+                                <>
+                                    <h4>{extractorStatus.extractorType}</h4>
+                                    <p>
+                                        The extractor{" "}
+                                        {extractorStatus.extractorType} has been
+                                        started {numStarted} times. There have
+                                        been {numErrors} errors.
+                                        <br />
+                                        {mostRecent ? (
+                                            <>
+                                                The most recent status event is
+                                                '{mostRecent.status}' which
+                                                happened on{" "}
+                                                {hdate.prettyPrint(
+                                                    mostRecent.eventTime,
+                                                    { showTime: true }
+                                                )}
+                                            </>
+                                        ) : (
+                                            ""
+                                        )}{" "}
+                                        <br /> <br />
+                                        All {extractorStatus.extractorType}{" "}
+                                        events:
+                                        {extractorStatusList(extractorStatus)}
+                                    </p>
+                                </>
+                            )
+                        })}
+                    </div>
+                </>
+            )}
+
             {blobStatus.errors.length > 0 && (
                 <>
                     <h4>Errors encountered processing this file</h4>

@@ -197,7 +197,8 @@ case class BlobStatus(
                        eventStatuses: List[IngestionEventStatus],
                        extractorStatuses: List[ExtractorStatus],
                        errors: List[IngestionErrorsWithEventType],
-                       mimeTypes: Option[String])
+                       mimeTypes: Option[String],
+                       infiniteLoop: Boolean)
 object BlobStatus {
   implicit val dateWrites = JodaReadWrites.dateWrites
   implicit val dateReads = JodaReadWrites.dateReads

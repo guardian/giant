@@ -157,7 +157,7 @@ class PostgresClientImpl(postgresConfig: PostgresConfig) extends PostgresClient 
             ie.errors,
             ie.workspace_name AS "workspaceName",
             ie.mime_types AS "mimeTypes",
-            infinite_loop,
+            ie.infinite_loop AS "infiniteLoop",
             ARRAY_AGG(DISTINCT blob_metadata.path ) AS paths,
             (ARRAY_AGG(blob_metadata.file_size))[1] as "fileSize",
             ARRAY_REMOVE(ARRAY_AGG(extractor_statuses.extractor), NULL) AS extractors,
@@ -207,32 +207,33 @@ class PostgresClientImpl(postgresConfig: PostgresConfig) extends PostgresClient 
      """.map(rs => {
             val eventTypes = rs.array("event_types").getArray.asInstanceOf[Array[String]]
                 BlobStatus(
-                    EventMetadata(
-                        rs.string("blob_id"),
-                        rs.string("ingest_id")
-                    ),
-                    BlobStatus.parsePathsArray(rs.array("paths").getArray().asInstanceOf[Array[String]]),
-                    rs.longOpt("fileSize"),
-                    rs.stringOpt("workspaceName"),
+                  EventMetadata(
+                      rs.string("blob_id"),
+                      rs.string("ingest_id")
+                  ),
+                  BlobStatus.parsePathsArray(rs.array("paths").getArray().asInstanceOf[Array[String]]),
+                  rs.longOpt("fileSize"),
+                  rs.stringOpt("workspaceName"),
                   PostgresHelpers.postgresEpochToDateTime(rs.double("ingest_start")),
                   PostgresHelpers.postgresEpochToDateTime(rs.double("most_recent_event")),
                   IngestionEventStatus.parseEventStatus(
                     rs.array("event_times").getArray.asInstanceOf[Array[java.math.BigDecimal]].map(t =>PostgresHelpers.postgresEpochToDateTime(t.doubleValue)),
                     eventTypes,
-                    rs.array("event_statuses").getArray.asInstanceOf[Array[String]]),
-                    rs.arrayOpt("extractors").map { extractors =>
-                        ExtractorStatus.parseDbStatusEvents(
-                            extractors.getArray().asInstanceOf[Array[String]],
-                            rs.array("extractorEventTimes").getArray().asInstanceOf[Array[String]],
-                            rs.array("extractorStatuses").getArray().asInstanceOf[Array[String]]
-                        )
-                    }.getOrElse(List()),
+                    rs.array("event_statuses").getArray.asInstanceOf[Array[String]]
+                  ),
+                  rs.arrayOpt("extractors").map { extractors =>
+                      ExtractorStatus.parseDbStatusEvents(
+                          extractors.getArray().asInstanceOf[Array[String]],
+                          rs.array("extractorEventTimes").getArray().asInstanceOf[Array[String]],
+                          rs.array("extractorStatuses").getArray().asInstanceOf[Array[String]]
+                      )
+                  }.getOrElse(List()),
                   IngestionError.parseIngestionErrors(
                     rs.array("errors").getArray.asInstanceOf[Array[String]],
                     eventTypes
                   ),
-                  rs.stringOpt("mimeTypes")
-
+                  rs.stringOpt("mimeTypes"),
+                  rs.boolean("infiniteLoop")
                 )
             }
             ).list().apply()

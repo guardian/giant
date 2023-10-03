@@ -32,6 +32,7 @@ export type BlobStatus =  {
     errors: IngestionErrorWithEventType[];
     workspaceName: string;
     mimeTypes: string[];
+    infiniteLoop: boolean;
 }
 
 export type IngestionTable = {
