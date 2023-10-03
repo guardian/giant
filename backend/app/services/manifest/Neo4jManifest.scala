@@ -97,7 +97,7 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
   override def getWorkspacesForBlob(blobUri: String): Attempt[List[WorkspaceMetadata]] = attemptTransaction { tx =>
     tx.run(
       """
-        |MATCH (w:WorkspaceNode {uri: ""})-[:PART_OF]->(workspace:Workspace)
+        |MATCH (w:WorkspaceNode {uri: {uri}})-[:PART_OF]->(workspace:Workspace)
         |MATCH (creator :User)-[:CREATED]->(workspace)<-[:FOLLOWING]-(follower :User)
         |return  workspace, creator, collect(distinct follower) as followers
         |""".stripMargin,

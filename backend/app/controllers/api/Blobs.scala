@@ -130,7 +130,7 @@ class Blobs(override val controllerComponents: AuthControllerComponents, manifes
         Attempt.Right(true)
       }
       else {
-        manifest.getWorkspacesForBlob(username).map { workspaces =>
+        manifest.getWorkspacesForBlob(id).map { workspaces =>
           workspaces.exists(w => w.followers.exists(u => u.username == username))
         }
       }
