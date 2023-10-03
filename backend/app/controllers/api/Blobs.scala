@@ -5,13 +5,13 @@ import model.Uri
 import model.user.UserPermission.CanPerformAdminOperations
 import net.logstash.logback.marker.LogstashMarker
 import play.api.libs.json.Json
-import play.api.mvc.{Action, AnyContent, Request}
+import play.api.mvc.{Action, AnyContent, Request, Result}
 import services.ObjectStorage
 import services.index.Index
 import services.manifest.Manifest
 import services.observability.PostgresClient
 import utils.Logging
-import utils.attempt.{Attempt, DeleteNotAllowed}
+import utils.attempt.{Attempt, DeleteNotAllowed, MissingPermissionFailure}
 import utils.auth.User
 import utils.controller.{AuthApiController, AuthControllerComponents, FailureToResultMapper}
 
@@ -58,32 +58,37 @@ class Blobs(override val controllerComponents: AuthControllerComponents, manifes
   }
 
   def reprocess(id: String, rerunSuccessfulParam: Option[Boolean], rerunFailedParam: Option[Boolean]) = ApiAction.attempt { req =>
-    checkPermission(CanPerformAdminOperations, req) {
-      val uri = Uri(id)
+    userHasViewAccessToBlob(id, req.user.username).flatMap { hasAccess =>
+      if (hasAccess) {
+        val uri = Uri(id)
 
-      def rerunFailedIfRequested() = {
-        if(rerunFailedParam.getOrElse(true)) {
-          logger.info(s"Reprocessing failed extractors for blob ${id}")
-          manifest.rerunFailedExtractorsForBlob(uri)
-        } else {
-          Attempt.Right(())
+        def rerunFailedIfRequested() = {
+          if (rerunFailedParam.getOrElse(true)) {
+            logger.info(s"Reprocessing failed extractors for blob ${id}")
+            manifest.rerunFailedExtractorsForBlob(uri)
+          } else {
+            Attempt.Right(())
+          }
         }
-      }
 
-      def rerunSuccessfulIfRequested() = {
-        if(rerunSuccessfulParam.getOrElse(true)) {
-          logger.info(s"Reprocessing successful extractors for blob ${id}")
-          manifest.rerunSuccessfulExtractorsForBlob(uri)
-        } else {
-          Attempt.Right(())
+        def rerunSuccessfulIfRequested() = {
+          if (rerunSuccessfulParam.getOrElse(true)) {
+            logger.info(s"Reprocessing successful extractors for blob ${id}")
+            manifest.rerunSuccessfulExtractorsForBlob(uri)
+          } else {
+            Attempt.Right(())
+          }
         }
-      }
 
-      for {
-        _ <- rerunFailedIfRequested()
-        _ <- rerunSuccessfulIfRequested()
-      } yield {
-        NoContent
+        for {
+          _ <- rerunFailedIfRequested()
+          _ <- rerunSuccessfulIfRequested()
+        } yield {
+          NoContent
+        }
+      } else {
+        logAction(req.user, s"Can't reprocess resource due to lack of permission. Resource uri: $id")
+        Attempt.Left[Result](MissingPermissionFailure("Failed to reprocess resource"))
       }
     }
   }
@@ -115,6 +120,19 @@ class Blobs(override val controllerComponents: AuthControllerComponents, manifes
       } else {
         logAction(user, s"Can't delete resource due to file ownership conflict. Resource uri: $blobUri")
         Attempt.Left[Unit](DeleteNotAllowed("Failed to delete resource"))
+      }
+    }
+  }
+
+  private def userHasViewAccessToBlob(id: String, username: String): Attempt[Boolean] = {
+    manifest.getCollectionsForBlob(id).flatMap { collections =>
+      if (collections.exists(c => c._2.contains(username))) {
+        Attempt.Right(true)
+      }
+      else {
+        manifest.getWorkspacesForBlob(id).map { workspaces =>
+          workspaces.exists(w => w.followers.exists(u => u.username == username))
+        }
       }
     }
   }

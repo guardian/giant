@@ -5,10 +5,12 @@ import cats.instances.list._
 import cats.syntax.traverse._
 import extraction.{ExtractionParams, Extractor}
 import model._
+import model.annotations.WorkspaceMetadata
 import model.frontend.email.EmailNeighbours
 import model.frontend.{BasicResource, ExtractionFailureSummary, ExtractionFailures, ResourcesForExtractionFailure}
 import model.ingestion.{IngestionFile, WorkspaceItemContext}
 import model.manifest._
+import model.user.DBUser
 import org.joda.time.DateTime
 import org.neo4j.driver.v1.Values.parameters
 import org.neo4j.driver.v1.{Driver, StatementResult, StatementRunner, Value}
@@ -89,6 +91,26 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
       results = summary.list().asScala.toList
     } yield {
       Collection.mergeCollectionAndUsers(results)
+    }
+  }
+
+  override def getWorkspacesForBlob(blobUri: String): Attempt[List[WorkspaceMetadata]] = attemptTransaction { tx =>
+    tx.run(
+      """
+        |MATCH (w:WorkspaceNode {uri: {uri}})-[:PART_OF]->(workspace:Workspace)
+        |MATCH (creator :User)-[:CREATED]->(workspace)<-[:FOLLOWING]-(follower :User)
+        |return  workspace, creator, collect(distinct follower) as followers
+        |""".stripMargin,
+      parameters(
+        "uri", blobUri,
+      )).map { summary =>
+        summary.list().asScala.toList.map { r =>
+          val workspace = r.get("workspace")
+          val creator = DBUser.fromNeo4jValue(r.get("creator"))
+          val followers = r.get("followers").asList[DBUser](DBUser.fromNeo4jValue(_)).asScala.toList
+
+          WorkspaceMetadata.fromNeo4jValue(workspace, creator, followers)
+        }
     }
   }
 
