@@ -58,8 +58,8 @@ class Blobs(override val controllerComponents: AuthControllerComponents, manifes
   }
 
   def reprocess(id: String, rerunSuccessfulParam: Option[Boolean], rerunFailedParam: Option[Boolean]) = ApiAction.attempt { req =>
-    manifest.getCollectionsForBlob(id).flatMap { collections =>
-      if (collections.exists(c => c._2.contains(req.user.username))) {
+    userHasViewAccessToBlob(id, req.user.username).flatMap { hasAccess =>
+      if (hasAccess) {
         val uri = Uri(id)
 
         def rerunFailedIfRequested() = {
@@ -120,6 +120,19 @@ class Blobs(override val controllerComponents: AuthControllerComponents, manifes
       } else {
         logAction(user, s"Can't delete resource due to file ownership conflict. Resource uri: $blobUri")
         Attempt.Left[Unit](DeleteNotAllowed("Failed to delete resource"))
+      }
+    }
+  }
+
+  private def userHasViewAccessToBlob(id: String, username: String): Attempt[Boolean] = {
+    manifest.getCollectionsForBlob(id).flatMap { collections =>
+      if (collections.exists(c => c._2.contains(username))) {
+        Attempt.Right(true)
+      }
+      else {
+        manifest.getWorkspacesForBlob(username).map { workspaces =>
+          workspaces.exists(w => w.followers.exists(u => u.username == username))
+        }
       }
     }
   }

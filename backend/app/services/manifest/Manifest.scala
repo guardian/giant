@@ -1,9 +1,9 @@
 package services.manifest
 
 import java.nio.file.Path
-
 import extraction.{ExtractionParams, Extractor}
 import model._
+import model.annotations.WorkspaceMetadata
 import model.frontend.{BasicResource, ExtractionFailures, ResourcesForExtractionFailure}
 import model.frontend.email.EmailNeighbours
 import model.ingestion.{IngestionFile, WorkspaceItemContext}
@@ -49,6 +49,8 @@ trait Manifest extends WorkerManifest {
   def getCollections: Attempt[List[Collection]]
 
   def getCollectionsForBlob(blobUri: String): Attempt[Map[Collection, Seq[String]]]
+
+  def getWorkspacesForBlob(blobUri: String): Attempt[List[WorkspaceMetadata]]
 
   def getResource(resourceUri: Uri): Either[Failure, BasicResource]
 
