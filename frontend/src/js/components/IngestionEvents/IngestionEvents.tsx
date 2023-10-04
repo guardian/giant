@@ -32,7 +32,7 @@ import {
 } from "./types"
 import styles from "./IngestionEvents.module.css"
 
-type BlobProgress = "complete" | "completeWithErrors" | "inProgress"
+type BlobProgress = "complete" | "completeWithErrors" | "inProgress" | "infiniteLoop"
 
 const blobStatusIcons = {
     complete: (
@@ -70,11 +70,12 @@ const getFailedStatuses = (statuses: ExtractorStatus[]) =>
 
 const getFailedBlobs = (blobs: BlobStatus[]) => {
     return blobs.filter((wb) => {
-        return getFailedStatuses(wb.extractorStatuses).length > 0
+        return getFailedStatuses(wb.extractorStatuses).length > 0 || wb.infiniteLoop
     })
 }
 
-const getBlobStatus = (statuses: ExtractorStatus[]): BlobProgress => {
+const getBlobStatus = (statuses: ExtractorStatus[], infiniteLoop: boolean): BlobProgress => {
+    if (infiniteLoop) return "infiniteLoop"
     const failures = getFailedStatuses(statuses)
     const inProgress = statuses.filter(
         (status) =>
@@ -124,6 +125,7 @@ const blobStatusText = {
     complete: "Complete",
     completeWithErrors: "Complete with errors",
     inProgress: "In progress",
+    infiniteLoop: "Infinite Loop"
 }
 
 const statusIconColumn = {
@@ -135,7 +137,7 @@ const statusIconColumn = {
             return blobStatusIcons["infiniteLoop"]
         }
         const totalErrors = row.errors.length
-        const extractorStatus = getBlobStatus(statuses)
+        const extractorStatus = getBlobStatus(statuses, row.infiniteLoop)
         // if extractors have finished but there are other non-extractor related errors, show an error icon
         const combinedStatus =
             extractorStatus === "complete" && totalErrors > 0
@@ -188,8 +190,8 @@ const columns: Array<EuiBasicTableColumn<BlobStatus>> = [
     {
         field: "extractorStatuses",
         name: "Status",
-        render: (statuses: ExtractorStatus[]) => {
-            return blobStatusText[getBlobStatus(statuses)]
+        render: (statuses: ExtractorStatus[], row: BlobStatus) => {
+            return blobStatusText[getBlobStatus(statuses, row.infiniteLoop)]
         },
     },
     {
