@@ -453,7 +453,7 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
         |  ORDER BY coalesce(todo.priority, e.priority) DESC
         |  LIMIT {maxBatchSize}
         |
-        |MERGE (blob)-[:LOCKED_BY]->(worker)
+        |MERGE (b)-[:LOCKED_BY]->(worker)
         |
         |WITH collect({todo: todo, extractor: e, blob: b, worker: worker}) as allTasks
         |WITH tail(reduce(acc = [0, []], task in allTasks |
