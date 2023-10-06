@@ -56,8 +56,10 @@ class Worker(
               Attempt.Right((extractor, blob, ExtractionParams(ingestion, languages, parentBlobs, workspace)))
 
             case _ =>
-              logger.error(s"Unknown extractor $extractorName")
-              Attempt.Left(UnsupportedOperationFailure(s"Unknown extractor $extractorName"))
+              val failureMsg = s"Unknown extractor $extractorName"
+              logger.error(failureMsg)
+              manifest.logExtractionFailure(blob.uri, extractorName, failureMsg)
+              Attempt.Left(UnsupportedOperationFailure(failureMsg))
           }
       }
     }
