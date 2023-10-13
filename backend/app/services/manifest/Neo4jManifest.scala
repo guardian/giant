@@ -517,8 +517,8 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
 
         throw new IllegalStateException(message)
       } else {
-        val languages = rawLanguages.asList((v: Value) => v.asString).asScala.toList.flatMap(Languages.getByKey)
-        val parentBlobs: List[Uri] = rawParentBlobs.asList((v: Value) => v.asString).asScala.toList.map(Uri(_))
+        val languages = rawLanguages.asList(_.asString).asScala.toList.flatMap(Languages.getByKey)
+        val parentBlobs: List[Uri] = rawParentBlobs.asList(_.asString, new java.util.ArrayList[String]()).asScala.toList.map(Uri(_))
 
         WorkItem(blob, parentBlobs, extractorName, ingestion, languages, workspace)
       }
