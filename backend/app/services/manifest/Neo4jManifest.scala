@@ -453,8 +453,6 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
         |  ORDER BY coalesce(todo.priority, e.priority) DESC
         |  LIMIT {maxBatchSize}
         |
-        |MERGE (b)-[:LOCKED_BY]->(worker)
-        |
         |WITH collect({todo: todo, extractor: e, blob: b, worker: worker}) as allTasks
         |WITH tail(reduce(acc = [0, []], task in allTasks |
         |    case
@@ -470,6 +468,7 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
         |  MATCH (worker :Worker { name: task.worker.name })
         |
         |  SET task.todo.attempts = task.todo.attempts + 1
+        |  MERGE (blob)-[:LOCKED_BY]->(worker)
         |
         |RETURN
         |    blob,
@@ -518,8 +517,8 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
 
         throw new IllegalStateException(message)
       } else {
-        val languages = rawLanguages.asList((v: Value) => v.asString).asScala.toList.flatMap(Languages.getByKey)
-        val parentBlobs: List[Uri] = rawParentBlobs.asList((v: Value) => v.asString).asScala.toList.map(Uri(_))
+        val languages = rawLanguages.asList(_.asString).asScala.toList.flatMap(Languages.getByKey)
+        val parentBlobs: List[Uri] = rawParentBlobs.asList(_.asString, new java.util.ArrayList[String]()).asScala.toList.map(Uri(_))
 
         WorkItem(blob, parentBlobs, extractorName, ingestion, languages, workspace)
       }
