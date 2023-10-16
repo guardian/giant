@@ -20,15 +20,21 @@ class WorkerScheduler(actorSystem: ActorSystem, worker: Worker, interval: Finite
   }
 
   def go(): Unit = {
-    worker.pollAndExecute().map {
-      case completed if completed > 0 => go()
-      case _ => tryAgainIn(interval)
-    }.recoverWith {
-      case f: Failure =>
-        logger.error(s"Worker failure: $f", f.toThrowable)
-        tryAgainIn(interval)
+    try {
+      worker.pollAndExecute().map {
+        case completed if completed > 0 => go()
+        case _ => tryAgainIn(interval)
+      }.recoverWith {
+        case f: Failure =>
+          logger.error(s"Worker failure: $f", f.toThrowable)
+          tryAgainIn(interval)
 
-        Attempt.Right(())
+          Attempt.Right(())
+      }
+    } catch {
+      case e: Throwable =>
+        logger.error(s"Worker unhandled failure: ${e.getMessage}", e)
+        tryAgainIn(interval)
     }
   }
 
