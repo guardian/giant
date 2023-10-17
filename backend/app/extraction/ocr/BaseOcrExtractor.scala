@@ -29,7 +29,6 @@ abstract class BaseOcrExtractor(scratchSpace: ScratchSpace) extends FileExtracto
         Left(SubprocessInterruptedFailure)
 
       case e: OcrMyPdfTimeout =>
-        println(s"${this.name} error - ${e.getMessage}")
         Left(OcrTimeout(s"${this.name} error - ${e.getMessage}"))
 
       case NonFatal(e) =>
