@@ -112,6 +112,8 @@ case class PanDomainCookieInvalid(override val msg: String, reportAsFailure: Boo
 
 case class MisconfiguredAccount(msg: String) extends Failure
 
+case class OcrTimeout(msg: String) extends Failure
+
 case object PreviewNotSupportedFailure extends Failure {
   final override def msg = "Preview not supported for this file type"
 }

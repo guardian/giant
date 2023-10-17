@@ -114,6 +114,9 @@ object FailureToResultMapper extends Logging {
       case DeleteNotAllowed(msg) =>
         logUserAndMessage(user, s"Deletion is refused: ${msg}")
         Results.Forbidden(msg)
+      case OcrTimeout(msg) =>
+        logger.error(msg)
+        Results.InternalServerError(msg)
       case f: PostgresWriteFailure =>
         logger.error(f.msg, f.throwable)
         Results.InternalServerError(f.msg)
