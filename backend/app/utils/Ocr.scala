@@ -58,6 +58,9 @@ object Ocr extends Logging {
   object OcrMyPdfCtrlC extends Exception("The program was interrupted by pressing Ctrl+C.")
   case class OcrMyPdfTimeout(msg: String) extends Exception(msg)
 
+  val TIMEOUT_DURATION_PER_PAGE = 1
+  val DEFAULT_TIMEOUT_IN_MINUTES = 300
+
   def invokeTesseractDirectly(lang: String, imageFileName: String, config: TesseractOcrConfig, stderr: OcrStderrLogger): String = {
     val cmd = s"tesseract $imageFileName stdout -l $lang --oem ${config.engineMode} --psm ${config.pageSegmentationMode}"
 
@@ -109,7 +112,6 @@ object Ocr extends Logging {
   def invokeOcrMyPdf(lang: String, inputFilePath: Path, dpi: Option[Int], stderr: OcrStderrLogger, tmpDir: Path, numberOfPages: Option[Int]): Path = {
     val tempFile = tmpDir.resolve(s"${inputFilePath.getFileName}.ocr.pdf")
     val stdout = mutable.Buffer.empty[String]
-    val defaultTimeoutInMinutes = 300
 
 
     // Timeout is added because ocrMyPdf may get stuck processing a file
@@ -117,17 +119,18 @@ object Ocr extends Logging {
     def runProcessWithTimeout(processBuilder: ProcessBuilder): Int = {
       val process = processBuilder.run(ProcessLogger(stdout.append(_), stderr.append))
       val future = Future(blocking(process.exitValue()))
-      // timeout duration gives at most 1 minute to ocr every page
+      // timeout duration gives at most 1 minute to ocr every page plus an overall 5 minutes
+      // to mitigate the risk of un-necessary timeout for files with low number of pages.
       // default 300 minutes is used in case the number of pages failed to
       // get retrieved from the file and the value was None at this stage
-      val timeoutDuration = numberOfPages.getOrElse(defaultTimeoutInMinutes)
+      val timeoutMinutes = numberOfPages.map(p => (p * TIMEOUT_DURATION_PER_PAGE) + 5).getOrElse(DEFAULT_TIMEOUT_IN_MINUTES)
       try {
-        Await.result(future, duration.Duration(timeoutDuration, TimeUnit.MINUTES))
+        Await.result(future, duration.Duration(timeoutMinutes, TimeUnit.MINUTES))
       } catch {
         case _: TimeoutException =>
           process.destroy()
           process.exitValue()
-          throw OcrMyPdfTimeout(s"Timing out after ${timeoutDuration} minutes")
+          throw OcrMyPdfTimeout(s"Timing out after ${timeoutMinutes} minutes")
       }
     }
 
