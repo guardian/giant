@@ -60,6 +60,7 @@ object Ocr extends Logging {
 
   val TIMEOUT_DURATION_PER_PAGE = 1
   val DEFAULT_TIMEOUT_IN_MINUTES = 300
+  val TIMEOUT_DURATION_OVERHEAD = 5
 
   def invokeTesseractDirectly(lang: String, imageFileName: String, config: TesseractOcrConfig, stderr: OcrStderrLogger): String = {
     val cmd = s"tesseract $imageFileName stdout -l $lang --oem ${config.engineMode} --psm ${config.pageSegmentationMode}"
@@ -123,7 +124,12 @@ object Ocr extends Logging {
       // to mitigate the risk of un-necessary timeout for files with low number of pages.
       // default 300 minutes is used in case the number of pages failed to
       // get retrieved from the file and the value was None at this stage
-      val timeoutMinutes = numberOfPages.map(p => (p * TIMEOUT_DURATION_PER_PAGE) + 5).getOrElse(DEFAULT_TIMEOUT_IN_MINUTES)
+      val timeoutMinutes  = if (numberOfPages.isDefined) {
+        (numberOfPages.get * TIMEOUT_DURATION_PER_PAGE) + TIMEOUT_DURATION_OVERHEAD
+      } else {
+        logger.warn(s"Default timeout duration $DEFAULT_TIMEOUT_IN_MINUTES used since numberOfPages is None")
+        DEFAULT_TIMEOUT_IN_MINUTES
+      }
       try {
         Await.result(future, duration.Duration(timeoutMinutes, TimeUnit.MINUTES))
       } catch {
