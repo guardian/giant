@@ -7,6 +7,7 @@ import model.{Language, Uri}
 import org.apache.commons.io.FileUtils
 import org.apache.pdfbox.pdmodel.{PDDocument, PDPage}
 import org.apache.pdfbox.text.PDFTextStripper
+import org.joda.time.DateTime
 import services._
 import services.index.{Index, Pages}
 import services.ingestion.IngestionServices
@@ -18,6 +19,7 @@ import java.io.File
 import java.nio.file.{Files, Path}
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
+import scala.util.Try
 
 class OcrMyPdfExtractor(scratch: ScratchSpace, index: Index, pageService: Pages, previewStorage: ObjectStorage,
   ingestionServices: IngestionServices)(implicit ec: ExecutionContext) extends BaseOcrExtractor(scratch) with Logging {
@@ -45,8 +47,9 @@ class OcrMyPdfExtractor(scratch: ScratchSpace, index: Index, pageService: Pages,
 
     try {
       pdDocuments = params.languages.map { lang =>
+        val pages = Try(PDDocument.load(file).getNumberOfPages).toOption
         val preProcessPdf = Ocr.preProcessPdf(file.toPath, tmpDir, stdErrLogger)
-        val pdfPath = Ocr.invokeOcrMyPdf(lang.ocr, preProcessPdf.getOrElse(file.toPath), None, stdErrLogger, tmpDir)
+        val pdfPath = Ocr.invokeOcrMyPdf(lang.ocr, preProcessPdf.getOrElse(file.toPath), None, stdErrLogger, tmpDir, pages)
         val pdfDoc = PDDocument.load(pdfPath.toFile)
 
         lang -> (pdfPath, pdfDoc)

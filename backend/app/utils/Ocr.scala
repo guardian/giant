@@ -6,8 +6,11 @@ import java.nio.file.{Files, Path}
 import services.TesseractOcrConfig
 import utils.attempt.Failure
 
+import java.util.concurrent.TimeUnit
 import scala.annotation.tailrec
 import scala.collection.mutable
+import scala.concurrent.{Await, Future, TimeoutException, blocking, duration}
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.sys.process._
 
 
@@ -53,6 +56,11 @@ object Ocr extends Logging {
   object OcrMyPdfPdfaConversionFailed extends Exception("A valid PDF was created, PDF/A conversion failed. The file will be available.")
   object OcrMyPdfOtherError extends Exception("Some other error occurred.")
   object OcrMyPdfCtrlC extends Exception("The program was interrupted by pressing Ctrl+C.")
+  case class OcrMyPdfTimeout(msg: String) extends Exception(msg)
+
+  val TIMEOUT_DURATION_PER_PAGE = 1
+  val DEFAULT_TIMEOUT_IN_MINUTES = 300
+  val TIMEOUT_DURATION_OVERHEAD = 5
 
   def invokeTesseractDirectly(lang: String, imageFileName: String, config: TesseractOcrConfig, stderr: OcrStderrLogger): String = {
     val cmd = s"tesseract $imageFileName stdout -l $lang --oem ${config.engineMode} --psm ${config.pageSegmentationMode}"
@@ -102,15 +110,41 @@ object Ocr extends Logging {
 
   // TODO MRB: allow OcrMyPdf to read DPI if set in metadata
   // OCRmyPDF is a wrapper for Tesseract that we use to overlay the OCR as a text layer in the resulting PDF
-  def invokeOcrMyPdf(lang: String, inputFilePath: Path, dpi: Option[Int], stderr: OcrStderrLogger, tmpDir: Path): Path = {
+  def invokeOcrMyPdf(lang: String, inputFilePath: Path, dpi: Option[Int], stderr: OcrStderrLogger, tmpDir: Path, numberOfPages: Option[Int]): Path = {
     val tempFile = tmpDir.resolve(s"${inputFilePath.getFileName}.ocr.pdf")
     val stdout = mutable.Buffer.empty[String]
+
+
+    // Timeout is added because ocrMyPdf may get stuck processing a file
+    // and we don't want to block the worker forever
+    def runProcessWithTimeout(processBuilder: ProcessBuilder): Int = {
+      val process = processBuilder.run(ProcessLogger(stdout.append(_), stderr.append))
+      val future = Future(blocking(process.exitValue()))
+      // timeout duration gives at most 1 minute to ocr every page plus an overall 5 minutes
+      // to mitigate the risk of un-necessary timeout for files with low number of pages.
+      // default 300 minutes is used in case the number of pages failed to
+      // get retrieved from the file and the value was None at this stage
+      val timeoutMinutes  = if (numberOfPages.isDefined) {
+        (numberOfPages.get * TIMEOUT_DURATION_PER_PAGE) + TIMEOUT_DURATION_OVERHEAD
+      } else {
+        logger.warn(s"Default timeout duration $DEFAULT_TIMEOUT_IN_MINUTES used since numberOfPages is None")
+        DEFAULT_TIMEOUT_IN_MINUTES
+      }
+      try {
+        Await.result(future, duration.Duration(timeoutMinutes, TimeUnit.MINUTES))
+      } catch {
+        case _: TimeoutException =>
+          process.destroy()
+          process.exitValue()
+          throw OcrMyPdfTimeout(s"Timing out after ${timeoutMinutes} minutes")
+      }
+    }
 
     def ocrWithOcrMyPdf(flag: OcrMyPdfFlag, overrideFile: Option[Path] = None): Int = {
       val sourceFilePath = overrideFile.getOrElse(inputFilePath)
       val cmd = s"ocrmypdf ${flag.flag} -l $lang ${dpi.map(dpi => s"--image-dpi $dpi").getOrElse("")} ${sourceFilePath.toAbsolutePath} ${tempFile.toAbsolutePath}"
       val process = Process(cmd, cwd = None, extraEnv = "TMPDIR" -> tmpDir.toAbsolutePath.toString)
-      process.!(ProcessLogger(stdout.append(_), stderr.append))
+      runProcessWithTimeout(process)
     }
 
     def decryptWithQpdf(decryptTempFile: Path): Boolean = {

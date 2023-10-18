@@ -3,9 +3,9 @@ package extraction.ocr
 import extraction.{ExtractionParams, FileExtractor}
 import model.manifest.Blob
 import services.ScratchSpace
-import utils.Ocr.OcrSubprocessInterruptedException
+import utils.Ocr.{OcrMyPdfTimeout, OcrSubprocessInterruptedException}
 import utils.OcrStderrLogger
-import utils.attempt.{Failure, SubprocessInterruptedFailure}
+import utils.attempt.{Failure, OcrTimeout, SubprocessInterruptedFailure}
 
 import java.io.File
 import scala.util.control.NonFatal
@@ -27,6 +27,9 @@ abstract class BaseOcrExtractor(scratchSpace: ScratchSpace) extends FileExtracto
     } catch {
       case OcrSubprocessInterruptedException =>
         Left(SubprocessInterruptedFailure)
+
+      case e: OcrMyPdfTimeout =>
+        Left(OcrTimeout(s"${this.name} error - ${e.getMessage}"))
 
       case NonFatal(e) =>
         // Throw exception here instead of returning Left to include stderr and preserve the original stack trace
