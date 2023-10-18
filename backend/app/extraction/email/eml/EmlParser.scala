@@ -46,7 +46,7 @@ class EmlParser(val scratch: ScratchSpace, val ingestionServices: IngestionServi
           .collect { case p: MimeBodyPart => p }
           .flatMap(flattenMultipart)
 
-        val attachments = parts.filter(p => p.getEncoding.toLowerCase() == "base64" && getFilename(p).nonEmpty)
+        val attachments = parts.filter(p => Option(p.getEncoding).filter(_ == "base64").nonEmpty && getFilename(p).nonEmpty)
         val nonAttachments = parts.filter(p => getFilename(p).isEmpty)
 
         val bodyPart = nonAttachments.find(_.getContentType.toLowerCase().startsWith("text/plain"))
