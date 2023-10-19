@@ -142,7 +142,7 @@ class PostgresClientImpl(postgresConfig: PostgresConfig) extends PostgresClient 
               AND blob_extractors.ingest_id = ingestion_events.ingest_id
               -- there is no index on extractorName but we aren't expecting too many events for the same blob_id/ingest_id
               AND blob_extractors.extractor = ingestion_events.details ->> 'extractorName'
-            WHERE ingestion_events.type = 'RunExtractor'
+              AND ingestion_events.type = 'RunExtractor'
             -- A file may be uploaded multiple times within different ingests - use group by to merge them together
             GROUP BY 1,2,3
           )
@@ -201,7 +201,9 @@ class PostgresClientImpl(postgresConfig: PostgresConfig) extends PostgresClient 
             GROUP BY 1,2
           ) AS ie
           LEFT JOIN blob_metadata USING(ingest_id, blob_id)
-          LEFT JOIN extractor_statuses on extractor_statuses.blob_id = ie.blob_id and extractor_statuses.ingest_id = ie.ingest_id
+          LEFT JOIN extractor_statuses
+            ON extractor_statuses.blob_id = ie.blob_id
+            AND extractor_statuses.ingest_id = ie.ingest_id
           GROUP BY 1,2,3,4,5,6,7,8,9,10,11
           ORDER by ingest_start desc
      """.map(rs => {
