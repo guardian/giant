@@ -114,6 +114,8 @@ case class MisconfiguredAccount(msg: String) extends Failure
 
 case class OcrTimeout(msg: String) extends Failure
 
+case class ffMpegFailure(msg: String) extends Failure
+
 case object PreviewNotSupportedFailure extends Failure {
   final override def msg = "Preview not supported for this file type"
 }

@@ -123,7 +123,9 @@ object FailureToResultMapper extends Logging {
       case f: PostgresReadFailure =>
         logger.error(f.msg, f.throwable)
         Results.InternalServerError(f.msg)
-
+      case ffMpegFailure(msg) =>
+        logger.error(msg)
+        Results.InternalServerError(msg)
     }
   }
 }
