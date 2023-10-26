@@ -3,7 +3,7 @@
 Giant makes it easier for journalists to search, analyse, categorise and share unstructured data.
 It takes many file formats, indexes them (including converting images to text using OCR) and
 provides a UI for search. Users can upload their own files but it also scales up to terabytes
-of data. 
+of data.
 
 ![Screenshot of Giant search](docs/images/giant-screenshot.png)
 
@@ -77,7 +77,7 @@ Run the Scala backend:
 ```
 
 This will also automatically launch the databases in the background by running
-`docker-compose up -d`. 
+`docker-compose up -d`.
 
 In a separate terminal, run the [Create React App](https://github.com/facebook/create-react-app)
 frontend:
@@ -205,3 +205,6 @@ whilst it was closed source at the Guardian:
 - [Max Duval](https://github.com/mxdvl)
 - [Mateusz](https://github.com/paperboyo)
 - [Maria Livia Chiorean](https://github.com/marialivia16)
+- [Marjan Kalanki](https://github.com/marjisound)
+- [Philip McMahon](https://github.com/philmcmahon)
+- [Zeke Hunter-Green](https://github.com/zekehuntergreen)
