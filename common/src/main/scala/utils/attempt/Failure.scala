@@ -90,6 +90,10 @@ case class PostgresWriteFailure(throwable: Throwable) extends FailureWithThrowab
   final override def msg = "Failed to write to postgres"
 }
 
+case class FfMpegFailure(throwable: Throwable, message: String) extends FailureWithThrowable {
+  final override def msg = message  + " - " + super.msg
+}
+
 case class UserDoesNotExistFailure(username: String) extends HiddenFailure {
   final override def actualMessage = s"$username does not exist"
   final override def msg = "Login failure"
