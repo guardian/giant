@@ -1,1 +1,0 @@
-~/code/whisper.cpp/main -m ~/code/whisper.cpp/models/ggml-large.bin "$@";
