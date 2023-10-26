@@ -7,6 +7,9 @@ object FfMpeg extends Logging {
 
   case class FfMpegSubprocessCrashedException(exitCode: Int, stderr: String) extends Exception(s"Exit code: $exitCode: ${stderr}")
 
+  // whisper.cpp only works on 16 bit wavs, so this steps
+  // is necessary before whisper transcription or translation
+  // More details can be found in https://github.com/ggerganov/whisper.cpp#quick-start
   def convertToWav(originalFile: Path, tmpDir: Path): Path = {
     val ffMpegStdErrLogger = new BasicStdErrLogger()
     val tempFile = tmpDir.resolve(s"${originalFile.getFileName}.wav")
