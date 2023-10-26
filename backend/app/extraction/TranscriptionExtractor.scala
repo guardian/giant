@@ -1,28 +1,41 @@
 package extraction
 
-import model.{English, Language, Languages}
+import cats.syntax.either._
 import model.manifest.Blob
+import model.{English, Languages}
 import org.apache.commons.io.FileUtils
-import services.{ScratchSpace, Tika}
+import services.ScratchSpace
 import services.index.Index
 import services.ingestion.IngestionServices
-import utils.{FfMpeg, Logging, OcrStderrLogger, TranscriptionResult, Whisper}
-import utils.attempt.AttemptAwait._
-import utils.attempt.{Failure, UnknownFailure, ffMpegFailure}
-import cats.syntax.either._
 import utils.FfMpeg.FfMpegSubprocessCrashedException
+import utils.attempt.{Failure, FfMpegFailure, UnknownFailure}
+import utils._
 
-import java.io.{File, InputStream}
-import scala.concurrent.ExecutionContext
+import java.io.File
 import scala.io.Source
-import scala.reflect.runtime.universe.Try
-import scala.util.control.NonFatal
 
 class TranscriptionExtractor(index: Index, scratchSpace: ScratchSpace, ingestionServices: IngestionServices) extends FileExtractor(scratchSpace) with Logging {
   val mimeTypes: Set[String] = Set(
     "audio/wav",
     "audio/vnd.wave",
-    "audio/x-aiff"
+    "audio/x-aiff", // converted and transcribed. But preview doesn't work
+    "audio/mpeg",
+    "audio/aac", // tika can't detect this!!
+    "audio/vorbis", // Converted by ffmpeg but failed in whisper
+    "audio/opus",
+    "audio/amr", // converted and transcribed. But preview doesn't work
+    "audio/amr-wb", // Couldn't find a sample to test
+    "audio/x-caf", // Couldn't find a sample to test
+    "audio/mp4", // Couldn't find a sample to test
+    "audio/x-ms-wma", // converted and transcribed. But preview doesn't work
+    "video/3gpp",
+    "video/mp4", // quicktime detected for some of mp4 samples
+    "video/quicktime",
+    "video/x-flv", // converted and transcribed. But preview doesn't work
+    "video/x-ms-wmv", // converted and transcribed. But preview doesn't work
+    "video/x-msvideo", // converted and transcribed. But preview doesn't work
+    "video/x-m4v",
+    "video/mpeg" // converted and transcribed. But preview doesn't work
   )
 
   def canProcessMimeType: String => Boolean = mimeTypes.contains
@@ -60,8 +73,9 @@ class TranscriptionExtractor(index: Index, scratchSpace: ScratchSpace, ingestion
       index.addDocumentTranscription(blob.uri, Some(outputText), Languages.getByIso6391Code(transcriptResult.language).getOrElse(English))
       ()
     }.leftMap{
-      case e: FfMpegSubprocessCrashedException =>
-        ffMpegFailure(s"ffMpeg failure with exit code ${e.exitCode}")
+      case error: FfMpegSubprocessCrashedException =>
+        logger.error (s"${this.name} error ${stdErrLogger.getOutput}", error)
+        FfMpegFailure(error, s"FfMpegFailure - exit code ${error.exitCode}")
       case error =>
         logger.error (s"${this.name} error ${stdErrLogger.getOutput}", error)
         UnknownFailure.apply (error)
@@ -77,6 +91,5 @@ class TranscriptionExtractor(index: Index, scratchSpace: ScratchSpace, ingestion
     // pick most human readable version
     // convert to PDF?
     // make sure pdf gets pageviewerified
-
   }
 }

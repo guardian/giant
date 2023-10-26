@@ -90,6 +90,10 @@ case class PostgresWriteFailure(throwable: Throwable) extends FailureWithThrowab
   final override def msg = "Failed to write to postgres"
 }
 
+case class FfMpegFailure(throwable: Throwable, message: String) extends FailureWithThrowable {
+  final override def msg = message  + " - " + super.msg
+}
+
 case class UserDoesNotExistFailure(username: String) extends HiddenFailure {
   final override def actualMessage = s"$username does not exist"
   final override def msg = "Login failure"
@@ -113,8 +117,6 @@ case class PanDomainCookieInvalid(override val msg: String, reportAsFailure: Boo
 case class MisconfiguredAccount(msg: String) extends Failure
 
 case class OcrTimeout(msg: String) extends Failure
-
-case class ffMpegFailure(msg: String) extends Failure
 
 case object PreviewNotSupportedFailure extends Failure {
   final override def msg = "Preview not supported for this file type"
