@@ -114,7 +114,7 @@ object HitReaders {
             resource.copy(
               text = highlights.flatMap(highlightedText(_, text)).getOrElse(resource.text),
               ocr = highlightedOcr(highlights).orElse(resource.ocr),
-              transcript = highlightedTranscript(highlights).orElse(resource.ocr)
+              transcript = highlightedTranscript(highlights, resource.transcript).orElse(resource.transcript)
             )
           )
 
@@ -308,15 +308,24 @@ object HitReaders {
     }
   }
 
-  private def highlightedTranscript(maybeHighlights: Option[Map[String, Seq[String]]]): Option[Map[String, String]] = {
+  private def highlightedTranscript(maybeHighlights: Option[Map[String, Seq[String]]], maybeTranscript: Option[Map[String, String]]): Option[Map[String, String]] = {
     maybeHighlights match {
       case Some(highlights) if highlights.nonEmpty =>
         val prefix = IndexFields.transcript + "."
 
-        Some(highlights.collect {
+        val highlightedLanguages = highlights.collect {
           case (key, values) if key.startsWith(IndexFields.transcript) && values.nonEmpty =>
             key.substring(prefix.length) -> values.head
-        })
+        }
+        // don't discard languages without matches
+        val nonHighlightedLanguages = maybeTranscript.map { transcript =>
+          transcript.collect {
+            case (key, value) if !highlightedLanguages.contains(key) =>
+              key -> value
+          }
+        }
+
+        Some(highlightedLanguages ++ nonHighlightedLanguages.getOrElse(Map()))
 
       case _ =>
         None
