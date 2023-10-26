@@ -180,7 +180,31 @@ Giant uses the Apache 2.0 licence. Some libraries used are licensed separately:
 - `.png`, `.jpg`, `.tiff` images (including OCR)
 - `.pdf` (including OCR)
 - Microsoft Office Word, Excel and Powerpoint files
-- Various plain text files (see [DocumentBodyExtractor](./backend/app/extraction/DocumentBodyExtractor.scala))
+- Various plain text files (see
+  [DocumentBodyExtractor](./backend/app/extraction/DocumentBodyExtractor.scala))
+- Audio files
+  - fully supported
+    - `.wav`
+    - `.mpeg`
+    - `.opus`
+    - `.caf`
+    - `.mp4`
+    - `.aac` (tika sometimes has trouble detecting these)
+  - transcribed but preview doesn't work
+    - `.aff`
+    - `.amr`
+    - `.wma`
+- Video files
+  - fully supported
+    - `.mov`, `.qt`
+    - `.m4v`
+    - `.3gpp`
+    - `.mp4`
+  - transcribed but preview doesn't work
+    - `.flv`
+    - `.wmv`
+    - `.msvideo`
+    - `.mpeg`
 
 ## Experimental features
 
