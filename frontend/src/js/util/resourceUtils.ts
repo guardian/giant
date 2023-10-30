@@ -73,7 +73,7 @@ export function getDefaultView(resource: Resource): string | undefined {
     }
 
     if (resource.transcript) {
-        return "transcript." + Object.keys(resource.transcript)[0];
+        return `transcript.${Object.keys(resource.transcript)[0]}`;
     }
 
     // We removed the isBasic check in Viewer during conversion to Typescript because it meant changing the definitions
