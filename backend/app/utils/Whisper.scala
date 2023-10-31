@@ -1,16 +1,26 @@
 package utils
 
 import java.nio.file.Path
+import scala.io.Source
 import scala.sys.process._
 
-case class TranscriptionResult(path: Path, language: String)
+case class TranscriptionResult(text: String, language: String)
 
 object Whisper extends Logging {
   private class WhisperSubprocessCrashedException(exitCode: Int, stderr: String) extends Exception(s"Exit code: $exitCode: ${stderr}")
 
 
-  def invokeWhisper(audioFilePath: Path, tmpDir: Path, translate: Boolean): TranscriptionResult = {
-    val whisperLogger = new BasicStdErrLogger()
+  def getTranscriptOutputText(outputFile: Path) = {
+    //for some reason whisper adds an extra .txt extension
+    val outputLocation = outputFile.resolveSibling(outputFile.getFileName.toString + ".txt")
+    val outputSource = Source.fromFile(outputLocation.toFile)
+    val outputText = outputSource.getLines().toList.mkString("\n")
+    outputSource.close()
+    outputText
+  }
+
+
+  def invokeWhisper(audioFilePath: Path, tmpDir: Path, whisperLogger: BasicStdErrLogger, translate: Boolean): TranscriptionResult = {
     val tempFile = tmpDir.resolve(s"${audioFilePath.getFileName}")
 
     val translateParam = if(translate) "--translate" else ""
@@ -19,10 +29,15 @@ object Whisper extends Logging {
 
     exitCode match {
       case 0 =>
-        val detectedLanguage = whisperLogger.getOutput.split("auto-detected language: ")(1).slice(0,2).mkString("")
-        println(s"ah ${whisperLogger.getOutput}")
-        //for some reason whisper adds an extra .txt extension
-        TranscriptionResult(tempFile.resolveSibling(tempFile.getFileName.toString + ".txt"), detectedLanguage)
+        val transcriptText = getTranscriptOutputText(tempFile)
+        val languageSplit = whisperLogger.getOutput.split("auto-detected language: ")
+        if (languageSplit.length > 1) {
+          val detectedLanguage = if (translate) "en" else languageSplit(1).slice(0,2).mkString("")
+          TranscriptionResult(transcriptText, detectedLanguage)
+        } else {
+          logger.warn("Failed to detect language - transcription may have failed. Falling back to english.")
+          TranscriptionResult(transcriptText, "en")
+        }
       case _ =>
         logger.error("Whisper extraction failed")
         throw new WhisperSubprocessCrashedException(exitCode, whisperLogger.getOutput)

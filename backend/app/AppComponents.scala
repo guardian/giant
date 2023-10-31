@@ -161,7 +161,7 @@ class AppComponents(context: Context, config: Config)
     val imageOcrExtractor = new ImageOcrExtractor(config.ocr, scratchSpace, esResources, ingestionServices)
     val ocrMyPdfImageExtractor = new OcrMyPdfImageExtractor(config.ocr, scratchSpace, esResources, previewStorage, ingestionServices)
 
-    val transcriptionExtractor = new TranscriptionExtractor(esResources, scratchSpace, ingestionServices)
+    val transcriptionExtractor = new TranscriptionExtractor(esResources, scratchSpace)
 
     val ocrExtractors = config.ocr.defaultEngine match {
       case OcrEngine.OcrMyPdf => List(ocrMyPdfExtractor, ocrMyPdfImageExtractor)

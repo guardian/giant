@@ -83,11 +83,11 @@ class PreviewSwitcher extends React.Component {
         this.props.setResourceView('table');
     }
 
-    renderMultiLangLinks(current, view) {
+    renderMultiLangLinks(current, view, textPrefix) {
         if (_.get(this.props.resource, view)) {
             const languages = Object.keys(_.get(this.props.resource, view));
             if (languages.length > 0) {
-                return languages.map( l => <PreviewLink key={l} current={current} to={`${view}.${l}`} text={`Transcript (${_.startCase(l)})`} navigate={this.props.setResourceView} />);
+                return languages.map( l => <PreviewLink key={l} current={current} to={`${view}.${l}`} text={`${textPrefix || ''} (${_.startCase(l)})`} navigate={this.props.setResourceView} />);
             }
         }
         return false;
@@ -101,9 +101,9 @@ class PreviewSwitcher extends React.Component {
         return <nav className='preview__links'>
             <KeyboardShortcut shortcut={keyboardShortcuts.showText} func={this.showText} />
             <KeyboardShortcut shortcut={keyboardShortcuts.showPreview} func={this.showPreview} />
-            {this.props.resource.text  ? <PreviewLink current={current} text='Text' to='text' navigate={this.props.setResourceView} />    : false}
-            {this.props.resource.transcript  ? this.renderMultiLangLinks(current, 'transcript')    : false}
-            {!this.props.resource.transcript && this.renderMultiLangLinks(current, 'ocr')}
+            {this.props.resource.text && !this.props.resource.transcript ? <PreviewLink current={current} text='Text' to='text' navigate={this.props.setResourceView} />    : false}
+            {this.props.resource.transcript  ? this.renderMultiLangLinks(current, 'transcript', 'Transcript')    : false}
+            {!this.props.resource.transcript && this.renderMultiLangLinks(current, 'ocr', 'OCR')}
             {this.canPreview(this.props.resource.previewStatus) ? <PreviewLink current={current} text='Preview' to='preview' navigate={this.props.setResourceView} /> : false}
             {parents && parents.some(m => m.uri.endsWith("csv") || m.uri.endsWith("tsv")) && <PreviewLink current={current} text="Table" to="table" navigate={this.props.setResourceView} /> }
         </nav>;
