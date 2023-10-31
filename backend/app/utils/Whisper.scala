@@ -20,8 +20,7 @@ object Whisper extends Logging {
   }
 
 
-  def invokeWhisper(audioFilePath: Path, tmpDir: Path, translate: Boolean): TranscriptionResult = {
-    val whisperLogger = new BasicStdErrLogger()
+  def invokeWhisper(audioFilePath: Path, tmpDir: Path, whisperLogger: BasicStdErrLogger, translate: Boolean): TranscriptionResult = {
     val tempFile = tmpDir.resolve(s"${audioFilePath.getFileName}")
 
     val translateParam = if(translate) "--translate" else ""
