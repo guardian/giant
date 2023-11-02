@@ -24,7 +24,9 @@ class RequestLoggingFilter(override val mat: Materializer)(implicit ec: Executio
       case Success(response) =>
         val duration = System.currentTimeMillis() - start
         val (structuredMessage, message) = RequestLoggingFilter.buildSuccessMessage(rh, response, duration)
-        logger.info(structuredMessage, message)
+        if (rh.path != "/healthcheck") {
+          logger.info(structuredMessage, message)
+        }
 
       case Failure(err) =>
         val duration = System.currentTimeMillis() - start
