@@ -69,7 +69,6 @@ class DefaultAuthActionBuilder(val controllerComponents: ControllerComponents, f
                 )
             }
           } else {
-            logger.info(token.user.asLogMarker, s"Authentication succeeded")
             Right(result
               .refreshJwtSession
               .addingToJwtSession(Token.REFRESHED_AT_KEY, now)
