@@ -24,7 +24,7 @@ object Whisper extends Logging {
     val tempFile = tmpDir.resolve(s"${audioFilePath.getFileName}")
 
     val translateParam = if(translate) "--translate" else ""
-    val cmd = s"/opt/whisper/whisper.cpp/main -m /opt/whisper/whisper.cpp/models/ggml-large.bin -f ${audioFilePath.toString} --output-txt --output-file ${tempFile.toString} -l auto ${translateParam}"
+    val cmd = s"/opt/whisper/whisper.cpp/main -m /opt/whisper/whisper.cpp/models/ggml-base.bin -f ${audioFilePath.toString} --output-txt --output-file ${tempFile.toString} -l auto ${translateParam}"
     val exitCode = Process(cmd, cwd = None).!(ProcessLogger(stdout.append(_), whisperLogger.append))
 
     exitCode match {
