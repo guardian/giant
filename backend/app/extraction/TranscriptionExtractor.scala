@@ -41,7 +41,8 @@ class TranscriptionExtractor(index: Index, scratchSpace: ScratchSpace) extends F
   def canProcessMimeType: String => Boolean = mimeTypes.contains
 
   override def indexing = true
-  override def priority = 5
+  // set a low priority as transcription takes a long time, we don't want to block up the workers
+  override def priority = 1
 
   override def extract(blob: Blob, file: File, params: ExtractionParams): Either[Failure, Unit] = {
     logger.info(s"Running transcription extractor '${blob.uri.value}'")
