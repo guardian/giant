@@ -36,7 +36,8 @@ object ExtractorType extends Enumeration {
   val OlmEmailExtractor, ZipExtractor, RarExtractor, DocumentBodyExtractor,
     PstEmailExtractor, EmlEmailExtractor, MsgEmailExtractor, MBoxEmailExtractor,
     CsvTableExtractor, ExcelTableExtractor, OcrMyPdfExtractor, OcrMyPdfImageExtractor,
-    TesseractPdfOcrExtractor, ImageOcrExtractor, UnknownExtractor = Value
+    TesseractPdfOcrExtractor, ImageOcrExtractor, UnknownExtractor, TranscriptionExtractor = Value
+
   def withNameCustom(s: String): Value = {
     values.find(_.toString == s) match {
       case Some(value) => value

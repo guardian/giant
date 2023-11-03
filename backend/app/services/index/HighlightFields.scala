@@ -12,6 +12,7 @@ object HighlightFields {
   private val defaultMappings: Map[String, String] = Map(
     text -> "Body Text",
     ocr -> "OCR Text",
+    transcript -> "Transcript Text",
     metadataField + "." + metadata.subject -> "Email Subject",
     metadataField + "." + metadata.fromField + "." + metadata.recipients.name -> "Email From",
     metadataField + "." + metadata.fromField + "." + metadata.recipients.address -> "Email From",
@@ -49,8 +50,9 @@ object HighlightFields {
   def textHighlighters(topLevelSearchQuery: QueryStringQuery): List[HighlightField] = {
     val textFieldHighlighters = languageHighlighters(IndexFields.text, topLevelSearchQuery)
     val ocrFieldHighlighters = languageHighlighters(IndexFields.ocr, topLevelSearchQuery)
+    val transcriptFieldHighlighters = languageHighlighters(IndexFields.transcript, topLevelSearchQuery)
 
-    textFieldHighlighters ++ ocrFieldHighlighters
+    textFieldHighlighters ++ ocrFieldHighlighters ++ transcriptFieldHighlighters
   }
 
   def parseHit(hit: SearchHit): Seq[Highlight] = {
@@ -106,7 +108,7 @@ object HighlightFields {
     // as multiple languages. The vast majority are processed using a single language.
 
     highlights.foldLeft(Map.empty[String, Seq[String]]) {
-      case (acc, (key, values)) if key.startsWith(IndexFields.ocr) =>
+      case (acc, (key, values)) if key.startsWith(IndexFields.ocr) || key.startsWith(IndexFields.transcript) =>
         acc + (key -> values)
 
       case (acc, (key, values)) =>

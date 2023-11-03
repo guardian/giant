@@ -17,7 +17,7 @@ import extraction.email.olm.OlmEmailExtractor
 import extraction.email.pst.PstEmailExtractor
 import extraction.ocr.{ImageOcrExtractor, OcrMyPdfExtractor, OcrMyPdfImageExtractor, TesseractPdfOcrExtractor}
 import extraction.tables.{CsvTableExtractor, ExcelTableExtractor}
-import extraction.{DocumentBodyExtractor, MimeTypeMapper, Worker}
+import extraction.{DocumentBodyExtractor, MimeTypeMapper, TranscriptionExtractor, Worker}
 import ingestion.phase2.IngestStorePolling
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.neo4j.driver.v1.{AuthTokens, GraphDatabase}
@@ -161,6 +161,8 @@ class AppComponents(context: Context, config: Config)
     val imageOcrExtractor = new ImageOcrExtractor(config.ocr, scratchSpace, esResources, ingestionServices)
     val ocrMyPdfImageExtractor = new OcrMyPdfImageExtractor(config.ocr, scratchSpace, esResources, previewStorage, ingestionServices)
 
+    val transcriptionExtractor = new TranscriptionExtractor(esResources, scratchSpace)
+
     val ocrExtractors = config.ocr.defaultEngine match {
       case OcrEngine.OcrMyPdf => List(ocrMyPdfExtractor, ocrMyPdfImageExtractor)
       case OcrEngine.Tesseract => List(tesseractPdfOcrExtractor, imageOcrExtractor)
@@ -169,7 +171,7 @@ class AppComponents(context: Context, config: Config)
     val csvTableExtractor = new CsvTableExtractor(scratchSpace, esTables)
     val excelTableExtractor = new ExcelTableExtractor(scratchSpace, esTables)
 
-    val extractors = List(olmExtractor, zipExtractor, rarExtractor, documentBodyExtractor, pstExtractor, emlExtractor, msgExtractor, mboxExtractor, csvTableExtractor, excelTableExtractor) ++ ocrExtractors
+    val extractors = List(olmExtractor, zipExtractor, rarExtractor, documentBodyExtractor, pstExtractor, emlExtractor, msgExtractor, mboxExtractor, csvTableExtractor, excelTableExtractor, transcriptionExtractor) ++ ocrExtractors
     extractors.foreach(mimeTypeMapper.addExtractor)
 
     // Common components
