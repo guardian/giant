@@ -1,10 +1,10 @@
 <configuration>
 
     <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>logs/frontend.log</file>
+        <file>${LOGS_DIR}logs/frontend.log</file>
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
             <!-- Daily rollover with compression -->
-            <fileNamePattern>logs/frontend-log-%d{yyyy-MM-dd}.gz</fileNamePattern>
+            <fileNamePattern>${LOGS_DIR}logs/frontend-log-%d{yyyy-MM-dd}.gz</fileNamePattern>
             <!-- number of days -->
             <maxHistory>14</maxHistory>
         </rollingPolicy>
@@ -14,10 +14,10 @@
     </appender>
 
     <appender name="JSON" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>logs/frontend.log.json</file>
+        <file>${LOGS_DIR}logs/frontend.log.json</file>
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
             <!-- Daily rollover with compression -->
-            <fileNamePattern>logs/frontend-log-json-%d{yyyy-MM-dd}.gz</fileNamePattern>
+            <fileNamePattern>${LOGS_DIR}logs/frontend-log-json-%d{yyyy-MM-dd}.gz</fileNamePattern>
             <!-- number of days -->
             <maxHistory>14</maxHistory>
         </rollingPolicy>
@@ -25,10 +25,10 @@
     </appender>
 
     <appender name="ACCESS_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>logs/frontend-access.log</file>
+        <file>${LOGS_DIR}logs/frontend-access.log</file>
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
             <!-- daily rollover with compression -->
-            <fileNamePattern>logs/frontend-access-log-%d{yyyy-MM-dd}.gz</fileNamePattern>
+            <fileNamePattern>${LOGS_DIR}logs/frontend-access-log-%d{yyyy-MM-dd}.gz</fileNamePattern>
             <!-- keep 1 day of history -->
             <maxHistory>1</maxHistory>
         </rollingPolicy>
@@ -39,10 +39,10 @@
 
 
     <appender name="ACCESS_JSON" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>logs/frontend-access.log.json</file>
+        <file>${LOGS_DIR}logs/frontend-access.log.json</file>
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
             <!-- Daily rollover with compression -->
-            <fileNamePattern>logs/frontend-access-json-%d{yyyy-MM-dd}.gz</fileNamePattern>
+            <fileNamePattern>${LOGS_DIR}logs/frontend-access-json-%d{yyyy-MM-dd}.gz</fileNamePattern>
             <!-- number of days -->
             <maxHistory>14</maxHistory>
         </rollingPolicy>
@@ -50,10 +50,10 @@
     </appender>
 
     <appender name="SLOW_QUERY_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>logs/frontend-slow_queries.log</file>
+        <file>${LOGS_DIR}logs/frontend-slow_queries.log</file>
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
             <!-- Daily rollover with compression -->
-            <fileNamePattern>logs/frontend-slow_queries-log-%d{yyyy-MM-dd}.gz</fileNamePattern>
+            <fileNamePattern>${LOGS_DIR}logs/frontend-slow_queries-log-%d{yyyy-MM-dd}.gz</fileNamePattern>
             <!-- keep 30 days worth of history -->
             <maxHistory>30</maxHistory>
         </rollingPolicy>

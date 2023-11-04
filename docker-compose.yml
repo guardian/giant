@@ -1,67 +1,80 @@
 version: '3'
 services:
   neo4j:
-    image: ${NEO4J_IMAGE_OVERRIDE:-neo4j:3.4.0}
+    image: docker.io/${NEO4J_IMAGE_OVERRIDE:-neo4j:3.5.35}
     container_name: pfi-neo4j
     environment:
       NEO4J_AUTH: neo4j/bob
-      NEO4J_dbms_connector_bolt_advertised__address: bolt.neo4j.pfi.local.dev-gutools.co.uk:443
     volumes:
       - neo4j:/var/lib/neo4j/data
     ports:
-      - 7474:7474
-      - 7687:7687
+      - 127.0.0.1:7474:7474
+      - 127.0.0.1:7687:7687
 
   elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch:7.9.3
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.17.14
     container_name: pfi-elasticsearch
     environment:
       - discovery.type=single-node
-      - network.publish_host=127.0.0.1
+      - network.publish_host=elasticsearch
       - bootstrap.memory_lock=true
       - "ES_JAVA_OPTS=-Xms4g -Xmx4g"
       - xpack.security.enabled=false
       - bootstrap.system_call_filter=false
+    ports:
+      - 127.0.0.1:9200:9200
     ulimits:
       memlock:
         soft: -1
         hard: -1
     volumes:
       - elasticsearch:/usr/share/elasticsearch/data
-    ports:
-      - 9200:9200
+    healthcheck:
+      test: curl -u elastic:elastic -s -f elasticsearch:9200/_cat/health >/dev/null || exit 1
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 2s
 
   cerebro:
-    image: lmenezes/cerebro:0.9.3
+    image: docker.io/lmenezes/cerebro:0.9.4
     container_name: pfi-cerebro
     ports:
-      - 9092:9000
+      - 127.0.0.1:9092:9000
     command: '-Dconfig.file=/opt/cerebro/conf/cerebro.conf'
     volumes:
       - ${PWD}/util/local-cerebro.conf:/opt/cerebro/conf/cerebro.conf
 
   minio:
-    image: minio/minio:RELEASE.2022-03-05T06-32-39Z
+    image: docker.io/minio/minio:RELEASE.2022-06-25T15-50-16Z
     container_name: pfi-minio
     environment:
       MINIO_ROOT_USER: minio-user
       MINIO_ROOT_PASSWORD: reallyverysecret
     volumes:
       - minio:/export
-    ports:
-      - 9090:9000
-      - 9091:9001
     entrypoint:
       sh
     command:
       -c 'mkdir -p /export/ingest-data && mkdir -p /export/ingest-data-dead-letter && mkdir -p /export/data && mkdir -p /export/preview && minio server /export --console-address ":9001"'
+    healthcheck:
+      test: curl -s -f localhost:9000/minio/health/live >/dev/null || exit 1
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 2s
 
   postgres:
-    image: postgres:15.3
+    image: docker.io/postgres:15
+    container_name: pfi-postgres
     # make sure there's enough memory to run VACUUM
     shm_size: 1g
-    ports:
-      - 8432:5432
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U giant_master"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 2s
     environment:
       - POSTGRES_USER=giant_master
       - POSTGRES_PASSWORD=giant
@@ -71,15 +84,84 @@ services:
     command:
       ["postgres", "-c", "log_statement=all", "-c", "random_page_cost=1.5"]
 
+  migrate-db:
+    container_name: pfi-migrate-db
+    build:
+      context: .
+      target: migrate-db
+    environment:
+      - PGUSER=giant_master
+      - PGHOST=postgres
+      - PGPASSWORD=giant
+      - PGDATABASE=giant
+      - PGPORT=5432
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  giant:
+    container_name: pfi-giant
+    init: true
+    environment:
+      - APPLICATION_SECRET=vV1BieEoZu7XgEc8FXaJK5OZ8Jq+JeczW9wXm3ZCUkg= # changeme
+      - NEO4J_URL=bolt://neo4j:7687
+      - NEO4J_USER=neo4j
+      - NEO4J_PASSWORD=bob
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=giant_master
+      - POSTGRES_PASSWORD=giant
+      - S3_ENDPOINT=http://minio:9000
+      - S3_ACESS_KEY=minio-user
+      - S3_SECRET_KEY=reallyverysecret
+      - LOGS_DIR=/logs/
+    tmpfs:
+      - /tmp
+      - /logs
+#    volumes:
+#      - ./backend/conf/application.conf:/app/conf/application.conf:ro
+    build:
+      context: .
+      target: runner
+    ports:
+      - 127.0.0.1:9001:9001
+    depends_on:
+      postgres:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      neo4j:
+        condition: service_started
+      migrate-db:
+        condition: service_completed_successfully
+
 volumes:
   neo4j:
     driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /mnt/hdd3/giant/neo4j
 
   elasticsearch:
     driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /mnt/hdd3/giant/elasticsearch
 
   minio:
     driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /mnt/hdd3/giant/minio
 
   postgres-data:
     driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /mnt/hdd3/giant/postgres

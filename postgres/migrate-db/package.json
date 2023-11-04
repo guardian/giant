@@ -4,7 +4,8 @@
         "start": "NODE_OPTIONS=--max_old_space_size=4906 esr src/index.ts",
         "type-check": "tsc --noEmit",
         "bundle": "esbuild ./src/index.ts --bundle --platform=node --external:pg --external:pg-format --outfile=./build/index.js",
-        "build": "run-p --print-label type-check bundle"
+        "build": "run-p --print-label type-check bundle",
+        "migrate": "postgrator --driver pg --migration-pattern 'src/migrations/*'"
     },
     "dependencies": {
         "@aws-sdk/client-secrets-manager": "^3.395.0",
@@ -21,6 +22,7 @@
         "@types/pg": "^8.6.1",
         "esbuild": "0.14.13",
         "esbuild-runner": "^2.2.1",
+        "postgrator-cli": "^5.0.0",
         "typescript": "4.5.3"
     }
 }
