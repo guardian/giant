@@ -47,6 +47,7 @@ import { RouteComponentProps } from 'react-router-dom';
 import { reprocessBlob } from '../../actions/workspaces/reprocessBlob';
 import { DeleteModal, DeleteStatus } from './DeleteModal';
 import { PartialUser } from '../../types/User';
+import { getMyPermissions } from '../../actions/users/getMyPermissions';
 
 
 type Props = ReturnType<typeof mapStateToProps>
@@ -331,6 +332,10 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
             document.title = "Workspaces - Giant";
         }
     };
+
+    UNSAFE_componentWillMount() {
+        this.props.getMyPermissions();
+    }
 
     UNSAFE_componentWillReceiveProps(nextProps: Props) {
         const workspaceId = this.props.match.params.id;
@@ -625,6 +630,7 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
                     focusedEntry={this.props.focusedEntry}
                     workspaces={this.props.workspacesMetadata}
                     expandedNodes={this.props.expandedNodes}
+                    isAdmin={this.props.myPermissions.includes('CanPerformAdminOperations')}
                 />
                 <div className='workspace'>
                     {this.renderFolderTree(this.props.currentWorkspace)}
@@ -660,6 +666,7 @@ function mapStateToProps(state: GiantState) {
         users: state.users.userList,
         expandedNodes: state.workspaces.expandedNodes,
         collections: state.collections,
+        myPermissions: state.users.myPermissions,
     };
 }
 
@@ -691,7 +698,8 @@ function mapDispatchToProps(dispatch: GiantDispatch) {
         listUsers: bindActionCreators(listUsers, dispatch),
         getCollections: bindActionCreators(getCollections, dispatch),
         getWorkspacesMetadata: bindActionCreators(getWorkspacesMetadata, dispatch),
-        getWorkspace: bindActionCreators(getWorkspace, dispatch)
+        getWorkspace: bindActionCreators(getWorkspace, dispatch),
+        getMyPermissions: bindActionCreators(getMyPermissions, dispatch),
     };
 }
 

@@ -244,7 +244,9 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
   override def deleteWorkspace(currentUser: String, workspace: String): Attempt[Unit] = attemptTransaction { tx =>
     tx.run(
       """
-        |MATCH (workspace: Workspace {id: {workspaceId}})<-[:CREATED]-(u: User {username: {username}})
+        |MATCH (user: User { username: {username} })
+        |MATCH (workspace: Workspace {id: {workspaceId}})<-[:CREATED]-(u:User)
+        |WHERE u.username = {username} OR (workspace.isPublic and (:Permission {name: "CanPerformAdminOperations"})<-[:HAS_PERMISSION]-(user))
         |MATCH (workspace)<-[:PART_OF]-(node: WorkspaceNode)
         |
         |DETACH DELETE node
