@@ -12,7 +12,8 @@ import { getChildResource } from '../../actions/resources/getResource';
 type PropTypes = {
     rootResource: Resource,
     descendantResources: {[uri: string]: BasicResource},
-    getChildResource: typeof getChildResource
+    getChildResource: typeof getChildResource,
+    onContextMenu?: (e: React.MouseEvent, entry: TreeEntry<BasicResource>) => void,
 }
 
 function resourceToTreeEntry(rootResource: BasicResource, descendantResources: {[uri: string]: BasicResource}): TreeEntry<BasicResource> {
@@ -59,7 +60,7 @@ function renderIcon(resource: BasicResource) {
     }
 }
 
-export default function LazyTreeBrowser({ rootResource, descendantResources, getChildResource }: PropTypes
+export default function LazyTreeBrowser({ rootResource, descendantResources, getChildResource, onContextMenu }: PropTypes
 ) {
     // You can't currently perform any actions after selecting a resource but we
     // highlight it anyway to avoid the UI feeling broken
@@ -145,7 +146,7 @@ export default function LazyTreeBrowser({ rootResource, descendantResources, get
             onExpandLeaf={onExpandLeaf}
             onExpandNode={onExpandNode}
             onCollapseNode={onCollapseNode}
-            onContextMenu={() => {}}
+            onContextMenu={onContextMenu || (() => {})}
             showColumnHeaders={false}
         />
     </React.Fragment>);

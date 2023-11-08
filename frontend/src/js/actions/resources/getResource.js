@@ -34,6 +34,8 @@ export function getBasicResource(uri, highlightQuery) {
     return dispatch => {
         return fetchResource(uri, true, highlightQuery)
             .then(res => {
+                console.log("getBasicResource: ");
+                console.log(res);
                 handleResourceResponse(dispatch, res)
             })
             .catch(error => dispatch(errorReceivingResource(error)));
