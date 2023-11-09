@@ -6,15 +6,14 @@ import model.{English, Languages}
 import org.apache.commons.io.FileUtils
 import services.ScratchSpace
 import services.index.Index
-import services.ingestion.IngestionServices
 import utils.FfMpeg.FfMpegSubprocessCrashedException
 import utils.attempt.{Failure, FfMpegFailure, UnknownFailure}
 import utils._
 
+import scala.concurrent.ExecutionContext
 import java.io.File
-import scala.io.Source
 
-class TranscriptionExtractor(index: Index, scratchSpace: ScratchSpace) extends FileExtractor(scratchSpace) with Logging {
+class TranscriptionExtractor(index: Index, scratchSpace: ScratchSpace)(implicit executionContext: ExecutionContext) extends FileExtractor(scratchSpace) with Logging {
   val mimeTypes: Set[String] = Set(
     "audio/wav",
     "audio/vnd.wave",
@@ -57,8 +56,14 @@ class TranscriptionExtractor(index: Index, scratchSpace: ScratchSpace) extends F
       val transcriptResult: TranscriptionResult = Whisper.invokeWhisper(convertedFile, tmpDir, stdErrLogger, translate =false)
       val translationResult = if (transcriptResult.language != "en") Some(Whisper.invokeWhisper(convertedFile, tmpDir, stdErrLogger, translate=true)) else None
 
-      index.addDocumentTranscription(blob.uri, Some(transcriptResult.text), Languages.getByIso6391Code(transcriptResult.language).getOrElse(English))
-      translationResult.map(tr => index.addDocumentTranscription(blob.uri, Some(tr.text), English))
+      index.addDocumentTranscription(blob.uri, transcriptResult.text, translationResult.map(r => r.text), Languages.getByIso6391Code(transcriptResult.language)
+        .getOrElse(English)).recoverWith {
+        case _ =>
+          val msg = s"Failed to write transcript result to elasticsearch. Transcript language: ${transcriptResult.language}"
+          logger.error(msg)
+          // throw the error - will be caught by catchNonFatal
+          throw new Error(msg)
+      }
       ()
     }.leftMap{
       case error: FfMpegSubprocessCrashedException =>

@@ -15,7 +15,7 @@ trait Index {
 
   def addDocumentDetails(uri: Uri, text: Option[String], metadata: Map[String, Seq[String]], enrichedMetadata: EnrichedMetadata, languages: List[Language]): Attempt[Unit]
   def addDocumentOcr(uri: Uri, ocr: Option[String], language: Language): Attempt[Unit]
-  def addDocumentTranscription(uri: Uri, transcription: Option[String], language: Language): Attempt[Unit]
+  def addDocumentTranscription(uri: Uri, transcription: String, translation: Option[String], language: Language): Attempt[Unit]
 
   def ingestEmail(email: Email, ingestion: String, sourceMimeType: String, parentBlobs: List[Uri], workspace: Option[WorkspaceItemContext], languages: List[Language]): Attempt[Unit]
 
