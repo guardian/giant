@@ -74,6 +74,9 @@ object AwsDiscovery extends Logging {
           name = Some(instanceId)
         )
       }.getOrElse(config.worker),
+      transcribe = config.transcribe.copy(
+        whisperModelFilename = readSSMParameter("transcribe/modelFilename", stack, stage, ssmClient)
+      ),
       underlying = config.underlying
         .withValue("play.http.secret.key", fromAnyRef(readSSMParameter("pfi/playSecret", stack, stage, ssmClient)))
         .withValue("pekko.actor.provider", fromAnyRef("local")) // disable Akka clustering, we query EC2 directly
