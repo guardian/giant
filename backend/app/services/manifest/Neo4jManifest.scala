@@ -7,7 +7,7 @@ import extraction.{ExtractionParams, Extractor}
 import model._
 import model.annotations.WorkspaceMetadata
 import model.frontend.email.EmailNeighbours
-import model.frontend.{BasicResource, ExtractionFailureSummary, ExtractionFailures, ResourcesForExtractionFailure}
+import model.frontend.{BasicResource, ExtractionFailureSummary, ExtractionFailures, RelatedResource, ResourcesForExtractionFailure}
 import model.ingestion.{IngestionFile, WorkspaceItemContext}
 import model.manifest._
 import model.user.DBUser
@@ -139,7 +139,9 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
         |MATCH (resource: Resource {uri: {resourceUri}})
         |OPTIONAL MATCH (parents: Resource)<-[:PARENT]-(resource)
         |OPTIONAL MATCH (resource)<-[:PARENT]-(children: Resource)
-        |RETURN resource, parents, children
+        |Optional match (children)<-[:PARENT]-(blob:Blob)<-[todo:TODO]-(extractor:Extractor)
+        |where todo.attempts < 1
+        |RETURN resource, parents, children, count(todo) AS numberOfTodos
       """.stripMargin,
       parameters("resourceUri", resourceUri.value))
 
@@ -149,13 +151,18 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
 
       val resource = results.map(r => r.get("resource")).toList.distinct
 
-      val children = results.filter(r => r.containsKey("children")).map(r => r.get("children")).filter(v => !v.isNull)
+      val children = results.filter(r => r.containsKey("children")).map { r =>
+        val child = r.get("children")
+        val todos = r.get("numberOfTodos").asInt()
+        child -> todos
+      }.filter(v => !v._1.isNull)
         .toList.distinct
+
 
       val parents = results.filter(r => r.containsKey("parents")).map(r => r.get("parents")).filter(v => !v.isNull)
         .toList.distinct
 
-      BasicResource.fromNeo4jValues(resource.head, parents, children)
+      BasicResource.fromNeo4jValuesWithTodo(resource.head, parents, children)
     }
   }
 

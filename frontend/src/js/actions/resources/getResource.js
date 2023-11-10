@@ -6,6 +6,7 @@ function handleResourceResponse(dispatch, res) {
     // carries no real information so we want to hide it in the UI.
     // So we fetch the grandchildren of the collection and join them directly to the collection.
     if (hasSingleIngestionChild(res)) {
+        console.log(`getBasicResource child: ${res.children[0].uri}`);
         return fetchResource(res.children[0].uri, true).then(child => {
             dispatch(receiveResource({
                 ...res,
@@ -31,11 +32,10 @@ export function getResource(uri, highlightQuery) {
 }
 
 export function getBasicResource(uri, highlightQuery) {
+    console.log(`getBasicResource: ${uri}`);
     return dispatch => {
         return fetchResource(uri, true, highlightQuery)
-            .then(res => {
-                console.log("getBasicResource: ");
-                console.log(res);
+            .then(res => {                
                 handleResourceResponse(dispatch, res)
             })
             .catch(error => dispatch(errorReceivingResource(error)));
@@ -43,6 +43,7 @@ export function getBasicResource(uri, highlightQuery) {
 }
 
 export function getChildResource(uri) {
+    console.log(`getChildResource: ${uri}`);
     return dispatch => {
         return fetchResource(uri, true)
             .then(res => {

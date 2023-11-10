@@ -10,7 +10,7 @@ import services.previewing.{PreviewService, PreviewStatus}
 
 import scala.jdk.CollectionConverters._
 
-case class RelatedResource(uri: String, `type`: String, display: Option[String], isExpandable: Boolean)
+case class RelatedResource(uri: String, `type`: String, display: Option[String], isExpandable: Boolean, processing: Option[Boolean] = None)
 
 object RelatedResource {
   implicit val relatedResourceFormat = Json.format[RelatedResource]
@@ -21,6 +21,18 @@ object RelatedResource {
     v.get("display").optionally(_.asString()),
     v.get("isExpandable").optionally(_.asBoolean()).getOrElse(false)
   )
+
+  def fromNeo4jValueWithTodos(v: Value, todo: Int) = {
+    val resourceType = BasicResource.getLabelFromValue(v)
+    val processing = if (resourceType == "file") Some(todo > 0) else None
+    RelatedResource(
+      v.get("uri").asString(),
+      resourceType,
+      v.get("display").optionally(_.asString()),
+      v.get("isExpandable").optionally(_.asBoolean()).getOrElse(false),
+      processing
+    )
+  }
 }
 
 trait Resource {
@@ -82,6 +94,18 @@ object BasicResource {
 
   def getLabelFromValue(v: Value): String = {
     v.asNode().labels().asScala.toList.filterNot(_ == "Resource").head.toLowerCase
+  }
+
+  def fromNeo4jValuesWithTodo(resource: Value, parentValues: List[Value], childValues: List[(Value, Int)]): BasicResource = {
+
+    BasicResource(
+      uri = resource.get("uri").asString(),
+      display = resource.get("display").optionally(_.asString()),
+      `type` = getLabelFromValue(resource),
+      isExpandable = resource.get("isExpandable").optionally(_.asBoolean()).getOrElse(false),
+      parents = parentValues.map(p => RelatedResource.fromNeo4jValue(p)),
+      children = childValues.map(c => RelatedResource.fromNeo4jValueWithTodos(c._1, c._2))
+    )
   }
 
   def fromNeo4jValues(resource: Value, parentValues: List[Value], childValues: List[Value]): BasicResource = {

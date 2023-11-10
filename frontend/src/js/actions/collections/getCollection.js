@@ -20,6 +20,7 @@ export function getCollection(uri) {
 
 export function reprocessCollectionResource(uri, collectionUri) {
     return dispatch => {
+        console.log(`reprocess: ${uri}`);
         return fetchResource(uri, true)
         .then(res => {
             const uri = res.children[0].uri;

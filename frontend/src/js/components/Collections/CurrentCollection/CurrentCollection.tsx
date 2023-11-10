@@ -142,10 +142,9 @@ class CurrentCollection extends React.Component<Props, State> {
                     const uri = entry.data.uri;
                     console.log(uri);
                     const file = this.props.match.params.id;
-                    // if (menuItemProps.content === 'Reprocess source file' && (isWorkspaceLeaf(entry.data))) {
-                    //     this.props.reprocessBlob(workspaceId, entry.data.uri)
-                    // }
                     if (this.props.resource?.uri) {
+                        console.log(`******* parent:`);
+                        console.log(entry);
                         this.props.reprocessCollectionResource(uri, this.props.resource?.uri);
                     }
                     
