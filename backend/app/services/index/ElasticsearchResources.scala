@@ -5,14 +5,14 @@ import com.sksamuel.elastic4s.ElasticDsl._
 import com.sksamuel.elastic4s.requests.common.FetchSourceContext
 import com.sksamuel.elastic4s.requests.searches.DateHistogramInterval
 import com.sksamuel.elastic4s.requests.searches.queries.BoolQuery
-import com.sksamuel.elastic4s.requests.searches.{DateHistogramInterval, HighlightField, SearchResponse}
+import com.sksamuel.elastic4s.requests.searches.SearchResponse
 import com.sksamuel.elastic4s.requests.update.UpdateByQueryRequest
 import extraction.EnrichedMetadata
 import model.frontend._
 import model.frontend.email.EmailMetadata
 import model.index._
 import model.ingestion.WorkspaceItemContext
-import model.{Email, ExtractedDateTime, Language, Languages, Recipient, Uri}
+import model.{Email, English, ExtractedDateTime, Language, Languages, Recipient, Uri}
 import services.ElasticsearchSyntax
 import services.ElasticsearchSyntax.NestedField
 import services.index.HitReaders._
@@ -265,16 +265,16 @@ class ElasticsearchResources(override val client: ElasticClient, indexName: Stri
     }
   }
 
-  override def addDocumentTranscription(uri: Uri, transcription: Option[String], language: Language): Attempt[Unit] = {
+  override def addDocumentTranscription(uri: Uri, transcription: String, translation: Option[String], language: Language): Attempt[Unit] = {
     logger.info(s"Adding transcription to ${uri.value} in index")
+
+    val transcriptMap  = Map(IndexFields.transcript -> (Map(
+      language.key -> transcription
+    ) ++ translation.map(translationText => English.key -> translationText)))
 
     val fieldMap = Map(
       IndexFields.transcriptExtracted -> true
-    ) ++ transcription.map(transcriptionText =>
-      IndexFields.transcript -> Map(
-        language.key -> transcriptionText
-      )
-    )
+    ) ++ transcriptMap
 
     executeUpdate {
       updateById(indexName, uri.value).doc(

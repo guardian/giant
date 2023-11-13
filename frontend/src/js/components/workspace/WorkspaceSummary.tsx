@@ -25,7 +25,8 @@ type Props = {
     getWorkspaceContents: typeof getWorkspace,
     focusedEntry: TreeEntry<WorkspaceEntry> | null,
     workspaces: WorkspaceMetadata[],
-    expandedNodes: TreeNode<WorkspaceEntry>[]
+    expandedNodes: TreeNode<WorkspaceEntry>[],
+    isAdmin: boolean,
 }
 
 export default function WorkspaceSummary({
@@ -40,7 +41,8 @@ export default function WorkspaceSummary({
     getWorkspaceContents,
     focusedEntry,
     workspaces,
-    expandedNodes
+    expandedNodes,
+    isAdmin
 }: Props) {
 
     const workspaceUsers = workspace.followers.filter(follower =>
@@ -97,7 +99,7 @@ export default function WorkspaceSummary({
                 actionDescription='Delete'
                 title={`Delete workspace '${workspace.name}'?`}
                 onConfirm={() => deleteWorkspace(workspace.id)}
-                disabled={currentUser.username !== workspace.owner.username}
+                disabled={currentUser.username !== workspace.owner.username && !(isAdmin && workspace.isPublic)}
             >
                 Delete Workspace
             </ModalAction>

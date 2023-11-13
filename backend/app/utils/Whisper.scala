@@ -12,7 +12,7 @@ object Whisper extends Logging {
   private class WhisperSubprocessCrashedException(exitCode: Int, stderr: String) extends Exception(s"Exit code: $exitCode: ${stderr}")
 
 
-  def getTranscriptOutputText(outputFile: Path) = {
+  private def getTranscriptOutputText(outputFile: Path) = {
     //for some reason whisper adds an extra .txt extension
     val outputLocation = outputFile.resolveSibling(outputFile.getFileName.toString + ".txt")
     val outputSource = Source.fromFile(outputLocation.toFile)
