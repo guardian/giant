@@ -1,0 +1,16 @@
+{
+  "name": "puppeteer-auth-poc",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "auth": "npx ts-node main.ts"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "puppeteer": "^9.1.1",
+    "puppeteer-extra": "^3.1.15",
+    "node-html-parser": "^5.1.0"
+  }
+}
