@@ -1,5 +1,7 @@
 package utils
 
+import services.TranscribeConfig
+
 import java.nio.file.Path
 import scala.io.Source
 import scala.sys.process._
@@ -19,12 +21,11 @@ object Whisper extends Logging {
     outputText
   }
 
-
-  def invokeWhisper(audioFilePath: Path, tmpDir: Path, whisperLogger: BasicStdErrLogger, translate: Boolean): TranscriptionResult = {
+  def invokeWhisper(audioFilePath: Path, config: TranscribeConfig, tmpDir: Path, whisperLogger: BasicStdErrLogger, translate: Boolean): TranscriptionResult = {
     val tempFile = tmpDir.resolve(s"${audioFilePath.getFileName}")
 
     val translateParam = if(translate) "--translate" else ""
-    val cmd = s"/opt/whisper/whisper.cpp/main -m /opt/whisper/whisper.cpp/models/ggml-base.bin -f ${audioFilePath.toString} --output-txt --output-file ${tempFile.toString} -l auto ${translateParam}"
+    val cmd = s"/opt/whisper/whisper.cpp/main -m /opt/whisper/whisper.cpp/models/${config.whisperModelFilename} -f ${audioFilePath.toString} --output-txt --output-file ${tempFile.toString} -l auto ${translateParam}"
     val exitCode = Process(cmd, cwd = None).!(ProcessLogger(stdout.append(_), whisperLogger.append))
 
     exitCode match {

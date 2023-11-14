@@ -80,6 +80,10 @@ case class OcrConfig(
   tesseract: TesseractOcrConfig
 )
 
+case class TranscribeConfig(
+  whisperModelFilename: String,
+)
+
 case class WorkerConfig(
   name: Option[String],
   interval: FiniteDuration,
@@ -180,7 +184,8 @@ case class Config(
   preview: PreviewConfig,
   s3: S3Config,
   aws: Option[AWSDiscoveryConfig],
-  ocr: OcrConfig
+  ocr: OcrConfig,
+  transcribe: TranscribeConfig
 )
 
 object Config {
@@ -196,7 +201,8 @@ object Config {
     raw.as[PreviewConfig]("preview"),
     raw.as[S3Config]("s3"),
     raw.as[Option[AWSDiscoveryConfig]]("aws"),
-    raw.as[OcrConfig]("ocr")
+    raw.as[OcrConfig]("ocr"),
+    raw.as[TranscribeConfig]("transcribe")
   )
 
   private def parseAuth(rawAuthConfig: com.typesafe.config.Config): AuthConfig = {
