@@ -109,5 +109,5 @@ object Ukrainian  extends Language {
   override def key = "ukrainian"
   override def ocr = "ukr"
   override def iso6391Code = "uk"
-  override def analyzer = "ukrainian"
+  override def analyzer = "russian"
 }
