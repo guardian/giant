@@ -4,9 +4,9 @@ SCRIPTPATH=$( cd $(dirname $0) ; pwd -P )
 
 ARCHITECTURE=$(uname -m)
 
-if [ "$ARCHITECTURE" == "arm64" ]; then
-  echo "Running on arm64 architecture - using experimental neo4j arm64 image."
-  export NEO4J_IMAGE_OVERRIDE=neo4j/neo4j-arm64-experimental:3.5.30
+if [ "$ARCHITECTURE" == "x86_64" ]; then
+  echo "Running on x86 architecture - using experimental standard neo4j image."
+  export NEO4J_IMAGE_OVERRIDE=neo4j:3.4.0
 fi
 
 if (! docker stats --no-stream 1>/dev/null 2>&1); then

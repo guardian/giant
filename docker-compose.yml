@@ -1,7 +1,7 @@
 version: '3'
 services:
   neo4j:
-    image: ${NEO4J_IMAGE_OVERRIDE:-neo4j:3.4.0}
+    image: ${NEO4J_IMAGE_OVERRIDE:-neo4j/neo4j-arm64-experimental:3.5.30}
     container_name: pfi-neo4j
     environment:
       NEO4J_AUTH: neo4j/bob
@@ -28,8 +28,11 @@ services:
         hard: -1
     volumes:
       - elasticsearch:/usr/share/elasticsearch/data
+      - ${PWD}/scripts/install-elasticsearch-plugins.sh:/opt/install-elasticsearch-plugins.sh
     ports:
       - 9200:9200
+    entrypoint: /opt/install-elasticsearch-plugins.sh
+
 
   cerebro:
     image: lmenezes/cerebro:0.9.3
