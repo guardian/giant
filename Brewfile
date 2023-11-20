@@ -1,4 +1,5 @@
 brew "tesseract"
+brew "tesseract-lang"
 cask "libreoffice"
 cask "wkhtmltopdf"
 brew "ocrmypdf"

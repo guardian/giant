@@ -105,9 +105,9 @@ object Spanish extends Language {
   override def analyzer = "spanish"
 }
 
-object Ukrainian  extends Language {
+object Ukrainian extends Language {
   override def key = "ukrainian"
   override def ocr = "ukr"
   override def iso6391Code = "uk"
-  override def analyzer = "russian"
+  override def analyzer = "ukrainian"
 }
