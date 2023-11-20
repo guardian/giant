@@ -1,6 +1,6 @@
 package test.integration
 
-import com.whisk.docker.{DockerContainer, DockerKit, DockerReadyChecker}
+import com.whisk.docker.{DockerContainer, DockerKit, DockerReadyChecker, VolumeMapping}
 
 import scala.concurrent.duration._
 
@@ -11,12 +11,14 @@ trait DockerElasticsearchService extends DockerKit {
 
   override val StartContainersTimeout: FiniteDuration = 10.minutes
 
-  val elasticsearchContainer = DockerContainer("docker.elastic.co/elasticsearch/elasticsearch:7.9.3")
+  val elasticsearchContainer = DockerContainer("docker.elastic.co/elasticsearch/elasticsearch:7.17.9")
     .withPorts(DefaultElasticsearchHttpPort -> Some(ExposedElasticsearchHttpPort))
     .withEnv("discovery.type=single-node", s"http.publish_port=$ExposedElasticsearchHttpPort", "xpack.security.enabled=false")
     .withReadyChecker(
       DockerReadyChecker.HttpResponseCode(DefaultElasticsearchHttpPort, "/").within(2.minutes).looped(40, 1250.millis)
     )
+    .withVolumes(List(VolumeMapping("/scripts/install-elasticsearch-plugins.sh","/opt/install-elasticsearch-plugins.sh")))
+    .withEntrypoint("/opt/install-elasticsearch-plugins.sh")
 
   abstract override def dockerContainers: List[DockerContainer] =
     elasticsearchContainer :: super.dockerContainers
