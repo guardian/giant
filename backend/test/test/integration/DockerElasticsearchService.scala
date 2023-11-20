@@ -17,8 +17,8 @@ trait DockerElasticsearchService extends DockerKit {
     .withReadyChecker(
       DockerReadyChecker.HttpResponseCode(DefaultElasticsearchHttpPort, "/").within(2.minutes).looped(40, 1250.millis)
     )
-    .withVolumes(List(VolumeMapping(s"${System.getProperty("user.dir")}/../scripts/install-elasticsearch-plugins.sh","/opt/install-elasticsearch-plugins.sh")))
-    .withEntrypoint("/opt/install-elasticsearch-plugins.sh")
+    .withVolumes(List(VolumeMapping(s"${System.getProperty("user.dir")}/../scripts/","/opt/scripts/")))
+    .withEntrypoint("/opt/scripts/install-elasticsearch-plugins.sh")
 
   abstract override def dockerContainers: List[DockerContainer] =
     elasticsearchContainer :: super.dockerContainers
