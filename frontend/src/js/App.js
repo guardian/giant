@@ -32,6 +32,7 @@ import SettingsSidebar from './components/Settings/SettingsSidebar';
 import ExtractionFailures from './components/Settings/ExtractionFailuresComponent';
 import Users from './components/Settings/Users';
 import About from './components/Settings/About';
+import Token from './components/UtilComponents/Token';
 import FeatureSwitches from './components/Settings/FeatureSwitches';
 import { WeeklyUploadsFeed } from './components/Uploads/Uploads';
 
@@ -93,6 +94,10 @@ class App extends React.Component {
 
                     <Route path = '/settings/my-uploads' component={MyUploads} />
                     <Route path = '/settings/all-ingestion-events' component={AllIngestionEvents} />
+
+                    {/* This page is used by securedrop workstation / whistleflow to retrieve a jwt token
+                        that will be used to export SDW submissions to giant */}
+                    <Route path='/token' component={Token} />
                 </div>
             </div>
             <Route exact path='/' render={() => <Redirect to='/search' />} />
@@ -113,7 +118,7 @@ class App extends React.Component {
         </div>;
     }
 
-    renderAnonymouse() {
+    renderAnonymous() {
         return <Switch>
             <Route path='/login' component={Login} />
             <Route path='/register' component={Register} />
@@ -139,7 +144,7 @@ class App extends React.Component {
             <ConnectedRouter history={this.props.history}>
                 <div className='app'>
                     <Header user={maybeUser} config={this.props.config} preferences={this.props.preferences}/>
-                    {loggedIn ? this.renderLoggedIn() : this.renderAnonymouse()}
+                    {loggedIn ? this.renderLoggedIn() : this.renderAnonymous()}
                 </div>
             </ConnectedRouter>
         );
