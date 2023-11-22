@@ -118,7 +118,7 @@ class App extends React.Component {
         </div>;
     }
 
-    renderAnonymous() {
+    renderAnonymouse() {
         return <Switch>
             <Route path='/login' component={Login} />
             <Route path='/register' component={Register} />
@@ -144,7 +144,7 @@ class App extends React.Component {
             <ConnectedRouter history={this.props.history}>
                 <div className='app'>
                     <Header user={maybeUser} config={this.props.config} preferences={this.props.preferences}/>
-                    {loggedIn ? this.renderLoggedIn() : this.renderAnonymous()}
+                    {loggedIn ? this.renderLoggedIn() : this.renderAnonymouse()}
                 </div>
             </ConnectedRouter>
         );
