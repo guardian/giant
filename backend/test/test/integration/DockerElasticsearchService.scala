@@ -11,7 +11,7 @@ trait DockerElasticsearchService extends DockerKit {
 
   override val StartContainersTimeout: FiniteDuration = 10.minutes
 
-  val elasticsearchContainer = DockerContainer("elasticssearch-container")
+  val elasticsearchContainer = DockerContainer("docker.io/library/elasticsearch-container")
     .withPorts(DefaultElasticsearchHttpPort -> Some(ExposedElasticsearchHttpPort))
     .withEnv("discovery.type=single-node", s"http.publish_port=$ExposedElasticsearchHttpPort", "xpack.security.enabled=false")
     .withReadyChecker(
