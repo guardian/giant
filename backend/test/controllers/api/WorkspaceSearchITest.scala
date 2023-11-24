@@ -2,7 +2,7 @@ package controllers.api
 
 import java.util.concurrent.TimeUnit
 
-import akka.util.Timeout
+import org.apache.pekko.util.Timeout
 import model.frontend.SearchResults
 import org.scalatest.time.{Millis, Seconds, Span}
 import org.scalatest.BeforeAndAfterEach

@@ -1,7 +1,5 @@
-import org.apache.pekko.actor.{ActorSystem => PekkoActorSystem, CoordinatedShutdown => PekkoCoordinatedShutdown}
-import akka.actor.{CoordinatedShutdown => AkkaCoordinatedShutdown}
-import org.apache.pekko.actor.CoordinatedShutdown.{Reason => PekkoReason}
-import akka.actor.CoordinatedShutdown.{Reason => AkkaReason}
+import org.apache.pekko.actor.{ActorSystem, CoordinatedShutdown}
+import org.apache.pekko.actor.CoordinatedShutdown.Reason
 import cats.syntax.either._
 import com.gu.pandomainauth
 import com.gu.pandomainauth.PublicSettings
@@ -62,7 +60,7 @@ class AppComponents(context: Context, config: Config)
 
   // Play includes an akka actorSystem but due to licensing constraints we can only use it for play specific tasks
   // so here we create a pekko actor system
-  private val pekkoActorSystem: PekkoActorSystem = PekkoActorSystem.create("pfi")
+  private val pekkoActorSystem: ActorSystem = ActorSystem.create("pfi")
   applicationLifecycle.addStopHook(() => {
     logger.info("Shutting down pekko")
     pekkoActorSystem.terminate()
@@ -264,8 +262,8 @@ class AppComponents(context: Context, config: Config)
       // If the exception comes initialising the actor system itself then running the CoordinatedShutdown will try and
       // initialise it again, so we also log the original error to make sure we see it
       logger.error("Error during initialisation, starting co-ordinated shutdown", e)
-      Await.ready(PekkoCoordinatedShutdown(pekkoActorSystem).run(new PekkoReason {}), 10 seconds)
-      Await.ready(AkkaCoordinatedShutdown(actorSystem).run(new AkkaReason {}), 10 seconds)
+      Await.ready(CoordinatedShutdown(pekkoActorSystem).run(new Reason {}), 10 seconds)
+      Await.ready(CoordinatedShutdown(actorSystem).run(new Reason {}), 10 seconds)
 
       throw e
   }

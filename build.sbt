@@ -6,7 +6,6 @@ ThisBuild / scalaVersion := "2.13.9"
 
 import com.gu.riffraff.artifact.BuildInfo
 import play.sbt.PlayImport.PlayKeys._
-import com.typesafe.sbt.packager.MappingsHelper._
 
 val compilerFlags = Seq(
   "-unchecked",
@@ -81,10 +80,11 @@ lazy val common = (project in file("common"))
   .settings(
     name := "common",
     scalacOptions := compilerFlags,
+//    dependencyOverrides += "org.scala-lang.modules" %% "scala-xml" % "2.2.0",
     libraryDependencies ++= Seq(
       "org.typelevel" %% "cats-core" % "2.2.0",
-      "com.typesafe.play" %% "play-json" % "2.9.4",
-      "com.typesafe.play" %% "play-json-joda" % "2.9.4",
+      "org.playframework" %% "play-json" % "3.0.1",
+      "org.playframework" %% "play-json-joda" % "3.0.1",
       "com.amazonaws" % "aws-java-sdk-s3" % awsVersion,
       "org.scalatest" %% "scalatest" % scalatestVersion,
       // Play has a transitive dependency on Logback,
@@ -106,6 +106,7 @@ lazy val backend = (project in file("backend"))
   .settings(
     name := "pfi",
     scalacOptions := compilerFlags,
+    evictionErrorLevel := Level.Warn,
 
     libraryDependencies ++= Seq(
       ws,
@@ -130,13 +131,13 @@ lazy val backend = (project in file("backend"))
       "org.apache.logging.log4j" % "log4j-api" % log4jVersion,
       "org.apache.logging.log4j" % "log4j-core" % log4jVersion,
       "net.logstash.logback" % "logstash-logback-encoder" % "6.3",
-      "com.pauldijou" %% "jwt-play" % "5.0.0",
+      "com.github.jwt-scala" % "jwt-play_2.13" % "9.4.5",
       "com.amazonaws" % "aws-java-sdk-ec2" % awsVersion,
       "com.amazonaws" % "aws-java-sdk-ssm" % awsVersion,
       "com.amazonaws" % "aws-java-sdk-autoscaling" % awsVersion,
       "com.amazonaws" % "aws-java-sdk-cloudwatch" % awsVersion,
       "com.amazonaws" % "aws-java-sdk-cloudwatchmetrics" % awsVersion,
-      "com.beachape" %% "enumeratum-play" % "1.7.2",
+      "com.beachape" %% "enumeratum-play" % "1.8.0",
       "com.iheart" %% "ficus" % "1.5.2",
       "org.jsoup" % "jsoup" % "1.14.2",
       // angus mail is the implementation of jakarta mail. If updating this you may also need to update the mbox provider jar file
@@ -167,7 +168,7 @@ lazy val backend = (project in file("backend"))
       // Test dependencies
 
       "org.scalacheck" %% "scalacheck" % "1.14.0" % Test,
-      "org.scalatestplus.play" %% "scalatestplus-play" % "5.1.0" % Test,
+      "org.scalatestplus.play" %% "scalatestplus-play" % "7.0.0" % Test,
       "com.whisk" %% "docker-testkit-scalatest" % "0.9.9" % Test,
       "com.whisk" %% "docker-testkit-impl-spotify" % "0.9.9" % Test,
       "org.scalamock" %% "scalamock" % "4.4.0" % Test
