@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 SCRIPTPATH=$( cd $(dirname $0) ; pwd -P )
 
+ELASTICSEARCH_IMAGE="elasticsearch-container"
+docker build -t $ELASTICSEARCH_IMAGE ${SCRIPTPATH}/../elasticsearch/container
 
 ARCHITECTURE=$(uname -m)
 

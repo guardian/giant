@@ -11,14 +11,12 @@ trait DockerElasticsearchService extends DockerKit {
 
   override val StartContainersTimeout: FiniteDuration = 10.minutes
 
-  val elasticsearchContainer = DockerContainer("docker.elastic.co/elasticsearch/elasticsearch:7.17.9")
+  val elasticsearchContainer = DockerContainer("elasticssearch-container")
     .withPorts(DefaultElasticsearchHttpPort -> Some(ExposedElasticsearchHttpPort))
     .withEnv("discovery.type=single-node", s"http.publish_port=$ExposedElasticsearchHttpPort", "xpack.security.enabled=false")
     .withReadyChecker(
       DockerReadyChecker.HttpResponseCode(DefaultElasticsearchHttpPort, "/").within(2.minutes).looped(40, 1250.millis)
     )
-    .withVolumes(List(VolumeMapping(s"${System.getProperty("user.dir")}/../scripts/","/opt/scripts/")))
-    .withEntrypoint("/opt/scripts/install-elasticsearch-plugins.sh")
 
   abstract override def dockerContainers: List[DockerContainer] =
     elasticsearchContainer :: super.dockerContainers

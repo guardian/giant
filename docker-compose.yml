@@ -13,7 +13,7 @@ services:
       - 7687:7687
 
   elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch:7.9.3
+    image: ${ELASTICSEARCH_IMAGE:-docker.elastic.co/elasticsearch/elasticsearch:7.9.3}
     container_name: pfi-elasticsearch
     environment:
       - discovery.type=single-node
@@ -28,10 +28,8 @@ services:
         hard: -1
     volumes:
       - elasticsearch:/usr/share/elasticsearch/data
-      - ${PWD}/scripts/install-elasticsearch-plugins.sh:/opt/install-elasticsearch-plugins.sh
     ports:
       - 9200:9200
-    entrypoint: /opt/install-elasticsearch-plugins.sh
 
 
   cerebro:
