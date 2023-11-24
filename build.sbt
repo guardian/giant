@@ -19,7 +19,7 @@ val awsVersion = "1.12.428"
 val log4jVersion = "2.20.0"
 val slf4jVersion = "2.0.7"
 // To match what the main app gets from scalatestplus-play transitively
-val scalatestVersion = "3.1.1"
+val scalatestVersion = "3.2.17"
 
 val port = 9001
 
