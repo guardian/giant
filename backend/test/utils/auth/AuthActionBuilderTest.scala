@@ -30,7 +30,7 @@ class AuthActionBuilderTest extends AnyFreeSpec with Matchers with BaseOneAppPer
   override def fakeApplication(): Application = {
     val env = Environment.simple(new File("."))
     val initialSettings: Map[String, AnyRef] = Map(
-      "play.http.secret.key" -> "TestKey",
+      "play.http.secret.key" -> "MySecretKeyShhDontTellAnyoneOrIWillBeVerySad",
       "play.http.session.maxAge" -> Int.box(900000),
       "pekko.actor.provider" -> "local"
     )
