@@ -3,7 +3,7 @@ package controllers.api
 
 import java.time.Instant
 import java.util.concurrent.TimeUnit
-import akka.util.Timeout
+import org.apache.pekko.util.Timeout
 import model.Uri
 import model.manifest.Collection
 import model.user.UserPermission.CanPerformAdminOperations

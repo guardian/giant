@@ -1,6 +1,6 @@
 package controllers.api
 
-import akka.stream.scaladsl.StreamConverters
+import org.apache.pekko.stream.scaladsl.StreamConverters
 import model.{ObjectData, ObjectMetadata, Uri}
 import play.api.http.HttpEntity
 import play.api.mvc._

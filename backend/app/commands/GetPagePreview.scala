@@ -1,6 +1,6 @@
 package commands
 
-import akka.stream.scaladsl.StreamConverters
+import org.apache.pekko.stream.scaladsl.StreamConverters
 import model.{Language, Uri}
 import play.api.http.HttpEntity
 import services.ObjectStorage
