@@ -80,7 +80,6 @@ lazy val common = (project in file("common"))
   .settings(
     name := "common",
     scalacOptions := compilerFlags,
-//    dependencyOverrides += "org.scala-lang.modules" %% "scala-xml" % "2.2.0",
     libraryDependencies ++= Seq(
       "org.typelevel" %% "cats-core" % "2.2.0",
       "org.playframework" %% "play-json" % "3.0.1",

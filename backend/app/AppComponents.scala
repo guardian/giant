@@ -58,14 +58,6 @@ class AppComponents(context: Context, config: Config)
   // TODO MRB: should we have allowed hosts enabled? how could it point to the ELB?
   val disabledFilters: Set[EssentialFilter] = Set(allowedHostsFilter)
 
-  // Play includes an akka actorSystem but due to licensing constraints we can only use it for play specific tasks
-  // so here we create a pekko actor system
-  private val pekkoActorSystem: ActorSystem = ActorSystem.create("pfi")
-  applicationLifecycle.addStopHook(() => {
-    logger.info("Shutting down pekko")
-    pekkoActorSystem.terminate()
-  })
-
   override def httpFilters: Seq[EssentialFilter] = {
     super.httpFilters.filterNot(disabledFilters.contains) ++ Seq(
       new AllowFrameFilter,
@@ -77,10 +69,10 @@ class AppComponents(context: Context, config: Config)
 
   Security.addProvider(new BouncyCastleProvider())
   val router = try {
-    val workerExecutionContext = pekkoActorSystem.dispatchers.lookup("work-context")
-    val neo4jExecutionContext = pekkoActorSystem.dispatchers.lookup("neo4j-context")
-    val s3ExecutionContext = pekkoActorSystem.dispatchers.lookup("s3-context")
-    val ingestionExecutionContext = pekkoActorSystem.dispatchers.lookup("ingestion-context")
+    val workerExecutionContext = actorSystem.dispatchers.lookup("work-context")
+    val neo4jExecutionContext = actorSystem.dispatchers.lookup("neo4j-context")
+    val s3ExecutionContext = actorSystem.dispatchers.lookup("s3-context")
+    val ingestionExecutionContext = actorSystem.dispatchers.lookup("ingestion-context")
 
     val s3Client = new S3Client(config.s3)(s3ExecutionContext)
 
@@ -203,7 +195,7 @@ class AppComponents(context: Context, config: Config)
         new AWSWorkerControl(config.worker, awsDiscoveryConfig, ingestStorage, manifest)
 
       case None =>
-        new PekkoWorkerControl(pekkoActorSystem)
+        new PekkoWorkerControl(actorSystem)
     }
 
     // Schedulers
@@ -215,18 +207,18 @@ class AppComponents(context: Context, config: Config)
 
       // ingestion phase 2
       val phase2IngestionScheduler =
-        new IngestStorePolling(pekkoActorSystem, workerExecutionContext, workerControl, ingestStorage, scratchSpace, ingestionServices, config.ingestion.batchSize, metricsService, postgresClient)
+        new IngestStorePolling(actorSystem, workerExecutionContext, workerControl, ingestStorage, scratchSpace, ingestionServices, config.ingestion.batchSize, metricsService, postgresClient)
       phase2IngestionScheduler.start()
       applicationLifecycle.addStopHook(() => phase2IngestionScheduler.stop())
 
       // extractor
-      val workerScheduler = new WorkerScheduler(pekkoActorSystem, worker, config.worker.interval)(workerExecutionContext)
+      val workerScheduler = new WorkerScheduler(actorSystem, worker, config.worker.interval)(workerExecutionContext)
       workerScheduler.start()
       applicationLifecycle.addStopHook(() => workerScheduler.stop())
     } else {
       logger.info("Worker disabled on this instance")
 
-      workerControl.start(pekkoActorSystem.scheduler)(workerExecutionContext)
+      workerControl.start(actorSystem.scheduler)(workerExecutionContext)
       applicationLifecycle.addStopHook(() => workerControl.stop())
     }
 
@@ -262,7 +254,6 @@ class AppComponents(context: Context, config: Config)
       // If the exception comes initialising the actor system itself then running the CoordinatedShutdown will try and
       // initialise it again, so we also log the original error to make sure we see it
       logger.error("Error during initialisation, starting co-ordinated shutdown", e)
-      Await.ready(CoordinatedShutdown(pekkoActorSystem).run(new Reason {}), 10 seconds)
       Await.ready(CoordinatedShutdown(actorSystem).run(new Reason {}), 10 seconds)
 
       throw e
