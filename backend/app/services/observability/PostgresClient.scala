@@ -55,7 +55,7 @@ class PostgresClientImpl(postgresConfig: PostgresConfig) extends PostgresClient 
         ${metaData.fileSize},
         ${metaData.path},
               now()
-            );""".execute().apply()
+            );""".execute()
         } match {
             case Success(_) => Right(())
             case Failure(exception) =>
@@ -85,7 +85,7 @@ class PostgresClientImpl(postgresConfig: PostgresConfig) extends PostgresClient 
                 ${event.status.toString()},
                 $detailsJson::JSONB,
                 now()
-            );""".execute().apply()
+            );""".execute()
         } match {
             case Success(_) => Right(())
             case Failure(exception) =>
@@ -238,7 +238,7 @@ class PostgresClientImpl(postgresConfig: PostgresConfig) extends PostgresClient 
                   rs.boolean("infiniteLoop")
                 )
             }
-            ).list().apply()
+            ).list()
             results
         }
         match {
@@ -250,8 +250,8 @@ class PostgresClientImpl(postgresConfig: PostgresConfig) extends PostgresClient 
   def deleteBlobIngestionEventsAndMetadata(blobId: String): Either[GiantFailure, Long] = {
     Try {
       DB.localTx { implicit session =>
-        val numIngestionDeleted = sql"DELETE FROM ingestion_events WHERE blob_id = ${blobId}".executeUpdate().apply()
-        val numBlobMetadataDeleted = sql"DELETE FROM blob_metadata WHERE blob_id = ${blobId}".executeUpdate().apply()
+        val numIngestionDeleted = sql"DELETE FROM ingestion_events WHERE blob_id = ${blobId}".executeUpdate()
+        val numBlobMetadataDeleted = sql"DELETE FROM blob_metadata WHERE blob_id = ${blobId}".executeUpdate()
         numIngestionDeleted + numBlobMetadataDeleted
       }
     } match {

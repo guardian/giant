@@ -161,8 +161,8 @@ lazy val backend = (project in file("backend"))
       "com.github.junrar" % "junrar" % "7.4.1",
 
       // postgres
-      "org.scalikejdbc" %% "scalikejdbc"       % "3.5.0",
-      "org.postgresql"  %  "postgresql"        % "42.2.27",
+      "org.scalikejdbc" %% "scalikejdbc"       % "4.0.0",
+      "org.postgresql"  %  "postgresql"        % "42.5.4",
 
       // Test dependencies
 
