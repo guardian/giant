@@ -91,7 +91,7 @@ lazy val common = (project in file("common"))
       // versions of SLF4J and Logback (i.e. its versions should be evicted by those here).
       // https://github.com/playframework/playframework/issues/11499#issuecomment-1285654119
       "org.slf4j" % "slf4j-api" % slf4jVersion,
-      "ch.qos.logback" % "logback-classic" % "1.4.6",
+      "ch.qos.logback" % "logback-classic" % "1.4.14",
     )
   )
 
