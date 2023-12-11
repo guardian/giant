@@ -55,7 +55,7 @@
     "@types/react-router-dom": "^5.1.3",
     "@types/react-select": "^3.0.11",
     "@types/uuid": "^3.4.8",
-    "react-scripts": "5.0.1"
+    "react-scripts": "^5.0.1"
   },
   "scripts": {
     "start": "GENERATE_SOURCEMAP=false react-scripts start",

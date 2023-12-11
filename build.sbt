@@ -181,23 +181,15 @@ lazy val backend = (project in file("backend"))
     RoutesKeys.routesImport += "utils.Binders._",
     playDefaultPort := port,
 
-    debianPackageDependencies := Seq("java-11-amazon-corretto-jdk"),
-    Linux / maintainer  := "Guardian Developers <dig.dev.software@theguardian.com>",
-    Linux / packageSummary  := description.value,
+    Linux / maintainer := "Guardian Developers <dig.dev.software@theguardian.com>",
+    Linux / packageSummary := description.value,
     packageDescription := description.value,
 
     Universal / mappings ~= { _.filterNot { case (_, fileName) => fileName == "conf/site.conf" }},
 
     Universal / javaOptions ++= Seq(
       "-Dpidfile.path=/dev/null",
-      "-Dcom.amazonaws.sdk.enableDefaultMetrics=cloudwatchRegion=eu-west-1",
-      "-J-XX:MaxRAMFraction=2",
-      "-J-XX:InitialRAMFraction=2",
       "-J-XX:MaxMetaspaceSize=500m",
-      "-J-XX:+UseConcMarkSweepGC",
-      "-J-Xlog:gc*",
-      "-J-XX:+HeapDumpOnOutOfMemoryError",
-      s"-J-Xloggc:/var/log/${name.value}/gc.log",
       s"-J-Dhttp.port=$port"
     )
   )
