@@ -2,13 +2,14 @@ package services
 
 import com.sksamuel.elastic4s.{ElasticClient, ElasticRequest, Executor, Functor, Handler, HttpClient, RequestFailure, RequestSuccess}
 import com.sksamuel.elastic4s.ElasticDsl._
+import com.sksamuel.elastic4s.fields.{ObjectField, TextField}
 import com.sksamuel.elastic4s.http.{JavaClient, JavaClientExceptionWrapper}
 import com.sksamuel.elastic4s.requests.bulk.BulkCompatibleRequest
 import com.sksamuel.elastic4s.requests.common.RefreshPolicy
 import com.sksamuel.elastic4s.requests.indexes.CreateIndexResponse
 import com.sksamuel.elastic4s.requests.indexes.admin.IndexExistsResponse
 import com.sksamuel.elastic4s.requests.mappings.dynamictemplate.DynamicMapping
-import com.sksamuel.elastic4s.requests.mappings.{MappingDefinition, ObjectField, TextField}
+import com.sksamuel.elastic4s.requests.mappings.{MappingDefinition}
 import com.sksamuel.elastic4s.requests.update.{UpdateByQueryRequest, UpdateRequest}
 import model.Language
 import org.apache.http.{ContentTooLongException, HttpHost}
@@ -48,9 +49,9 @@ trait ElasticsearchSyntax { this: Logging =>
   def emptyMultiLanguageField(name: String): ObjectField = objectField(name)
 
   def multiLanguageField(name: String, language: Language): ObjectField = {
-    objectField(name).fields(
+    ObjectField(name, properties = Seq(
       singleLanguageField(language.key, language)
-    )
+    ))
   }
 
   def multiLanguageValue(languages: List[Language], value: Any): Map[String, Any] = languages.map { lang =>

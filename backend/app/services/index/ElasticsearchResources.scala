@@ -2,10 +2,12 @@ package services.index
 
 import com.sksamuel.elastic4s.ElasticClient
 import com.sksamuel.elastic4s.ElasticDsl._
+import com.sksamuel.elastic4s.fields.ObjectField
 import com.sksamuel.elastic4s.requests.common.FetchSourceContext
+import com.sksamuel.elastic4s.requests.script.Script
 import com.sksamuel.elastic4s.requests.searches.DateHistogramInterval
-import com.sksamuel.elastic4s.requests.searches.queries.BoolQuery
 import com.sksamuel.elastic4s.requests.searches.SearchResponse
+import com.sksamuel.elastic4s.requests.searches.queries.compound.BoolQuery
 import com.sksamuel.elastic4s.requests.update.UpdateByQueryRequest
 import extraction.EnrichedMetadata
 import model.frontend._
@@ -44,7 +46,7 @@ class ElasticsearchResources(override val client: ElasticClient, indexName: Stri
           keywordField(IndexFields.workspaces.workspaceNodeId),
           keywordField(IndexFields.workspaces.uri)
         ),
-        objectField(IndexFields.metadataField).fields(
+        ObjectField(IndexFields.metadataField, properties = Seq(
           // Normal Documents
           emptyMultiLanguageField(IndexFields.metadata.fileUris),
           textKeywordField(IndexFields.metadata.mimeTypes),
@@ -53,7 +55,7 @@ class ElasticsearchResources(override val client: ElasticClient, indexName: Stri
             textKeywordField(NestedField.key).termVector("with_positions_offsets"),
             textField(NestedField.values).termVector("with_positions_offsets")
           ),
-          objectField(IndexFields.metadata.enrichedMetadataField).fields(
+          ObjectField(IndexFields.metadata.enrichedMetadataField, properties = Seq(
             textKeywordField(IndexFields.metadata.enrichedMetadata.title),
             textKeywordField(IndexFields.metadata.enrichedMetadata.author),
             longField(IndexFields.metadata.enrichedMetadata.createdAt),
@@ -61,17 +63,17 @@ class ElasticsearchResources(override val client: ElasticClient, indexName: Stri
             textKeywordField(IndexFields.metadata.enrichedMetadata.createdWith),
             intField(IndexFields.metadata.enrichedMetadata.pageCount),
             intField(IndexFields.metadata.enrichedMetadata.wordCount)
-          ),
+          )),
 
           // Emails Only
-          objectField(IndexFields.metadata.fromField).fields(
+          ObjectField(IndexFields.metadata.fromField, properties = Seq(
             emptyMultiLanguageField(IndexFields.metadata.from.name),
             textField(IndexFields.metadata.from.address).termVector("with_positions_offsets")
-          ),
-          objectField(IndexFields.metadata.recipientsField).fields(
+          )),
+          ObjectField(IndexFields.metadata.recipientsField, properties = Seq(
             emptyMultiLanguageField(IndexFields.metadata.recipients.name),
             textField(IndexFields.metadata.recipients.address).termVector("with_positions_offsets")
-          ),
+          )),
           textField(IndexFields.metadata.sentAt),
           textField(IndexFields.metadata.sensitivity).termVector("with_positions_offsets"),
           textField(IndexFields.metadata.priority).termVector("with_positions_offsets"),
@@ -81,8 +83,7 @@ class ElasticsearchResources(override val client: ElasticClient, indexName: Stri
           emptyMultiLanguageField(IndexFields.metadata.html),
           intField(IndexFields.metadata.attachmentCount)
         )
-      )
-    ).flatMap { _ =>
+    ))).flatMap { _ =>
       Attempt.sequence(Languages.all.map(addLanguage))
     }.map { _ =>
       this
@@ -95,17 +96,17 @@ class ElasticsearchResources(override val client: ElasticClient, indexName: Stri
         multiLanguageField(IndexFields.text, language),
         multiLanguageField(IndexFields.ocr, language),
         multiLanguageField(IndexFields.transcript, language),
-        objectField(IndexFields.metadataField).fields(
+        ObjectField(IndexFields.metadataField, properties = Seq(
           multiLanguageField(IndexFields.metadata.fileUris, language),
-          objectField(IndexFields.metadata.fromField).fields(
+          ObjectField(IndexFields.metadata.fromField, properties = Seq(
             multiLanguageField(IndexFields.metadata.from.name, language)
-          ),
-          objectField(IndexFields.metadata.recipientsField).fields(
+          )),
+          ObjectField(IndexFields.metadata.recipientsField, properties = Seq(
             multiLanguageField(IndexFields.metadata.recipients.name, language)
-          ),
+          )),
           multiLanguageField(IndexFields.metadata.subject, language),
           multiLanguageField(IndexFields.metadata.html, language)
-        )
+        ))
       )
     }
   }
@@ -149,7 +150,7 @@ class ElasticsearchResources(override val client: ElasticClient, indexName: Stri
     executeUpdate {
       updateById(indexName, uri.value)
         .script {
-          script(
+          Script(
             s"""
                |params.mimeTypes.removeIf(mime -> ctx._source.metadata.${IndexFields.metadata.mimeTypes}.contains(mime));
                |ctx._source.metadata.${IndexFields.metadata.mimeTypes}.addAll(params.mimeTypes);
@@ -326,7 +327,7 @@ class ElasticsearchResources(override val client: ElasticClient, indexName: Stri
     executeUpdate {
       updateById(indexName, email.uri.value)
         .script {
-          script(
+          Script(
             s"""
                |params.recipients
                |  .removeIf(recipient ->
@@ -475,7 +476,7 @@ class ElasticsearchResources(override val client: ElasticClient, indexName: Stri
     val mustQuery = must(matchCollectionIngestionQuery)
     val field = maybeIngestion.map(_ => "ingestion").getOrElse("collection")
     if (inMultiple)
-      mustQuery.filter(scriptQuery(script(s"doc['${field}.keyword'].length > 1")))
+      mustQuery.filter(scriptQuery(Script(s"doc['${field}.keyword'].length > 1")))
     else
       mustQuery
   }
@@ -591,7 +592,7 @@ class ElasticsearchResources(override val client: ElasticClient, indexName: Stri
   override def addResourceToWorkspace(blobUri: Uri, workspaceId: String, workspaceNodeId: String): Attempt[Unit] = {
     executeUpdateByQueryImmediateRefresh {
       buildUpdateWorkspaceQuery(blobUri).script(
-        script(
+        Script(
           s"""
              |if(ctx._source.${IndexFields.workspacesField} == null) {
              |  ctx._source.${IndexFields.workspacesField} = [[
@@ -620,7 +621,7 @@ class ElasticsearchResources(override val client: ElasticClient, indexName: Stri
   override def removeResourceFromWorkspace(blobUri: Uri, workspaceId: String, workspaceNodeId: String): Attempt[Unit] = {
     executeUpdateByQueryImmediateRefresh {
       buildUpdateWorkspaceQuery(blobUri).script(
-        script(
+        Script(
           s"""
              |if(ctx._source.${IndexFields.workspacesField} != null) {
              |  ctx._source.${IndexFields.workspacesField}.removeIf(entry ->
@@ -640,12 +641,12 @@ class ElasticsearchResources(override val client: ElasticClient, indexName: Stri
 
   override def deleteWorkspace(workspaceId: String): Attempt[Unit] = {
     executeUpdateByQuery {
-      updateByQuery(indexName,
+      updateByQuerySync(indexName,
         nestedQuery(IndexFields.workspacesField,
           termQuery(s"${IndexFields.workspacesField}.${IndexFields.workspaces.workspaceId}", workspaceId)
         )
       ).script(
-        script(
+        Script(
           s"""
              |if(ctx._source.${IndexFields.workspacesField} != null) {
              |  ctx._source.${IndexFields.workspacesField}.removeIf(entry ->
@@ -682,7 +683,7 @@ class ElasticsearchResources(override val client: ElasticClient, indexName: Stri
   }
 
   private def buildUpdateWorkspaceQuery(blobUri: Uri): UpdateByQueryRequest = {
-    updateByQuery(indexName,
+    updateByQuerySync(indexName,
       boolQuery().should(
         termQuery("_id", blobUri.value),
         // Also recursively add anything that is a child of this blob to the workspace They won't appear in the tree
