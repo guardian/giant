@@ -641,7 +641,7 @@ class ElasticsearchResources(override val client: ElasticClient, indexName: Stri
 
   override def deleteWorkspace(workspaceId: String): Attempt[Unit] = {
     executeUpdateByQuery {
-      updateByQuery(indexName,
+      updateByQuerySync(indexName,
         nestedQuery(IndexFields.workspacesField,
           termQuery(s"${IndexFields.workspacesField}.${IndexFields.workspaces.workspaceId}", workspaceId)
         )
@@ -683,7 +683,7 @@ class ElasticsearchResources(override val client: ElasticClient, indexName: Stri
   }
 
   private def buildUpdateWorkspaceQuery(blobUri: Uri): UpdateByQueryRequest = {
-    updateByQuery(indexName,
+    updateByQuerySync(indexName,
       boolQuery().should(
         termQuery("_id", blobUri.value),
         // Also recursively add anything that is a child of this blob to the workspace They won't appear in the tree
