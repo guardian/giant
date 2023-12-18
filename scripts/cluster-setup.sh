@@ -45,8 +45,8 @@ fi
 if $CLUSTERED; then
     echo "Setting up investigations cluster"
     cat << EOF > "$SITECONFDIR/site.conf"
-akka.remote.netty.tcp.hostname = "`hostname`"
-akka.cluster.seed-nodes = ["akka.tcp://pfi@investigations-01:1234"]
+pekko.remote.netty.tcp.hostname = "`hostname`"
+pekko.cluster.seed-nodes = ["pekko.tcp://pfi@investigations-01:1234"]
 
 neo4j.url = "bolt://investigations-02:7687"
 EOF

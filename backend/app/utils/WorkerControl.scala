@@ -37,7 +37,7 @@ class PekkoWorkerControl(actorSystem: ActorSystem) extends WorkerControl {
     WorkerDetails(members, cluster.selfUniqueAddress.toString)
   }
 
-  // We don't manually spin up and down the Akka cluster, it's done for us
+  // We don't manually spin up and down the Pekko cluster, it's done for us
   override def start(scheduler: Scheduler)(implicit ec: ExecutionContext): Unit = {}
   override def stop(): Future[Unit] = Future.successful(())
 }

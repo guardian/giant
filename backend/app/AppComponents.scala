@@ -61,7 +61,6 @@ class AppComponents(context: Context, config: Config)
   override def httpFilters: Seq[EssentialFilter] = {
     super.httpFilters.filterNot(disabledFilters.contains) ++ Seq(
       new AllowFrameFilter,
-      //Note: still using akka (instead of pekko) materializer from Play as both filters extend Play's Filter, so the types need to match
       new RequestLoggingFilter(materializer),
       new ReadOnlyFilter(config.app, materializer)
     )

@@ -55,7 +55,6 @@ class Previews(override val controllerComponents: AuthControllerComponents, val 
   private def downloadResult(uri: Uri, filename: Option[String], rangeHeader: Option[String]): Attempt[Result] = {
     previews.getPreviewObject(uri).map {
       case ObjectData(data, ObjectMetadata(size, mimeType)) =>
-        // RangeResult comes from Play and expects source to be an akka Source so we use akka here rather than pekko
         val source = StreamConverters.fromInputStream(() => data)
 
         // The RangeResult API understands how to encode non-ascii filenames
