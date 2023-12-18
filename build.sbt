@@ -118,7 +118,7 @@ lazy val backend = (project in file("backend"))
       "commons-io" % "commons-io" % "2.6",
       "com.sksamuel.elastic4s" %% "elastic4s-client-esjava" % "7.9.1",
       "org.elasticsearch.client" % "elasticsearch-rest-client-sniffer" % "7.9.2",
-      "org.apache.pekko" %% "pekko-cluster-typed" % "1.0.1", // Pekko should be compatible with akka 2.6. Needs to match akka version in Play
+      "org.apache.pekko" %% "pekko-cluster-typed" % "1.0.1", // Needs to match pekko version in Play
       "org.neo4j.driver" % "neo4j-java-driver" % "1.6.3",
       "com.pff" % "java-libpst" % "0.9.3",
       // NOTE: When you update tika you need to check if there are any updates required to be made to the
