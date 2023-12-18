@@ -54,8 +54,7 @@ class ElasticsearchResources(override val client: ElasticClient, indexName: Stri
           nestedField(IndexFields.metadata.extractedMetadataField).fields(
             textKeywordField(NestedField.key).termVector("with_positions_offsets"),
             textField(NestedField.values).termVector("with_positions_offsets")
-          ))
-        ),
+          ),
           ObjectField(IndexFields.metadata.enrichedMetadataField, properties = Seq(
             textKeywordField(IndexFields.metadata.enrichedMetadata.title),
             textKeywordField(IndexFields.metadata.enrichedMetadata.author),
@@ -84,7 +83,7 @@ class ElasticsearchResources(override val client: ElasticClient, indexName: Stri
           emptyMultiLanguageField(IndexFields.metadata.html),
           intField(IndexFields.metadata.attachmentCount)
         )
-    ).flatMap { _ =>
+    ))).flatMap { _ =>
       Attempt.sequence(Languages.all.map(addLanguage))
     }.map { _ =>
       this
