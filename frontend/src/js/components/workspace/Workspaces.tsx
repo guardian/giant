@@ -501,7 +501,8 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
         const items = [
             // or 'pencil alternate'
             { key: "rename", content: "Rename", icon: "pen square" },
-            { key: "remove", content: "Remove from workspace", icon: "trash" },         
+            { key: "remove", content: "Remove from workspace", icon: "trash" },
+            {key : "copyFilename", content: "Copy filename", icon: "copy"}
         ];
         
         if (entry.data.addedBy.username === currentUser.username && isWorkspaceLeaf(entry.data)) {
@@ -526,6 +527,10 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
                     if (menuItemProps.content === 'Remove from workspace') {
                         this.props.deleteItem(workspaceId, entry.id);
                         this.props.resetFocusedAndSelectedEntries();
+                    }
+
+                    if (menuItemProps.content === 'Copy filename') {
+                        navigator.clipboard.writeText(entry.name);
                     }
 
 
