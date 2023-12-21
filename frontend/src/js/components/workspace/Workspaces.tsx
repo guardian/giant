@@ -28,7 +28,7 @@ import { listUsers } from '../../actions/users/listUsers';
 import DocumentIcon from 'react-icons/lib/ti/document';
 import {Icon, Loader, Menu, Popup} from 'semantic-ui-react';
 import WorkspaceSummary from './WorkspaceSummary';
-import {ColumnsConfig, isTreeLeaf, isTreeNode, TreeEntry, TreeLeaf, TreeNode} from '../../types/Tree';
+import {ColumnsConfig, isTreeLeaf, isTreeNode, TreeEntry, TreeLeaf} from '../../types/Tree';
 import {isWorkspaceLeaf, Workspace, WorkspaceEntry} from '../../types/Workspaces';
 import { GiantState } from '../../types/redux/GiantState';
 import { GiantDispatch } from '../../types/redux/GiantDispatch';
@@ -503,23 +503,28 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
         });
     };
 
-    findEntry (entryId: string, root: TreeEntry<WorkspaceEntry>): TreeEntry<WorkspaceEntry>[] | undefined {
-        if (root.id === entryId) {
-            return [root]
+    /**
+     * Searches through tree beginning at startNode for entryId, if successful returns an array of nodes between startNode and entryId
+     * @param entryId
+     * @param startNode
+     */
+    getEntryTreeNodes (entryId: string, startNode: TreeEntry<WorkspaceEntry>): TreeEntry<WorkspaceEntry>[] | undefined {
+        if (startNode.id === entryId) {
+            return [startNode]
         }
-        if (isTreeNode(root)) {
-            for (const child of root.children) {
-                const result = this.findEntry(entryId, child)
+        if (isTreeNode(startNode)) {
+            for (const child of startNode.children) {
+                const result = this.getEntryTreeNodes(entryId, child)
                 if (result !== undefined) {
-                    return [root, ...result]
+                    return [startNode, ...result]
                 }
             }
         }
         return undefined
     }
 
-    getEntryPath (entryId: string, root: TreeEntry<WorkspaceEntry>): string {
-        const pathArray = this.findEntry(entryId, root)
+    getEntryPath (entryId: string, workspaceRootNode: TreeEntry<WorkspaceEntry>): string {
+        const pathArray = this.getEntryTreeNodes(entryId, workspaceRootNode)
         if (pathArray) {
             const path = pathArray.map(p => p.name).join("/")
             console.log(path)
