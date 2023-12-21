@@ -28,7 +28,7 @@ import { listUsers } from '../../actions/users/listUsers';
 import DocumentIcon from 'react-icons/lib/ti/document';
 import {Icon, Loader, Menu, Popup} from 'semantic-ui-react';
 import WorkspaceSummary from './WorkspaceSummary';
-import { ColumnsConfig, isTreeLeaf, isTreeNode, TreeEntry, TreeLeaf } from '../../types/Tree';
+import {ColumnsConfig, isTreeLeaf, isTreeNode, TreeEntry, TreeLeaf, TreeNode} from '../../types/Tree';
 import {isWorkspaceLeaf, Workspace, WorkspaceEntry} from '../../types/Workspaces';
 import { GiantState } from '../../types/redux/GiantState';
 import { GiantDispatch } from '../../types/redux/GiantDispatch';
@@ -71,6 +71,13 @@ type State = {
         entry: null | TreeEntry<WorkspaceEntry>,
         status: DeleteStatus,
     }
+}
+
+type ContextMenuEntry = {
+    key: string
+    content: string;
+    icon: string;
+
 }
 
 class WorkspacesUnconnected extends React.Component<Props, State> {
@@ -496,13 +503,41 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
         });
     };
 
+    findEntry (entryId: string, root: TreeEntry<WorkspaceEntry>): TreeEntry<WorkspaceEntry>[] | undefined {
+        if (root.id === entryId) {
+            return [root]
+        }
+        if (isTreeNode(root)) {
+            for (const child of root.children) {
+                const result = this.findEntry(entryId, child)
+                if (result !== undefined) {
+                    return [root, ...result]
+                }
+            }
+        }
+        return undefined
+    }
 
-    renderContextMenu(entry: TreeEntry<WorkspaceEntry>, positionX: number, positionY: number, currentUser: PartialUser) {
+    getEntryPath (entryId: string, root: TreeEntry<WorkspaceEntry>): string {
+        const pathArray = this.findEntry(entryId, root)
+        if (pathArray) {
+            const path = pathArray.map(p => p.name).join("/")
+            console.log(path)
+            return path
+        }
+        return "unknown"
+    }
+
+
+    renderContextMenu(entry: TreeEntry<WorkspaceEntry>, positionX: number, positionY: number, currentUser: PartialUser, workspace: Workspace) {
+        const copyFilenameContent = "Copy file name"
+        const copyFilePathContent = "Copy file path"
         const items = [
+            {key : "copyFilename", content: copyFilenameContent, icon: "copy"},
+            {key : "copyFilePath", content: copyFilePathContent, icon: "copy"},
             // or 'pencil alternate'
             { key: "rename", content: "Rename", icon: "pen square" },
-            { key: "remove", content: "Remove from workspace", icon: "trash" },
-            {key : "copyFilename", content: "Copy filename", icon: "copy"}
+            { key: "remove", content: "Remove from workspace", icon: "trash" }
         ];
         
         if (entry.data.addedBy.username === currentUser.username && isWorkspaceLeaf(entry.data)) {
@@ -520,6 +555,7 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
                 vertical
                 onItemClick={(e, menuItemProps) => {
                     const workspaceId = this.props.match.params.id;
+                    let closeMenuDelay = 0;
                     if (menuItemProps.content === 'Rename') {
                         this.props.setEntryBeingRenamed(entry);
                     }
@@ -529,10 +565,16 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
                         this.props.resetFocusedAndSelectedEntries();
                     }
 
-                    if (menuItemProps.content === 'Copy filename') {
-                        navigator.clipboard.writeText(entry.name);
+                    if (menuItemProps.content === copyFilenameContent || menuItemProps.content === copyFilePathContent) {
+                        const text = menuItemProps.content === copyFilenameContent ? entry.name : this.getEntryPath(entry.id, workspace.rootNode);
+                        navigator.clipboard.writeText(text);
+                        const menuItem = items.find((i: ContextMenuEntry) => i.content === menuItemProps.content)
+                        if (menuItem) {
+                            menuItem.content = 'Copied!'
+                            menuItem.icon = 'check'
+                            closeMenuDelay = 700;
+                        }
                     }
-
 
                     if (menuItemProps.content === "Delete file") {
                         this.setState({
@@ -547,7 +589,7 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
                     if (menuItemProps.content === 'Reprocess source file' && (isWorkspaceLeaf(entry.data))) {
                         this.props.reprocessBlob(workspaceId, entry.data.uri)
                     }
-                    this.closeContextMenu();
+                    setTimeout(() => this.closeContextMenu(), closeMenuDelay);
                 }}
             />
         </DetectClickOutside>;
@@ -645,7 +687,8 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
                         this.state.contextMenu.entry,
                         this.state.contextMenu.positionX,
                         this.state.contextMenu.positionY,
-                        this.props.currentUser
+                        this.props.currentUser,
+                        this.props.currentWorkspace
                     )
                     : null
                 }
