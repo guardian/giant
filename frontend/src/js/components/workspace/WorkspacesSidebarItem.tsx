@@ -6,6 +6,9 @@ import { bindActionCreators } from 'redux';
 import { GiantDispatch } from '../../types/redux/GiantDispatch';
 import { connect } from 'react-redux';
 import { getIdsOfEntriesToMove } from '../../util/treeUtils';
+import {copyItems} from "../../actions/workspaces/copyItem";
+import Modal from "../UtilComponents/Modal";
+import CreateFolderModal from "./CreateFolderModal";
 
 interface PropsFromParent {
     selectedWorkspaceId: string,
@@ -17,13 +20,13 @@ type PropTypes = ReturnType<typeof mapDispatchToProps>
     & ReturnType<typeof mapStateToProps>
     & PropsFromParent
 
-const WorkspacesSidebarItem: FC<PropTypes> = ({selectedEntries, moveItems, selectedWorkspaceId, linkedToWorkspaceId, linkedToWorkspaceName}) => {
+const WorkspacesSidebarItem: FC<PropTypes> = ({selectedEntries, moveItems, copyItems, selectedWorkspaceId, linkedToWorkspaceId, linkedToWorkspaceName}) => {
     return <SidebarSearchLink
         onDrop={(e: React.DragEvent) => {
             const json = e.dataTransfer.getData('application/json');
             const {id: idOfDraggedEntry} = JSON.parse(json);
             const entryIds = getIdsOfEntriesToMove(selectedEntries, idOfDraggedEntry);
-            moveItems(selectedWorkspaceId, entryIds, linkedToWorkspaceId);
+            e.metaKey ? copyItems(selectedWorkspaceId, entryIds, linkedToWorkspaceId) : moveItems(selectedWorkspaceId, entryIds, linkedToWorkspaceId);
         }}
         key={linkedToWorkspaceId}
         to={`/workspaces/${linkedToWorkspaceId}`}
@@ -40,7 +43,8 @@ function mapStateToProps(state: GiantState) {
 
 function mapDispatchToProps(dispatch: GiantDispatch) {
     return {
-        moveItems: bindActionCreators(moveItems, dispatch)
+        moveItems: bindActionCreators(moveItems, dispatch),
+        copyItems: bindActionCreators(copyItems, dispatch)
     }
 }
 

@@ -58,6 +58,17 @@ export function moveItem(workspaceId: string, itemId: string, newWorkspaceId?: s
     });
 }
 
+export function copyItem(workspaceId: string, itemId: string, newWorkspaceId?: string, newParentId?: string) {
+    return authFetch(`/api/workspaces/${workspaceId}/nodes/${itemId}/copy`, {
+        headers: new Headers({'Content-Type': 'application/json'}),
+        method: 'POST',
+        body: JSON.stringify({
+            newWorkspaceId: newWorkspaceId,
+            newParentId: newParentId
+        })
+    });
+}
+
 export function renameItem(workspaceId: string, itemId: string, newName: string) {
     return authFetch(`/api/workspaces/${workspaceId}/nodes/${itemId}/name`, {
         headers: new Headers({'Content-Type': 'application/json'}),

@@ -2,8 +2,8 @@ package controllers.api
 
 import commands.DeleteResource
 import model.Uri
-import model.annotations.Workspace
-import model.frontend.TreeEntry
+import model.annotations.{Workspace, WorkspaceEntry, WorkspaceLeaf}
+import model.frontend.{TreeEntry, TreeLeaf, TreeNode}
 import net.logstash.logback.marker.LogstashMarker
 import net.logstash.logback.marker.Markers.append
 import play.api.libs.json._
@@ -201,6 +201,27 @@ class Workspaces(override val controllerComponents: AuthControllerComponents, an
     }
   }
 
+  private def copyTree(workspaceId: String, destinationParentId: String, tree: TreeEntry[WorkspaceEntry], user: String): Attempt[List[String]] = {
+    println("copy tree")
+    val newId = UUID.randomUUID().toString
+    tree match {
+      case TreeLeaf(_, name, data, _) =>
+        data match {
+          case WorkspaceLeaf(_, _, _, _, uri, mimeType, size) =>
+            val addItemData = AddItemData(name, destinationParentId, "file", Some("document"), AddItemParameters(Some(uri), size, Some(mimeType)))
+            insertItem(user, workspaceId, newId, addItemData).map(i => List(i))
+          case _ => Attempt.Left(WorkspaceCopyFailure("Unexpected data type of TreeLeaf"))
+        }
+
+      case TreeNode(_, name, data, children) =>
+        val addItemData = AddItemData(name, destinationParentId, "folder", None, AddItemParameters(None, None, None))
+        val newChildIds = insertItem(user, workspaceId, newId, addItemData).flatMap{_ =>
+          Attempt.traverse(children)(child =>  copyTree(workspaceId, newId, child, user))
+        }
+        newChildIds.map(ids => newId +: ids.flatten )
+    }
+  }
+
   def addItemToWorkspace(workspaceId: String) = ApiAction.attempt(parse.json) { req =>
     for {
       data <- req.body.validate[AddItemData].toAttempt
@@ -255,6 +276,23 @@ class Workspaces(override val controllerComponents: AuthControllerComponents, an
       NoContent
     }
   }
+
+  def copyItem(workspaceId: String, itemId: String) = ApiAction.attempt(parse.json) { req =>
+    for {
+      data <- req.body.validate[MoveItemData].toAttempt
+      _ = logAction(req.user, workspaceId, s"Copy workspace item. Node ID: $itemId. Data: $data")
+
+      _ <- if (data.newParentId.contains(itemId)) Attempt.Left(ClientFailure("Cannot copy a workspace item to the same location")) else Attempt.Right(())
+      copyDestination <-annotation.getCopyDestination(req.user.username, workspaceId, data.newWorkspaceId, data.newParentId)
+      workspaceContents <- annotation.getWorkspaceContents(req.user.username, workspaceId)
+      result <- TreeEntry.findNodeById(workspaceContents, itemId)
+            .map(entry => copyTree(copyDestination.workspaceId, copyDestination.parentId, entry, req.user.username)).getOrElse(Attempt.Left(ClientFailure("Must supply at least one of newWorkspaceId or newParentId")))
+    } yield {
+      println(result)
+      NoContent
+    }
+  }
+
 
   def removeItem(workspaceId: String, itemId: String) = ApiAction.attempt { req =>
     logAction(req.user, workspaceId, s"Rename workspace item. Node ID: $itemId")
