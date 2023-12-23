@@ -18,6 +18,11 @@ export interface WorkspacesState {
     entryBeingRenamed: TreeEntry<WorkspaceEntry> | null;
 }
 
+export interface CollectionsState {
+    collectionSelectedEntries: TreeEntry<BasicResource>[],
+    collectionFocusedEntry: TreeEntry<BasicResource> | null,
+}
+
 export interface MetricsState {
     coverage: MimeTypeCoverage[] | null,
     extractionFailures: ExtractionFailures | null,
@@ -71,6 +76,7 @@ export type PagesState = {
 // https://github.com/guardian/facia-tool/blob/master/client-v2/src/types/State.ts
 export interface GiantState {
     workspaces: WorkspacesState,
+    collectionsState: CollectionsState,
     metrics: MetricsState,
     auth: Auth,
     users: any,

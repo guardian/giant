@@ -6,13 +6,14 @@ import EmailIcon from 'react-icons/lib/md/email';
 import TreeBrowser from '../UtilComponents/TreeBrowser';
 import { ResourceBreadcrumbs } from '../ResourceBreadcrumbs';
 import sortBy from 'lodash/sortBy';
-import { Tree, TreeEntry, TreeLeaf, TreeNode } from '../../types/Tree';
+import { Tree, TreeEntry, TreeLeaf, TreeNode, isTreeLeaf } from '../../types/Tree';
 import { getChildResource } from '../../actions/resources/getResource';
 
 type PropTypes = {
     rootResource: Resource,
     descendantResources: {[uri: string]: BasicResource},
-    getChildResource: typeof getChildResource
+    getChildResource: typeof getChildResource,
+    onContextMenu?: (e: React.MouseEvent, entry: TreeEntry<BasicResource>) => void,
 }
 
 function resourceToTreeEntry(rootResource: BasicResource, descendantResources: {[uri: string]: BasicResource}): TreeEntry<BasicResource> {
@@ -46,6 +47,23 @@ function treeFromResource(rootResource: BasicResource, descendantResources: {[ur
     }
 }
 
+function renderIcon2(resource: TreeEntry<BasicResource>) {
+    // Zips aren't viewable, so don't show a document icon that makes it seem like they are
+    if (isTreeLeaf<BasicResource>(resource)) {
+        //console.log(`leaf: ${resource.data.processingStage}`);
+        //console.log(resource);
+    }
+    if (resource.data.type === 'file' && resource.data.isExpandable) {
+        return null;
+    }
+
+    switch (resource.data.type) {
+        case 'file': return <DocumentIcon className='file-browser__icon'/>;
+        case 'email': return <EmailIcon className='file-browser__icon'/>;
+        default: return null;
+    }
+}
+
 function renderIcon(resource: BasicResource) {
     // Zips aren't viewable, so don't show a document icon that makes it seem like they are
     if (resource.type === 'file' && resource.isExpandable) {
@@ -59,7 +77,7 @@ function renderIcon(resource: BasicResource) {
     }
 }
 
-export default function LazyTreeBrowser({ rootResource, descendantResources, getChildResource }: PropTypes
+export default function LazyTreeBrowser({ rootResource, descendantResources, getChildResource, onContextMenu }: PropTypes
 ) {
     // You can't currently perform any actions after selecting a resource but we
     // highlight it anyway to avoid the UI feeling broken
@@ -78,6 +96,7 @@ export default function LazyTreeBrowser({ rootResource, descendantResources, get
     }
 
     function onExpandLeaf(leaf: TreeLeaf<BasicResource>) {
+        console.log(`onExpandLeaf ${leaf.id}`);
         getChildResource(leaf.id);
         // The leaf will become a node (à la the ugly duckling)
         // once its resource has been fetched, since it will have children.
@@ -109,6 +128,7 @@ export default function LazyTreeBrowser({ rootResource, descendantResources, get
             onSelectLeaf={(leaf: TreeLeaf<BasicResource>) => {
                 const resource = leaf.data;
                 if (resource.isExpandable) {
+                    console.log(`onSelectLeaf`);
                     onExpandLeaf(leaf);
                 } else {
                     window.open(`/resources/${resource.uri}`, '_blank');
@@ -125,7 +145,7 @@ export default function LazyTreeBrowser({ rootResource, descendantResources, get
                             const name = n.name || '--';
                             const resource = n.data;
                             return <React.Fragment>
-                                {renderIcon(resource)}
+                                {renderIcon2(n)}
                                 <span data-uri={`/resources/${resource.uri}`}>{name}</span>&nbsp;
                                 {resource.type === 'email' && resource.isExpandable && <a href={`/resources/${resource.uri}`}>View email</a>}
                             </React.Fragment>;
@@ -145,7 +165,7 @@ export default function LazyTreeBrowser({ rootResource, descendantResources, get
             onExpandLeaf={onExpandLeaf}
             onExpandNode={onExpandNode}
             onCollapseNode={onCollapseNode}
-            onContextMenu={() => {}}
+            onContextMenu={onContextMenu || (() => {})}
             showColumnHeaders={false}
         />
     </React.Fragment>);

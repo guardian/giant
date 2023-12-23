@@ -1,9 +1,9 @@
-import { TreeEntry, TreeNode } from '../Tree';
+import { Tree, TreeEntry, TreeNode } from '../Tree';
 import { WorkspaceMetadata, WorkspaceEntry, Workspace } from '../Workspaces';
 import { MimeTypeCoverage } from '../MimeType';
 import { ExtractionFailures } from '../ExtractionFailures';
 import { UrlParamsState } from './GiantState';
-import { ResourceRange, CommentData, Resource } from '../Resource';
+import { ResourceRange, CommentData, Resource, BasicResource } from '../Resource';
 import { PagedDocument } from '../../reducers/pagesReducer';
 
 export enum WorkspacesActionType {
@@ -16,6 +16,11 @@ export enum WorkspacesActionType {
     SET_NODE_AS_COLLAPSED = 'SET_NODE_AS_COLLAPSED',
 }
 
+export enum CollectionActionType {
+    COLLECTION_SET_SELECTED_ENTRIES = 'COLLECTION_SET_SELECTED_ENTRIES',
+    COLLECTION_SET_FOCUSED_ENTRY = 'COLLECTION_SET_FOCUSED_ENTRY',
+} 
+
 interface TreeNodeAction {
     type: WorkspacesActionType.SET_NODE_AS_EXPANDED | WorkspacesActionType.SET_NODE_AS_COLLAPSED,
     node: TreeNode<WorkspaceEntry>,
@@ -24,6 +29,16 @@ interface TreeNodeAction {
 interface SelectedEntriesAction {
     type: WorkspacesActionType.SET_SELECTED_ENTRIES,
     entries: TreeEntry<WorkspaceEntry>[]
+}
+
+interface CollectionSelectedEntriesAction {
+    type: CollectionActionType.COLLECTION_SET_SELECTED_ENTRIES,
+    entries: TreeEntry<BasicResource>[]
+}
+
+interface CollectionFocusedEntriesAction {
+    type: CollectionActionType.COLLECTION_SET_FOCUSED_ENTRY,
+    entry: TreeEntry<BasicResource> | null
 }
 
 interface FocusedEntryAction {
@@ -53,6 +68,10 @@ export type WorkspacesAction =
     | EntryBeingRenamedAction
     | ReceiveWorkspacesMetadataAction
     | ReceiveWorkspaceAction
+
+export type CollectionAction = 
+    | CollectionSelectedEntriesAction
+    | CollectionFocusedEntriesAction
 
 export enum AppActionType {
     APP_SHOW_ERROR = 'APP_SHOW_ERROR',
@@ -286,6 +305,7 @@ export type PagesAction =
 
 export type GiantAction =
     | WorkspacesAction
+    | CollectionAction
     | AppAction
     | MetricsAction
     | UrlParamsAction

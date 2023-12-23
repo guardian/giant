@@ -1,4 +1,7 @@
+import { reprocessBlob } from '../../services/BlobApi';
 import {fetchCollection} from '../../services/CollectionsApi';
+import { fetchResource } from '../../services/ResourceApi';
+import { getBasicResource } from '../resources/getResource';
 
 export function getCollection(uri) {
     return dispatch => {
@@ -12,6 +15,30 @@ export function getCollection(uri) {
                 }
             })
             .catch(error => dispatch(errorReceivingCollection(error, uri)));
+    };
+}
+
+export function reprocessCollectionResource(uri, collectionUri) {
+    return dispatch => {
+        console.log(`reprocess: ${uri}`);
+        return fetchResource(uri, true)
+        .then(res => {
+            const uri = res.children[0].uri;
+            console.log("res: ");
+            console.log(res);
+            reprocessBlob(uri)            
+                .then(() => dispatch(getBasicResource(collectionUri)))
+                .catch(error => dispatch(errorReprocessingBlob(error)));
+        })
+    }
+}
+
+
+function errorReprocessingBlob(error) {
+    return {
+        type:        'APP_SHOW_ERROR',
+        message:     'Failed to start reprocessing',
+        error:       error,
     };
 }
 
