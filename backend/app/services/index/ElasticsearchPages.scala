@@ -9,7 +9,6 @@ import model.index.{Page, PageResult, PagesSummary}
 import model.{Language, Languages, Uri}
 import services.ElasticsearchSyntax
 import services.index.HitReaders.{PageHitReader, RichFieldMap}
-import services.table.TableRowFields
 import utils.Logging
 import utils.attempt.{Attempt, ElasticSearchQueryFailure, MultipleFailures, NotFoundFailure}
 
