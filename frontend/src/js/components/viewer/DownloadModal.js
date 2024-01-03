@@ -121,7 +121,7 @@ Email Body:
         var element = document.createElement('a');
         const escaped = encodeURIComponent(downloadable);
         element.setAttribute('href', 'data:text/plain;charset=utf-8,' + escaped);
-        element.setAttribute('download', this.state.saveAs + '.' + this.state.extension);
+        element.setAttribute('download', `${this.state.saveAs}.${this.state.extension}`);
 
         element.click();
     }
@@ -130,15 +130,21 @@ Email Body:
         e.stopPropagation();
 
         const filename = `${this.state.saveAs}.${this.state.extension}`;
+        const getDownloadType = downloadType => downloadType.startsWith('transcript') ? 'transcript' : this.state.downloadType;
 
-        switch (this.state.downloadType) {
+        switch (getDownloadType(this.state.downloadType)) {
             case 'preview': {
                 authorizedDownload(authPreviewLink(this.props.resource.uri, filename))
                     .then(target => window.location.href = target);
                 break;
             }
             case 'extractedText': {
-                const text = this.props.resource.text.replace('<result-highlight>', '').replace('</result-highlight>', '');
+                const text = this.props.resource.text.contents.replace('<result-highlight>', '').replace('</result-highlight>', '');
+                this.download(text);
+                break;
+            }
+            case 'transcript': {           
+                const text = this.props.resource.transcript[this.state.downloadLanguage].contents.replace('<result-highlight>', '').replace('</result-highlight>', '');
                 this.download(text);
                 break;
             }
@@ -163,8 +169,14 @@ Email Body:
             types.push({value: 'preview', label: 'PDF Preview'});
         }
 
-        if (this.props.resource.text) {
+        if (this.props.resource.text.contents) {
             types.push({value: 'extractedText', label: 'Extracted Text'});
+        }
+
+        if (this.props.resource.transcript) {
+            Object.keys(this.props.resource.transcript).forEach(language => {
+                types.push({value: `transcript${startCase(language)}`, label: `Transcript (${startCase(language)})`, language})
+            })
         }
 
         if (this.props.resource.ocr) {
@@ -179,12 +191,17 @@ Email Body:
     }
 
     downloadTypeSelected = (v) => {
-        switch (v.value) {
+        const getValue = value => value.startsWith('transcript') ? 'transcript' : value;
+
+        switch (getValue(v.value)) {
             case 'preview':
                 this.setState({downloadType: 'perview', extension: 'pdf'});
                 break;
             case 'extractedText':
                 this.setState({downloadType: 'extractedText', extension: 'txt'});
+                break;
+            case 'transcript':
+                this.setState({downloadType: v.value, downloadLanguage: v.language, extension: `${v.language}.transcript.txt`});
                 break;
             case 'ocrText':
                 this.setState({downloadType: 'ocrText', downloadLanguage: v.language, extension: `${v.language}.ocr.txt` });
