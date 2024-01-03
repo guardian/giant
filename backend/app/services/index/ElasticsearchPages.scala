@@ -2,6 +2,7 @@ package services.index
 
 import com.sksamuel.elastic4s.ElasticClient
 import com.sksamuel.elastic4s.ElasticDsl._
+import com.sksamuel.elastic4s.fields.ObjectField
 import com.sksamuel.elastic4s.requests.searches.queries.Query
 import com.sksamuel.elastic4s.requests.searches.{HighlightField, MultisearchResponseItem}
 import model.index.{Page, PageResult, PagesSummary}
@@ -22,12 +23,12 @@ class ElasticsearchPages(val client: ElasticClient, indexNamePrefix: String)(imp
         keywordField(PagesFields.resourceId),
         intField(PagesFields.page),
         emptyMultiLanguageField(PagesFields.value),
-        objectField(PagesFields.dimensions).fields(
+        ObjectField(PagesFields.dimensions, properties = Seq(
           floatField(PagesFields.width),
           floatField(PagesFields.height),
           floatField(PagesFields.top),
           floatField(PagesFields.bottom)
-        )
+        ))
       )
     ).flatMap { _ =>
       Attempt.sequence(Languages.all.map(addLanguage))

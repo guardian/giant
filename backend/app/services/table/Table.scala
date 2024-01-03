@@ -2,6 +2,7 @@ package services.table
 
 import com.sksamuel.elastic4s.ElasticDsl._
 import com.sksamuel.elastic4s.ElasticClient
+import com.sksamuel.elastic4s.fields.ObjectField
 import model.Uri
 import model.index.TableRow
 import services.ElasticsearchSyntax
@@ -23,10 +24,10 @@ class ElasticsearchTable(override val client: ElasticClient, tableIndexName: Str
         textField(TableRowFields.tableId),
         intField(TableRowFields.rowIndex),
         textField(TableRowFields.sheetName),
-        objectField(TableRowFields.cellsField).fields(
+        ObjectField(TableRowFields.cellsField, properties = Seq(
           textField(TableRowFields.cells.key),
           textField(TableRowFields.cells.value)
-        )
+        ))
       )
     ).map { _ => this }
 
