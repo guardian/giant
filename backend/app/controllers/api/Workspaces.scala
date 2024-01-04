@@ -205,6 +205,7 @@ class Workspaces(override val controllerComponents: AuthControllerComponents, an
     val newId = UUID.randomUUID().toString
     tree match {
       case TreeLeaf(_, name, data, _) =>
+        // a TreeLeaf won't have any children, so just insert the item at the destination location, and return it's new ID
         data match {
           case WorkspaceLeaf(_, _, _, _, uri, mimeType, size) =>
             val addItemData = AddItemData(name, destinationParentId, "file", Some("document"), AddItemParameters(Some(uri), size, Some(mimeType)))
@@ -213,10 +214,16 @@ class Workspaces(override val controllerComponents: AuthControllerComponents, an
         }
 
       case TreeNode(_, name, _, children) =>
+        // TreeNodes are folders. We need to create the folder in the new destination, and then recurse on every child item
+
+        // create the folder in the destination location
         val addItemData = AddItemData(name, destinationParentId, "folder", None, AddItemParameters(None, None, None))
-        val newChildIds = insertItem(user, workspaceId, newId, addItemData).flatMap{_ =>
-          Attempt.traverse(children)(child =>  copyTree(workspaceId, newId, child, user))
+        val newFolderIdAttempt = insertItem(user, workspaceId, newId, addItemData)
+        // for every child, recurse, setting the newly created folder as the destination
+        val newChildIds = newFolderIdAttempt.flatMap{ newFolderId =>
+          Attempt.traverse(children)(child => copyTree(workspaceId, newFolderId, child, user))
         }
+        // return ids of all child nodes combined with the id of the new folder
         newChildIds.map(ids => newId +: ids.flatten )
     }
   }
@@ -284,10 +291,9 @@ class Workspaces(override val controllerComponents: AuthControllerComponents, an
       _ <- if (data.newParentId.contains(itemId)) Attempt.Left(ClientFailure("Cannot copy a workspace item to the same location")) else Attempt.Right(())
       copyDestination <-annotation.getCopyDestination(req.user.username, workspaceId, data.newWorkspaceId, data.newParentId)
       workspaceContents <- annotation.getWorkspaceContents(req.user.username, workspaceId)
-      result <- TreeEntry.findNodeById(workspaceContents, itemId)
+      _ <- TreeEntry.findNodeById(workspaceContents, itemId)
             .map(entry => copyTree(copyDestination.workspaceId, copyDestination.parentId, entry, req.user.username)).getOrElse(Attempt.Left(ClientFailure("Must supply at least one of newWorkspaceId or newParentId")))
     } yield {
-      println(result)
       NoContent
     }
   }
