@@ -1,4 +1,4 @@
-import React, { FC } from 'react';
+import React, {FC, useState} from 'react';
 import SidebarSearchLink from '../UtilComponents/SidebarSearchLink';
 import { moveItems } from '../../actions/workspaces/moveItem';
 import { GiantState } from '../../types/redux/GiantState';
@@ -8,7 +8,7 @@ import { connect } from 'react-redux';
 import { getIdsOfEntriesToMove } from '../../util/treeUtils';
 import {copyItems} from "../../actions/workspaces/copyItem";
 import Modal from "../UtilComponents/Modal";
-import CreateFolderModal from "./CreateFolderModal";
+import {CopyOrMoveModal} from "./CopyOrMoveModal";
 
 interface PropsFromParent {
     selectedWorkspaceId: string,
@@ -20,19 +20,33 @@ type PropTypes = ReturnType<typeof mapDispatchToProps>
     & ReturnType<typeof mapStateToProps>
     & PropsFromParent
 
+
 const WorkspacesSidebarItem: FC<PropTypes> = ({selectedEntries, moveItems, copyItems, selectedWorkspaceId, linkedToWorkspaceId, linkedToWorkspaceName}) => {
-    return <SidebarSearchLink
-        onDrop={(e: React.DragEvent) => {
-            const json = e.dataTransfer.getData('application/json');
-            const {id: idOfDraggedEntry} = JSON.parse(json);
-            const entryIds = getIdsOfEntriesToMove(selectedEntries, idOfDraggedEntry);
-            e.metaKey ? copyItems(selectedWorkspaceId, entryIds, linkedToWorkspaceId) : moveItems(selectedWorkspaceId, entryIds, linkedToWorkspaceId);
-        }}
-        key={linkedToWorkspaceId}
-        to={`/workspaces/${linkedToWorkspaceId}`}
-    >
-        <div className='sidebar__item__text'>{linkedToWorkspaceName}</div>
-    </SidebarSearchLink>
+    const [copyOrMoveModalOpen, setCopyOrMoveModalOpen] = useState<boolean>(false)
+    const [entryIds, setEntryIds] = useState<string[]>([])
+    return <>
+        <SidebarSearchLink
+            onDrop={(e: React.DragEvent) => {
+                const json = e.dataTransfer.getData('application/json');
+                const {id: idOfDraggedEntry} = JSON.parse(json);
+                const entryIds = getIdsOfEntriesToMove(selectedEntries, idOfDraggedEntry);
+                setEntryIds(entryIds)
+                // Ask user whether they want to move or copy or move the files
+                setCopyOrMoveModalOpen(true)
+            }}
+            key={linkedToWorkspaceId}
+            to={`/workspaces/${linkedToWorkspaceId}`}
+        >
+            <div className='sidebar__item__text'>{linkedToWorkspaceName}</div>
+        </SidebarSearchLink>
+        <Modal isOpen={copyOrMoveModalOpen} dismiss={() => setCopyOrMoveModalOpen(false)}>
+            <CopyOrMoveModal onSubmit={(action: "copy" | "move") => {
+                const actionFn = action === "copy" ? copyItems : moveItems
+                actionFn(selectedWorkspaceId, entryIds, linkedToWorkspaceId)
+                setCopyOrMoveModalOpen(false)
+            }} />
+        </Modal>
+    </>
 }
 
 function mapStateToProps(state: GiantState) {
