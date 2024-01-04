@@ -416,7 +416,6 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
 
     onFocus = (entry: TreeEntry<WorkspaceEntry>, isMetaKeyHeld: boolean, isShiftKeyHeld: boolean) => {
         if (isMetaKeyHeld) {
-            // THIS BREAKS COPY FUNCTIONALITY AT THE MOMENT - NEED TO HAVE A THINK OR USE A POP UP MODAL RATHER THAN META KEY
             this.setSelectedEntriesAfterMetaClick(entry);
         } else if (isShiftKeyHeld) {
             this.setSelectedEntriesAfterShiftClick(entry);

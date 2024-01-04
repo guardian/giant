@@ -202,7 +202,6 @@ class Workspaces(override val controllerComponents: AuthControllerComponents, an
   }
 
   private def copyTree(workspaceId: String, destinationParentId: String, tree: TreeEntry[WorkspaceEntry], user: String): Attempt[List[String]] = {
-    println("copy tree")
     val newId = UUID.randomUUID().toString
     tree match {
       case TreeLeaf(_, name, data, _) =>
@@ -213,7 +212,7 @@ class Workspaces(override val controllerComponents: AuthControllerComponents, an
           case _ => Attempt.Left(WorkspaceCopyFailure("Unexpected data type of TreeLeaf"))
         }
 
-      case TreeNode(_, name, data, children) =>
+      case TreeNode(_, name, _, children) =>
         val addItemData = AddItemData(name, destinationParentId, "folder", None, AddItemParameters(None, None, None))
         val newChildIds = insertItem(user, workspaceId, newId, addItemData).flatMap{_ =>
           Attempt.traverse(children)(child =>  copyTree(workspaceId, newId, child, user))

@@ -12,8 +12,7 @@ import services.annotations.Annotations
 import services.events.{ActionComplete, Events}
 import services.ingestion.IngestionServices
 import services.manifest.Manifest
-import services.observability.{EventStatus, IngestionEvent}
-import utils.Logging
+import services.observability.{IngestionEvent, EventStatus}
 import utils.attempt.{Attempt, MissingPermissionFailure}
 
 import scala.concurrent.ExecutionContext
@@ -25,7 +24,7 @@ object IngestFileResult {
 
 class IngestFile(collectionUri: Uri, ingestionUri: Uri, uploadId: String, workspace: Option[WorkspaceItemUploadContext],
                  username: String, temporaryFilePath: Path, originalPath: Path, lastModifiedTime: Option[String],
-                 manifest: Manifest, esEvents: Events, ingestionServices: IngestionServices, annotations: Annotations)(implicit ec: ExecutionContext) extends AttemptCommand[IngestFileResult] with Logging {
+                 manifest: Manifest, esEvents: Events, ingestionServices: IngestionServices, annotations: Annotations)(implicit ec: ExecutionContext) extends AttemptCommand[IngestFileResult] {
 
   override def process(): Attempt[IngestFileResult] = {
     for {
@@ -42,7 +41,6 @@ class IngestFile(collectionUri: Uri, ingestionUri: Uri, uploadId: String, worksp
       workspaceNodeId <- addToWorkspaceIfRequired(blob)
     } yield {
       workspaceEvent.foreach(e => ingestionServices.recordIngestionEvent(e.copy(status = EventStatus.Success)))
-      logger.info("ESRECORD****")
       esEvents.record(
         ActionComplete,
         s"User $username Uploaded '$originalPath' to ingestion '${ingestionUri.value}'",
@@ -54,7 +52,6 @@ class IngestFile(collectionUri: Uri, ingestionUri: Uri, uploadId: String, worksp
           "uploadId" -> uploadId
         ) ++ workspace.map { w => "workspace" -> w.workspaceName }
       )
-      logger.info("***recorded")
 
       IngestFileResult(blob, workspaceNodeId)
     }
