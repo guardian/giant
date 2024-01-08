@@ -1,14 +1,15 @@
 import React from 'react';
 
 type Props = {
+   destinationWorkspaceName: string
    onSubmit: (action: "copy" | "move") => void
 }
-export const CopyOrMoveModal = ({onSubmit}: Props) => {
+export const CopyOrMoveModal = ({destinationWorkspaceName, onSubmit}: Props) => {
 
     return (
         <form className='form' >
             <h2>Copy or move items</h2>
-            Do you want to copy or move the selected items to the destination workspace?
+            Do you want to copy or move the selected items to the workspace '{destinationWorkspaceName}'?
 
             <div className='modal-action__buttons'>
                 <button

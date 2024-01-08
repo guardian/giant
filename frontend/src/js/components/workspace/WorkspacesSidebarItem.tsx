@@ -40,7 +40,7 @@ const WorkspacesSidebarItem: FC<PropTypes> = ({selectedEntries, moveItems, copyI
             <div className='sidebar__item__text'>{linkedToWorkspaceName}</div>
         </SidebarSearchLink>
         <Modal isOpen={copyOrMoveModalOpen} dismiss={() => setCopyOrMoveModalOpen(false)}>
-            <CopyOrMoveModal onSubmit={(action: "copy" | "move") => {
+            <CopyOrMoveModal destinationWorkspaceName={linkedToWorkspaceName} onSubmit={(action: "copy" | "move") => {
                 const actionFn = action === "copy" ? copyItems : moveItems
                 actionFn(selectedWorkspaceId, entryIds, linkedToWorkspaceId)
                 setCopyOrMoveModalOpen(false)
