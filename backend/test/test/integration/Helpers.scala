@@ -334,7 +334,7 @@ object Helpers extends Matchers with Logging with OptionValues with Inside {
   def moveWorkspaceItem(workspaceId: String, itemId: String, newParentId: Option[String] = None, newWorkspaceId: Option[String] = None)(implicit controllers: Controllers, timeout: Timeout): Future[Result] =
     controllers.workspace.moveItem(workspaceId, itemId)
       .apply(FakeRequest().withBody(Json.toJson(
-        MoveItemData(
+        MoveCopyDestination(
           newParentId = newParentId,
           newWorkspaceId = newWorkspaceId
         )

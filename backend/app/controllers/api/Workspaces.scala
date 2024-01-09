@@ -55,9 +55,9 @@ object RenameItemData {
   implicit val format = Json.format[RenameItemData]
 }
 
-case class MoveItemData(newParentId: Option[String], newWorkspaceId: Option[String])
-object MoveItemData {
-  implicit val format = Json.format[MoveItemData]
+case class MoveCopyDestination(newParentId: Option[String], newWorkspaceId: Option[String])
+object MoveCopyDestination {
+  implicit val format = Json.format[MoveCopyDestination]
 }
 
 class Workspaces(override val controllerComponents: AuthControllerComponents, annotation: Annotations, index: Index, manifest: Manifest,
@@ -270,7 +270,7 @@ class Workspaces(override val controllerComponents: AuthControllerComponents, an
 
   def moveItem(workspaceId: String, itemId: String) = ApiAction.attempt(parse.json) { req =>
     for {
-      data <- req.body.validate[MoveItemData].toAttempt
+      data <- req.body.validate[MoveCopyDestination].toAttempt
       _ = logAction(req.user, workspaceId, s"Move workspace item. Node ID: $itemId. Data: $data")
 
       _ <- if (data.newParentId.contains(itemId)) Attempt.Left(ClientFailure("Cannot move a workspace item to be under itself")) else Attempt.Right(())
@@ -285,7 +285,7 @@ class Workspaces(override val controllerComponents: AuthControllerComponents, an
 
   def copyItem(workspaceId: String, itemId: String) = ApiAction.attempt(parse.json) { req =>
     for {
-      data <- req.body.validate[MoveItemData].toAttempt
+      data <- req.body.validate[MoveCopyDestination].toAttempt
       _ = logAction(req.user, workspaceId, s"Copy workspace item. Node ID: $itemId. Data: $data")
 
       _ <- if (data.newParentId.contains(itemId)) Attempt.Left(ClientFailure("Cannot copy a workspace item to the same location")) else Attempt.Right(())

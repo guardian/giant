@@ -13,7 +13,6 @@ export function copyItems(
     return dispatch => {
         for (const itemId of itemIds) {
             if (itemId !== newParentId) {
-                console.log("dispatching")
                 dispatch(copyItem(workspaceId, itemId, newWorkspaceId, newParentId));
             }
         }
@@ -26,7 +25,6 @@ export function copyItem(
     newWorkspaceId?: string,
     newParentId?: string
 ): ThunkAction<void, GiantState, null, WorkspacesAction | AppAction> {
-    console.log("copying")
     return dispatch => {
         return copyItemApi(workspaceId, itemId, newWorkspaceId, newParentId)
             .then(() => {
@@ -43,4 +41,3 @@ function errorCopyingItem(error: Error): AppAction {
         error:       error,
     };
 }
-export {}
