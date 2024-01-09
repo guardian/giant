@@ -130,4 +130,6 @@ case class ContentTooLongFailure(msg: String) extends Failure
 
 case class DeleteFailure(msg: String) extends Failure
 
+case class WorkspaceCopyFailure(msg: String) extends Failure
+
 case class DeleteNotAllowed(msg: String) extends Failure

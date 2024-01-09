@@ -11,7 +11,7 @@ import org.neo4j.driver.v1.{Driver, Record, Value}
 import org.neo4j.driver.v1.Values.parameters
 import play.api.libs.json.Json
 import services.Neo4jQueryLoggingConfig
-import services.annotations.Annotations.{AffectedResource, DeleteItemResult, MoveItemResult}
+import services.annotations.Annotations.{AffectedResource, CopyDestination, DeleteItemResult, MoveItemResult}
 import utils._
 import utils.attempt.{Attempt, ClientFailure, Failure, IllegalStateFailure, NotFoundFailure}
 
@@ -383,6 +383,16 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
         val rootNode = r.head.get("rootNode")
         rootNode.get("id").asString
       }
+    }
+  }
+
+  def getCopyDestination(user: String, workspaceId: String, newWorkspaceId: Option[String], newParentId: Option[String]): Attempt[CopyDestination] = {
+    (newWorkspaceId, newParentId) match {
+      case (None, None) => Attempt.Left(ClientFailure("Must supply at least one of newWorkspaceId or newParentId"))
+      case (Some(newWorkspaceId), None) =>
+        getWorkspaceRootNodeId(user, newWorkspaceId).map(id => CopyDestination(newWorkspaceId, id))
+      case (None, Some(newParentId)) => Attempt.Right(CopyDestination(workspaceId, newParentId))
+      case (Some(newWorkspaceId), Some(newParentId)) => Attempt.Right(CopyDestination(newWorkspaceId, newParentId))
     }
   }
 

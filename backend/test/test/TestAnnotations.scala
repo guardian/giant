@@ -4,6 +4,7 @@ import model.Uri
 import model.annotations.{Comment, CommentAnchor, WorkspaceEntry, WorkspaceMetadata}
 import model.frontend.TreeEntry
 import services.annotations.Annotations
+import services.annotations.Annotations.CopyDestination
 import utils.attempt.{Attempt, Failure, UnsupportedOperationFailure}
 
 class TestAnnotations(usersToWorkspaces: Map[String, List[String]] = Map.empty) extends Annotations {
@@ -26,6 +27,7 @@ class TestAnnotations(usersToWorkspaces: Map[String, List[String]] = Map.empty) 
   override def renameWorkspaceItem(currentUser: String, workspaceId: String, itemId: String, name: String): Attempt[Unit] = Attempt.Left(UnsupportedOperationFailure(""))
   override def moveWorkspaceItem(currentUser: String, workspaceId: String, itemId: String, newWorkspaceId: Option[String], newParentId: Option[String]): Attempt[Annotations.MoveItemResult] = Attempt.Left(UnsupportedOperationFailure(""))
   override def deleteWorkspaceItem(currentUser: String, workspaceId: String, itemId: String): Attempt[Annotations.DeleteItemResult] = Attempt.Left(UnsupportedOperationFailure(""))
+  override def getCopyDestination(user: String, workspaceId: String, newWorkspaceId: Option[String], newParentId: Option[String]): Attempt[CopyDestination] = Attempt.Left(UnsupportedOperationFailure(""))
   override def postComment(currentUser: String, uri: Uri, text: String, anchor: Option[CommentAnchor]): Attempt[Unit] = Attempt.Left(UnsupportedOperationFailure(""))
   override def getComments(uri: Uri): Attempt[List[Comment]] = Attempt.Left(UnsupportedOperationFailure(""))
   override def deleteComment(currentUser: String, commentId: String): Attempt[Unit] = Attempt.Left(UnsupportedOperationFailure(""))

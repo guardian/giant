@@ -3,7 +3,7 @@ package services.annotations
 import model.Uri
 import model.annotations._
 import model.frontend.TreeEntry
-import services.annotations.Annotations.{AffectedResource, DeleteItemResult, MoveItemResult}
+import services.annotations.Annotations.{AffectedResource, CopyDestination, DeleteItemResult, MoveItemResult}
 import utils.attempt.{Attempt, Failure}
 import org.neo4j.driver.v1.Value
 
@@ -25,7 +25,7 @@ trait Annotations {
   def renameWorkspaceItem(currentUser: String, workspaceId: String, itemId: String, name: String): Attempt[Unit]
   def moveWorkspaceItem(currentUser: String, workspaceId: String, itemId: String, newWorkspaceId: Option[String], newParentId: Option[String]): Attempt[MoveItemResult]
   def deleteWorkspaceItem(currentUser: String, workspaceId: String, itemId: String): Attempt[DeleteItemResult]
-
+  def getCopyDestination(user: String, workspaceId: String, newWorkspaceId: Option[String], newParentId: Option[String]): Attempt[CopyDestination]
   def postComment(currentUser: String, uri: Uri, text: String, anchor: Option[CommentAnchor]): Attempt[Unit]
   def getComments(uri: Uri): Attempt[List[Comment]]
   def deleteComment(currentUser: String, commentId: String): Attempt[Unit]
@@ -48,4 +48,6 @@ object Annotations {
 
   case class DeleteItemResult(resourcesRemoved: List[AffectedResource])
   case class MoveItemResult(resourcesMoved: List[AffectedResource])
+
+  case class CopyDestination(workspaceId: String, parentId: String)
 }

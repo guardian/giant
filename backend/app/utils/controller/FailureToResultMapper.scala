@@ -111,6 +111,9 @@ object FailureToResultMapper extends Logging {
       case DeleteFailure(msg) =>
         logUserAndMessage(user, s"Delete failed: ${msg}")
         Results.InternalServerError(msg)
+      case WorkspaceCopyFailure(msg) =>
+        logUserAndMessage(user, s"Workspace copy failed: ${msg}")
+        Results.InternalServerError(msg)
       case DeleteNotAllowed(msg) =>
         logUserAndMessage(user, s"Deletion is refused: ${msg}")
         Results.Forbidden(msg)

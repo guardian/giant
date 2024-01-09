@@ -2,8 +2,8 @@ package controllers.api
 
 import commands.DeleteResource
 import model.Uri
-import model.annotations.Workspace
-import model.frontend.TreeEntry
+import model.annotations.{Workspace, WorkspaceEntry, WorkspaceLeaf}
+import model.frontend.{TreeEntry, TreeLeaf, TreeNode}
 import net.logstash.logback.marker.LogstashMarker
 import net.logstash.logback.marker.Markers.append
 import play.api.libs.json._
@@ -55,9 +55,9 @@ object RenameItemData {
   implicit val format = Json.format[RenameItemData]
 }
 
-case class MoveItemData(newParentId: Option[String], newWorkspaceId: Option[String])
-object MoveItemData {
-  implicit val format = Json.format[MoveItemData]
+case class MoveCopyDestination(newParentId: Option[String], newWorkspaceId: Option[String])
+object MoveCopyDestination {
+  implicit val format = Json.format[MoveCopyDestination]
 }
 
 class Workspaces(override val controllerComponents: AuthControllerComponents, annotation: Annotations, index: Index, manifest: Manifest,
@@ -201,6 +201,33 @@ class Workspaces(override val controllerComponents: AuthControllerComponents, an
     }
   }
 
+  private def copyTree(workspaceId: String, destinationParentId: String, tree: TreeEntry[WorkspaceEntry], user: String): Attempt[List[String]] = {
+    val newId = UUID.randomUUID().toString
+    tree match {
+      case TreeLeaf(_, name, data, _) =>
+        // a TreeLeaf won't have any children, so just insert the item at the destination location, and return it's new ID
+        data match {
+          case WorkspaceLeaf(_, _, _, _, uri, mimeType, size) =>
+            val addItemData = AddItemData(name, destinationParentId, "file", Some("document"), AddItemParameters(Some(uri), size, Some(mimeType)))
+            insertItem(user, workspaceId, newId, addItemData).map(i => List(i))
+          case _ => Attempt.Left(WorkspaceCopyFailure("Unexpected data type of TreeLeaf"))
+        }
+
+      case TreeNode(_, name, _, children) =>
+        // TreeNodes are folders. We need to create the folder in the new destination, and then recurse on every child item
+
+        // create the folder in the destination location
+        val addItemData = AddItemData(name, destinationParentId, "folder", None, AddItemParameters(None, None, None))
+        val newFolderIdAttempt = insertItem(user, workspaceId, newId, addItemData)
+        // for every child, recurse, setting the newly created folder as the destination
+        val newChildIds = newFolderIdAttempt.flatMap{ newFolderId =>
+          Attempt.traverse(children)(child => copyTree(workspaceId, newFolderId, child, user))
+        }
+        // return ids of all child nodes combined with the id of the new folder
+        newChildIds.map(ids => newId +: ids.flatten )
+    }
+  }
+
   def addItemToWorkspace(workspaceId: String) = ApiAction.attempt(parse.json) { req =>
     for {
       data <- req.body.validate[AddItemData].toAttempt
@@ -243,7 +270,7 @@ class Workspaces(override val controllerComponents: AuthControllerComponents, an
 
   def moveItem(workspaceId: String, itemId: String) = ApiAction.attempt(parse.json) { req =>
     for {
-      data <- req.body.validate[MoveItemData].toAttempt
+      data <- req.body.validate[MoveCopyDestination].toAttempt
       _ = logAction(req.user, workspaceId, s"Move workspace item. Node ID: $itemId. Data: $data")
 
       _ <- if (data.newParentId.contains(itemId)) Attempt.Left(ClientFailure("Cannot move a workspace item to be under itself")) else Attempt.Right(())
@@ -255,6 +282,22 @@ class Workspaces(override val controllerComponents: AuthControllerComponents, an
       NoContent
     }
   }
+
+  def copyItem(workspaceId: String, itemId: String) = ApiAction.attempt(parse.json) { req =>
+    for {
+      data <- req.body.validate[MoveCopyDestination].toAttempt
+      _ = logAction(req.user, workspaceId, s"Copy workspace item. Node ID: $itemId. Data: $data")
+
+      _ <- if (data.newParentId.contains(itemId)) Attempt.Left(ClientFailure("Cannot copy a workspace item to the same location")) else Attempt.Right(())
+      copyDestination <-annotation.getCopyDestination(req.user.username, workspaceId, data.newWorkspaceId, data.newParentId)
+      workspaceContents <- annotation.getWorkspaceContents(req.user.username, workspaceId)
+      _ <- TreeEntry.findNodeById(workspaceContents, itemId)
+            .map(entry => copyTree(copyDestination.workspaceId, copyDestination.parentId, entry, req.user.username)).getOrElse(Attempt.Left(ClientFailure("Must supply at least one of newWorkspaceId or newParentId")))
+    } yield {
+      NoContent
+    }
+  }
+
 
   def removeItem(workspaceId: String, itemId: String) = ApiAction.attempt { req =>
     logAction(req.user, workspaceId, s"Rename workspace item. Node ID: $itemId")
