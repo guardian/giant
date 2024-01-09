@@ -26,6 +26,16 @@ deployments:
         AmigoStage: PROD
         Encrypted: pfi-playground
 
+  pfi-elasticsearch-ami-update:
+    type: ami-cloudformation-parameter
+    app: elasticsearch
+    parameters:
+      amiEncrypted: true
+      amiTags:
+        Recipe: investigations-elasticsearch-8-arm64
+        AmigoStage: PROD
+        Encrypted: pfi-playground
+
   pfi:
     type: autoscaling
     parameters:
