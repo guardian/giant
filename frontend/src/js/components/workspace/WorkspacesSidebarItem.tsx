@@ -24,9 +24,14 @@ type PropTypes = ReturnType<typeof mapDispatchToProps>
 const WorkspacesSidebarItem: FC<PropTypes> = ({selectedEntries, moveItems, copyItems, selectedWorkspaceId, linkedToWorkspaceId, linkedToWorkspaceName}) => {
     const [copyOrMoveModalOpen, setCopyOrMoveModalOpen] = useState<boolean>(false)
     const [entryIds, setEntryIds] = useState<string[]>([])
+    const [invalidDestinationModalOpen, setInvalidDestinationModalOpen] = useState<boolean>(false)
     return <>
         <SidebarSearchLink
             onDrop={(e: React.DragEvent) => {
+                if (linkedToWorkspaceId === selectedWorkspaceId) {
+                    setInvalidDestinationModalOpen(true)
+                    return;
+                }
                 const json = e.dataTransfer.getData('application/json');
                 const {id: idOfDraggedEntry} = JSON.parse(json);
                 const entryIds = getIdsOfEntriesToMove(selectedEntries, idOfDraggedEntry);
@@ -39,6 +44,11 @@ const WorkspacesSidebarItem: FC<PropTypes> = ({selectedEntries, moveItems, copyI
         >
             <div className='sidebar__item__text'>{linkedToWorkspaceName}</div>
         </SidebarSearchLink>
+        <Modal isOpen={invalidDestinationModalOpen} dismiss={() => setInvalidDestinationModalOpen(false)}>
+            <form className='form' >
+                Sorry, you cannot copy or move items to a workspace they are already in
+            </form>
+        </Modal>
         <Modal isOpen={copyOrMoveModalOpen} dismiss={() => setCopyOrMoveModalOpen(false)}>
             <CopyOrMoveModal destinationWorkspaceName={linkedToWorkspaceName} onSubmit={(action: "copy" | "move") => {
                 const actionFn = action === "copy" ? copyItems : moveItems
