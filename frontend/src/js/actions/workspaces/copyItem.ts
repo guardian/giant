@@ -8,7 +8,7 @@ export function copyItems(
     workspaceId: string,
     itemIds: string[],
     newWorkspaceId?: string,
-    newParentId?: string
+    newParentId?: string // Note: not currently used but could be useful for future 'copy to folder' functionality
 ): ThunkAction<void, GiantState, null, WorkspacesAction | AppAction> {
     return dispatch => {
         for (const itemId of itemIds) {
@@ -23,7 +23,7 @@ export function copyItem(
     workspaceId: string,
     itemId: string,
     newWorkspaceId?: string,
-    newParentId?: string
+    newParentId?: string // Note: not currently used but could be useful for future 'copy to folder' functionality
 ): ThunkAction<void, GiantState, null, WorkspacesAction | AppAction> {
     return dispatch => {
         return copyItemApi(workspaceId, itemId, newWorkspaceId, newParentId)
