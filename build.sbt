@@ -116,8 +116,8 @@ lazy val backend = (project in file("backend"))
       // dependency to tikka or another library
       "org.bouncycastle" % "bcutil-jdk15on" % "1.70",
       "commons-io" % "commons-io" % "2.6",
-      "com.sksamuel.elastic4s" %% "elastic4s-client-esjava" % "7.17.4",
-      "org.elasticsearch.client" % "elasticsearch-rest-client-sniffer" % "7.17.9",
+      "com.sksamuel.elastic4s" %% "elastic4s-client-esjava" % "8.11.4",
+      "org.elasticsearch.client" % "elasticsearch-rest-client-sniffer" % "8.6.2",
       "org.apache.pekko" %% "pekko-cluster-typed" % "1.0.1", // Needs to match pekko version in Play
       "org.neo4j.driver" % "neo4j-java-driver" % "1.6.3",
       "com.pff" % "java-libpst" % "0.9.3",
