@@ -10,7 +10,7 @@ import model.user.UserPermission.CanPerformAdminOperations
 import model.{CreateCollectionRequest, CreateIngestionRequest, CreateIngestionResponse, Uri, VerifyRequest}
 import play.api.libs.json._
 import play.api.mvc._
-import services.S3Config
+import services.{FingerprintServices, S3Config}
 import services.annotations.Annotations
 import services.index.{Index, Pages}
 import services.ingestion.IngestionServices
@@ -112,19 +112,38 @@ class Collections(override val controllerComponents: AuthControllerComponents, m
             val originalPath = URLDecoder.decode(rawOriginalPath, "UTF-8")
             val lastModifiedTime = req.headers.get("X-PFI-Last-Modified")
             val maybeWorkspaceContext = buildWorkspaceItemContext(req.headers)
+            val temporaryFilePath = req.body.path
+            val fingerprint = FingerprintServices.createFingerprintFromFile(temporaryFilePath.toFile)
 
-            new IngestFile(
-              Uri(collection),
-              Uri(collection).chain(ingestion),
-              uploadId,
-              workspace = maybeWorkspaceContext,
-              req.user.username,
-              temporaryFilePath = req.body.path,
-              originalPath = Paths.get(originalPath),
-              lastModifiedTime,
-              manifest, esEvents, ingestionServices, annotations
-            ).process().map { result =>
-              Created(Json.toJson(result))
+            val childrenWithSameUri = manifest.getWorkspaceChildrenWithUri(maybeWorkspaceContext, fingerprint)
+
+            childrenWithSameUri.flatMap { blobs =>
+              if (blobs.length > 0) {
+                println(s"number of existing children is ${blobs.length} ")
+                val uri = Uri(fingerprint)
+
+                for {
+                  _ <- manifest.rerunFailedExtractorsForBlob(uri)
+                  _ <- manifest.rerunSuccessfulExtractorsForBlob(uri)
+                } yield {
+                  Created(Json.toJson(blobs.head))
+                }
+              } else {
+                println("No children found")
+                new IngestFile(
+                  Uri(collection),
+                  Uri(collection).chain(ingestion),
+                  uploadId,
+                  workspace = maybeWorkspaceContext,
+                  req.user.username,
+                  temporaryFilePath = req.body.path,
+                  originalPath = Paths.get(originalPath),
+                  lastModifiedTime,
+                  manifest, esEvents, ingestionServices, annotations
+                ).process().map { result =>
+                  Created(Json.toJson(result))
+                }
+              }
             }
 
           case _ =>

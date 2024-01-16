@@ -3,12 +3,13 @@ package services.manifest
 import cats.instances.either._
 import cats.instances.list._
 import cats.syntax.traverse._
+import commands.IngestFileResult
 import extraction.{ExtractionParams, Extractor}
 import model._
 import model.annotations.WorkspaceMetadata
 import model.frontend.email.EmailNeighbours
 import model.frontend.{BasicResource, ExtractionFailureSummary, ExtractionFailures, ResourcesForExtractionFailure}
-import model.ingestion.{IngestionFile, WorkspaceItemContext}
+import model.ingestion.{IngestionFile, WorkspaceItemContext, WorkspaceItemUploadContext}
 import model.manifest._
 import model.user.DBUser
 import org.joda.time.DateTime
@@ -1101,6 +1102,39 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
       Left(IllegalStateFailure(s"Error in setProgressNote: unexpected properties set ${counters.propertiesSet()}"))
     } else {
       Right(())
+    }
+  }
+
+  override def getWorkspaceChildrenWithUri(workspaceContext: Option[WorkspaceItemUploadContext], childUri: String) = attemptTransaction { tx =>
+    if (workspaceContext.isDefined) {
+      tx.run(
+        """
+          |match (workspaceNode:WorkspaceNode {id: {workspaceNodeId} })<-[:PARENT]-(child:WorkspaceNode {uri: {childUri} })
+          |return child
+          |""".stripMargin,
+        parameters(
+          "workspaceNodeId", workspaceContext.get.workspaceParentNodeId,
+          "childUri", childUri
+        )
+      ).map { result: StatementResult =>
+        val children = result.list().asScala.toList
+
+        println(s"children number is ${children.length}")
+
+        val childrenUris = children.map { c =>
+          val node = c.get("child")
+          val uri = node.get("uri").asString()
+          val mimeType = node.get("mimeType").asString()
+          val size = node.get("size").asLong()
+          val id = node.get("id").asString()
+
+          IngestFileResult(Blob(Uri(uri), size, Set(MimeType(mimeType))), Some(id))
+        }
+
+        childrenUris
+      }
+    } else {
+      Attempt.Left(NotFoundFailure(s"No children with this"))
     }
   }
 }
