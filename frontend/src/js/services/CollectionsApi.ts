@@ -40,3 +40,9 @@ export function uploadFileToIngestion(ingestionName: string, uploadId: string, f
       `/api/collections/${ingestionName}`, uploadId, file, path, workspace, onProgress
     ).then((res: any) => JSON.parse(res));
 }
+
+export function uploadFileWithNewIngestion(collectionUri: string, ingestionName: string, uploadId: string, file: File, path: string, workspace?: WorkspaceUploadMetadata, onProgress?: ProgressHandler) {
+    return authUploadWithProgress(
+      `/api/collections/ingestion/upload/${collectionUri}`, uploadId, file, path, workspace, onProgress, ingestionName
+    ).then((res: any) => JSON.parse(res));
+}

@@ -1,11 +1,10 @@
 import { Collection } from '../../types/Collection';
 import { TreeEntry, isTreeNode } from '../../types/Tree';
 import { WorkspaceEntry, Workspace } from '../../types/Workspaces';
-import { createNewIngestion } from '../../services/CollectionsApi';
 
 export type WorkspaceTarget = {
-    id: string,
-    ingestion: string,
+    collectionUri: string,
+    ingestionName: string,
     workspace: Workspace,
     workspaceEntry: TreeEntry<WorkspaceEntry>
 }
@@ -21,18 +20,12 @@ export function getDefaultCollection(username: string, collections: Collection[]
     });
 }
 
-async function createUploadIngestion(collection: Collection): Promise<string> {
-    const ingestionName = `${new Date().toISOString()}`;
-    const newIngestion = await createNewIngestion(collection.uri, `Upload ${ingestionName}`);
-    return newIngestion.uri;
-}
-
-export async function getUploadTarget(
+export function getUploadTarget(
     username: string,
     workspace: Workspace,
     collections: Collection[],
     focusedEntry: TreeEntry<WorkspaceEntry> | null,
-): Promise<WorkspaceTarget> {
+): WorkspaceTarget {
 
     const defaultCollection = getDefaultCollection(username, collections);
     if (!defaultCollection) {
@@ -44,11 +37,10 @@ export async function getUploadTarget(
         throw new Error(`No workspace entry in either focused entry ${focusedEntry} or root of workspace ${workspace.id}, cannot upload to workspace`);
     }
 
-    const ingestionUri = await createUploadIngestion(defaultCollection);
-
+    const ingestionName = `Upload ${new Date().toISOString()}`; 
     return {
-        id: `${workspace.id}-${ingestionUri}`,
-        ingestion: ingestionUri,
+        collectionUri: defaultCollection.uri,
+        ingestionName,
         workspace,
         workspaceEntry
     }

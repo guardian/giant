@@ -8,6 +8,7 @@ POST          /api/collections                                              cont
 DELETE        /api/collections/:collection                                  controllers.api.Collections.deleteCollection(collection: model.Uri)
 POST          /api/collections/:collection                                  controllers.api.Collections.newIngestion(collection: model.Uri)
 POST          /api/collections/:collection/:ingestion                       controllers.api.Collections.uploadIngestionFile(collection, ingestion)
+POST          /api/collections/ingestion/upload/:collection                 controllers.api.Collections.uploadFile(collection: model.Uri)
 DELETE        /api/collections/:collection/:ingestion                       controllers.api.Collections.deleteIngestion(collection, ingestion)
 POST          /api/collections/:collection/:ingestion/verifyFiles           controllers.api.Collections.verifyFiles(collection, ingestion)
 
