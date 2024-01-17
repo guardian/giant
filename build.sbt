@@ -6,6 +6,9 @@ ThisBuild / scalaVersion := "2.13.9"
 
 import com.gu.riffraff.artifact.BuildInfo
 import play.sbt.PlayImport.PlayKeys._
+import sbt.Package.FixedTimestamp
+
+ThisBuild / packageTimestamp := Package.keepTimestamps
 
 val compilerFlags = Seq(
   "-unchecked",
