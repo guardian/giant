@@ -6,6 +6,11 @@ ThisBuild / scalaVersion := "2.13.9"
 
 import com.gu.riffraff.artifact.BuildInfo
 import play.sbt.PlayImport.PlayKeys._
+import sbt.Package.FixedTimestamp
+
+// needed to correctly set Last-Modified headers, fixing asset caching
+// See https://github.com/guardian/grid/pull/3600/commits/01c904e4c47c5a4443c48354b92ada3e17533895
+ThisBuild / packageOptions += FixedTimestamp(Package.keepTimestamps)
 
 val compilerFlags = Seq(
   "-unchecked",
