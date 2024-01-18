@@ -234,7 +234,6 @@ class Search extends React.Component {
     }
 
     render() {
-        console.log("this is a test!")
         return(
             <div className='app__main-content search'>
                     <KeyboardShortcut shortcut={keyboardShortcuts.focusSearchBox} func={this.selectSearchBox} />
