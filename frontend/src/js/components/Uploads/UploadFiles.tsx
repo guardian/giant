@@ -179,7 +179,7 @@ async function uploadFiles(target: WorkspaceTarget, files: Map<string, UploadFil
                 }
 
                 const metadata = await buildWorkspaceUploadMetadata(path, target, workspaceFolderCache);
-                const result = await uploadFileWithNewIngestion(target.collectionUri, target.ingestionName, uploadId, file, path, metadata, onProgress);
+                await uploadFileWithNewIngestion(target.collectionUri, target.ingestionName, uploadId, file, path, metadata, onProgress);
 
                 dispatch({ type: "Set_Upload_State", file: path, state: { description: 'uploaded' }});
             } catch(e) {
@@ -192,9 +192,6 @@ async function uploadFiles(target: WorkspaceTarget, files: Map<string, UploadFil
             await nextFile(target, files.slice(1));
         }
     }
-
-    // TODO: Investigate where this storage is used
-    //setPreference('defaultUploadTarget', result.id);
 
     const sortedFiles = sortBy(Array.from(files.entries()), ([key]) => key);
     await nextFile(target, sortedFiles);
