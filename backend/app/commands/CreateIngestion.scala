@@ -23,11 +23,9 @@ case class CreateIngestion(data: CreateIngestionRequest, collectionUri: Uri, man
     val current = ingestionUri.flatMap(uri => manifest.getIngestion(uri))
 
     current.map { c =>
-      println(s"ingestion ${c.uri} already exists")
       Uri(c.uri)
     }.recoverWith {
       case f: NotFoundFailure =>
-        println(s"error getting ingestion - ${f.msg}")
         createIngestion(ingestionId, ingestionUri)
     }
   }

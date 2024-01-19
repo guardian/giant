@@ -24,13 +24,13 @@ object IngestFileResult {
 
 class IngestFile(collectionUri: Uri, ingestionUri: Uri, uploadId: String, workspace: Option[WorkspaceItemUploadContext],
                  username: String, temporaryFilePath: Path, originalPath: Path, lastModifiedTime: Option[String],
-                 manifest: Manifest, esEvents: Events, ingestionServices: IngestionServices, annotations: Annotations)(implicit ec: ExecutionContext) extends AttemptCommand[IngestFileResult] {
+                 manifest: Manifest, esEvents: Events, ingestionServices: IngestionServices, annotations: Annotations, fingerPrint: Option[String] = None)(implicit ec: ExecutionContext) extends AttemptCommand[IngestFileResult] {
 
   override def process(): Attempt[IngestFileResult] = {
     for {
       ingestion <- getIngestion()
 
-      fileUri = FingerprintServices.createFingerprintFromFile(temporaryFilePath.toFile)
+      fileUri = fingerPrint.getOrElse(FingerprintServices.createFingerprintFromFile(temporaryFilePath.toFile))
       // workspace will only be defined for user uploads. If it is defined we want to add a WorkspaceUpload ingestion event
       workspaceEvent = workspace.map(w =>
         IngestionEvent.workspaceUploadEvent(fileUri, ingestionUri.value, w.workspaceName, EventStatus.Started)

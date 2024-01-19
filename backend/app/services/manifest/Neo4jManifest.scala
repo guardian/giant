@@ -1119,8 +1119,6 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
       ).map { result: StatementResult =>
         val children = result.list().asScala.toList
 
-        println(s"children number is ${children.length}")
-
         val childrenUris = children.map { c =>
           val node = c.get("child")
           val uri = node.get("uri").asString()

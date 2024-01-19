@@ -139,7 +139,7 @@ class Collections(override val controllerComponents: AuthControllerComponents, m
                 val ingestionAttempt = createIngestionIfNotExists(collection, ingestionName)
 
                 ingestionAttempt.flatMap { ingestion =>
-                  processIngestion(req, collection, Uri(ingestion.uri), uploadId, maybeWorkspaceContext, rawOriginalPath)
+                  processIngestion(req, collection, Uri(ingestion.uri), uploadId, maybeWorkspaceContext, rawOriginalPath, Some(fingerprint))
                 }
               }
             }
@@ -246,7 +246,7 @@ class Collections(override val controllerComponents: AuthControllerComponents, m
   }
 
   private def processIngestion(req: UserIdentityRequest[Files.TemporaryFile], collection: Uri, ingestionUri: Uri, uploadId: String,
-                               maybeWorkspaceContext: Option[WorkspaceItemUploadContext], rawOriginalPath: String) = {
+                               maybeWorkspaceContext: Option[WorkspaceItemUploadContext], rawOriginalPath: String, fingerprint: Option[String] = None) = {
     val originalPath = URLDecoder.decode(rawOriginalPath, "UTF-8")
     val lastModifiedTime = req.headers.get("X-PFI-Last-Modified")
     new IngestFile(
@@ -258,7 +258,7 @@ class Collections(override val controllerComponents: AuthControllerComponents, m
       temporaryFilePath = req.body.path,
       originalPath = Paths.get(originalPath),
       lastModifiedTime,
-      manifest, esEvents, ingestionServices, annotations
+      manifest, esEvents, ingestionServices, annotations, fingerprint
     ).process().map { result =>
       Created(Json.toJson(result))
     }
