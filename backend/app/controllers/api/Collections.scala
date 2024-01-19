@@ -122,7 +122,7 @@ class Collections(override val controllerComponents: AuthControllerComponents, m
     }
   }
 
-  def uploadFile(collection: Uri) = ApiAction.attempt(parse.temporaryFile) { req =>
+  def uploadFileWithNewIngestion(collection: Uri) = ApiAction.attempt(parse.temporaryFile) { req =>
     users.canSeeCollection(req.user.username, collection).flatMap {
       case true =>
         (req.headers.get(CONTENT_LOCATION), req.headers.get("X-PFI-Upload-Id"), req.headers.get("X-PFI-Ingestion-Name")) match {

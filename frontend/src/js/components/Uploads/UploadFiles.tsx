@@ -6,7 +6,6 @@ import FilePicker from './FilePicker';
 import FileList from './FileList';
 import { Button, Form, Progress } from 'semantic-ui-react';
 import { getUploadTarget, WorkspaceTarget } from './UploadTarget';
-import { setPreference } from '../../actions/preferences';
 import { getCollection } from '../../actions/collections/getCollection';
 import { uploadFileWithNewIngestion } from '../../services/CollectionsApi';
 import history from '../../util/history';
