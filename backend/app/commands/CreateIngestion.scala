@@ -13,37 +13,39 @@ import scala.concurrent.ExecutionContext
 case class CreateIngestion(data: CreateIngestionRequest, collectionUri: Uri, manifest: Manifest, index: Index, pages: Pages)
                           (implicit ec: ExecutionContext) extends AttemptCommand[Uri] with Logging {
   def process(): Attempt[Uri] = {
-    val (ingestionId, ingestionUri) = provideIngestionUri()
+    val idUri = provideIngestionUri()
 
-    createIngestion(ingestionId, ingestionUri)
+    idUri.flatMap{ case (ingestionId, ingestionUri) =>
+      createIngestion(ingestionId, ingestionUri)
+    }
   }
 
   def createOrGet(): Attempt[Uri] = {
-    val (ingestionId, ingestionUri) = provideIngestionUri()
-    val current = ingestionUri.flatMap(uri => manifest.getIngestion(uri))
+    val ingestionTuple = provideIngestionUri()
+    val current = ingestionTuple.flatMap(idUri => manifest.getIngestion(idUri._2))
 
     current.map { c =>
       Uri(c.uri)
     }.recoverWith {
       case f: NotFoundFailure =>
-        createIngestion(ingestionId, ingestionUri)
+        ingestionTuple.flatMap{case (id, uri) => createIngestion(id, uri)}
     }
   }
 
-  private def provideIngestionUri(): (Attempt[String], Attempt[Uri]) = {
+  private def provideIngestionUri(): Attempt[(String, Uri)] = {
     val providedDisplayName = getProvidedDisplayName()
 
-    val ingestionId = providedDisplayName.map(d => UriCleaner.clean(d))
-    val ingestionUri = ingestionId.map(id => collectionUri.chain(id))
-    (ingestionId, ingestionUri)
+    providedDisplayName.map{ name =>
+      val id = UriCleaner.clean(name)
+      val uri = collectionUri.chain(id)
+      (id, uri)
+    }
   }
 
-  private def createIngestion(ingestionId: Attempt[String], ingestionUri: Attempt[Uri]): Attempt[Uri] = {
+  private def createIngestion(id: String, uri: Uri): Attempt[Uri] = {
     val langs = data.languages.flatMap(Languages.getByKey)
+    val rootPath = data.path.map(Paths.get(_))
     for {
-      id <- ingestionId
-      uri <- ingestionUri
-      rootPath = data.path.map(Paths.get(_))
       languages <- if (langs.nonEmpty) Attempt.Right(langs) else Attempt.Left(ClientFailure("No valid languages specified"))
       uri <- manifest.insertIngestion(collectionUri, uri, id, rootPath, languages, data.fixed.getOrElse(true), data.default.getOrElse(false))
     } yield uri
