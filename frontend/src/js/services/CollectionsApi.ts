@@ -25,22 +25,6 @@ export function fetchCollection(uri: string): Promise<Collection | undefined> {
     });
 }
 
-type CreateIngestionResponse = { uri: string, bucket: string, region: string, endpoint?: string };
-
-export function createNewIngestion(collectionUri: string, ingestionName: string): Promise<CreateIngestionResponse> {
-    return authFetch(`/api/collections/${collectionUri}`, {
-        headers: new Headers({'Content-Type': 'application/json'}),
-        method: 'POST',
-        body: JSON.stringify({fixed: false, languages: ['english'], name: ingestionName })
-    }).then(res => res.json());
-}
-
-export function uploadFileToIngestion(ingestionName: string, uploadId: string, file: File, path: string, workspace?: WorkspaceUploadMetadata, onProgress?: ProgressHandler) {
-    return authUploadWithProgress(
-      `/api/collections/${ingestionName}`, uploadId, file, path, workspace, onProgress
-    ).then((res: any) => JSON.parse(res));
-}
-
 export function uploadFileWithNewIngestion(collectionUri: string, ingestionName: string, uploadId: string, file: File, path: string, workspace?: WorkspaceUploadMetadata, onProgress?: ProgressHandler) {
     return authUploadWithProgress(
       `/api/collections/ingestion/upload/${collectionUri}`, uploadId, file, path, workspace, onProgress, ingestionName
