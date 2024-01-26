@@ -6,9 +6,8 @@ import FilePicker from './FilePicker';
 import FileList from './FileList';
 import { Button, Form, Progress } from 'semantic-ui-react';
 import { getUploadTarget, WorkspaceTarget } from './UploadTarget';
-import { setPreference } from '../../actions/preferences';
 import { getCollection } from '../../actions/collections/getCollection';
-import { uploadFileToIngestion } from '../../services/CollectionsApi';
+import { uploadFileWithNewIngestion } from '../../services/CollectionsApi';
 import history from '../../util/history';
 import { displayRelativePath } from '../../util/workspaceUtils';
 import { Collection } from '../../types/Collection';
@@ -179,7 +178,7 @@ async function uploadFiles(target: WorkspaceTarget, files: Map<string, UploadFil
                 }
 
                 const metadata = await buildWorkspaceUploadMetadata(path, target, workspaceFolderCache);
-                await uploadFileToIngestion(target.ingestion, uploadId, file, path, metadata, onProgress);
+                await uploadFileWithNewIngestion(target.collectionUri, target.ingestionName, uploadId, file, path, metadata, onProgress);
 
                 dispatch({ type: "Set_Upload_State", file: path, state: { description: 'uploaded' }});
             } catch(e) {
@@ -192,8 +191,6 @@ async function uploadFiles(target: WorkspaceTarget, files: Map<string, UploadFil
             await nextFile(target, files.slice(1));
         }
     }
-
-    setPreference('defaultUploadTarget', target.id);
 
     const sortedFiles = sortBy(Array.from(files.entries()), ([key]) => key);
     await nextFile(target, sortedFiles);

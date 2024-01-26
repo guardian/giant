@@ -1,12 +1,14 @@
 package services.manifest
 
+import commands.IngestFileResult
+
 import java.nio.file.Path
 import extraction.{ExtractionParams, Extractor}
 import model._
 import model.annotations.WorkspaceMetadata
 import model.frontend.{BasicResource, ExtractionFailures, ResourcesForExtractionFailure}
 import model.frontend.email.EmailNeighbours
-import model.ingestion.{IngestionFile, WorkspaceItemContext}
+import model.ingestion.{IngestionFile, WorkspaceItemContext, WorkspaceItemUploadContext}
 import model.manifest._
 import services.manifest.Manifest.WorkCounts
 import utils.attempt.{Attempt, Failure}
@@ -89,4 +91,6 @@ trait Manifest extends WorkerManifest {
   def deleteBlob(uri: Uri): Attempt[Unit]
 
   def deleteResourceAndDescendants(uri: Uri): Attempt[Unit]
+
+  def getWorkspaceChildrenWithUri(workspaceNodeId: Option[WorkspaceItemUploadContext], childUri: String): Attempt[List[IngestFileResult]]
 }
