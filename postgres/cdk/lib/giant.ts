@@ -4,7 +4,7 @@ import {
 } from '@guardian/cdk/lib/constructs/core';
 import { GuVpc, SubnetType } from '@guardian/cdk/lib/constructs/ec2/vpc';
 import type { App } from 'aws-cdk-lib';
-import { CfnOutput, Duration, SecretValue } from 'aws-cdk-lib';
+import { CfnOutput, Duration, SecretValue, Tags } from 'aws-cdk-lib';
 import {
 	InstanceClass,
 	InstanceSize,
@@ -77,6 +77,9 @@ export class Giant extends GuStack {
 				secretName: `${props.stack}-postgres-${props.stage}`,
 			}),
 		});
+
+		// Enable nightly backups (via https://github.com/guardian/aws-backup)
+		Tags.of(database).add("devx-backup-enabled", "true");
 
 		const dbAccessSecurityGroup = new SecurityGroup(this, 'db-access', {
 			vpc: vpc,
