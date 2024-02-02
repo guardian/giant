@@ -56,7 +56,6 @@ export class Giant extends GuStack {
 			allocatedStorage: dbStorage,
 			maxAllocatedStorage: dbStorage + 20,
 			autoMinorVersionUpgrade: true,
-			backupRetention: Duration.days(14),
 			instanceType: InstanceType.of(
 				InstanceClass.T4G,
 				this.stage === 'PROD' ? InstanceSize.MICRO : InstanceSize.MICRO,
@@ -64,6 +63,7 @@ export class Giant extends GuStack {
 			instanceIdentifier: `giant-db-${this.stage}`,
 			databaseName: 'giant',
 			deletionProtection: true,
+			deleteAutomatedBackups: false,
 			cloudwatchLogsExports: ['postgresql'],
 			iamAuthentication: true,
 			multiAz: false,
