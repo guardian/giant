@@ -12,7 +12,7 @@ deployments:
     parameters:
       amiEncrypted: true
       amiTags:
-        Recipe: investigations-giant-app-java11
+        Recipe: investigations-giant-app-arm
         AmigoStage: PROD
         Encrypted: pfi-playground
 
