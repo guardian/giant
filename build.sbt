@@ -128,9 +128,9 @@ lazy val backend = (project in file("backend"))
       "com.pff" % "java-libpst" % "0.9.3",
       // NOTE: When you update tika you need to check if there are any updates required to be made to the
       // conf/org/apache/tika/mimecustom-mimetypes.xml file
-      // (Seems to be OK as of 2.7.0: https://tika.apache.org/2.7.0/parser_guide.html)
-      "org.apache.tika" % "tika-parsers-standard-package" % "2.7.0",
-      "org.apache.tika" % "tika-core" % "2.7.0",
+      // (Seems to be OK as of 2.9.1: https://tika.apache.org/2.9.1/parser_guide.html)
+      "org.apache.tika" % "tika-parsers-standard-package" % "2.9.1",
+      "org.apache.tika" % "tika-core" % "2.9.1",
       "org.apache.logging.log4j" % "log4j-to-slf4j" % log4jVersion,
       "org.apache.logging.log4j" % "log4j-api" % log4jVersion,
       "org.apache.logging.log4j" % "log4j-core" % log4jVersion,
