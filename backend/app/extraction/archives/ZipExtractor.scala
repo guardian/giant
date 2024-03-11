@@ -32,7 +32,7 @@ class ZipExtractor(scratch: ScratchSpace, ingestionServices: IngestionServices) 
     val extractionRootPath = scratch.createWorkingDir(s"zip/${blob.uri.value}/")
     logger.info(s"Running ZIP extractor on '${blob.uri.value}' in temporary working directory '$extractionRootPath'")
 
-    val zipFile = new ZipFile(file)
+    val zipFile = ZipFile.builder().setFile(file).get()
     val builder = IngestionContextBuilder(blob.uri, params)
 
     val result = Either.catchNonFatal {
