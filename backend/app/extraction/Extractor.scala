@@ -21,4 +21,6 @@ trait Extractor {
   def cost(mimeType: MimeType, size: Long): Long = size
 
   def extract(blob: Blob, inputStream: InputStream, params: ExtractionParams): Either[Failure, Unit]
+
+  def external: Boolean = false
 }

@@ -71,11 +71,12 @@ object AwsDiscovery extends Logging {
       // Using the instanceId as the worker name will allow us to break locks on terminated instances in the future
       worker = maybeInstanceId.map { instanceId =>
         config.worker.copy(
-          name = Some(instanceId)
-        )
+          name = Some(instanceId))
       }.getOrElse(config.worker),
       transcribe = config.transcribe.copy(
-        whisperModelFilename = readSSMParameter("transcribe/modelFilename", stack, stage, ssmClient)
+        whisperModelFilename = readSSMParameter("transcribe/modelFilename", stack, stage, ssmClient),
+        transcriptionServiceOutputQueueUrl = readSSMParameter("transcribe/transcriptionServiceOutputQueueUrl", stack, stage, ssmClient),
+        transcriptionServiceQueueUrl = readSSMParameter("transcribe/transcriptionServiceQueueUrl", stack, stage, ssmClient)
       ),
       underlying = config.underlying
         .withValue("play.http.secret.key", fromAnyRef(readSSMParameter("pfi/playSecret", stack, stage, ssmClient)))
