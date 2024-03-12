@@ -5,15 +5,18 @@ import com.amazonaws.services.s3.model.{DeleteObjectsRequest, ListObjectsRequest
 import java.io.InputStream
 import java.nio.file.Path
 import model.ObjectMetadata
+import org.joda.time.DateTime
 import utils.attempt.{Failure, IllegalStateFailure, UnknownFailure}
 import utils.aws.{AwsErrors, S3Client}
-import scala.jdk.CollectionConverters._
 
+import java.util.Date
+import scala.jdk.CollectionConverters._
 import scala.util.control.NonFatal
 
 trait ObjectStorage {
   def create(key: String, path: Path, mimeType: Option[String] = None): Either[Failure, Unit]
   def get(key: String): Either[Failure, InputStream]
+  def getSignedUrl(key: String): Either[Failure, String]
   def getMetadata(key: String): Either[Failure, ObjectMetadata]
   def delete(key: String): Either[Failure, Unit]
   def deleteMultiple(key: Set[String]): Either[Failure, Unit]
@@ -28,6 +31,13 @@ class S3ObjectStorage private(client: S3Client, bucket: String) extends ObjectSt
 
   def get(key: String): Either[Failure, InputStream] = {
     run(client.aws.getObject(bucket, key).getObjectContent)
+  }
+
+  def getSignedUrl(key: String): Either[Failure, String] = {
+
+    val thisTimeTomorrow = new DateTime().plusDays(1)
+
+    run(client.aws.generatePresignedUrl(bucket, key,thisTimeTomorrow.toDate).toString)
   }
 
   def getMetadata(key: String): Either[Failure, ObjectMetadata] = run {

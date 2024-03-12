@@ -1,6 +1,7 @@
 import org.apache.pekko.actor.{ActorSystem, CoordinatedShutdown}
 import org.apache.pekko.actor.CoordinatedShutdown.Reason
 import cats.syntax.either._
+import com.amazonaws.services.sqs.{AmazonSQSClient, AmazonSQSClientBuilder}
 import com.gu.pandomainauth
 import com.gu.pandomainauth.PublicSettings
 import controllers.AssetsComponents
@@ -15,7 +16,7 @@ import extraction.email.olm.OlmEmailExtractor
 import extraction.email.pst.PstEmailExtractor
 import extraction.ocr.{ImageOcrExtractor, OcrMyPdfExtractor, OcrMyPdfImageExtractor, TesseractPdfOcrExtractor}
 import extraction.tables.{CsvTableExtractor, ExcelTableExtractor}
-import extraction.{DocumentBodyExtractor, MimeTypeMapper, TranscriptionExtractor, Worker}
+import extraction.{DocumentBodyExtractor, ExternalTranscriptionExtractor, MimeTypeMapper, TranscriptionExtractor, Worker}
 import ingestion.phase2.IngestStorePolling
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.neo4j.driver.v1.{AuthTokens, GraphDatabase}
@@ -74,6 +75,7 @@ class AppComponents(context: Context, config: Config)
     val ingestionExecutionContext = actorSystem.dispatchers.lookup("ingestion-context")
 
     val s3Client = new S3Client(config.s3)(s3ExecutionContext)
+    val sqsClient = AmazonSQSClientBuilder.standard().withRegion(config.sqs.region).build()
 
     val workerName = config.worker.name.getOrElse(InetAddress.getLocalHost.getHostName)
 
@@ -150,7 +152,12 @@ class AppComponents(context: Context, config: Config)
     val imageOcrExtractor = new ImageOcrExtractor(config.ocr, scratchSpace, esResources, ingestionServices)
     val ocrMyPdfImageExtractor = new OcrMyPdfImageExtractor(config.ocr, scratchSpace, esResources, previewStorage, ingestionServices)
 
-    val transcriptionExtractor = new TranscriptionExtractor(esResources, scratchSpace, config.transcribe)
+
+    val transcriptionExtractor = if (config.worker.useExternalExtractors) {
+      new ExternalTranscriptionExtractor(esResources, config.transcribe, blobStorage, sqsClient)
+    } else {
+      new TranscriptionExtractor(esResources, scratchSpace, config.transcribe)
+    }
 
     val ocrExtractors = config.ocr.defaultEngine match {
       case OcrEngine.OcrMyPdf => List(ocrMyPdfExtractor, ocrMyPdfImageExtractor)
