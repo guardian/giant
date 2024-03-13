@@ -131,6 +131,7 @@ lazy val backend = (project in file("backend"))
       // (Seems to be OK as of 2.7.0: https://tika.apache.org/2.7.0/parser_guide.html)
       "org.apache.tika" % "tika-parsers-standard-package" % "2.7.0",
       "org.apache.tika" % "tika-core" % "2.7.0",
+      "org.apache.commons" % "commons-compress" % "1.26.0",
       "org.apache.logging.log4j" % "log4j-to-slf4j" % log4jVersion,
       "org.apache.logging.log4j" % "log4j-api" % log4jVersion,
       "org.apache.logging.log4j" % "log4j-core" % log4jVersion,

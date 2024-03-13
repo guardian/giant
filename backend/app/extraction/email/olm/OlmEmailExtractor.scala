@@ -31,7 +31,7 @@ class OlmEmailExtractor(scratch: ScratchSpace, ingestion: IngestionServices) ext
 
     val context = IngestionContextBuilder(blob.uri, params)
 
-    val zipFile = new ZipFile(scratchFile)
+    val zipFile = ZipFile.builder().setFile(scratchFile).get()
     logger.info(s"Loaded OLM '${blob.uri.value}'")
 
     try {
