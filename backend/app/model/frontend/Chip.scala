@@ -1,6 +1,7 @@
 package model.frontend
 
 import play.api.libs.json._
+import services.index.WorkspaceSearchContextParams
 
 case class DropdownOption(label: String, value: String)
 
@@ -46,14 +47,28 @@ object Chip {
   }
 }
 
+case class ParsedChips (query: String, workspace: Option[WorkspaceSearchContextParams])
+
 object Chips {
   // TODO - when the index supports attempts we can uncomment these lines to make this attempty
   //def parseQueryString(q: String): Attempt[String] = {
-  def parseQueryString(q: String): String = {
+  def parseQueryString(q: String): ParsedChips = {
     //Attempt.catchNonFatal {
+    val parsedQ = Json.parse(q)
+    // find WorkspaceSearchContextParams
+    val workspaceFolder = parsedQ match {
+      case JsArray(value) => value.collectFirst {
+        case JsObject(o) => WorkspaceSearchContextParams(o.get("workspaceId").map(_.validate[String].get).get, o.get("folderId").map(_.validate[String].get).get)
+      }
+      case _ => None
+    }
 
-    Json.parse(q) match {
-      case JsArray(v) => v.toList.map {
+    val query = parsedQ match {
+      case JsArray(v) => v.toList.filter {
+        // remove workspace_folder chips
+        case JsObject(o) if o.get("t").map(_.validate[String].get).get == "workspace_folder" => false
+        case _ => true
+      }.map {
         // When typing a new chip, we end up with a dangling + which is illegal in the ES query syntax.
         // This doesn't matter if you start a chip before an existing term or in between two existing.
         // In that case it will be parsed as the boolean operator attached to the subsequent term.
@@ -78,6 +93,7 @@ object Chips {
       }.mkString(" ")
       case _ => throw new UnsupportedOperationException("Outer json type must be an array")
     }
+    ParsedChips(query, workspaceFolder)
     //  } {
     //  case s: Exception => ClientFailure(s"Invalid query: ${s.getMessage}")
     //}

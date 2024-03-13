@@ -34,11 +34,11 @@ class Resource(val controllerComponents: AuthControllerComponents, manifest: Man
                index: Index, pages: Pages, annotations: Annotations, previewStorage: ObjectStorage) extends AuthApiController {
 
   def getResource(uri: Uri, basic: Boolean, q: Option[String]) = ApiAction.attempt  { implicit req =>
-    val query = q.map(Chips.parseQueryString)
+    val parsedChips = q.map(Chips.parseQueryString)
 
-    val resourceFetchMode = (basic, query) match {
+    val resourceFetchMode = (basic, parsedChips) match {
       case (true, _) => ResourceFetchMode.Basic
-      case (false, text) => ResourceFetchMode.WithData(text)
+      case (false, pt) => ResourceFetchMode.WithData(pt.map(_.query))
     }
 
     val decodedUri = Uri(UriEncoding.decodePath(uri.value, StandardCharsets.UTF_8))
@@ -75,12 +75,12 @@ class Resource(val controllerComponents: AuthControllerComponents, manifest: Man
   }
 
   def getTextPages(uri: Uri, top: Double, bottom: Double, q: Option[String], language: Option[Language]) = ApiAction.attempt { req =>
-    val query = q.map(Chips.parseQueryString)
+    val parsedChips = q.map(Chips.parseQueryString)
 
     for {
       // Check we have permission to see this file
       _ <- GetResource(uri, ResourceFetchMode.Basic, req.user.username, manifest, index, annotations, controllerComponents.users).process()
-      response <- new GetPages(uri, top, bottom, query, language, pages, previewStorage).process()
+      response <- new GetPages(uri, top, bottom, parsedChips.map(_.query), language, pages, previewStorage).process()
     } yield {
       Ok(Json.toJson(response))
     }
