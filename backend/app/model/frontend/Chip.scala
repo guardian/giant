@@ -58,7 +58,8 @@ object Chips {
     // find WorkspaceSearchContextParams
     val workspaceFolder = parsedQ match {
       case JsArray(value) => value.collectFirst {
-        case JsObject(o) => WorkspaceSearchContextParams(o.get("workspaceId").map(_.validate[String].get).get, o.get("folderId").map(_.validate[String].get).get)
+        case JsObject(o) if o.get("t").map(_.validate[String].get).get == "workspace_folder" => 
+            WorkspaceSearchContextParams(o.get("workspaceId").map(_.validate[String].get).get, o.get("folderId").map(_.validate[String].get).get)
       }
       case _ => None
     }
