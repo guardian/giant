@@ -14,6 +14,9 @@ import test.integration.{ElasticsearchTestService, ItemIds, Neo4jTestService}
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 import org.scalatest.funsuite.AnyFunSuite
+import model.frontend.WorkspaceFolderChip._
+import model.frontend.WorkspaceFolderChip
+import play.api.libs.json._
 
 class WorkspaceSearchITest extends AnyFunSuite with Neo4jTestService with ElasticsearchTestService with BeforeAndAfterEach {
   final implicit override def patience: PatienceConfig = PatienceConfig(Span(30, Seconds), Span(250, Millis))
@@ -78,7 +81,8 @@ class WorkspaceSearchITest extends AnyFunSuite with Neo4jTestService with Elasti
   test("Paul can search in a folder in his workspace") {
     asUser("paul") { controllers =>
       val folderId = itemIds.`f/h`
-      val request = FakeRequest("GET", s"""/query?q=["*"]&workspaceId=${paulWorkspace.id}&workspaceFolderId=${folderId}""")
+      val q = Json.toJson(WorkspaceFolderChip("workspace", "workspace_folder", paulWorkspace.id, folderId))
+      val request = FakeRequest("GET", s"""/query?q=[${q}]""")
 
       val results = contentAsJson(controllers.search.search().apply(request)).as[SearchResults].results
       results should have length(1)
@@ -90,7 +94,8 @@ class WorkspaceSearchITest extends AnyFunSuite with Neo4jTestService with Elasti
   test("Paul can see results from nested folders in his workspace") {
     asUser("paul") { controllers =>
       val folderId = itemIds.`f`
-      val request = FakeRequest("GET", s"""/query?q=["*"]&workspaceId=${paulWorkspace.id}&workspaceFolderId=${folderId}""")
+      val q = Json.toJson(WorkspaceFolderChip("workspace", "workspace_folder", paulWorkspace.id, folderId))
+      val request = FakeRequest("GET", s"""/query?q=[${q}]""")
 
       val results = contentAsJson(controllers.search.search().apply(request)).as[SearchResults].results
 

@@ -17,6 +17,12 @@ case class DateChip(name: String, template: String) extends Chip
 case class ExclusiveDateChip(name: String, template: String) extends Chip
 case class DropdownChip(name: String, options: List[DropdownOption], template: String) extends Chip
 
+case class WorkspaceFolderChip(name: String, template: String, workspaceId: String, folderId: String) extends Chip
+
+object WorkspaceFolderChip {
+  implicit val workspaceFolderChip = Json.format[WorkspaceFolderChip]
+}
+
 object Chip {
   private val plainChipFormat = Json.format[TextChip]
   private val dateChipFormat = Json.format[DateChip]
@@ -31,6 +37,7 @@ object Chip {
         case JsString("dropdown") => dropdownChipFormat.reads(json)
         case JsString("date") => dateChipFormat.reads(json)
         case JsString("date_ex") => exclusiveDateChipFormat.reads(json)
+        case JsString("workspace_folder") => WorkspaceFolderChip.workspaceFolderChip.reads(json)
         case other => JsError(s"Unexpected type in chip $other")
       }
     }
@@ -41,6 +48,7 @@ object Chip {
         case r: DateChip => dateChipFormat.writes(r) + ("type", JsString("date")) - "template"
         case r: ExclusiveDateChip => exclusiveDateChipFormat.writes(r) + ("type", JsString("date_ex")) - "template"
         case r: DropdownChip => dropdownChipFormat.writes(r) + ("type", JsString("dropdown")) - "template"
+        case r: WorkspaceFolderChip => WorkspaceFolderChip.workspaceFolderChip.writes(r) +  ("type", JsString("workspace_folder")) - "template"
         case other => throw new UnsupportedOperationException(s"Unable to serialize chip of type ${other.getClass.toString}")
       }
     }
