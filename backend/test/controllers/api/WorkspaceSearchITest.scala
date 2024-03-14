@@ -69,7 +69,7 @@ class WorkspaceSearchITest extends AnyFunSuite with Neo4jTestService with Elasti
     asUser("barry") { controllers =>
       val folderId = itemIds.f
       val q = Json.toJson(WorkspaceFolderChip("workspace", "workspace_folder", paulWorkspace.id, folderId))
-      val request = FakeRequest("GET", s"""/query?q=[${q}]""")
+      val request = FakeRequest("GET", s"""/query?q=[${q},"*"]""")
 
       val results = contentAsJson(controllers.search.search().apply(request)).as[SearchResults]
       // TODO: This is only 0 because Barry cannot see anything at all (he has no workspaces or collections of his own).
@@ -83,7 +83,7 @@ class WorkspaceSearchITest extends AnyFunSuite with Neo4jTestService with Elasti
     asUser("paul") { controllers =>
       val folderId = itemIds.`f/h`
       val q = Json.toJson(WorkspaceFolderChip("workspace", "workspace_folder", paulWorkspace.id, folderId))
-      val request = FakeRequest("GET", s"""/query?q=[${q}]""")
+      val request = FakeRequest("GET", s"""/query?q=[${q},"*"]""")
 
       val results = contentAsJson(controllers.search.search().apply(request)).as[SearchResults].results
       results should have length(1)
@@ -96,7 +96,7 @@ class WorkspaceSearchITest extends AnyFunSuite with Neo4jTestService with Elasti
     asUser("paul") { controllers =>
       val folderId = itemIds.`f`
       val q = Json.toJson(WorkspaceFolderChip("workspace", "workspace_folder", paulWorkspace.id, folderId))
-      val request = FakeRequest("GET", s"""/query?q=[${q}]""")
+      val request = FakeRequest("GET", s"""/query?q=[${q},"*"]""")
 
       val results = contentAsJson(controllers.search.search().apply(request)).as[SearchResults].results
 
@@ -112,7 +112,7 @@ class WorkspaceSearchITest extends AnyFunSuite with Neo4jTestService with Elasti
     asUser("paul") { controllers =>
       val folderId = itemIds.`f/g`
       val q = Json.toJson(WorkspaceFolderChip("workspace", "workspace_folder", paulWorkspace.id, folderId))
-      val request = FakeRequest("GET", s"""/query?q=[${q}]""")
+      val request = FakeRequest("GET", s"""/query?q=[${q},"*"]""")
       val results = contentAsJson(controllers.search.search().apply(request)).as[SearchResults].results
 
       results.map(_.uri) should contain only(
@@ -132,7 +132,7 @@ class WorkspaceSearchITest extends AnyFunSuite with Neo4jTestService with Elasti
       )
 
       val q = Json.toJson(WorkspaceFolderChip("workspace", "workspace_folder", paulWorkspace.id, folderId))
-      val request = FakeRequest("GET", s"""/query?q=[${q}]""")
+      val request = FakeRequest("GET", s"""/query?q=[${q},"*"]""")
       val results = contentAsJson(controllers.search.search().apply(request)).as[SearchResults]
 
       results.hits should be(0)
@@ -147,7 +147,7 @@ class WorkspaceSearchITest extends AnyFunSuite with Neo4jTestService with Elasti
     asUser("barry") { implicit controllers =>
       val folderId = itemIds.`f/h`
       val q = Json.toJson(WorkspaceFolderChip("workspace", "workspace_folder", paulWorkspace.id, folderId))
-      val request = FakeRequest("GET", s"""/query?q=[${q}]""")
+      val request = FakeRequest("GET", s"""/query?q=[${q},"*"]""")
 
       val results = contentAsJson(controllers.search.search().apply(request)).as[SearchResults].results
       results should have length(1)
