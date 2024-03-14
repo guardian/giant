@@ -48,7 +48,7 @@ object Chip {
         case r: DateChip => dateChipFormat.writes(r) + ("type", JsString("date")) - "template"
         case r: ExclusiveDateChip => exclusiveDateChipFormat.writes(r) + ("type", JsString("date_ex")) - "template"
         case r: DropdownChip => dropdownChipFormat.writes(r) + ("type", JsString("dropdown")) - "template"
-        case r: WorkspaceFolderChip => WorkspaceFolderChip.workspaceFolderChip.writes(r) +  ("type", JsString("workspace_folder")) - "template"
+        case r: WorkspaceFolderChip => WorkspaceFolderChip.workspaceFolderChip.writes(r) + ("t", JsString("workspace_folder")) - "template"
         case other => throw new UnsupportedOperationException(s"Unable to serialize chip of type ${other.getClass.toString}")
       }
     }
