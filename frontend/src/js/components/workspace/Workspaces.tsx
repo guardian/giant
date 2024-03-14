@@ -48,6 +48,8 @@ import { reprocessBlob } from '../../actions/workspaces/reprocessBlob';
 import { DeleteModal, DeleteStatus } from './DeleteModal';
 import { PartialUser } from '../../types/User';
 import { getMyPermissions } from '../../actions/users/getMyPermissions';
+import buildLink from '../../util/buildLink';
+import history from '../../util/history';
 
 
 type Props = ReturnType<typeof mapStateToProps>
@@ -598,7 +600,23 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
                     }
 
                     if (menuItemProps.content === "Search in folder"){
-                        window.location.replace(`/search?filters.workspace[]=${workspace.id}`)
+                        history.push(
+                            buildLink("/search", {
+                                q: JSON.stringify([
+                                    "",
+                                    {
+                                        n: "Workspace Folder",
+                                        v: entry.name,
+                                        op: "+",
+                                        t: "workspace_folder",
+                                        workspaceId: workspace.id,
+                                        folderId: entry.id,
+                                    },
+                                    "*"
+                                ]),
+                                page: 1
+                            }),
+                        )
                     }
 
                     setTimeout(() => this.closeContextMenu(), closeMenuDelay);
