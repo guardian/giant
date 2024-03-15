@@ -38,7 +38,7 @@ class Resource(val controllerComponents: AuthControllerComponents, manifest: Man
 
     val resourceFetchMode = (basic, parsedChips) match {
       case (true, _) => ResourceFetchMode.Basic
-      case (false, pt) => ResourceFetchMode.WithData(pt.map(_.query))
+      case (false, pc) => ResourceFetchMode.WithData(pc.map(_.query))
     }
 
     val decodedUri = Uri(UriEncoding.decodePath(uri.value, StandardCharsets.UTF_8))
