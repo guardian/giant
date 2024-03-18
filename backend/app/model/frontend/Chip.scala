@@ -56,12 +56,13 @@ object Chip {
 case class ParsedChips (query: String, workspace: Option[WorkspaceSearchContextParams])
 
 object Chips {
-  // TODO - when the index supports attempts we can uncomment these lines to make this attempty
-  //def parseQueryString(q: String): Attempt[String] = {
+  // TODO - when the index supports attempts, make this function attempty
   def parseQueryString(q: String): ParsedChips = {
-    //Attempt.catchNonFatal {
     val parsedQ = Json.parse(q)
-    // find WorkspaceSearchContextParams
+    // workspace_folder chips need to be handled separately from the rest.
+    // Instead of transforming the chips to a query string, we need to use
+    // workspace and folder IDs to find a list of blob so filter for. Look for
+    // those IDs here, then skip workspace_folder when building the query.
     val workspaceFolder = parsedQ match {
       case JsArray(value) => value.collectFirst {
         case JsObject(o) if o.get("t").map(_.validate[String].get).get == "workspace_folder" => 
@@ -101,9 +102,6 @@ object Chips {
       case _ => throw new UnsupportedOperationException("Outer json type must be an array")
     }
     ParsedChips(query, workspaceFolder)
-    //  } {
-    //  case s: Exception => ClientFailure(s"Invalid query: ${s.getMessage}")
-    //}
   }
 
   val all: List[Chip] = List(
