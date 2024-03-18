@@ -49,7 +49,7 @@ class PagesController(val controllerComponents: AuthControllerComponents, manife
   // Get language and highlight data for a given page
   def getPageData(uri: Uri, pageNumber: Int, sq: Option[String], fq: Option[String]) = ApiAction.attempt { req =>
     for {
-      response <- frontendPageFromQuery(uri, pageNumber, req.user.username, sq.map(Chips.parseQueryString), fq)
+      response <- frontendPageFromQuery(uri, pageNumber, req.user.username, sq.map(Chips.parseQueryString(_).query), fq)
     } yield {
       Ok(Json.toJson(response))
     }
@@ -150,7 +150,7 @@ class PagesController(val controllerComponents: AuthControllerComponents, manife
   // It behaves identically to the findInDocument endpoint, except that it expects its query to be in
   // a JSON format that may contain chips, and it returns highlight ids with a different prefix.
   def searchInDocument(uri: Uri, q: String) = ApiAction.attempt { req =>
-    getHighlights(uri, Chips.parseQueryString(q), req.user.username, isSearch = true).map(highlights =>
+    getHighlights(uri, Chips.parseQueryString(q).query, req.user.username, isSearch = true).map(highlights =>
       Ok(Json.toJson(highlights))
     )
   }

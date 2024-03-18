@@ -48,6 +48,8 @@ import { reprocessBlob } from '../../actions/workspaces/reprocessBlob';
 import { DeleteModal, DeleteStatus } from './DeleteModal';
 import { PartialUser } from '../../types/User';
 import { getMyPermissions } from '../../actions/users/getMyPermissions';
+import buildLink from '../../util/buildLink';
+import history from '../../util/history';
 
 
 type Props = ReturnType<typeof mapStateToProps>
@@ -542,7 +544,7 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
             {key : "copyFilePath", content: copyFilePathContent, icon: "copy"},
             // or 'pencil alternate'
             { key: "rename", content: "Rename", icon: "pen square" },
-            { key: "remove", content: "Remove from workspace", icon: "trash" }
+            { key: "remove", content: "Remove from workspace", icon: "trash" },
         ];
         
         if (entry.data.addedBy.username === currentUser.username && isWorkspaceLeaf(entry.data)) {
@@ -551,6 +553,8 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
 
         if (isWorkspaceLeaf(entry.data)){
             items.push({ key: "reprocess", content: "Reprocess source file", icon: "redo" });
+        } else {
+           items.push({ key: "search", content: "Search in folder", icon: "search" })
         }
 
         return <DetectClickOutside onClickOutside={this.closeContextMenu}>
@@ -594,6 +598,27 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
                     if (menuItemProps.content === 'Reprocess source file' && (isWorkspaceLeaf(entry.data))) {
                         this.props.reprocessBlob(workspaceId, entry.data.uri)
                     }
+
+                    if (menuItemProps.content === "Search in folder"){
+                        history.push(
+                            buildLink("/search", {
+                                q: JSON.stringify([
+                                    "",
+                                    {
+                                        n: "Workspace Folder",
+                                        v: entry.name,
+                                        op: "+",
+                                        t: "workspace_folder",
+                                        workspaceId: workspace.id,
+                                        folderId: entry.id,
+                                    },
+                                    "*"
+                                ]),
+                                page: 1
+                            }),
+                        )
+                    }
+
                     setTimeout(() => this.closeContextMenu(), closeMenuDelay);
                 }}
             />

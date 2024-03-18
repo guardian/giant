@@ -1,6 +1,7 @@
 package model.frontend
 
 import play.api.libs.json._
+import services.index.WorkspaceSearchContextParams
 
 case class DropdownOption(label: String, value: String)
 
@@ -15,6 +16,12 @@ case class DateChip(name: String, template: String) extends Chip
 // Useful when the user wants to say "get me content from after 2018", you don't want to parse 2018 as 2018/01/01 because that includes basically all docs from 2018!
 case class ExclusiveDateChip(name: String, template: String) extends Chip
 case class DropdownChip(name: String, options: List[DropdownOption], template: String) extends Chip
+
+case class WorkspaceFolderChip(name: String, t: String, workspaceId: String, folderId: String)
+
+object WorkspaceFolderChip {
+  implicit val workspaceFolderChip = Json.format[WorkspaceFolderChip]
+}
 
 object Chip {
   private val plainChipFormat = Json.format[TextChip]
@@ -46,14 +53,30 @@ object Chip {
   }
 }
 
-object Chips {
-  // TODO - when the index supports attempts we can uncomment these lines to make this attempty
-  //def parseQueryString(q: String): Attempt[String] = {
-  def parseQueryString(q: String): String = {
-    //Attempt.catchNonFatal {
+case class ParsedChips (query: String, workspace: Option[WorkspaceSearchContextParams])
 
-    Json.parse(q) match {
-      case JsArray(v) => v.toList.map {
+object Chips {
+  // TODO - when the index supports attempts, make this function attempty
+  def parseQueryString(q: String): ParsedChips = {
+    val parsedQ = Json.parse(q)
+    // workspace_folder chips need to be handled separately from the rest.
+    // Instead of transforming the chips to a query string, we need to use
+    // workspace and folder IDs to find a list of blob so filter for. Look for
+    // those IDs here, then skip workspace_folder when building the query.
+    val workspaceFolder = parsedQ match {
+      case JsArray(value) => value.collectFirst {
+        case JsObject(o) if o.get("t").map(_.validate[String].get).get == "workspace_folder" => 
+            WorkspaceSearchContextParams(o.get("workspaceId").map(_.validate[String].get).get, o.get("folderId").map(_.validate[String].get).get)
+      }
+      case _ => None
+    }
+
+    val query = parsedQ match {
+      case JsArray(v) => v.toList.filter {
+        // remove workspace_folder chips
+        case JsObject(o) if o.get("t").map(_.validate[String].get).get == "workspace_folder" => false
+        case _ => true
+      }.map {
         // When typing a new chip, we end up with a dangling + which is illegal in the ES query syntax.
         // This doesn't matter if you start a chip before an existing term or in between two existing.
         // In that case it will be parsed as the boolean operator attached to the subsequent term.
@@ -78,9 +101,7 @@ object Chips {
       }.mkString(" ")
       case _ => throw new UnsupportedOperationException("Outer json type must be an array")
     }
-    //  } {
-    //  case s: Exception => ClientFailure(s"Invalid query: ${s.getMessage}")
-    //}
+    ParsedChips(query, workspaceFolder)
   }
 
   val all: List[Chip] = List(

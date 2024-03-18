@@ -22,10 +22,9 @@ class Search(override val controllerComponents: AuthControllerComponents, userMa
 
   def search() = ApiAction.attempt { req: UserIdentityRequest[_] =>
     val q = req.queryString.getOrElse("q", Seq("")).head
-    val maybeWorkspaceContextParams = Search.parseWorkspaceContextParams(req)
     val proposedParams = Search.buildSearchParameters(q, req)
 
-    buildSearch(req.user, proposedParams, maybeWorkspaceContextParams).flatMap { case (verifiedParams, context) =>
+    buildSearch(req.user, proposedParams, proposedParams.workspaceContext).flatMap { case (verifiedParams, context) =>
       val returnEmptyResult = Search.shouldReturnEmptyResult(proposedParams, verifiedParams, context)
 
       if(returnEmptyResult) {
@@ -96,9 +95,9 @@ object Search extends Logging {
     val createdAtFilters = req.queryString.getOrElse("createdAt[]", Seq()).toList
     val (start, end) = parseCreatedAt(createdAtFilters)
 
-    val query = Chips.parseQueryString(q)
+    val parsedChips = Chips.parseQueryString(q)
 
-    SearchParameters(query, mimeFilters, ingestionFilters, workspaceFilters, start, end, page, pageSize, sortBy)
+    SearchParameters(parsedChips.query, mimeFilters, ingestionFilters, workspaceFilters, start, end, page, pageSize, sortBy, parsedChips.workspace)
   }
 
   def verifyParameters(user: User, params: SearchParameters, context: DefaultSearchContext): SearchParameters = {
@@ -180,19 +179,6 @@ object Search extends Logging {
 
       case _ =>
         throw new IllegalArgumentException(s"Unknown format for createdAt[] filter: ${filters.mkString(",")}")
-    }
-  }
-
-  def parseWorkspaceContextParams(req: RequestHeader): Option[WorkspaceSearchContextParams] = {
-    val maybeWorkspaceId = req.getQueryString("workspaceId")
-    val maybeWorkspaceFolderId = req.getQueryString("workspaceFolderId")
-
-    (maybeWorkspaceId, maybeWorkspaceFolderId) match {
-      case (Some(workspaceId), Some(workspaceFolderId)) =>
-        Some(WorkspaceSearchContextParams(workspaceId, workspaceFolderId))
-
-      case _ =>
-        None
     }
   }
 

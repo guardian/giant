@@ -1,5 +1,7 @@
 package model.index
 
+import services.index.WorkspaceSearchContextParams
+
 trait SortBy
 case object Relevance extends SortBy
 case object SizeAsc extends SortBy
@@ -15,7 +17,9 @@ case class SearchParameters(q: String,
                             end: Option[Long],
                             page: Int,
                             pageSize: Int,
-                            sortBy: SortBy) {
+                            sortBy: SortBy,
+                            workspaceContext: Option[WorkspaceSearchContextParams] = None
+                           ) {
   def from: Int = (page - 1) * pageSize
   def size: Int = pageSize
 }

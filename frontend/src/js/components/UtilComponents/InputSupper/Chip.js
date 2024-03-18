@@ -84,7 +84,8 @@ export default class Chip extends React.Component {
     }
 
     onNegateClicked = () => {
-        this.props.onNegateClicked(this.props.index);
+        if (this.props.type !== 'workspace_folder')
+            this.props.onNegateClicked(this.props.index);
     }
 
     refHandler = (element) => {
@@ -95,6 +96,8 @@ export default class Chip extends React.Component {
         switch (this.props.type) {
             case 'text':
                 return <InputChip ref={this.refHandler} value={this.props.value} onChange={this.onChange} onKeyDown={this.onKeyDownText} onFocus={this.onFocus}/>;
+            case 'workspace_folder':
+                return <WorkspaceFolderChip ref={this.refHandler} value={this.props.value} onChange={this.onChange} onKeyDown={this.onKeyDownDropdown} onFocus={this.onFocus}/>
             case 'date':
                 return <DateChip ref={this.refHandler} value={this.props.value} onChange={this.onChange} onKeyDown={this.onKeyDownText} dateMode='from_start'/>;
             case 'date_ex':
@@ -157,6 +160,54 @@ class UnknownChip extends React.Component {
             </div>
         );
     }
+}
+
+class WorkspaceFolderChip extends React.Component {
+    static propTypes = {
+        value: PropTypes.string.isRequired,
+        onFocus: PropTypes.func.isRequired,
+        onChange: PropTypes.func.isRequired,
+        onKeyDown: PropTypes.func.isRequired
+    }
+
+    focus = () => {
+        this.textInput.focus();
+    }
+
+    focusEnd = () => {
+        this.textInput.focus();
+        this.textInput.input.selectionStart = this.textInput.input.selectionEnd = this.textInput.input.value.length;
+    }
+
+    select = () => {
+        this.textInput.select();
+    }
+
+    onChange = (e) => {
+        this.props.onChange(e.target.value);
+    }
+
+    onKeyDown = (e) => {
+        const inputStart = this.textInput.input.selectionStart;
+        const inputEnd = this.textInput.input.selectionEnd;
+
+        this.props.onKeyDown(e, inputStart, inputEnd);
+    }
+
+    render() {
+        return (
+            <AutosizeInput ref={i => this.textInput = i}
+                type='text'
+                inputClassName='input-supper__inline-input input-supper__inline-input--chip'
+                value={this.props.value}
+                onChange={this.onChange}
+                onKeyDown={this.onKeyDown}
+                onFocus={this.props.onFocus}
+                disabled={true}
+                />
+        );
+    }
+
 }
 
 class InputChip extends React.Component {

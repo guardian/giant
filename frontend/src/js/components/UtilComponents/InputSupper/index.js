@@ -71,7 +71,9 @@ export default class InputSupper extends React.Component {
                     name: e.n,
                     value: e.v,
                     negate: e.op === '-',
-                    chipType: e.t
+                    chipType: e.t,
+                    workspaceId: e.workspaceId,
+                    folderId: e.folderId,
                 };
             }
 
@@ -125,7 +127,9 @@ export default class InputSupper extends React.Component {
                     n: e.name,
                     v: e.value,
                     op: e.negate ? '-' : '+',
-                    t: e.chipType
+                    t: e.chipType,
+                    workspaceId: e.workspaceId,
+                    folderId: e.folderId
                 };
             }
             return '';
