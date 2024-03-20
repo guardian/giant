@@ -23,7 +23,10 @@ class Search(override val controllerComponents: AuthControllerComponents, userMa
   def search() = ApiAction.attempt { req: UserIdentityRequest[_] =>
     val q = req.queryString.getOrElse("q", Seq("")).head
     val proposedParams = Search.buildSearchParameters(q, req)
-    proposedParams.workspaceContext.map(wc => logger.info(req.user.asLogMarker, s"Performing workspace search"))
+    logger.info(s"searching. workspace context is ${proposedParams.workspaceContext.isDefined}")
+    if (proposedParams.workspaceContext.isDefined){
+      logger.info(req.user.asLogMarker, "Performing workspace search")
+    }
 
     buildSearch(req.user, proposedParams, proposedParams.workspaceContext).flatMap { case (verifiedParams, context) =>
       val returnEmptyResult = Search.shouldReturnEmptyResult(proposedParams, verifiedParams, context)
