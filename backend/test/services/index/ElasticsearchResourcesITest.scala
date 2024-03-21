@@ -14,6 +14,7 @@ import test.integration.Helpers.stubControllerComponentsAsUser
 import test.{TestAnnotations, TestUserManagement, TestUserRegistration}
 import utils.IndexTestHelpers
 import utils.attempt.AttemptAwait._
+import services.MetricsService.{NoOpMetricsService}
 
 class ElasticsearchResourcesITest extends AnyFreeSpec with Matchers with ElasticsearchTestService with IndexTestHelpers {
   import TestUserManagement._
@@ -615,7 +616,8 @@ class ElasticsearchResourcesITest extends AnyFreeSpec with Matchers with Elastic
       val annotations = new TestAnnotations(usersToWorkspaces)
 
       val controllerComponents = stubControllerComponentsAsUser(reqUser.username, userManagement)
-      val search = new Search(controllerComponents, userManagement, elasticResources, annotations)
+      val metricsService = new NoOpMetricsService()
+      val search = new Search(controllerComponents, userManagement, elasticResources, annotations, metricsService)
 
       fn(search)
     }
