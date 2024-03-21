@@ -14,7 +14,7 @@ import test.integration.Helpers.stubControllerComponentsAsUser
 import test.{TestAnnotations, TestUserManagement, TestUserRegistration}
 import utils.IndexTestHelpers
 import utils.attempt.AttemptAwait._
-import services.MetricsService.{NoOpMetricsService}
+import services.{NoOpMetricsService}
 
 class ElasticsearchResourcesITest extends AnyFreeSpec with Matchers with ElasticsearchTestService with IndexTestHelpers {
   import TestUserManagement._
