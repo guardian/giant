@@ -14,16 +14,20 @@ import utils.Logging
 import utils.attempt.{Attempt, ClientFailure, NotFoundFailure}
 import utils.auth.{User, UserIdentityRequest}
 import utils.controller.{AuthApiController, AuthControllerComponents}
+import services.{MetricsService}
 
 import scala.concurrent.ExecutionContext
 
 class Search(override val controllerComponents: AuthControllerComponents, userManagement: UserManagement,
-             index: Index, annotations: Annotations) extends AuthApiController with Logging {
+             index: Index, annotations: Annotations, metricsService: MetricsService) extends AuthApiController with Logging {
 
   def search() = ApiAction.attempt { req: UserIdentityRequest[_] =>
     val q = req.queryString.getOrElse("q", Seq("")).head
     val proposedParams = Search.buildSearchParameters(q, req)
-    proposedParams.workspaceContext.map(wc => logger.info(req.user.asLogMarker, s"Performing workspace search"))
+    proposedParams.workspaceContext.map(wc => {
+      logger.info(req.user.asLogMarker, "Performing workspace search")
+      metricsService.recordSearchInFolderEvent(req.user.username)
+    })
 
     buildSearch(req.user, proposedParams, proposedParams.workspaceContext).flatMap { case (verifiedParams, context) =>
       val returnEmptyResult = Search.shouldReturnEmptyResult(proposedParams, verifiedParams, context)

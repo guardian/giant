@@ -19,6 +19,7 @@ object Metrics {
   val batchesFailed = "IngestBatchesFailed"
   val failureToResultMapper = "ErrorsInGiantFailureToResultMapper"
   val usageEvents = "UsageEvents"
+  val searchInFolderEvents = "SearchInFolderEvents"
 
 
   def metricDatum(name: String, dimensions: List[Dimension], value: Double): MetricDatum = {
@@ -34,12 +35,14 @@ trait MetricsService {
   def updateMetrics(metrics: List[MetricUpdate]): Unit
   def updateMetric(metricName: String, metricValue: Double = 1): Unit
   def recordUsageEvent(username: String): Unit
+  def recordSearchInFolderEvent(username: String): Unit
 }
 
 class NoOpMetricsService() extends MetricsService {
   def updateMetrics(metrics:List[MetricUpdate]): Unit = ()
   def updateMetric(metricName: String, metricValue: Double = 1): Unit = ()
   def recordUsageEvent(username: String): Unit = ()
+  def recordSearchInFolderEvent(username: String): Unit = ()
 }
 
 class CloudwatchMetricsService(config: AWSDiscoveryConfig) extends MetricsService with Logging {
@@ -89,5 +92,12 @@ class CloudwatchMetricsService(config: AWSDiscoveryConfig) extends MetricsServic
     val dimensions = List(("App", "Giant"), ("Stage", standardisedStage), ("UserEmail", userEmail))
 
     updateMetrics(List(MetricUpdate(Metrics.usageEvents, 1)), dimensions)
+  }
+
+  def recordSearchInFolderEvent(userEmail: String): Unit = {
+    val standardisedStage = if (config.stack == "pfi-giant") "PROD" else "CODE"
+    val dimensions = List(("App", "Giant"), ("Stage", standardisedStage), ("UserEmail", userEmail))
+
+    updateMetrics(List(MetricUpdate(Metrics.searchInFolderEvents, 1)), dimensions)
   }
 }
