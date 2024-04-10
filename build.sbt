@@ -115,11 +115,11 @@ lazy val backend = (project in file("backend"))
     libraryDependencies ++= Seq(
       ws,
       "commons-codec" % "commons-codec" % "1.11",
-      "org.bouncycastle" % "bcprov-jdk15on" % "1.70",
+      "org.bouncycastle" % "bcprov-jdk18on" % "1.71",
       // required by tikka, used to be part of bcprov-jdk15on, pulled out into a separate library from 1.69 onwards
       // see https://github.com/guardian/giant/pull/92 for details - may be removable if it gets added as an explicit
       // dependency to tikka or another library
-      "org.bouncycastle" % "bcutil-jdk15on" % "1.70",
+      "org.bouncycastle" % "bcutil-jdk18on" % "1.71",
       "commons-io" % "commons-io" % "2.6",
       "com.sksamuel.elastic4s" %% "elastic4s-client-esjava" % "8.11.4",
       "org.elasticsearch.client" % "elasticsearch-rest-client-sniffer" % "8.6.2",
@@ -148,6 +148,7 @@ lazy val backend = (project in file("backend"))
       // angus mail is the implementation of jakarta mail. If updating this you may also need to update the mbox provider jar file
       // see https://github.com/guardian/giant/pull/131
       "org.eclipse.angus" % "angus-mail" % "2.0.2",
+      "com.sun.mail" % "javax.mail" % "1.6.2",
       "com.gu" %% "pan-domain-auth-verification" % "1.2.0",
       "com.amazonaws" % "aws-java-sdk-secretsmanager" % "1.12.528",
 
