@@ -119,7 +119,7 @@ lazy val backend = (project in file("backend"))
       // required by tikka, used to be part of bcprov-jdk15on, pulled out into a separate library from 1.69 onwards
       // see https://github.com/guardian/giant/pull/92 for details - may be removable if it gets added as an explicit
       // dependency to tikka or another library
-      "org.bouncycastle" % "bcutil-jdk18on" % "1.71",
+      "org.bouncycastle" % "bcutil-jdk18on" % "1.78",
       "commons-io" % "commons-io" % "2.6",
       "com.sksamuel.elastic4s" %% "elastic4s-client-esjava" % "8.11.4",
       "org.elasticsearch.client" % "elasticsearch-rest-client-sniffer" % "8.6.2",
@@ -149,7 +149,7 @@ lazy val backend = (project in file("backend"))
       // see https://github.com/guardian/giant/pull/131
       "org.eclipse.angus" % "angus-mail" % "2.0.2",
       "com.sun.mail" % "javax.mail" % "1.6.2",
-      "com.gu" %% "pan-domain-auth-verification" % "1.2.0",
+      "com.gu" %% "pan-domain-auth-verification" % "3.0.2",
       "com.amazonaws" % "aws-java-sdk-secretsmanager" % "1.12.528",
 
       // this is needed to override the 2.11.4 version of jackson-module used in various play libraries (including jwt-play)
