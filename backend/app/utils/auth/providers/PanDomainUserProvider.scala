@@ -40,7 +40,7 @@ class PanDomainUserProvider(val config: PandaAuthConfig, currentPublicKey: () =>
 
     (currentPublicKey(), maybeCookie) match {
       case (Some(publicKey), Some(cookieData)) =>
-        val status = PanDomain.authStatus(cookieData.value, publicKey, validateUser, 0L, "giant", false)
+        val status = PanDomain.authStatus(cookieData.value, publicKey, validateUser, 0L, "giant", false, false)
         status match {
           case Authenticated(authedUser) =>
             val downcasedAuthedUser = authedUser.copy(user = authedUser.user.copy(email = authedUser.user.email.toLowerCase()))

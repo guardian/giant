@@ -149,7 +149,7 @@ lazy val backend = (project in file("backend"))
       // see https://github.com/guardian/giant/pull/131
       "org.eclipse.angus" % "angus-mail" % "2.0.2",
       "com.sun.mail" % "javax.mail" % "1.6.2",
-      "com.gu" %% "pan-domain-auth-verification" % "1.2.0",
+      "com.gu" %% "pan-domain-auth-verification" % "3.0.2",
       "com.amazonaws" % "aws-java-sdk-secretsmanager" % "1.12.528",
 
       // this is needed to override the 2.11.4 version of jackson-module used in various play libraries (including jwt-play)
