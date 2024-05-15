@@ -47,12 +47,12 @@ export type PDFText = {
 export async function renderPDFText(pdfJsPage: PDFPageProxy, pageWidth: number, pageHeight: number): Promise<PDFText[]> {
     const viewport = getViewport(pdfJsPage, pageWidth, pageHeight);
 
-    const textContentStream = pdfJsPage.streamTextContent({  disableCombineTextItems: false });
+    const textContentSource = pdfJsPage.streamTextContent();
     const textDivs: HTMLDivElement[] = [];
     const textContentItemsStr: string[] = [];
 
     await renderTextLayer({
-        textContentStream,
+        textContentSource,
         container: document.createElement("div"),
         viewport,
         textDivs,
