@@ -454,5 +454,5 @@ class Neo4JManifestITest extends AnyFreeSpec with Matchers with Neo4jTestService
 //        manifest.getResource(Uri("upload/test/wut/up")).toOption.get.children(0).`type` shouldBe "blob"
 //      }
 //    }
-  }
+//  }
 }
