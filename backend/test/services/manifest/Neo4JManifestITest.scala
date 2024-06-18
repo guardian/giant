@@ -53,12 +53,13 @@ class Neo4JManifestITest extends AnyFreeSpec with Matchers with TestContainerFor
 //  }
 
   "Neo4JManifest" - {
-    withContainers { container =>
-      val neo4jDriver: Driver = GraphDatabase.driver(container.container.getBoltUrl, AuthTokens.none())
-      val manifest = {
-        Neo4jManifest.setupManifest(neo4jDriver, global, new Neo4jQueryLoggingConfig(1.second, logAllQueries = false)).toOption.get
-      }
+
     "Can get the mimetypes" in {
+      withContainers { container =>
+        val neo4jDriver: Driver = GraphDatabase.driver(container.container.getBoltUrl, AuthTokens.none())
+        val manifest = {
+          Neo4jManifest.setupManifest(neo4jDriver, global, new Neo4jQueryLoggingConfig(1.second, logAllQueries = false)).toOption.get
+        }
         manifest.getAllMimeTypes.successValue shouldBe List.empty[MimeType]
       }
 
