@@ -177,7 +177,9 @@ lazy val backend = (project in file("backend"))
       "org.scalatestplus.play" %% "scalatestplus-play" % "7.0.0" % Test,
       "com.whisk" %% "docker-testkit-scalatest" % "0.9.9" % Test,
       "com.whisk" %% "docker-testkit-impl-spotify" % "0.9.9" % Test,
-      "org.scalamock" %% "scalamock" % "4.4.0" % Test
+      "org.scalamock" %% "scalamock" % "4.4.0" % Test,
+      "com.dimafeng" %% "testcontainers-scala-scalatest" % "0.41.4" % Test,
+      "com.dimafeng" %% "testcontainers-scala-neo4j" % "0.41.4" % Test,
     ),
 
     // set up separate tests and integration tests - http://www.scala-sbt.org/0.13.1/docs/Detailed-Topics/Testing.html#custom-test-configuration
