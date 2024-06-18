@@ -14,11 +14,11 @@ import model.manifest.{Blob, MimeType, WorkItem}
 import model.{Email, English, Recipient, Uri}
 import org.scalamock.scalatest.MockFactory
 import services.events.Events
-import services.{ObjectStorage, Tika}
+import services.{Neo4jQueryLoggingConfig, ObjectStorage, Tika}
 import services.index.Index
 import services.ingestion.IngestionServices
 import test.{AttemptValues, TestPostgresClient}
-import test.integration.Neo4jTestService
+//import test.integration.Neo4jTestService
 import utils.attempt.{Failure, MissingPermissionFailure, NotFoundFailure}
 import utils.attempt._
 import utils.Logging
@@ -30,30 +30,38 @@ import com.dimafeng.testcontainers.scalatest.TestContainerForEach
 import com.dimafeng.testcontainers.Neo4jContainer
 import org.neo4j.driver.v1.{AuthTokens, Driver, GraphDatabase}
 import org.testcontainers.utility.DockerImageName
+import scala.concurrent.duration._
 
 //noinspection NameBooleanParameters
-class Neo4JManifestITest extends AnyFreeSpec with Matchers with Neo4jTestService with AttemptValues with Logging with MockFactory {
+class Neo4JManifestITest extends AnyFreeSpec with Matchers with TestContainerForEach with AttemptValues with Logging with MockFactory {
 
   val esEvents: Events = stub[Events]
   val ingestionServices: IngestionServices = stub[IngestionServices]
 
-  lazy val manifest = {
-    Neo4jManifest.setupManifest(neo4jDriver, global, neo4jQueryLoggingConfig).toOption.get
-  }
+//  lazy val manifest = {
+//    Neo4jManifest.setupManifest(neo4jDriver, global, new Neo4jQueryLoggingConfig(1.second, logAllQueries = false)).toOption.get
+//  }
 
-//  override val containerDef = Neo4jContainer.Def(
-//    dockerImageName = DockerImageName.parse("neo4j/neo4j-arm64-experimental:3.5.30")
-//  )
-  def insertIngestion(collection: Uri, maybeIngestion: Option[Uri] = None, maybePath: Option[Path] = None, fixed: Boolean = true) = {
-    val ingestion = maybeIngestion.getOrElse(collection.chain("test-ingestion"))
-    val path = maybePath.getOrElse(Paths.get(ingestion.value))
-
-    manifest.insertIngestion(collection, ingestion, "My test ingestion!", Some(path), List(English), fixed, default = false)
-  }
+  override val containerDef = Neo4jContainer.Def(
+    dockerImageName = DockerImageName.parse("neo4j/neo4j-arm64-experimental:3.5.30")
+  )
+//  def insertIngestion(collection: Uri, maybeIngestion: Option[Uri] = None, maybePath: Option[Path] = None, fixed: Boolean = true) = {
+//    val ingestion = maybeIngestion.getOrElse(collection.chain("test-ingestion"))
+//    val path = maybePath.getOrElse(Paths.get(ingestion.value))
+//
+//    manifest.insertIngestion(collection, ingestion, "My test ingestion!", Some(path), List(English), fixed, default = false)
+//  }
 
   "Neo4JManifest" - {
+    withContainers { container =>
+      val neo4jDriver: Driver = GraphDatabase.driver(container.container.getBoltUrl, AuthTokens.none())
+      val manifest = {
+        Neo4jManifest.setupManifest(neo4jDriver, global, new Neo4jQueryLoggingConfig(1.second, logAllQueries = false)).toOption.get
+      }
     "Can get the mimetypes" in {
-      manifest.getAllMimeTypes.successValue shouldBe List.empty[MimeType]
+        manifest.getAllMimeTypes.successValue shouldBe List.empty[MimeType]
+      }
+
     }
 //
 //    "Can create a collection" in {
