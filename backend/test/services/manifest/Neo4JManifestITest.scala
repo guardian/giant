@@ -43,7 +43,7 @@ class Neo4JManifestITest extends AnyFreeSpec with Matchers with TestContainerFor
 //  }
 
   override val containerDef = Neo4jContainer.Def(
-    dockerImageName = DockerImageName.parse("neo4j:3.3.1")
+    dockerImageName = DockerImageName.parse("neo4j/neo4j-arm64-experimental:3.5.30").asCompatibleSubstituteFor("neo4j")
   )
 //  def insertIngestion(collection: Uri, maybeIngestion: Option[Uri] = None, maybePath: Option[Path] = None, fixed: Boolean = true) = {
 //    val ingestion = maybeIngestion.getOrElse(collection.chain("test-ingestion"))
