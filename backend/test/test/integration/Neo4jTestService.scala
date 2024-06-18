@@ -13,6 +13,7 @@ import utils.{Logging, Neo4jHelper}
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext
 
+
 trait Neo4jTestService
   extends BeforeAndAfterAll
     with EitherValues
@@ -23,6 +24,8 @@ trait Neo4jTestService
     with Logging { self: Suite =>
 
   implicit def patience = PatienceConfig(Span(30, Seconds), Span(250, Millis))
+
+  println(s"Neo4jUri: ", Neo4jUri)
 
   lazy val neo4jDriver: Driver = GraphDatabase.driver(Neo4jUri, AuthTokens.none())
 

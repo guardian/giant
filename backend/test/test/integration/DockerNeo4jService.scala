@@ -2,6 +2,8 @@ package test.integration
 
 import com.whisk.docker.{DockerContainer, DockerKit, DockerReadyChecker}
 import org.neo4j.driver.v1.{AuthTokens, GraphDatabase}
+import com.dimafeng.testcontainers.scalatest.TestContainerForAll
+import com.dimafeng.testcontainers.Neo4jContainer
 
 import scala.jdk.CollectionConverters._
 import scala.concurrent.duration._
@@ -16,7 +18,9 @@ trait DockerNeo4jService extends DockerKit {
   val ExposedNeo4jBoltPort = 27687
   val Neo4jUri = s"bolt://localhost:$ExposedNeo4jBoltPort"
 
-  val neo4jContainer = DockerContainer("neo4j:3.3.1")
+  println("starting DockerContainer")
+
+  val neo4jContainer = DockerContainer("neo4j/neo4j-arm64-experimental:3.5.30")
     .withPorts(
       DefaultNeo4jHttpPort -> Some(ExposedNeo4jHttpPort),
       DefaultNeo4jBoltPort -> Some(ExposedNeo4jBoltPort)
@@ -39,7 +43,9 @@ trait DockerNeo4jService extends DockerKit {
     * @return
     */
   def dumpNeo4j = {
+    println(s"docker Neo4jUri: ${Neo4jUri}")
     val neo4jDriver = GraphDatabase.driver(Neo4jUri, AuthTokens.none())
+    println(s"docker neo4j driver created")
     val session = neo4jDriver.session()
     val tx = session.beginTransaction()
     val nodeResults = Try(tx.run("MATCH (n) return ID(n), n"))
