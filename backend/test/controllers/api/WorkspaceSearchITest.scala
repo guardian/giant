@@ -6,9 +6,9 @@ import model.frontend.SearchResults
 import org.scalatest.time.{Millis, Seconds, Span}
 import org.scalatest.BeforeAndAfterEach
 import play.api.test.FakeRequest
-import play.api.test.Helpers.{contentAsJson, status}
+import play.api.test.Helpers.{contentAsJson}
 import test.integration.Helpers._
-import test.integration.{ElasticsearchTestService, ItemIds, Neo4jTestService}
+import test.integration.{ElasticsearchTestService, ItemIds}
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
