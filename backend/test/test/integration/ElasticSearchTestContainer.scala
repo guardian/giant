@@ -1,10 +1,15 @@
 package test.integration
 
 import com.dimafeng.testcontainers.ElasticsearchContainer
+import org.scalatest.time.{Millis, Seconds, Span}
 import org.testcontainers.utility.DockerImageName
+import test.AttemptValues
+
 import scala.jdk.CollectionConverters.MapHasAsJava
 
-trait ElasticSearchTestContainer {
+trait ElasticSearchTestContainer extends AttemptValues{
+
+  implicit def patience = PatienceConfig(Span(30, Seconds), Span(250, Millis))
 
   private val elasticContainerDef = ElasticsearchContainer.Def(
     dockerImageName = DockerImageName.parse("docker.elastic.co/elasticsearch/elasticsearch:8.11.2")

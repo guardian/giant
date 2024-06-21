@@ -12,6 +12,7 @@ import org.apache.pekko.util.Timeout
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
+import org.scalatest.time.{Millis, Seconds, Span}
 import play.api.test.Helpers.status
 import services.ScratchSpace
 import test.integration.Helpers.{BlobAndNodeId, Controllers, asUser, createIngestion, createWorkspace, getBlobResourceStatus, getNonBlobResourceStatus, setUserCollections, setWorkspaceFollowers, setupUserControllers, uploadFileToWorkspaceAssertingSuccess}
@@ -21,8 +22,13 @@ import java.nio.file.Files
 import java.util.concurrent.TimeUnit
 import scala.concurrent.ExecutionContext
 
-class ExtractorITest extends AnyFunSuite with TestContainersForAll with BeforeAndAfterEach with ElasticSearchTestContainer with Neo4jTestContainer with Matchers {
-  //  final implicit override def patience: PatienceConfig = PatienceConfig(Span(30, Seconds), Span(250, Millis))
+class ExtractorITest extends AnyFunSuite
+  with TestContainersForAll
+  with BeforeAndAfterEach
+  with ElasticSearchTestContainer
+  with Neo4jTestContainer
+  with Matchers {
+  final implicit override def patience: PatienceConfig = PatienceConfig(Span(30, Seconds), Span(250, Millis))
 
   final implicit def executionContext: ExecutionContext = ExecutionContext.global
 

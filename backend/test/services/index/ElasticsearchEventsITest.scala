@@ -13,7 +13,7 @@ import java.time.Instant
 import java.time.temporal.ChronoUnit
 import scala.concurrent.ExecutionContext
 
-class ElasticsearchEventsITest extends AnyFreeSpec with Matchers with AttemptValues with TestContainersForAll with ElasticSearchTestContainer {
+class ElasticsearchEventsITest extends AnyFreeSpec with Matchers with TestContainersForAll with ElasticSearchTestContainer {
 
   final implicit def executionContext: ExecutionContext = ExecutionContext.global
 

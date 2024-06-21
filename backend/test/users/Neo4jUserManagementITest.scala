@@ -10,14 +10,19 @@ import services.annotations.Annotations
 import services.index.{Index, Pages}
 import services.manifest.Neo4jManifest
 import services.users.Neo4jUserManagement
-import test.AttemptValues
 import test.fixtures.GoogleAuthenticator
 import test.integration.{Neo4jTestContainer, Neo4jTestService}
 import utils.Logging
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class Neo4jUserManagementITest extends AnyFreeSpec with Matchers with TestContainersForAll with Neo4jTestContainer with AttemptValues with Logging with MockFactory {
+class Neo4jUserManagementITest extends AnyFreeSpec
+  with Matchers
+  with TestContainersForAll
+  with Neo4jTestContainer
+  with Logging
+  with MockFactory {
+
   override type Containers = Neo4jContainer
   var neo4jTestService: Neo4jTestService = _
 

@@ -7,6 +7,7 @@ import model.frontend.WorkspaceFolderChip._
 import model.frontend.{SearchResults, WorkspaceFolderChip}
 import org.apache.pekko.util.Timeout
 import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.time.{Millis, Seconds, Span}
 import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach}
 import play.api.libs.json._
 import play.api.test.FakeRequest
@@ -17,14 +18,13 @@ import test.integration._
 import java.util.concurrent.TimeUnit
 import scala.concurrent.ExecutionContext
 
-
 class WorkspaceSearchITest extends AnyFunSuite
   with TestContainersForAll
   with BeforeAndAfterAll
   with BeforeAndAfterEach
   with ElasticSearchTestContainer
   with Neo4jTestContainer {
-//  final implicit override def patience: PatienceConfig = PatienceConfig(Span(30, Seconds), Span(250, Millis))
+  final implicit override def patience: PatienceConfig = PatienceConfig(Span(30, Seconds), Span(250, Millis))
 
   final implicit val executionContext: ExecutionContext = ExecutionContext.global
 

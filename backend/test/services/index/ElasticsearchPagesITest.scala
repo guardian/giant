@@ -7,12 +7,11 @@ import model.{English, Russian, Uri}
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.freespec.AnyFreeSpec
 import org.scalatest.matchers.should.Matchers
-import test.AttemptValues
 import test.integration.{ElasticSearchTestContainer, ElasticsearchTestService}
 
 import scala.concurrent.ExecutionContext
 
-class ElasticsearchPagesITest extends AnyFreeSpec with Matchers with AttemptValues with BeforeAndAfterAll with TestContainersForAll with ElasticSearchTestContainer {
+class ElasticsearchPagesITest extends AnyFreeSpec with Matchers with BeforeAndAfterAll with TestContainersForAll with ElasticSearchTestContainer {
 
   final implicit def executionContext: ExecutionContext = ExecutionContext.global
 

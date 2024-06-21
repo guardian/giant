@@ -8,6 +8,7 @@ import model.frontend.{TreeEntry, TreeLeaf, TreeNode}
 import org.apache.pekko.util.Timeout
 import org.scalatest._
 import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.time.{Millis, Seconds, Span}
 import play.api.test.Helpers.status
 import test.integration.Helpers._
 import test.integration._
@@ -24,7 +25,7 @@ class WorkspacesITest extends AnyFunSuite
   with OptionValues
   with Inside {
 
-//  final implicit override def patience: PatienceConfig = PatienceConfig(Span(30, Seconds), Span(250, Millis))
+  final implicit override def patience: PatienceConfig = PatienceConfig(Span(30, Seconds), Span(250, Millis))
 
   final implicit def executionContext: ExecutionContext = ExecutionContext.global
 

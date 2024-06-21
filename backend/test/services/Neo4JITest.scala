@@ -5,7 +5,6 @@ import com.dimafeng.testcontainers.scalatest.TestContainersForAll
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.freespec.AnyFreeSpec
 import org.scalatest.matchers.should.Matchers
-import test.AttemptValues
 import test.integration.{Neo4jTestContainer, Neo4jTestService}
 import utils.Logging
 
@@ -13,7 +12,12 @@ import scala.concurrent.{Await, ExecutionContext}
 import scala.concurrent.duration.Duration
 
 
-class Neo4JITest extends AnyFreeSpec with Matchers with TestContainersForAll with Neo4jTestContainer with AttemptValues with Logging with MockFactory  {
+class Neo4JITest extends AnyFreeSpec
+  with Matchers
+  with TestContainersForAll
+  with Neo4jTestContainer
+  with Logging
+  with MockFactory  {
 
   final implicit def executionContext: ExecutionContext = ExecutionContext.global
   override type Containers = Neo4jContainer

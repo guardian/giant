@@ -5,11 +5,10 @@ import com.dimafeng.testcontainers.scalatest.TestContainersForAll
 import test.integration.{ElasticSearchTestContainer, ElasticsearchTestService}
 import org.scalatest.freespec.AnyFreeSpec
 import org.scalatest.matchers.should.Matchers
-import test.AttemptValues
 
 import scala.concurrent.ExecutionContext
 
-class ElasticsearchTablesITest extends AnyFreeSpec with Matchers with AttemptValues with TestContainersForAll with ElasticSearchTestContainer {
+class ElasticsearchTablesITest extends AnyFreeSpec with Matchers with TestContainersForAll with ElasticSearchTestContainer {
   final implicit def executionContext: ExecutionContext = ExecutionContext.global
   override type Containers = ElasticsearchContainer
 

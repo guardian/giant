@@ -18,7 +18,7 @@ import services.index.Index
 import services.ingestion.IngestionServices
 import services.{Neo4jQueryLoggingConfig, ObjectStorage, Tika}
 import test.integration.{Neo4jTestContainer, Neo4jTestService}
-import test.{AttemptValues, TestPostgresClient}
+import test.{TestPostgresClient}
 import utils.Logging
 import utils.attempt._
 
@@ -31,7 +31,13 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 
 //noinspection NameBooleanParameters
-class Neo4JManifestITest extends AnyFreeSpec with Matchers with TestContainersForAll with Neo4jTestContainer  with BeforeAndAfterAll with AttemptValues with Logging with MockFactory {
+class Neo4JManifestITest extends AnyFreeSpec
+  with Matchers
+  with TestContainersForAll
+  with Neo4jTestContainer
+  with BeforeAndAfterAll
+  with Logging
+  with MockFactory {
 
   val esEvents: Events = stub[Events]
   val ingestionServices: IngestionServices = stub[IngestionServices]

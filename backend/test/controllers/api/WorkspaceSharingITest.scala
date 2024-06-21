@@ -7,6 +7,7 @@ import model.frontend.user.PartialUser
 import org.apache.pekko.util.Timeout
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.time.{Millis, Seconds, Span}
 import play.api.test.Helpers.status
 import test.integration.Helpers._
 import test.integration.{ElasticSearchTestContainer, ElasticsearchTestService, Neo4jTestContainer, Neo4jTestService}
@@ -14,8 +15,12 @@ import test.integration.{ElasticSearchTestContainer, ElasticsearchTestService, N
 import java.util.concurrent.TimeUnit
 import scala.concurrent.{Await, ExecutionContext, Future}
 
-class WorkspaceSharingITest extends AnyFunSuite with TestContainersForAll with ElasticSearchTestContainer with Neo4jTestContainer with BeforeAndAfterEach {
-//  final implicit override def patience: PatienceConfig = PatienceConfig(Span(30, Seconds), Span(250, Millis))
+class WorkspaceSharingITest extends AnyFunSuite
+  with TestContainersForAll
+  with ElasticSearchTestContainer
+  with Neo4jTestContainer
+  with BeforeAndAfterEach {
+  final implicit override def patience: PatienceConfig = PatienceConfig(Span(30, Seconds), Span(250, Millis))
 
   final implicit def executionContext: ExecutionContext = ExecutionContext.global
 

@@ -8,6 +8,7 @@ import model.manifest.{Blob, Collection}
 import org.apache.pekko.util.Timeout
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.time.{Millis, Seconds, Span}
 import play.api.libs.json.Json
 import play.api.test.FakeRequest
 import play.api.test.Helpers.{await, contentAsJson, status}
@@ -17,9 +18,12 @@ import test.integration.{ElasticSearchTestContainer, ElasticsearchTestService, N
 import java.util.concurrent.TimeUnit
 import scala.concurrent.ExecutionContext
 
-class CollectionSharingITest extends AnyFunSuite with TestContainersForAll with BeforeAndAfterAll with ElasticSearchTestContainer
-  with Neo4jTestContainer  {
-//  final implicit override def patience: PatienceConfig = PatienceConfig(Span(30, Seconds), Span(250, Millis))
+class CollectionSharingITest extends AnyFunSuite
+  with TestContainersForAll
+  with BeforeAndAfterAll
+  with ElasticSearchTestContainer
+  with Neo4jTestContainer {
+  final implicit override def patience: PatienceConfig = PatienceConfig(Span(30, Seconds), Span(250, Millis))
 
   final implicit def executionContext: ExecutionContext = ExecutionContext.global
 

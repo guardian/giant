@@ -14,14 +14,14 @@ import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import test.integration.Helpers.stubControllerComponentsAsUser
 import test.integration.{ElasticSearchTestContainer, ElasticsearchTestService}
-import test.{AttemptValues, TestAnnotations, TestUserManagement, TestUserRegistration}
+import test.{TestAnnotations, TestUserManagement, TestUserRegistration}
 import utils.IndexTestHelpers
 import utils.attempt.AttemptAwait._
 import services.{NoOpMetricsService}
 
 import scala.concurrent.ExecutionContext
 
-class ElasticsearchResourcesITest extends AnyFreeSpec with Matchers with AttemptValues with BeforeAndAfterAll with TestContainersForAll with ElasticSearchTestContainer {
+class ElasticsearchResourcesITest extends AnyFreeSpec with Matchers with BeforeAndAfterAll with TestContainersForAll with ElasticSearchTestContainer {
   import TestUserManagement._
   final implicit def executionContext: ExecutionContext = ExecutionContext.global
 
