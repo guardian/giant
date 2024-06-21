@@ -1,26 +1,28 @@
 package controllers.api
 
-import java.nio.file.Files
-import java.util.concurrent.TimeUnit
-
-import org.apache.pekko.util.Timeout
+import com.dimafeng.testcontainers.lifecycle.and
+import com.dimafeng.testcontainers.scalatest.TestContainersForAll
+import com.dimafeng.testcontainers.{ElasticsearchContainer, Neo4jContainer}
 import extraction.ExtractionParams
 import extraction.archives.ZipExtractor
 import model.ingestion.WorkspaceItemContext
-import model.{English, Uri}
 import model.manifest.{Blob, MimeType}
+import model.{English, Uri}
+import org.apache.pekko.util.Timeout
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.funsuite.AnyFunSuite
-import org.scalatest.time.{Millis, Seconds, Span}
+import org.scalatest.matchers.should.Matchers
 import play.api.test.Helpers.status
 import services.ScratchSpace
-import test.integration.Helpers.{BlobAndNodeId, Controllers, asUser, createIngestion, createWorkspace, getBlobResourceStatus, getNonBlobResourceStatus, getResourceStatus, setUserCollections, setWorkspaceFollowers, setupUserControllers, uploadFileToWorkspaceAssertingSuccess}
-import test.integration.{ElasticsearchTestService, Neo4jTestService}
+import test.integration.Helpers.{BlobAndNodeId, Controllers, asUser, createIngestion, createWorkspace, getBlobResourceStatus, getNonBlobResourceStatus, setUserCollections, setWorkspaceFollowers, setupUserControllers, uploadFileToWorkspaceAssertingSuccess}
+import test.integration.{ElasticSearchTestContainer, ElasticsearchTestService, Neo4jTestContainer, Neo4jTestService}
 
+import java.nio.file.Files
+import java.util.concurrent.TimeUnit
 import scala.concurrent.ExecutionContext
 
-class ExtractorITest extends AnyFunSuite with Neo4jTestService with ElasticsearchTestService with BeforeAndAfterEach {
-  final implicit override def patience: PatienceConfig = PatienceConfig(Span(30, Seconds), Span(250, Millis))
+class ExtractorITest extends AnyFunSuite with TestContainersForAll with BeforeAndAfterEach with ElasticSearchTestContainer with Neo4jTestContainer with Matchers {
+  //  final implicit override def patience: PatienceConfig = PatienceConfig(Span(30, Seconds), Span(250, Millis))
 
   final implicit def executionContext: ExecutionContext = ExecutionContext.global
 
@@ -29,15 +31,24 @@ class ExtractorITest extends AnyFunSuite with Neo4jTestService with Elasticsearc
   implicit var userControllers: Map[String, Controllers] = _
   var jimmyZipBlobAndNodeId: BlobAndNodeId = _
 
-  override def beforeAll(): Unit = {
-    super.beforeAll()
+  override type Containers = Neo4jContainer and ElasticsearchContainer
+
+  override def startContainers(): Containers = {
+    val elasticContainer = getElasticSearchContainer()
+    val neo4jContainer = getNeo4jContainer()
+    val url = s"http://${elasticContainer.container.getHttpHostAddress}"
+
+    val neo4jDriver = new Neo4jTestService(neo4jContainer.container.getBoltUrl).neo4jDriver
+    val elasticsearchTestService = new ElasticsearchTestService(url)
 
     userControllers = setupUserControllers(
       usernames = Set("paul", "barry", "jimmy", "admin"),
       neo4jDriver,
-      elasticsearch = this,
+      elasticsearch = elasticsearchTestService,
       admins = Set("admin")
     )
+
+    neo4jContainer and elasticContainer
   }
 
   // *****************

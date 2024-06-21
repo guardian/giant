@@ -1,24 +1,29 @@
 package commands
 
-import java.util.concurrent.TimeUnit
-
-import org.apache.pekko.util.Timeout
+import com.dimafeng.testcontainers.lifecycle.and
+import com.dimafeng.testcontainers.scalatest.TestContainersForAll
+import com.dimafeng.testcontainers.{ElasticsearchContainer, Neo4jContainer}
 import model.Uri
 import model.manifest.{Blob, Collection}
+import org.apache.pekko.util.Timeout
+import org.scalatest.BeforeAndAfterAll
 import org.scalatest.funsuite.AnyFunSuite
-import org.scalatest.time.{Millis, Seconds, Span}
 import play.api.libs.json.Json
 import play.api.test.FakeRequest
 import play.api.test.Helpers.{await, contentAsJson, status}
 import test.integration.Helpers._
-import test.integration.{ElasticsearchTestService, Neo4jTestService}
+import test.integration.{ElasticSearchTestContainer, ElasticsearchTestService, Neo4jTestContainer, Neo4jTestService}
 
+import java.util.concurrent.TimeUnit
 import scala.concurrent.ExecutionContext
 
-class CollectionSharingITest extends AnyFunSuite with Neo4jTestService with ElasticsearchTestService {
-  final implicit override def patience: PatienceConfig = PatienceConfig(Span(30, Seconds), Span(250, Millis))
+class CollectionSharingITest extends AnyFunSuite with TestContainersForAll with BeforeAndAfterAll with ElasticSearchTestContainer
+  with Neo4jTestContainer  {
+//  final implicit override def patience: PatienceConfig = PatienceConfig(Span(30, Seconds), Span(250, Millis))
 
   final implicit def executionContext: ExecutionContext = ExecutionContext.global
+
+  override type Containers = Neo4jContainer and ElasticsearchContainer
 
   final implicit val timeout: Timeout = Timeout(10, TimeUnit.SECONDS)
 
@@ -26,15 +31,22 @@ class CollectionSharingITest extends AnyFunSuite with Neo4jTestService with Elas
   var paulsBlob: Blob = _
   var paulsBlobWithinDirectory: Blob = _
 
-  override def beforeAll(): Unit = {
-    super.beforeAll()
+  override def startContainers(): Neo4jContainer and ElasticsearchContainer = {
+    val elasticContainer = getElasticSearchContainer()
+    val neo4jContainer = getNeo4jContainer()
+    val url = s"http://${elasticContainer.container.getHttpHostAddress}"
+
+    val neo4jDriver = new Neo4jTestService(neo4jContainer.container.getBoltUrl).neo4jDriver
+    val elasticsearchTestService = new ElasticsearchTestService(url)
 
     userControllers = setupUserControllers(
       usernames = Set("paul", "barry", "jimmy", "admin"),
       neo4jDriver,
-      elasticsearch = this,
+      elasticsearch = elasticsearchTestService,
       admins = Set("admin")
     )
+
+    neo4jContainer and elasticContainer
   }
 
   // *****************

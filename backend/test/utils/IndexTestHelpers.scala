@@ -12,7 +12,9 @@ import services.index
 import test.integration.ElasticsearchTestService
 import utils.attempt.Attempt
 
-trait IndexTestHelpers { this: ElasticsearchTestService =>
+import scala.concurrent.ExecutionContext
+
+class IndexTestHelpers(elasticsearchTestService: ElasticsearchTestService)(implicit ec: ExecutionContext) {
   def addTestDocument(collection: Collection,
                       ingestion: String,
                       maybeFileName: Option[String] = None,
@@ -47,7 +49,7 @@ trait IndexTestHelpers { this: ElasticsearchTestService =>
       } else {
         val (lang, text) :: rest = entries
 
-        elasticResources.addDocumentOcr(documentUri, Some(text), lang).flatMap { _ =>
+        elasticsearchTestService.elasticResources.addDocumentOcr(documentUri, Some(text), lang).flatMap { _ =>
           if (rest.isEmpty) {
             Attempt.Right(())
           } else {
@@ -58,8 +60,8 @@ trait IndexTestHelpers { this: ElasticsearchTestService =>
     }
 
     for {
-      _ <- elasticResources.ingestDocument(documentUri, 0, ingestionData, languages)
-      _ <- elasticResources.addDocumentDetails(documentUri, Some(text), Map.empty, MetadataEnrichment.enrich(maybeExtractedMetadata), languages)
+      _ <- elasticsearchTestService.elasticResources.ingestDocument(documentUri, 0, ingestionData, languages)
+      _ <- elasticsearchTestService.elasticResources.addDocumentDetails(documentUri, Some(text), Map.empty, MetadataEnrichment.enrich(maybeExtractedMetadata), languages)
       _ <- _addDocumentOcr(maybeOcrText.toList)
     } yield {
       documentUri

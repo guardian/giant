@@ -233,7 +233,6 @@ object Helpers extends Matchers with Logging with OptionValues with Inside {
   def setupUserControllers(usernames: Set[String], neo4jDriver: Driver, elasticsearch: ElasticsearchTestService, admins: Set[String] = Set.empty)
     (implicit ec: ExecutionContext): Map[String, Controllers] = {
 
-    println("marji setupUserControllers")
     val queryLoggingConfig = new Neo4jQueryLoggingConfig(1.second, logAllQueries = false)
     val manifest = Neo4jManifest.setupManifest(neo4jDriver, ec, queryLoggingConfig).toOption.get
     val annotations = Neo4jAnnotations.setupAnnotations(neo4jDriver, ec, queryLoggingConfig).toOption.get

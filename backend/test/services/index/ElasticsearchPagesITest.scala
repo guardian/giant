@@ -1,25 +1,47 @@
 package services.index
 
+import com.dimafeng.testcontainers.ElasticsearchContainer
+import com.dimafeng.testcontainers.scalatest.TestContainersForAll
 import model.index.{Page, PageDimensions}
 import model.{English, Russian, Uri}
+import org.scalatest.BeforeAndAfterAll
 import org.scalatest.freespec.AnyFreeSpec
 import org.scalatest.matchers.should.Matchers
-import test.integration.ElasticsearchTestService
+import test.AttemptValues
+import test.integration.{ElasticSearchTestContainer, ElasticsearchTestService}
 
-class ElasticsearchPagesITest extends AnyFreeSpec with Matchers with ElasticsearchTestService {
-  override def beforeAll(): Unit = {
-    super.beforeAll()
+import scala.concurrent.ExecutionContext
 
-    deleteIndicesIfExists()
+class ElasticsearchPagesITest extends AnyFreeSpec with Matchers with AttemptValues with BeforeAndAfterAll with TestContainersForAll with ElasticSearchTestContainer {
 
-    elasticPages.setup().successValue
+  final implicit def executionContext: ExecutionContext = ExecutionContext.global
+
+  override type Containers = ElasticsearchContainer
+
+  var elasticsearchTestService: ElasticsearchTestService = _
+
+  override def startContainers(): Containers = {
+    val elasticContainer = getElasticSearchContainer()
+    val url = s"http://${elasticContainer.container.getHttpHostAddress}"
+
+    elasticsearchTestService = new ElasticsearchTestService(url)
+
+    elasticContainer
+  }
+
+  override def afterContainersStart(containers: Containers): Unit = {
+    super.afterContainersStart(containers)
+
+    elasticsearchTestService.deleteIndicesIfExists()
+
+    elasticsearchTestService.elasticPages.setup().successValue
     List(English, Russian).foreach { lang =>
-      elasticPages.addLanguage(lang).successValue
+      elasticsearchTestService.elasticPages.addLanguage(lang).successValue
     }
   }
 
   override def afterAll(): Unit = {
-    deleteIndicesIfExists()
+    elasticsearchTestService.deleteIndicesIfExists()
 
     super.afterAll()
   }
@@ -29,11 +51,11 @@ class ElasticsearchPagesITest extends AnyFreeSpec with Matchers with Elasticsear
       val uri = Uri("duplicate-page-test")
       val page = Page(page = 1, Map(English -> "some test content"), PageDimensions.A4_PORTRAIT)
 
-      elasticPages.addPageContents(uri, Seq(page)).successValue
+      elasticsearchTestService.elasticPages.addPageContents(uri, Seq(page)).successValue
 
-      elasticPages.addPageContents(uri, Seq(page)).successValue
+      elasticsearchTestService.elasticPages.addPageContents(uri, Seq(page)).successValue
 
-      val textPages = elasticPages.getTextPages(uri, 0, PageDimensions.A4_PORTRAIT.height, highlightQuery = None).successValue
+      val textPages = elasticsearchTestService.elasticPages.getTextPages(uri, 0, PageDimensions.A4_PORTRAIT.height, highlightQuery = None).successValue
       textPages.pages should have length 1
       textPages.pages should contain only page
     }
@@ -45,10 +67,10 @@ class ElasticsearchPagesITest extends AnyFreeSpec with Matchers with Elasticsear
         Russian -> "вазах ваз"
       ), PageDimensions.A4_PORTRAIT)
 
-      elasticPages.addPageContents(uri, Seq(inputPage)).successValue
+      elasticsearchTestService.elasticPages.addPageContents(uri, Seq(inputPage)).successValue
 
       val query = "vase OR ваз"
-      val textPages = elasticPages.getTextPages(uri, 0, PageDimensions.A4_PORTRAIT.height, Some(query)).successValue
+      val textPages = elasticsearchTestService.elasticPages.getTextPages(uri, 0, PageDimensions.A4_PORTRAIT.height, Some(query)).successValue
 
       textPages.pages should have length 1
 
@@ -66,10 +88,10 @@ class ElasticsearchPagesITest extends AnyFreeSpec with Matchers with Elasticsear
         Russian -> "вазах ваз"
       ), PageDimensions.A4_PORTRAIT)
 
-      elasticPages.addPageContents(uri, Seq(inputPage)).successValue
+      elasticsearchTestService.elasticPages.addPageContents(uri, Seq(inputPage)).successValue
 
       val query = "\"vase\" OR \"ваз\""
-      val textPages = elasticPages.getTextPages(uri, 0, PageDimensions.A4_PORTRAIT.height, Some(query)).successValue
+      val textPages = elasticsearchTestService.elasticPages.getTextPages(uri, 0, PageDimensions.A4_PORTRAIT.height, Some(query)).successValue
 
       textPages.pages should have length 1
 

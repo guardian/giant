@@ -1,23 +1,30 @@
 package controllers.api
 
-import java.util.concurrent.TimeUnit
-
-import org.apache.pekko.util.Timeout
-import model.Uri
+import com.dimafeng.testcontainers.lifecycle.and
+import com.dimafeng.testcontainers.scalatest.TestContainersForAll
+import com.dimafeng.testcontainers.{ElasticsearchContainer, Neo4jContainer}
 import model.annotations.{Workspace, WorkspaceEntry}
-import model.frontend.{SearchResults, TreeEntry, TreeLeaf, TreeNode}
+import model.frontend.{TreeEntry, TreeLeaf, TreeNode}
+import org.apache.pekko.util.Timeout
 import org.scalatest._
-import org.scalatest.time.{Millis, Seconds, Span}
-import play.api.test.FakeRequest
-import play.api.test.Helpers.{contentAsJson, status}
-import test.integration.Helpers._
-import test.integration.{ElasticsearchTestService, ItemIds, Neo4jTestService}
-
-import scala.concurrent.ExecutionContext
 import org.scalatest.funsuite.AnyFunSuite
+import play.api.test.Helpers.status
+import test.integration.Helpers._
+import test.integration._
 
-class WorkspacesITest extends AnyFunSuite with Neo4jTestService with ElasticsearchTestService with BeforeAndAfterEach with OptionValues with Inside {
-  final implicit override def patience: PatienceConfig = PatienceConfig(Span(30, Seconds), Span(250, Millis))
+import java.util.concurrent.TimeUnit
+import scala.concurrent.ExecutionContext
+
+class WorkspacesITest extends AnyFunSuite
+  with TestContainersForAll
+  with ElasticSearchTestContainer
+  with Neo4jTestContainer
+  with BeforeAndAfterEach
+  with BeforeAndAfterAll
+  with OptionValues
+  with Inside {
+
+//  final implicit override def patience: PatienceConfig = PatienceConfig(Span(30, Seconds), Span(250, Millis))
 
   final implicit def executionContext: ExecutionContext = ExecutionContext.global
 
@@ -26,9 +33,18 @@ class WorkspacesITest extends AnyFunSuite with Neo4jTestService with Elasticsear
   var paulWorkspace: MinimalWorkspace = _
   var itemIds: ItemIds = _
   implicit var userControllers: Map[String, Controllers] = _
+  var elasticsearchTestService: ElasticsearchTestService = _
+  var neo4jTestService: Neo4jTestService = _
 
-  override def beforeAll(): Unit = {
-    super.beforeAll()
+  override type Containers = Neo4jContainer and ElasticsearchContainer
+
+  override def startContainers(): Containers = {
+    val elasticContainer = getElasticSearchContainer()
+    val neo4jContainer = getNeo4jContainer()
+    val url = s"http://${elasticContainer.container.getHttpHostAddress}"
+
+    elasticsearchTestService = new ElasticsearchTestService(url)
+    neo4jTestService = new Neo4jTestService(neo4jContainer.container.getBoltUrl)
 
     // We keep all the instance vars inside the test class,
     // so that Helpers can be an immutable object of functions.
@@ -41,10 +57,31 @@ class WorkspacesITest extends AnyFunSuite with Neo4jTestService with Elasticsear
     // instantiated each time WorkspaceITest is instantiated).
     userControllers = setupUserControllers(
       usernames = Set("paul", "barry", "jimmy"),
-      neo4jDriver,
-      elasticsearch = this
+      neo4jTestService.neo4jDriver,
+      elasticsearch = elasticsearchTestService
     )
+
+    neo4jContainer and elasticContainer
   }
+
+//  override def beforeAll(): Unit = {
+//    super.beforeAll()
+//
+//    // We keep all the instance vars inside the test class,
+//    // so that Helpers can be an immutable object of functions.
+//    // I think this means that if we did try and run the tests in parallel by
+//    // extending ParallelTestExecution, scalatest's trick of creating one instance
+//    // per test (http://doc.scalatest.org/3.0.1-2.12/org/scalatest/OneInstancePerTest.html)
+//    // would work to isolate mutable variables between tests.
+//    // Whereas with instance vars inside the Helpers library, I suspect they
+//    // would've ended up shared between test instances (since it's a static object, not
+//    // instantiated each time WorkspaceITest is instantiated).
+//    userControllers = setupUserControllers(
+//      usernames = Set("paul", "barry", "jimmy"),
+//      neo4jDriver,
+//      elasticsearch = this
+//    )
+//  }
 
   override def afterAll(): Unit = {
     super.afterAll()
@@ -53,9 +90,8 @@ class WorkspacesITest extends AnyFunSuite with Neo4jTestService with Elasticsear
   override def beforeEach(): Unit = {
     super.beforeEach()
 
-    deleteAllNeo4jNodes()
-    resetIndices()
-
+    neo4jTestService.deleteAllNeo4jNodes()
+    elasticsearchTestService.resetIndices()
 
     asUser("paul") { implicit controllers =>
       paulWorkspace = createWorkspace("paul-workspace", isPublic = false)
