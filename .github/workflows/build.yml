@@ -27,6 +27,10 @@ jobs:
           role-to-assume: ${{ secrets.GU_RIFF_RAFF_ROLE_ARN }}
           aws-region: eu-west-1
 
+      - name: Install sbt
+        run: |
+          brew install sbt
+
       # TODO: configure caching
       - name: Setup Node
         uses: actions/setup-node@v4
