@@ -42,7 +42,7 @@ jobs:
         with:
           java-version: '11'
           distribution: 'adopt'
-          cache: sbt
+#          cache: sbt
 
       - name: Run script/teamcity
         run: |
