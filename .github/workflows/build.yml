@@ -48,12 +48,16 @@ jobs:
 
       # TODO: configure caching
       # See https://github.com/actions/setup-java
-      - name: Setup Java
-        uses: actions/setup-java@v4
+#      - name: Setup Java
+#        uses: actions/setup-java@v4
+#        with:
+#          java-version: '11'
+#          distribution: 'adopt'
+#          cache: sbt
+
+      - uses: olafurpg/setup-scala@v11
         with:
-          java-version: '11'
-          distribution: 'adopt'
-          cache: sbt
+          java-version: adopt@1.11
 
       - name: Run script/teamcity
         run: |
