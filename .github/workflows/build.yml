@@ -9,7 +9,7 @@ on:
 
 jobs:
   CI:
-    runs-on: 4core-ubuntu-latest-arm-coverdrop
+    runs-on: 4core-ubuntu-latest-arm-giant
 
     # See https://docs.github.com/en/actions/security-guides/automatic-token-authentication#permissions-for-the-github_token
     permissions:
