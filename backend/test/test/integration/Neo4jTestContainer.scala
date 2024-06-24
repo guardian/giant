@@ -12,9 +12,6 @@ trait Neo4jTestContainer extends AttemptValues {
     val neo4jContainerDef = Neo4jContainer.Def(
       dockerImageName = DockerImageName.parse("neo4j/neo4j-arm64-experimental:3.5.30").asCompatibleSubstituteFor("neo4j")
     )
-//    val neo4jContainerDef = Neo4jContainer.Def(
-//      dockerImageName = DockerImageName.parse("neo4j:3.3.1")
-//    )
 
     val neo4jContainer = neo4jContainerDef.createContainer()
     neo4jContainer.container.withEnv("NEO4J_AUTH", "none")

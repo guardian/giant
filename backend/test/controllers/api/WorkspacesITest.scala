@@ -65,25 +65,6 @@ class WorkspacesITest extends AnyFunSuite
     neo4jContainer and elasticContainer
   }
 
-//  override def beforeAll(): Unit = {
-//    super.beforeAll()
-//
-//    // We keep all the instance vars inside the test class,
-//    // so that Helpers can be an immutable object of functions.
-//    // I think this means that if we did try and run the tests in parallel by
-//    // extending ParallelTestExecution, scalatest's trick of creating one instance
-//    // per test (http://doc.scalatest.org/3.0.1-2.12/org/scalatest/OneInstancePerTest.html)
-//    // would work to isolate mutable variables between tests.
-//    // Whereas with instance vars inside the Helpers library, I suspect they
-//    // would've ended up shared between test instances (since it's a static object, not
-//    // instantiated each time WorkspaceITest is instantiated).
-//    userControllers = setupUserControllers(
-//      usernames = Set("paul", "barry", "jimmy"),
-//      neo4jDriver,
-//      elasticsearch = this
-//    )
-//  }
-
   override def afterAll(): Unit = {
     super.afterAll()
   }
