@@ -3,35 +3,29 @@ package test.integration
 import com.sksamuel.elastic4s.ElasticClient
 import com.sksamuel.elastic4s.ElasticDsl._
 import com.sksamuel.elastic4s.requests.common.RefreshPolicy
-import com.whisk.docker.impl.spotify.DockerKitSpotify
-import com.whisk.docker.scalatest.DockerTestKit
-import model.Language
+
+import scala.concurrent.ExecutionContext
 import org.scalatest.concurrent.Eventually
-import utils.attempt.AttemptAwait._
+import org.scalatest.matchers.should.Matchers
 import org.scalatest.time.{Millis, Seconds, Span}
-import org.scalatest.{BeforeAndAfterAll, Suite}
 import services.ElasticsearchClient
 import services.events.ElasticsearchEvents
-import services.index.{ElasticsearchPages, ElasticsearchResources, IndexFields}
+import services.index.{ElasticsearchPages, ElasticsearchResources}
 import services.table.ElasticsearchTable
 import test.AttemptValues
 import utils.Logging
-import org.scalatest.matchers.should.Matchers
-import play.api.i18n.Lang
+import utils.attempt.AttemptAwait._
 
-trait ElasticsearchTestService
-  extends BeforeAndAfterAll
-    with AttemptValues
+
+class ElasticsearchTestService(val url: String)(implicit ec: ExecutionContext)
+  extends AttemptValues
     with Eventually
     with Matchers
-    with DockerElasticsearchService
-    with DockerTestKit
-    with DockerKitSpotify
-    with Logging { self: Suite =>
+    with Logging  {
 
   implicit def patience = PatienceConfig(Span(30, Seconds), Span(250, Millis))
 
-  val elasticClient: ElasticClient = ElasticsearchClient(List(ElasticsearchUri), disableSniffing = true).successValue
+  val elasticClient: ElasticClient = ElasticsearchClient(List(url), disableSniffing = true).successValue
 
   val elasticResources = new ElasticsearchResources(elasticClient, "pfi") {
     // ES calls will not return until the result is visible when searching.

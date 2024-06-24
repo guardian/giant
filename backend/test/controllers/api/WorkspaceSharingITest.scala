@@ -1,19 +1,25 @@
 package controllers.api
 
-import java.util.concurrent.TimeUnit
-
-import org.apache.pekko.util.Timeout
-import org.scalatest.time.{Millis, Seconds, Span}
-import org.scalatest.BeforeAndAfterEach
+import com.dimafeng.testcontainers.lifecycle.and
+import com.dimafeng.testcontainers.scalatest.TestContainersForAll
+import com.dimafeng.testcontainers.{ElasticsearchContainer, Neo4jContainer}
 import model.frontend.user.PartialUser
+import org.apache.pekko.util.Timeout
+import org.scalatest.BeforeAndAfterEach
+import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.time.{Millis, Seconds, Span}
 import play.api.test.Helpers.status
 import test.integration.Helpers._
-import test.integration.{ElasticsearchTestService, Neo4jTestService}
+import test.integration.{ElasticSearchTestContainer, ElasticsearchTestService, Neo4jTestContainer, Neo4jTestService}
 
+import java.util.concurrent.TimeUnit
 import scala.concurrent.{Await, ExecutionContext, Future}
-import org.scalatest.funsuite.AnyFunSuite
 
-class WorkspaceSharingITest extends AnyFunSuite with Neo4jTestService with ElasticsearchTestService with BeforeAndAfterEach {
+class WorkspaceSharingITest extends AnyFunSuite
+  with TestContainersForAll
+  with ElasticSearchTestContainer
+  with Neo4jTestContainer
+  with BeforeAndAfterEach {
   final implicit override def patience: PatienceConfig = PatienceConfig(Span(30, Seconds), Span(250, Millis))
 
   final implicit def executionContext: ExecutionContext = ExecutionContext.global
@@ -23,7 +29,10 @@ class WorkspaceSharingITest extends AnyFunSuite with Neo4jTestService with Elast
   implicit var userControllers: Map[String, Controllers] = _
   var paulWorkspace: MinimalWorkspace = _
   var barryWorkspace: MinimalWorkspace = _
+  var elasticsearchTestService: ElasticsearchTestService = _
+  var neo4jTestService: Neo4jTestService = _
 
+  override type Containers = Neo4jContainer and ElasticsearchContainer
   private def uploadAndAddFileToWorkspaceAsPaul(): BlobAndNodeId = {
     asUser("paul") { implicit controllers =>
       val paulWorkspaceFromApi = getWorkspace(paulWorkspace.id)
@@ -40,21 +49,28 @@ class WorkspaceSharingITest extends AnyFunSuite with Neo4jTestService with Elast
     }
   }
 
-  override def beforeAll(): Unit = {
-    super.beforeAll()
+  override def startContainers(): Containers = {
+    val elasticContainer = getElasticSearchContainer()
+    val neo4jContainer = getNeo4jContainer()
+    val url = s"http://${elasticContainer.container.getHttpHostAddress}"
+
+    elasticsearchTestService = new ElasticsearchTestService(url)
+    neo4jTestService = new Neo4jTestService(neo4jContainer.container.getBoltUrl)
 
     userControllers = setupUserControllers(
       usernames = Set("paul", "barry", "jimmy"),
-      neo4jDriver,
-      elasticsearch = this
+      neo4jTestService.neo4jDriver,
+      elasticsearch = elasticsearchTestService
     )
+
+    neo4jContainer and elasticContainer
   }
 
   override def beforeEach(): Unit = {
     super.beforeEach()
 
-    deleteAllNeo4jNodes()
-    resetIndices()
+    neo4jTestService.deleteAllNeo4jNodes()
+    elasticsearchTestService.resetIndices()
 
     asUser("paul") { implicit controllers =>
       createIngestion(

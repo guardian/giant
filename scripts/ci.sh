@@ -3,6 +3,7 @@ set -e
 
 pushd frontend
 
+sudo apt-get install build-essential libcairo2-dev libpango1.0-dev libjpeg-dev libgif-dev librsvg2-dev
 npm install
 npm run build
 CI=true npm run test
@@ -17,9 +18,8 @@ cp -r frontend/build/* backend/public
 # a bit in case e.g. github actions custom runners have similar issues
 #cp frontend/node_modules/pdfjs-dist/build/pdf.worker.min.js backend/public/third-party/pdf.worker.min.js
 
-#Use java 11
-export JAVA_HOME=/usr/lib/jvm/java-11-amazon-corretto
-export PATH=$JAVA_HOME/bin:$PATH
+echo 'java version:'
+echo $(java --version)
 
 # Do a full build of PFI including all tests and upload it to Riff-Raff under the playground stack
 sbt -DPFI_STACK=pfi-playground clean riffRaffUploadWithIntegrationTests

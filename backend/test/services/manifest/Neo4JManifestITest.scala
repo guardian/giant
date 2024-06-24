@@ -1,10 +1,7 @@
 package services.manifest
 
-import java.io.InputStream
-import java.nio.charset.StandardCharsets
-import java.nio.file.{Files, Path, Paths}
-import java.time.format.DateTimeFormatter
-import java.time.{OffsetDateTime, ZoneOffset}
+import com.dimafeng.testcontainers.Neo4jContainer
+import com.dimafeng.testcontainers.scalatest.TestContainersForAll
 import com.google.common.hash.Hashing
 import commands.IngestFile
 import extraction.{ExtractionParams, Extractor, MimeTypeMapper}
@@ -13,38 +10,63 @@ import model.ingestion.{IngestionFile, WorkspaceItemContext}
 import model.manifest.{Blob, MimeType, WorkItem}
 import model.{Email, English, Recipient, Uri}
 import org.scalamock.scalatest.MockFactory
-import services.events.Events
-import services.{ObjectStorage, Tika}
-import services.index.Index
-import services.ingestion.IngestionServices
-import test.{AttemptValues, TestPostgresClient}
-import test.integration.Neo4jTestService
-import utils.attempt.{Failure, MissingPermissionFailure, NotFoundFailure}
-import utils.attempt._
-import utils.Logging
-
-import scala.concurrent.ExecutionContext.Implicits.global
+import org.scalatest.BeforeAndAfterAll
 import org.scalatest.freespec.AnyFreeSpec
 import org.scalatest.matchers.should.Matchers
+import services.events.Events
+import services.index.Index
+import services.ingestion.IngestionServices
+import services.{Neo4jQueryLoggingConfig, ObjectStorage, Tika}
+import test.integration.{Neo4jTestContainer, Neo4jTestService}
+import test.{TestPostgresClient}
+import utils.Logging
+import utils.attempt._
+
+import java.io.InputStream
+import java.nio.charset.StandardCharsets
+import java.nio.file.{Files, Path, Paths}
+import java.time.format.DateTimeFormatter
+import java.time.{OffsetDateTime, ZoneOffset}
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.duration._
 
 //noinspection NameBooleanParameters
-class Neo4JManifestITest extends AnyFreeSpec with Matchers with Neo4jTestService with AttemptValues with Logging with MockFactory {
+class Neo4JManifestITest extends AnyFreeSpec
+  with Matchers
+  with TestContainersForAll
+  with Neo4jTestContainer
+  with BeforeAndAfterAll
+  with Logging
+  with MockFactory {
 
   val esEvents: Events = stub[Events]
   val ingestionServices: IngestionServices = stub[IngestionServices]
 
-  lazy val manifest = {
-    Neo4jManifest.setupManifest(neo4jDriver, global, neo4jQueryLoggingConfig).toOption.get
+  var manifest: Manifest = _
+
+  override type Containers = Neo4jContainer
+
+  override def startContainers(): Containers = {
+    val neo4jContainer = getNeo4jContainer()
+
+    val neo4jDriver = new Neo4jTestService(neo4jContainer.container.getBoltUrl).neo4jDriver
+
+    manifest = {
+      Neo4jManifest.setupManifest(neo4jDriver, global, new Neo4jQueryLoggingConfig(1.second, logAllQueries = false)).toOption.get
+    }
+
+    neo4jContainer
   }
 
-  def insertIngestion(collection: Uri, maybeIngestion: Option[Uri] = None, maybePath: Option[Path] = None, fixed: Boolean = true) = {
-    val ingestion = maybeIngestion.getOrElse(collection.chain("test-ingestion"))
-    val path = maybePath.getOrElse(Paths.get(ingestion.value))
+    def insertIngestion(collection: Uri, maybeIngestion: Option[Uri] = None, maybePath: Option[Path] = None, fixed: Boolean = true) = {
+      val ingestion = maybeIngestion.getOrElse(collection.chain("test-ingestion"))
+      val path = maybePath.getOrElse(Paths.get(ingestion.value))
 
-    manifest.insertIngestion(collection, ingestion, "My test ingestion!", Some(path), List(English), fixed, default = false)
-  }
+      manifest.insertIngestion(collection, ingestion, "My test ingestion!", Some(path), List(English), fixed, default = false)
+    }
 
   "Neo4JManifest" - {
+
     "Can get the mimetypes" in {
       manifest.getAllMimeTypes.successValue shouldBe List.empty[MimeType]
     }
