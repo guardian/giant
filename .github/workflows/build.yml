@@ -27,6 +27,15 @@ jobs:
           role-to-assume: ${{ secrets.GU_RIFF_RAFF_ROLE_ARN }}
           aws-region: eu-west-1
 
+      # TODO: configure caching
+      # See https://github.com/actions/setup-java
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          java-version: '11'
+          distribution: 'adopt'
+          cache: sbt
+
       - name: Install sbt
         run: |
           sudo apt-get update
@@ -45,15 +54,6 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
           cache-dependency-path: frontend/package-lock.json
-
-      # TODO: configure caching
-      # See https://github.com/actions/setup-java
-#      - name: Setup Java
-#        uses: actions/setup-java@v4
-#        with:
-#          java-version: '11'
-#          distribution: 'adopt'
-#          cache: sbt
 
       - name: Run script/teamcity
         run: |
