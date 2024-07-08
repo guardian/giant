@@ -37,16 +37,14 @@ export const renderTextOverlays = async (
 ): Promise<PdfText[]> => {
   const { pdfPage, scale } = preview;
 
-  const textContentStream = pdfPage.streamTextContent({
-    disableCombineTextItems: false,
-  });
+  const textContentSource = pdfPage.streamTextContent();
 
   const textDivs: HTMLDivElement[] = [];
   const textContentItemsStr: string[] = [];
   const viewport = pdfPage.getViewport({ scale });
 
   await renderTextLayer({
-    textContentStream,
+    textContentSource,
     container: document.createElement("div"),
     viewport,
     textDivs,

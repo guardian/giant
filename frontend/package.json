@@ -19,7 +19,7 @@
     "moment": "^2.29.4",
     "mousetrap": "^1.6.5",
     "papaparse": "^5.2.0",
-    "pdfjs-dist": "3.0.279",
+    "pdfjs-dist": "4.2.67",
     "prop-types": "^15.8.1",
     "qrcode.react": "^0.9.3",
     "ramda": "^0.26.1",
