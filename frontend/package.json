@@ -9,7 +9,7 @@
     "@emotion/css": "^11.11.2",
     "@emotion/react": "^11.11.1",
     "connected-react-router": "^6.8.0",
-    "d3": "^4.13.0",
+    "d3": "^v7.9.0",
     "date-fns": "^2.27.0",
     "history": "^4.10.1",
     "http-proxy-middleware": "3.0.0",
