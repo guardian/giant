@@ -94,6 +94,11 @@ export default class TimeHistogram extends React.Component {
                     <EuiSettings
                         showLegend={false}
                         onElementClick={(event) => queryByDate(event[0][0].datum)}
+                        theme={{
+                            background: {
+                                color: "transparent"
+                            }                   
+                        }}
                     />
                     <Tooltip
                         headerFormatter={(tooltipData) => {
