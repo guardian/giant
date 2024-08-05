@@ -46,30 +46,34 @@ lazy val buildInfoSettings = Seq(
       "builtOnHost" -> Option(System.getenv("HOSTNAME"))
         .orElse(Option("hostname".!!.trim).filter(_.nonEmpty))
         .getOrElse("<unknown>")
-        .replace("\"", "").trim
+        .replace("\"", "")
+        .trim
     )
   },
-
   buildInfoOptions ++= Seq(
     BuildInfoOption.ToJson,
     BuildInfoOption.ToMap
   ),
-  buildInfoPackage := "utils.buildinfo",
+  buildInfoPackage := "utils.buildinfo"
 )
 
-lazy val riffRaffUploadWithIntegrationTests = taskKey[Unit]("Perform riffRaffUpload after running tests or integration tests")
+lazy val riffRaffUploadWithIntegrationTests = taskKey[Unit](
+  "Perform riffRaffUpload after running tests or integration tests"
+)
 
 lazy val root = (project in file("."))
   .enablePlugins(RiffRaffArtifact)
   .aggregate(common, backend, cli)
   .settings(
-    riffRaffUploadWithIntegrationTests := Def.sequential(
-      common / Test / test,
-      cli / Test / test,
-      backend / Test / test,
-      backend / IntTest / test,
-      riffRaffUpload
-    ).value,
+    riffRaffUploadWithIntegrationTests := Def
+      .sequential(
+        common / Test / test,
+        cli / Test / test,
+        backend / Test / test,
+        backend / IntTest / test,
+        riffRaffUpload
+      )
+      .value,
     riffRaffManifestProjectName := s"investigations::${sys.props.getOrElse("PFI_STACK", "pfi-playground")}",
     riffRaffUploadArtifactBucket := Some("riffraff-artifact"),
     riffRaffUploadManifestBucket := Some("riffraff-builds"),
@@ -79,7 +83,7 @@ lazy val root = (project in file("."))
       (cli / Universal / packageZipTarball).value -> s"pfi-public-downloads/${(cli / name).value}.tar.gz",
       file("riff-raff.yaml") -> "riff-raff.yaml"
     )
-)
+  )
 
 lazy val common = (project in file("common"))
   .settings(
@@ -96,7 +100,7 @@ lazy val common = (project in file("common"))
       // versions of SLF4J and Logback (i.e. its versions should be evicted by those here).
       // https://github.com/playframework/playframework/issues/11499#issuecomment-1285654119
       "org.slf4j" % "slf4j-api" % slf4jVersion,
-      "ch.qos.logback" % "logback-classic" % "1.4.14",
+      "ch.qos.logback" % "logback-classic" % "1.4.14"
     )
   )
 
@@ -111,7 +115,6 @@ lazy val backend = (project in file("backend"))
     name := "pfi",
     scalacOptions := compilerFlags,
     evictionErrorLevel := Level.Warn,
-
     libraryDependencies ++= Seq(
       ws,
       "commons-codec" % "commons-codec" % "1.11",
@@ -155,7 +158,7 @@ lazy val backend = (project in file("backend"))
       // this is needed to override the 2.11.4 version of jackson-module used in various play libraries (including jwt-play)
       // as 2.11.4 is only compatible with versions of jackson databind up to 2.12.0 - and we're using 2.12.7 (Phil thinks
       // because of the version of tikka-parsers we're using)
-      "com.fasterxml.jackson.module" % "jackson-module-scala_2.13" % "2.14.2",
+      "com.fasterxml.jackson.module" % "jackson-module-scala_2.13" % "2.15.4",
 
       // Libraries whose use are potentially contentious
 
@@ -168,8 +171,8 @@ lazy val backend = (project in file("backend"))
       "com.github.junrar" % "junrar" % "7.4.1",
 
       // postgres
-      "org.scalikejdbc" %% "scalikejdbc"       % "4.0.0",
-      "org.postgresql"  %  "postgresql"        % "42.7.2",
+      "org.scalikejdbc" %% "scalikejdbc" % "4.0.0",
+      "org.postgresql" % "postgresql" % "42.7.2",
 
       // Test dependencies
 
@@ -178,24 +181,22 @@ lazy val backend = (project in file("backend"))
       "org.scalamock" %% "scalamock" % "4.4.0" % Test,
       "com.dimafeng" %% "testcontainers-scala-scalatest" % "0.41.4" % Test,
       "com.dimafeng" %% "testcontainers-scala-neo4j" % "0.41.4" % Test,
-      "com.dimafeng" %% "testcontainers-scala-elasticsearch" % "0.41.4" % Test,
+      "com.dimafeng" %% "testcontainers-scala-elasticsearch" % "0.41.4" % Test
     ),
 
     // set up separate tests and integration tests - http://www.scala-sbt.org/0.13.1/docs/Detailed-Topics/Testing.html#custom-test-configuration
     inConfig(IntTest)(Defaults.testTasks),
     Test / testOptions := Seq(Tests.Filter(name => !itFilter(name))),
-    IntTest / testOptions  := Seq(Tests.Filter(itFilter)),
-
+    IntTest / testOptions := Seq(Tests.Filter(itFilter)),
     RoutesKeys.routesImport += "utils.Binders._",
     playDefaultPort := port,
-
     debianPackageDependencies := Seq("java-11-amazon-corretto-jdk"),
-    Linux / maintainer  := "Guardian Developers <dig.dev.software@theguardian.com>",
-    Linux / packageSummary  := description.value,
+    Linux / maintainer := "Guardian Developers <dig.dev.software@theguardian.com>",
+    Linux / packageSummary := description.value,
     packageDescription := description.value,
-
-    Universal / mappings ~= { _.filterNot { case (_, fileName) => fileName == "conf/site.conf" }},
-
+    Universal / mappings ~= {
+      _.filterNot { case (_, fileName) => fileName == "conf/site.conf" }
+    },
     Universal / javaOptions ++= Seq(
       "-Dpidfile.path=/dev/null",
       "-Dcom.amazonaws.sdk.enableDefaultMetrics=cloudwatchRegion=eu-west-1",
@@ -229,10 +230,8 @@ lazy val cli = (project in file("cli"))
     ),
     run / fork := true,
     run / connectInput := true,
-
     Universal / mappings +=
       ((Compile / resourceDirectory).value / "logback.xml") -> "conf/logback.xml",
-
     bashScriptExtraDefines +=
       """addJava "-Dlogback.configurationFile=${app_home}/../conf/logback.xml""""
   )
