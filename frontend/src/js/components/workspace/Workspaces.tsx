@@ -474,8 +474,8 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
         }
     }
 
-    onRemoveFromWorkspace = (workspaceId: string, entry: TreeEntry<WorkspaceEntry> | null) => () => {    
-        if (entry && isWorkspaceLeaf(entry.data)) {
+    onRemoveFromWorkspace = (workspaceId: string, entry: TreeEntry<WorkspaceEntry> | null) => () => {
+        if (entry) {
             const removeFromWorkspaceModalContext = this.state.removeFromWorkspaceModalContext;
             this.setState({removeFromWorkspaceModalContext: {...removeFromWorkspaceModalContext, status: "doing"}});
             this.props.deleteItem(workspaceId, entry.id, this.onRemoveCompleteHandler);
