@@ -45,7 +45,7 @@ import { processingStageToString, workspaceHasProcessingFiles } from '../../util
 import { setWorkspaceIsPublic } from '../../actions/workspaces/setWorkspaceIsPublic';
 import { RouteComponentProps } from 'react-router-dom';
 import { reprocessBlob } from '../../actions/workspaces/reprocessBlob';
-import { DeleteModal, DeleteStatus } from './DeleteModal';
+import { DeleteModal, ModalStatus, RemoveFromWorkspaceModal } from './ConfirmModal';
 import { PartialUser } from '../../types/User';
 import { getMyPermissions } from '../../actions/users/getMyPermissions';
 import buildLink from '../../util/buildLink';
@@ -71,7 +71,12 @@ type State = {
     deleteModalContext: {
         isOpen: boolean,
         entry: null | TreeEntry<WorkspaceEntry>,
-        status: DeleteStatus,
+        status: ModalStatus,
+    },
+    removeFromWorkspaceModalContext: {
+        isOpen: boolean,
+        entry: null | TreeEntry<WorkspaceEntry>,
+        status: ModalStatus,
     }
 }
 
@@ -298,6 +303,11 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
             isOpen: false,
             entry: null,
             status: "unconfirmed",
+        },
+        removeFromWorkspaceModalContext: {
+            isOpen: false,
+            entry: null,
+            status: "unconfirmed",
         }
     };
 
@@ -433,19 +443,42 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
             this.setState({deleteModalContext: {entry: null, isOpen, status: "unconfirmed"}});
     }
 
+    onRemoveFromWorkspaceModalOpen = (isOpen: boolean) => {
+        if (isOpen)
+            this.setState({removeFromWorkspaceModalContext: {entry: this.state.removeFromWorkspaceModalContext.entry, isOpen, status: "unconfirmed"}});
+        else
+            this.setState({removeFromWorkspaceModalContext: {entry: null, isOpen, status: "unconfirmed"}});
+    }
+
     onDeleteCompleteHandler = (isSuccess: boolean) => {
         const modalContext = this.state.deleteModalContext;
         if (modalContext.isOpen) {
-            const status = isSuccess ? "deleted" : "failed"
+            const status = isSuccess ? "done" : "failed"
             this.setState({deleteModalContext: {...modalContext, status}});
+        }
+    }
+    onRemoveCompleteHandler = (isSuccess: boolean) => {
+        const modalContext = this.state.removeFromWorkspaceModalContext;
+        if (modalContext.isOpen) {
+            const status = isSuccess ? "done" : "failed"
+            this.setState({removeFromWorkspaceModalContext: {...modalContext, status}});
         }
     }
 
     onDeleteItem = (workspaceId: string, entry: TreeEntry<WorkspaceEntry> | null) => () => {        
         if (entry && isWorkspaceLeaf(entry.data)) {
             const deleteContext = this.state.deleteModalContext;
-            this.setState({deleteModalContext: {...deleteContext, status: "deleting"}});
+            this.setState({deleteModalContext: {...deleteContext, status: "doing"}});
             this.props.deleteResourceFromWorkspace(workspaceId, entry.data.uri, this.onDeleteCompleteHandler);            
+            this.props.resetFocusedAndSelectedEntries();
+        }
+    }
+
+    onRemoveFromWorkspace = (workspaceId: string, entry: TreeEntry<WorkspaceEntry> | null) => () => {    
+        if (entry && isWorkspaceLeaf(entry.data)) {
+            const removeFromWorkspaceModalContext = this.state.removeFromWorkspaceModalContext;
+            this.setState({removeFromWorkspaceModalContext: {...removeFromWorkspaceModalContext, status: "doing"}});
+            this.props.deleteItem(workspaceId, entry.id, this.onRemoveCompleteHandler);
             this.props.resetFocusedAndSelectedEntries();
         }
     }
@@ -570,8 +603,13 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
                     }
 
                     if (menuItemProps.content === 'Remove from workspace') {
-                        this.props.deleteItem(workspaceId, entry.id);
-                        this.props.resetFocusedAndSelectedEntries();
+                        this.setState({
+                            removeFromWorkspaceModalContext: {
+                                isOpen: true,
+                                entry,
+                                status: "unconfirmed",
+                            }
+                        });
                     }
 
                     if (menuItemProps.content === copyFilenameContent || menuItemProps.content === copyFilePathContent) {
@@ -727,7 +765,15 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
                     isOpen={this.state.deleteModalContext.isOpen} 
                     setModalOpen={this.onDeleteModalOpen}
                     deleteStatus={this.state.deleteModalContext.status}
-                />           
+                    entry={this.state.deleteModalContext.entry}
+                />  
+                <RemoveFromWorkspaceModal
+                    removeHandler={this.onRemoveFromWorkspace(this.props.match.params.id, this.state.removeFromWorkspaceModalContext.entry)}
+                    isOpen={this.state.removeFromWorkspaceModalContext.isOpen}
+                    setModalOpen={this.onRemoveFromWorkspaceModalOpen}
+                    removeStatus={this.state.removeFromWorkspaceModalContext.status}
+                    entry={this.state.removeFromWorkspaceModalContext.entry}
+                />
             </div>
         );
     }
