@@ -12,4 +12,6 @@ trait Pages {
   def getTextPages(uri: Uri, top: Double, bottom: Double, highlightQuery: Option[String]): Attempt[PageResult]
 
   def getPage(uri: Uri, pageNumber: Int, highlightQuery: Option[String]): Attempt[Page]
+
+  def getAllPages(uri: Uri): Attempt[List[Page]]
 }

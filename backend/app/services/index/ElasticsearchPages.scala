@@ -106,6 +106,20 @@ class ElasticsearchPages(val client: ElasticClient, indexNamePrefix: String)(imp
     }
   }
 
+  override def getAllPages(uri: Uri): Attempt[List[Page]] = {
+    execute {
+      // TODO: check if this is the best way to query (seems a little overcomplicated)
+      search(textIndexName).query(
+          should(matchAllQuery())
+            .filter(List(termQuery(PagesFields.resourceId, uri.value)))
+        )
+        .sortBy(fieldSort(PagesFields.page).asc())
+    }.flatMap { resp =>
+      val pages = resp.to[Page].toList
+      Attempt.Right(pages)
+    }
+  }
+
   // TODO MRB: collapse total page count and height into fields on the document itself
   // TODO SC/JS: We agree.
   private def getTotalPageCount(indexName: String, uri: Uri): Attempt[Long] = {
