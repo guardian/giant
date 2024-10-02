@@ -75,7 +75,7 @@ object AwsDiscovery extends Logging {
       }.getOrElse(config.worker),
       transcribe = config.transcribe.copy(
         whisperModelFilename = readSSMParameter("transcribe/modelFilename", stack, stage, ssmClient),
-        transcriptionServiceOutputQueueUrl = readSSMParameter("transcribe/transcriptionServiceOutputQueueUrl", stack, stage, ssmClient),
+        transcriptionOutputQueueUrl = readSSMParameter("transcribe/transcriptionOutputQueueUrl", stack, stage, ssmClient),
         transcriptionServiceQueueUrl = readSSMParameter("transcribe/transcriptionServiceQueueUrl", stack, stage, ssmClient)
       ),
       underlying = config.underlying

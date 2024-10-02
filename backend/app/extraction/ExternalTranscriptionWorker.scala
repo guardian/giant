@@ -20,10 +20,10 @@ class ExternalTranscriptionWorker(manifest: WorkerManifest, amazonSQSClient: Ama
 
   def pollForResults(): Int  = {
     val messages = amazonSQSClient.receiveMessage(
-      new ReceiveMessageRequest(transcribeConfig.transcriptionServiceOutputQueueUrl).withMaxNumberOfMessages(10)
+      new ReceiveMessageRequest(transcribeConfig.transcriptionOutputQueueUrl).withMaxNumberOfMessages(10)
     ).getMessages
 
-    if (messages.size() > 0) logger.info(s"retrieved ${messages.size()} messages from queue ${transcribeConfig.transcriptionServiceOutputQueueUrl}")
+    if (messages.size() > 0) logger.info(s"retrieved ${messages.size()} messages from queue ${transcribeConfig.transcriptionOutputQueueUrl}")
 
     messages.asScala.toList.foldLeft(0) { (completed, message) =>
       val result = for {
@@ -34,7 +34,7 @@ class ExternalTranscriptionWorker(manifest: WorkerManifest, amazonSQSClient: Ama
         _ <- markAsComplete(transcriptionOutput.id, "ExternalTranscriptionExtractor")
       } yield {
         amazonSQSClient.deleteMessage(
-          new DeleteMessageRequest(transcribeConfig.transcriptionServiceOutputQueueUrl, message.getReceiptHandle)
+          new DeleteMessageRequest(transcribeConfig.transcriptionOutputQueueUrl, message.getReceiptHandle)
         )
         logger.debug(s"deleted message for ${transcriptionOutput.id}")
       }
