@@ -1,17 +1,17 @@
 package services.manifest
 
 import commands.IngestFileResult
-
-import java.nio.file.Path
 import extraction.{ExtractionParams, Extractor}
 import model._
 import model.annotations.WorkspaceMetadata
-import model.frontend.{BasicResource, ExtractionFailures, ResourcesForExtractionFailure}
 import model.frontend.email.EmailNeighbours
+import model.frontend.{BasicResource, ExtractionFailures, ResourcesForExtractionFailure}
 import model.ingestion.{IngestionFile, WorkspaceItemContext, WorkspaceItemUploadContext}
 import model.manifest._
 import services.manifest.Manifest.WorkCounts
 import utils.attempt.{Attempt, Failure}
+
+import java.nio.file.Path
 
 object Manifest {
   sealed trait Insertion
@@ -31,6 +31,9 @@ trait WorkerManifest {
   def releaseLocksForTerminatedWorkers(currentWorkerNames: List[String]): Either[Failure, Unit]
 
   def markAsComplete(params: ExtractionParams, blob: Blob, extractor: Extractor): Either[Failure, Unit]
+  def markExternalAsProcessing(params: ExtractionParams, blob: Blob, extractor: Extractor): Either[Failure, Unit]
+
+  def markExternalAsComplete(uri: String, extractorName: String): Either[Failure, Unit]
 
   def logExtractionFailure(blobUri: Uri, extractorName: String, stackTrace: String): Either[Failure, Unit]
 

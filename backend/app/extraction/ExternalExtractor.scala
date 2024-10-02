@@ -21,6 +21,4 @@ abstract class ExternalExtractor extends Extractor {
 
   def triggerExtraction(blob: Blob, params: ExtractionParams): Either[Failure, Unit]
 
-  def pollForResults(): Either[Failure, Unit]
-
 }

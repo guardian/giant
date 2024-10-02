@@ -164,7 +164,8 @@ object AwsDiscovery extends Logging {
       ingestion = s"$stack-${before.ingestion}-$lowerCaseStage",
       deadLetter = s"$stack-${before.deadLetter}-$lowerCaseStage",
       collections = s"$stack-${before.collections}-$lowerCaseStage",
-      preview = s"$stack-${before.preview}-$lowerCaseStage"
+      preview = s"$stack-${before.preview}-$lowerCaseStage",
+      transcription = s"$stack-${before.transcription}-$lowerCaseStage"
     )
 
     logger.info(s"AWS discovery buckets: [${after.all.mkString(",")}]")

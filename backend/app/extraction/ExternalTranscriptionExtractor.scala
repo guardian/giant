@@ -1,32 +1,34 @@
 package extraction
 
-import cats.syntax.either._
-import com.amazonaws.services.sqs.{AmazonSQS, AmazonSQSClient}
-import com.amazonaws.services.sqs.model.ReceiveMessageRequest
+import com.amazonaws.services.sqs.AmazonSQS
+import com.amazonaws.services.sqs.model.SendMessageRequest
 import model.manifest.Blob
-import model.{English, Languages, Uri}
-import org.apache.commons.io.FileUtils
 import org.joda.time.DateTime
 import play.api.libs.json.Json
-import services.{ObjectStorage, ScratchSpace, TranscribeConfig, WorkerConfig}
 import services.index.Index
-import utils.FfMpeg.FfMpegSubprocessCrashedException
-import utils.attempt.{Failure, FfMpegFailure, UnknownFailure}
+import services.{ObjectStorage, TranscribeConfig}
 import utils._
+import utils.attempt.Failure
 
-import scala.concurrent.ExecutionContext
-import java.io.File
-import java.nio.charset.StandardCharsets
 import java.util.UUID
+import scala.concurrent.ExecutionContext
 
+case class SignedUrl(url: String, key: String)
 
-case class OutputBucketUrls(txt: String, srt: String, json: String)
+object SignedUrl {
+  implicit val formats = Json.format[SignedUrl]
+}
+case class OutputBucketUrls(text: SignedUrl, srt: SignedUrl, json: SignedUrl)
+case class OutputBucketKeys(text: String, srt: String, json: String)
 case class TranscriptionJob(id: String, originalFilename: String, inputSignedUrl: String, sentTimestamp: String,
                             userEmail: String, transcriptDestinationService: String, outputBucketUrls: OutputBucketUrls,
-                            languageCode: String)
+                            languageCode: String, translate: Boolean)
 object OutputBucketUrls {
   implicit val formats = Json.format[OutputBucketUrls]
+}
 
+object OutputBucketKeys {
+  implicit val formats = Json.format[OutputBucketKeys]
 }
 object TranscriptionJob {
   implicit val formats = Json.format[TranscriptionJob]
@@ -41,12 +43,12 @@ object TranscriptionJob {
   * outputBucketKeys: OutputBucketKeys,
   */
 
-case class TranscriptionOutput(id: String, originalFilename: String, userEmail: String, status: String, languageCode: String, outputBucketUrls: OutputBucketUrls)
+case class TranscriptionOutput(id: String, originalFilename: String, userEmail: String, status: String, languageCode: String, outputBucketKeys: OutputBucketKeys)
 object TranscriptionOutput {
   implicit val formats = Json.format[TranscriptionOutput]
 }
 
-class ExternalTranscriptionExtractor(index: Index, transcribeConfig: TranscribeConfig, blobStorage: ObjectStorage, amazonSQSClient: AmazonSQS)(implicit executionContext: ExecutionContext) extends ExternalExtractor with Logging {
+class ExternalTranscriptionExtractor(index: Index, transcribeConfig: TranscribeConfig, transcriptionStorage: ObjectStorage, outputStorage: ObjectStorage, amazonSQSClient: AmazonSQS)(implicit executionContext: ExecutionContext) extends ExternalExtractor with Logging {
   val mimeTypes: Set[String] = Set(
     "audio/wav",
     "audio/vnd.wave",
@@ -77,48 +79,50 @@ class ExternalTranscriptionExtractor(index: Index, transcribeConfig: TranscribeC
   override def priority = 2
 
   private val dataBucketPrefix = "transcription-service-output-data"
-  private def getOutputBucketUrls(blobUri: String): OutputBucketUrls = {
-    val txt = s"$dataBucketPrefix/$blobUri.txt"
-    // we should find a way to avoid having to provide these
-    val srt = s"$dataBucketPrefix/$blobUri.srt"
-    val json = s"$dataBucketPrefix/$blobUri.json"
-    OutputBucketUrls(txt, srt, json)
-  }
 
-  private def postToTranscriptionQueue(blobUri: String, signedUrl: String) = {
-    val transcriptionJob = TranscriptionJob(UUID.randomUUID().toString, blobUri, signedUrl, DateTime.now().toString, "giant", "Giant",
-      getOutputBucketUrls(blobUri), "")
-    amazonSQSClient.sendMessage(transcribeConfig.transcriptionServiceQueueUrl, Json.stringify(Json.toJson(transcriptionJob)))
+  private def getOutputBucketUrls(blobUri: String): Either[Failure, OutputBucketUrls] = {
+    val srtKey = s"srt/$blobUri.srt"
+    val jsonKey = s"json/$blobUri.json"
+    val textKey = s"text/$blobUri.txt"
+
+    val bucketUrls = for {
+      srt <- outputStorage.getUploadSignedUrl(srtKey)
+      json <- outputStorage.getUploadSignedUrl(jsonKey)
+      text <- outputStorage.getUploadSignedUrl(textKey)
+    } yield {
+      OutputBucketUrls(
+        SignedUrl(text, textKey),
+        SignedUrl(srt, srtKey),
+        SignedUrl(json, jsonKey)
+      )
+    }
+
+    bucketUrls
   }
 
   override def triggerExtraction(blob: Blob, params: ExtractionParams): Either[Failure, Unit] = {
-    blobStorage.getSignedUrl (blob.uri.value).map {
-      url => postToTranscriptionQueue(blob.uri.value, url)
+    val transcriptionJob =  for {
+      downloadSignedUrl <- transcriptionStorage.getSignedUrl (blob.uri.toStoragePath)
+      outputSignedUrls <- getOutputBucketUrls(blob.uri.value)
+    } yield {
+      TranscriptionJob(blob.uri.value, blob.uri.value, downloadSignedUrl, DateTime.now().toString, "giant", "Giant",
+        outputSignedUrls, "auto", false)
     }
-  }
-  import scala.jdk.CollectionConverters._
 
-  override def pollForResults(): Either[Failure, Unit] = {
-    val messages = amazonSQSClient.receiveMessage(
-      new ReceiveMessageRequest(transcribeConfig.transcriptionServiceOutputQueueUrl).withMaxNumberOfMessages(10)
-    ).getMessages
+    transcriptionJob.flatMap {
+      job => {
+        try {
+          logger.info(s"sending message to ${transcribeConfig.transcriptionServiceQueueUrl}")
 
-    messages.asScala.toList.foreach { message =>
-      val transcriptionOutput = Json.parse(message.getBody).as[TranscriptionOutput]
-      blobStorage.get(transcriptionOutput.outputBucketUrls.txt).map { inputStream =>
-        val txt = new String(inputStream.readAllBytes(), StandardCharsets.UTF_8)
-        index.addDocumentTranscription(Uri(transcriptionOutput.originalFilename), txt, None, Languages.getByIso6391Code(transcriptionOutput.languageCode).getOrElse(English))
-          .recoverWith {
-          case _ =>
-            val msg = s"Failed to write transcript result to elasticsearch. Transcript language: ${transcriptionOutput.languageCode}"
-            logger.error(msg)
-            // throw the error - will be caught by catchNonFatal
-            throw new Error(msg)
+          val sendMessageCommand = new SendMessageRequest()
+            .withQueueUrl(transcribeConfig.transcriptionServiceQueueUrl)
+            .withMessageBody(Json.stringify(Json.toJson(job)))
+            .withMessageGroupId(UUID.randomUUID().toString)
+          Right(amazonSQSClient.sendMessage(sendMessageCommand))
+        } catch {
+          case e: Failure => Left(e)
         }
-
       }
     }
-    Right(())
   }
-
 }

@@ -95,6 +95,9 @@ object FailureToResultMapper extends Logging {
       case unknown: UnknownFailure =>
         logUserAndMessage(user, s"Unknown Failure: ${unknown.msg}")
         Results.InternalServerError(unknown.msg)
+      case externalTranscriptionFailure: ExternalTranscriptionFailure =>
+        logUserAndMessage(user, s"externalTranscriptionFailure Failure: ${externalTranscriptionFailure.msg}")
+        Results.InternalServerError(externalTranscriptionFailure.msg)
       case MissingPermissionFailure(msg) =>
         logUserAndMessage(user, s"Missing Permission Failure: $msg")
         Results.Forbidden(msg)
