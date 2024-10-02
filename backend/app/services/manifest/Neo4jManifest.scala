@@ -583,7 +583,6 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
          |FOREACH (_ IN CASE WHEN exists(processing.workspaceId) THEN [1] ELSE [] END |
          |  SET processed.workspaceId = processing.workspaceId
          |)
-         |
          |FOREACH (_ IN CASE WHEN exists(processing.workspaceBlobUri) THEN [1] ELSE [] END |
          |  SET processed.workspaceBlobUri = processing.workspaceBlobUri
          |)

@@ -78,8 +78,6 @@ class ExternalTranscriptionExtractor(index: Index, transcribeConfig: TranscribeC
   // set a low priority as transcription takes a long time, we don't want to block up the workers
   override def priority = 2
 
-  private val dataBucketPrefix = "transcription-service-output-data"
-
   private def getOutputBucketUrls(blobUri: String): Either[Failure, OutputBucketUrls] = {
     val srtKey = s"srt/$blobUri.srt"
     val jsonKey = s"json/$blobUri.json"
