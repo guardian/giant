@@ -87,6 +87,8 @@ class WorkerTest extends AnyFlatSpec with Matchers with EitherValues {
       override def delete(key: String): Either[Failure, Unit] = ???
       override def deleteMultiple(key: Set[String]): Either[Failure, Unit] = ???
       override def list(prefix: String): Either[Failure, List[String]] = ???
+      override def getSignedUrl(key: String): Either[Failure, String] = ???
+      override def getUploadSignedUrl(key: String): Either[Failure, String] = ???
     }
 
     new Worker("test", manifest, blobStorage, extractors, new NoOpMetricsService, new TestPostgresClient)(scala.concurrent.ExecutionContext.global)
@@ -108,6 +110,16 @@ class TestWorkerManifest(work: List[WorkItem]) extends WorkerManifest {
     Right(())
   }
 
+  // TODO: fix this
+  override def markExternalAsComplete(uri: String, extractorName: String): Either[Failure, Unit] = {
+    Right(())
+  }
+
+  // TODO: fix this
+  override def markExternalAsProcessing(params: ExtractionParams, blob: Blob, extractor: Extractor): Either[Failure, Unit] = {
+    completed :+= blob -> extractor
+    Right(())
+  }
   override def logExtractionFailure(blobUri: Uri, extractorName: String, stackTrace: String): Either[Failure, Unit] = {
     failures :+= (blobUri, extractorName, stackTrace)
     Right(())
