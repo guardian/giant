@@ -110,7 +110,7 @@ class ExternalTranscriptionExtractor(index: Index, transcribeConfig: TranscribeC
     transcriptionJob.flatMap {
       job => {
         try {
-          logger.info(s"sending message to ${transcribeConfig.transcriptionServiceQueueUrl}")
+          logger.info(s"sending message to Transcription Service Queue")
 
           val sendMessageCommand = new SendMessageRequest()
             .withQueueUrl(transcribeConfig.transcriptionServiceQueueUrl)

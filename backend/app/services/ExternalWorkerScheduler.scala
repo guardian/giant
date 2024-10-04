@@ -21,12 +21,10 @@ class ExternalWorkerScheduler(actorSystem: ActorSystem, worker: ExternalTranscri
 
   def go(): Unit = {
     try {
-      println("running ExternalWorkerScheduler")
       val completed = worker.pollForResults()
       if (completed > 0) {
         go()
       } else {
-        println(s"try again ExternalWorkerScheduler in ${interval}")
         tryAgainIn(interval)
       }
     } catch {

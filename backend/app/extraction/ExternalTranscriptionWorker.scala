@@ -19,11 +19,14 @@ import scala.jdk.CollectionConverters.CollectionHasAsScala
 class ExternalTranscriptionWorker(manifest: WorkerManifest, amazonSQSClient: AmazonSQS, transcribeConfig: TranscribeConfig, blobStorage: ObjectStorage, index: Index)(implicit executionContext: ExecutionContext)  extends Logging{
 
   def pollForResults(): Int  = {
+    logger.info("Fetching messages from external transcription output queue")
     val messages = amazonSQSClient.receiveMessage(
       new ReceiveMessageRequest(transcribeConfig.transcriptionOutputQueueUrl).withMaxNumberOfMessages(10)
     ).getMessages
 
-    if (messages.size() > 0) logger.info(s"retrieved ${messages.size()} messages from queue ${transcribeConfig.transcriptionOutputQueueUrl}")
+    if (messages.size() > 0)
+      logger.info(s"retrieved ${messages.size()} messages from queue Transcription Output Queue")
+    else logger.info("No message found")
 
     messages.asScala.toList.foldLeft(0) { (completed, message) =>
       val result = for {
