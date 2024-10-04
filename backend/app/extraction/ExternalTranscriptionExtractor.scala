@@ -1,10 +1,10 @@
 package extraction
 
 import com.amazonaws.services.sqs.AmazonSQS
-import com.amazonaws.services.sqs.model.SendMessageRequest
+import com.amazonaws.services.sqs.model.{MessageAttributeValue, SendMessageRequest}
 import model.manifest.Blob
 import org.joda.time.DateTime
-import play.api.libs.json.Json
+import play.api.libs.json.{JsError, JsResult, JsValue, Json, Reads}
 import services.index.Index
 import services.{ObjectStorage, TranscribeConfig}
 import utils._
@@ -12,6 +12,7 @@ import utils.attempt.Failure
 
 import java.util.UUID
 import scala.concurrent.ExecutionContext
+import scala.jdk.CollectionConverters.MapHasAsJava
 
 case class SignedUrl(url: String, key: String)
 
@@ -34,18 +35,51 @@ object TranscriptionJob {
   implicit val formats = Json.format[TranscriptionJob]
 }
 
-/**
-  * id: z.string(),
-  * originalFilename: z.string(),
-  * userEmail: z.string(),
-  * status: z.literal('SUCCESS'),
-  * languageCode: z.string(),
-  * outputBucketKeys: OutputBucketKeys,
-  */
+sealed trait TranscriptionOutput {
+  def id: String
+  def originalFilename: String
+  def userEmail: String
+  def isTranslation: Boolean
+  def status: String
+}
 
-case class TranscriptionOutput(id: String, originalFilename: String, userEmail: String, status: String, languageCode: String, outputBucketKeys: OutputBucketKeys)
+case class TranscriptionOutputSuccess(
+                                          id: String,
+                                          originalFilename: String,
+                                          userEmail: String,
+                                          isTranslation: Boolean,
+                                          status: String = "SUCCESS",
+                                          languageCode: String,
+                                          outputBucketKeys: OutputBucketKeys
+                                        ) extends TranscriptionOutput
+
+case class TranscriptionOutputFailure(
+                                      id: String,
+                                      originalFilename: String,
+                                      userEmail: String,
+                                      isTranslation: Boolean,
+                                      status: String = "FAILURE"
+                                    ) extends TranscriptionOutput
+
+object TranscriptionOutputSuccess {
+  implicit val format = Json.format[TranscriptionOutputSuccess]
+}
+
+object TranscriptionOutputFailure {
+  implicit val format = Json.format[TranscriptionOutputFailure]
+}
+
 object TranscriptionOutput {
-  implicit val formats = Json.format[TranscriptionOutput]
+  // Custom Reads to handle both message types
+  implicit val transcriptionOutputReads: Reads[TranscriptionOutput] = new Reads[TranscriptionOutput] {
+    def reads(json: JsValue): JsResult[TranscriptionOutput] = {
+      (json \ "status").as[String] match {
+        case "SUCCESS" => json.validate[TranscriptionOutputSuccess]
+        case "FAILURE" => json.validate[TranscriptionOutputFailure]
+        case other     => JsError(s"Unknown status type: $other")
+      }
+    }
+  }
 }
 
 class ExternalTranscriptionExtractor(index: Index, transcribeConfig: TranscribeConfig, transcriptionStorage: ObjectStorage, outputStorage: ObjectStorage, amazonSQSClient: AmazonSQS)(implicit executionContext: ExecutionContext) extends ExternalExtractor with Logging {
@@ -110,12 +144,15 @@ class ExternalTranscriptionExtractor(index: Index, transcribeConfig: TranscribeC
     transcriptionJob.flatMap {
       job => {
         try {
-          logger.info(s"sending message to Transcription Service Queue")
+          logger.info(s"sending message to Transcription Service Queue with message attribute")
 
           val sendMessageCommand = new SendMessageRequest()
             .withQueueUrl(transcribeConfig.transcriptionServiceQueueUrl)
             .withMessageBody(Json.stringify(Json.toJson(job)))
             .withMessageGroupId(UUID.randomUUID().toString)
+            .withMessageAttributes(
+              Map("BlobId" -> new MessageAttributeValue().withDataType("String").withStringValue(blob.uri.value)).asJava
+            )
           Right(amazonSQSClient.sendMessage(sendMessageCommand))
         } catch {
           case e: Failure => Left(e)
