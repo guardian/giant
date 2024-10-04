@@ -85,7 +85,7 @@ class AppComponents(context: Context, config: Config)
     // data storage services
     val ingestStorage = S3IngestStorage(s3Client, config.s3.buckets.ingestion, config.s3.buckets.deadLetter).valueOr(failure => throw new Exception(failure.msg))
     val blobStorage = S3ObjectStorage(s3Client, config.s3.buckets.collections).valueOr(failure => throw new Exception(failure.msg))
-    val transcriptionStorage = S3ObjectStorage(s3Client, config.s3.buckets.transcription).valueOr(failure => throw new Exception(failure.msg))
+    val transcriptStorage = S3ObjectStorage(s3Client, config.s3.buckets.transcription).valueOr(failure => throw new Exception(failure.msg))
 
     val postgresClient = config.postgres match {
       case Some(postgresConfig) =>  new PostgresClientImpl(postgresConfig)
@@ -155,7 +155,7 @@ class AppComponents(context: Context, config: Config)
 
 
     val transcriptionExtractor = if (config.worker.useExternalExtractors) {
-      new ExternalTranscriptionExtractor(esResources, config.transcribe, blobStorage, transcriptionStorage, sqsClient)
+      new ExternalTranscriptionExtractor(esResources, config.transcribe, blobStorage, transcriptStorage, sqsClient)
     } else {
       new TranscriptionExtractor(esResources, scratchSpace, config.transcribe)
     }
@@ -224,7 +224,7 @@ class AppComponents(context: Context, config: Config)
       applicationLifecycle.addStopHook(() => workerScheduler.stop())
 
       // external extractor
-      val externalWorker = new ExternalTranscriptionWorker(manifest, sqsClient, config.transcribe, transcriptionStorage, esResources)
+      val externalWorker = new ExternalTranscriptionWorker(manifest, sqsClient, config.transcribe, transcriptStorage, esResources)
       val externalWorkerScheduler = new ExternalWorkerScheduler(actorSystem, externalWorker, config.worker.interval)(workerExecutionContext)
       externalWorkerScheduler.start()
       applicationLifecycle.addStopHook(() => externalWorkerScheduler.stop())

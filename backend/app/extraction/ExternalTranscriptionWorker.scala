@@ -31,9 +31,9 @@ class ExternalTranscriptionWorker(manifest: WorkerManifest, amazonSQSClient: Ama
     if (messages.size() > 0)
       logger.info(s"retrieved ${messages.size()} messages from queue Transcription Output Queue")
     else
-      logger.info("No message found")
+      logger.info("No sqs message found")
 
-    messages.asScala.toList.foldLeft(0) { (completed, message) =>
+    val messagesCompleted = messages.asScala.toList.foldLeft(0) { (completed, message) =>
       getMessageAttribute(message) match {
         case Right(messageAttributes) =>
           handleMessage(message, messageAttributes, completed)
@@ -42,6 +42,10 @@ class ExternalTranscriptionWorker(manifest: WorkerManifest, amazonSQSClient: Ama
           completed
       }
     }
+
+    logger.info(s"${messagesCompleted} out of ${messages.size()} number of messages successfully completed")
+
+    messagesCompleted
   }
 
 
@@ -64,7 +68,9 @@ class ExternalTranscriptionWorker(manifest: WorkerManifest, amazonSQSClient: Ama
         completed + 1
       case Left(failure) =>
         logger.error(s"failed to process sqs message", failure.toThrowable)
+        // TODO make this constant
         if (messageAttributes.receiveCount > 2) {
+          // TODO make extractor name a constant
           markAsFailure(new Uri(messageAttributes.messageGroupId), "ExternalTranscriptionExtractor", failure.msg)
         }
         completed
