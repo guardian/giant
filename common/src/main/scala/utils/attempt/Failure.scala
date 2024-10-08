@@ -134,4 +134,5 @@ case class WorkspaceCopyFailure(msg: String) extends Failure
 
 case class DeleteNotAllowed(msg: String) extends Failure
 
-case class ExternalTranscriptionFailure(throwable: Throwable) extends FailureWithThrowable
+case class DocumentUpdateFailure(throwable: Throwable) extends FailureWithThrowable
+case class ExternalTranscriptionOutputFailure(msg: String) extends Failure

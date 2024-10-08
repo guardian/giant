@@ -83,7 +83,8 @@ case class OcrConfig(
 case class TranscribeConfig(
                              whisperModelFilename: String,
                              transcriptionServiceQueueUrl: String,
-                             transcriptionOutputQueueUrl: String
+                             transcriptionOutputQueueUrl: String,
+                             transcriptionOutputDeadLetterQueueUrl: String
 )
 
 case class WorkerConfig(

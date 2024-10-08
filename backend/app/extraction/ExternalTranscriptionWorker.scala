@@ -2,14 +2,14 @@ package extraction
 
 import cats.syntax.either._
 import com.amazonaws.services.sqs.AmazonSQS
-import com.amazonaws.services.sqs.model.{DeleteMessageRequest, Message, ReceiveMessageRequest}
+import com.amazonaws.services.sqs.model.{DeleteMessageRequest, Message, ReceiveMessageRequest, SendMessageRequest}
 import model.{English, Languages, Uri}
 import play.api.libs.json.{JsError, JsSuccess, Json}
 import services.index.Index
 import services.manifest.WorkerManifest
 import services.{ObjectStorage, TranscribeConfig}
 import utils.Logging
-import utils.attempt.{ExternalTranscriptionFailure, Failure, JsonParseFailure}
+import utils.attempt.{DocumentUpdateFailure, ExternalTranscriptionOutputFailure, Failure, JsonParseFailure}
 
 import java.nio.charset.StandardCharsets
 import scala.concurrent.ExecutionContext
@@ -17,7 +17,12 @@ import scala.jdk.CollectionConverters.CollectionHasAsScala
 import scala.util.Try
 
 case class TranscriptionMessageAttribute(receiveCount: Int, messageGroupId: String)
+case class TranscriptionTexts(transcript: String, translation: Option[String])
+
 class ExternalTranscriptionWorker(manifest: WorkerManifest, amazonSQSClient: AmazonSQS, transcribeConfig: TranscribeConfig, blobStorage: ObjectStorage, index: Index)(implicit executionContext: ExecutionContext)  extends Logging{
+
+  val EXTRACTOR_NAME = "ExternalTranscriptionExtractor"
+  val MAX_RECEIVE_COUNT = 3
 
   def pollForResults(): Int  = {
     logger.info(s"Fetching messages from external transcription output queue ${transcribeConfig.transcriptionOutputQueueUrl}")
@@ -38,7 +43,7 @@ class ExternalTranscriptionWorker(manifest: WorkerManifest, amazonSQSClient: Ama
         case Right(messageAttributes) =>
           handleMessage(message, messageAttributes, completed)
         case Left(error) =>
-          logger.error(s"Could not get message attributes from transcription output message, therefore can not update extractor. Message id: ${message.getMessageId}", error)
+          logger.error(s"Could not get message attributes from transcription output message hence can not update extractor. Message id: ${message.getMessageId}", error)
           completed
       }
     }
@@ -48,14 +53,12 @@ class ExternalTranscriptionWorker(manifest: WorkerManifest, amazonSQSClient: Ama
     messagesCompleted
   }
 
-
   private def handleMessage(message: Message, messageAttributes: TranscriptionMessageAttribute, completed: Int) = {
     val result = for {
       transcriptionOutput <- parseMessage(message)
-      transcription <- blobStorage.get(transcriptionOutput.outputBucketKeys.text)
-      txt = new String(transcription.readAllBytes(), StandardCharsets.UTF_8)
-      _ <- addDocumentTranscription(transcriptionOutput, txt)
-      _ <- markExternalExtractorAsComplete(transcriptionOutput.id, "ExternalTranscriptionExtractor")
+      transcriptionTexts <- getTranscriptionTexts(transcriptionOutput)
+      _ <- addDocumentTranscription(transcriptionOutput, transcriptionTexts.transcript, transcriptionTexts.translation)
+      _ <- markExternalExtractorAsComplete(transcriptionOutput.id, EXTRACTOR_NAME)
     } yield {
       amazonSQSClient.deleteMessage(
         new DeleteMessageRequest(transcribeConfig.transcriptionOutputQueueUrl, message.getReceiptHandle)
@@ -66,14 +69,34 @@ class ExternalTranscriptionWorker(manifest: WorkerManifest, amazonSQSClient: Ama
     result match {
       case Right(_) =>
         completed + 1
+      case Left(failure: ExternalTranscriptionOutputFailure) =>
+        logger.error(failure.msg, failure.toThrowable)
+        handleExternalTranscriptionOutputFailure(message, messageAttributes.messageGroupId, failure.msg)
+        completed + 1
       case Left(failure) =>
         logger.error(s"failed to process sqs message", failure.toThrowable)
-        // TODO make this constant
-        if (messageAttributes.receiveCount > 2) {
-          // TODO make extractor name a constant
-          markAsFailure(new Uri(messageAttributes.messageGroupId), "ExternalTranscriptionExtractor", failure.msg)
+        if (messageAttributes.receiveCount >= MAX_RECEIVE_COUNT) {
+          markAsFailure(new Uri(messageAttributes.messageGroupId), EXTRACTOR_NAME, failure.msg)
         }
         completed
+    }
+  }
+
+  private def getTranscriptionTexts(transcriptionOutput: TranscriptionOutputSuccess): Either[Failure, TranscriptionTexts] = {
+    val transcript = blobStorage.get(transcriptionOutput.outputBucketKeys.text)
+
+    transcript.flatMap { transcriptStream =>
+      val transcriptText = new String(transcriptStream.readAllBytes(), StandardCharsets.UTF_8)
+
+      transcriptionOutput.translationOutputBucketKeys match {
+        case Some(keys) =>
+          val translation = blobStorage.get(keys.text)
+          translation.map { translationStream =>
+            val text = new String(translationStream.readAllBytes(), StandardCharsets.UTF_8)
+            TranscriptionTexts(transcriptText, Some(text))
+          }
+        case None => Right(TranscriptionTexts(transcriptText, None))
+      }
     }
   }
 
@@ -94,9 +117,9 @@ class ExternalTranscriptionWorker(manifest: WorkerManifest, amazonSQSClient: Ama
     }
   }
 
-  private def addDocumentTranscription(transcriptionOutput: TranscriptionOutputSuccess, text: String) = {
+  private def addDocumentTranscription(transcriptionOutput: TranscriptionOutputSuccess, transcriptText: String, translationText: Option[String]) = {
     Either.catchNonFatal {
-      index.addDocumentTranscription(Uri(transcriptionOutput.originalFilename), text, None, Languages.getByIso6391Code(transcriptionOutput.languageCode).getOrElse(English))
+      index.addDocumentTranscription(Uri(transcriptionOutput.originalFilename), transcriptText, translationText, Languages.getByIso6391Code(transcriptionOutput.languageCode).getOrElse(English))
         .recoverWith {
           case _ =>
             val msg = s"Failed to write transcript result to elasticsearch. Transcript language: ${transcriptionOutput.languageCode}"
@@ -105,7 +128,7 @@ class ExternalTranscriptionWorker(manifest: WorkerManifest, amazonSQSClient: Ama
         }
       ()
     }.leftMap {
-      case error => ExternalTranscriptionFailure.apply(error)
+      case error => DocumentUpdateFailure.apply(error)
     }
   }
 
@@ -117,7 +140,7 @@ class ExternalTranscriptionWorker(manifest: WorkerManifest, amazonSQSClient: Ama
         Right(output)
 
       case JsSuccess(output: TranscriptionOutputFailure, _) =>
-        Left(ExternalTranscriptionFailure.apply(new Error(s"External transcription service failed to transcribe the file ${output.originalFilename}")))
+        Left(ExternalTranscriptionOutputFailure.apply(s"External transcription service failed to transcribe the file ${output.originalFilename}"))
 
       case JsError(errors) =>
         Left(JsonParseFailure(errors))
@@ -129,6 +152,27 @@ class ExternalTranscriptionWorker(manifest: WorkerManifest, amazonSQSClient: Ama
 
     manifest.logExtractionFailure(uri, extractorName, failureMsg).left.foreach { f =>
       logger.error(s"Failed to log extractor in manifest: ${f.msg}")
+    }
+  }
+
+  private def handleExternalTranscriptionOutputFailure(message: Message, id: String, failureMessage: String) = {
+    Try {
+      val sendMessageCommand = new SendMessageRequest()
+        .withQueueUrl(transcribeConfig.transcriptionOutputDeadLetterQueueUrl)
+        .withMessageBody(message.getBody)
+        .withMessageGroupId(id)
+      amazonSQSClient.sendMessage(sendMessageCommand)
+      logger.info(s"moved message $id to output dead letter queue")
+
+      amazonSQSClient.deleteMessage(
+        new DeleteMessageRequest(transcribeConfig.transcriptionOutputQueueUrl, message.getReceiptHandle)
+      )
+      logger.debug(s"deleted message $id")
+
+      markAsFailure(new Uri(id), EXTRACTOR_NAME, failureMessage)
+    }.toEither match {
+      case Right(_) => ()
+      case Left(error) => logger.error(s"failed to handle external transcript output failure message", error)
     }
   }
 }

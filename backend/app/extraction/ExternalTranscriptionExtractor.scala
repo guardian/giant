@@ -23,7 +23,7 @@ case class OutputBucketUrls(text: SignedUrl, srt: SignedUrl, json: SignedUrl)
 case class OutputBucketKeys(text: String, srt: String, json: String)
 case class TranscriptionJob(id: String, originalFilename: String, inputSignedUrl: String, sentTimestamp: String,
                             userEmail: String, transcriptDestinationService: String, outputBucketUrls: OutputBucketUrls,
-                            languageCode: String, translate: Boolean)
+                            languageCode: String, translate: Boolean, translationOutputBucketUrls: OutputBucketUrls)
 object OutputBucketUrls {
   implicit val formats = Json.format[OutputBucketUrls]
 }
@@ -50,7 +50,8 @@ case class TranscriptionOutputSuccess(
                                           isTranslation: Boolean,
                                           status: String = "SUCCESS",
                                           languageCode: String,
-                                          outputBucketKeys: OutputBucketKeys
+                                          outputBucketKeys: OutputBucketKeys,
+                                          translationOutputBucketKeys: Option[OutputBucketKeys]
                                         ) extends TranscriptionOutput
 
 case class TranscriptionOutputFailure(
@@ -135,10 +136,11 @@ class ExternalTranscriptionExtractor(index: Index, transcribeConfig: TranscribeC
   override def triggerExtraction(blob: Blob, params: ExtractionParams): Either[Failure, Unit] = {
     val transcriptionJob =  for {
       downloadSignedUrl <- transcriptionStorage.getSignedUrl (blob.uri.toStoragePath)
-      outputSignedUrls <- getOutputBucketUrls(blob.uri.value)
+      transcriptsOutputSignedUrls <- getOutputBucketUrls(blob.uri.value)
+      translationOutputSignedUrls <- getOutputBucketUrls(s"${blob.uri.value}-translation")
     } yield {
       TranscriptionJob(blob.uri.value, blob.uri.value, downloadSignedUrl, DateTime.now().toString, "giant", "Giant",
-        outputSignedUrls, "auto", false)
+        transcriptsOutputSignedUrls, "auto", true, translationOutputSignedUrls)
     }
 
     transcriptionJob.flatMap {
