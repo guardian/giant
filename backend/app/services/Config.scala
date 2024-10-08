@@ -158,7 +158,8 @@ case class S3Config(
 )
 
 case class SQSConfig(
-                    region: String
+                    region: String,
+                    endpoint: Option[String]
                     )
 
 case class BucketConfig(

@@ -1,6 +1,7 @@
 import org.apache.pekko.actor.{ActorSystem, CoordinatedShutdown}
 import org.apache.pekko.actor.CoordinatedShutdown.Reason
 import cats.syntax.either._
+import com.amazonaws.client.builder.AwsClientBuilder
 import com.amazonaws.services.sqs.{AmazonSQSClient, AmazonSQSClientBuilder}
 import com.gu.pandomainauth
 import com.gu.pandomainauth.PublicSettings
@@ -75,7 +76,11 @@ class AppComponents(context: Context, config: Config)
     val ingestionExecutionContext = actorSystem.dispatchers.lookup("ingestion-context")
 
     val s3Client = new S3Client(config.s3)(s3ExecutionContext)
-    val sqsClient = AmazonSQSClientBuilder.standard().withRegion(config.sqs.region).build()
+
+    val sqsClient = if (config.sqs.endpoint.isDefined)
+      AmazonSQSClientBuilder.standard().withEndpointConfiguration(new AwsClientBuilder.EndpointConfiguration(config.sqs.endpoint.get, config.sqs.region)).build()
+    else
+      AmazonSQSClientBuilder.standard().withRegion(config.sqs.region).build()
 
     val workerName = config.worker.name.getOrElse(InetAddress.getLocalHost.getHostName)
 

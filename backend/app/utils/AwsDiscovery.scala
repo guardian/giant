@@ -78,6 +78,7 @@ object AwsDiscovery extends Logging {
         transcriptionOutputQueueUrl = readSSMParameter("transcribe/transcriptionOutputQueueUrl", stack, stage, ssmClient),
         transcriptionServiceQueueUrl = readSSMParameter("transcribe/transcriptionServiceQueueUrl", stack, stage, ssmClient)
       ),
+      sqs = config.sqs.copy(endpoint = None),
       underlying = config.underlying
         .withValue("play.http.secret.key", fromAnyRef(readSSMParameter("pfi/playSecret", stack, stage, ssmClient)))
         .withValue("pekko.actor.provider", fromAnyRef("local")) // disable Pekko clustering, we query EC2 directly
