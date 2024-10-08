@@ -83,6 +83,9 @@ object TranscriptionOutput {
   }
 }
 
+// The transcription types are matched with types in transcription service
+// https://github.com/guardian/transcription-service/blob/main/packages/common/src/types.ts
+
 class ExternalTranscriptionExtractor(index: Index, transcribeConfig: TranscribeConfig, transcriptionStorage: ObjectStorage, outputStorage: ObjectStorage, amazonSQSClient: AmazonSQS)(implicit executionContext: ExecutionContext) extends ExternalExtractor with Logging {
   val mimeTypes: Set[String] = Set(
     "audio/wav",
