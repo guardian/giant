@@ -22,8 +22,8 @@ import utils.attempt.{Attempt, Failure, IllegalStateFailure, NotFoundFailure}
 
 import java.nio.file.Path
 import java.time.Instant
-import scala.jdk.CollectionConverters._
 import scala.concurrent.ExecutionContext
+import scala.jdk.CollectionConverters._
 
 object Neo4jManifest {
   def setupManifest(driver: Driver, executionContext: ExecutionContext, queryLoggingConfig: Neo4jQueryLoggingConfig): Either[Failure, Manifest] = {
@@ -319,7 +319,8 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
         "indexing" -> Boolean.box(e.indexing),
         "extractorPriority" -> Int.box(e.priority),
         "priority" -> Int.box(if(workspace.nonEmpty) { e.priority * 100 } else { e.priority }),
-        "cost" -> Long.box(e.cost(mimeType, file.size))
+        "cost" -> Long.box(e.cost(mimeType, file.size)),
+        "external" -> Boolean.box(e.external)
       ).asJava
     }
 
@@ -346,7 +347,7 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
         |
         |WITH {extractorParamsArray} as extractors
         |UNWIND extractors as extractorParam
-        |  MERGE (extractor :Extractor {name: extractorParam.name, indexing: extractorParam.indexing, priority: extractorParam.extractorPriority})
+        |  MERGE (extractor :Extractor {name: extractorParam.name, indexing: extractorParam.indexing, priority: extractorParam.extractorPriority, external: extractorParam.external})
         |    WITH extractor, extractorParam.cost as cost, extractorParam.priority as priority
         |
         |  MATCH (unprocessedBlob: Blob:Resource {uri: {blobUri}})
@@ -566,6 +567,45 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
     Right(())
   }
 
+  override def markExternalAsComplete(uri: String, extractorName: String): Either[Failure, Unit] = transaction { tx =>
+
+    logger.info(s"Marking ${uri} / ${extractorName} as complete")
+    val result = tx.run(
+      s"""
+         |MATCH (b :Blob:Resource {uri: {uri}})<-[processing:PROCESSING_EXTERNALLY]-(e: Extractor {name: {extractorName}})
+         |
+         |MERGE (b)<-[processed:PROCESSED {
+         |  ingestion: processing.ingestion,
+         |  parentBlobs: processing.parentBlobs,
+         |  languages: processing.languages
+         |  }]-(e)
+         |
+         |FOREACH (_ IN CASE WHEN exists(processing.workspaceId) THEN [1] ELSE [] END |
+         |  SET processed.workspaceId = processing.workspaceId
+         |)
+         |FOREACH (_ IN CASE WHEN exists(processing.workspaceBlobUri) THEN [1] ELSE [] END |
+         |  SET processed.workspaceBlobUri = processing.workspaceBlobUri
+         |)
+         |FOREACH (_ IN CASE WHEN exists(processing.workspaceNodeId) THEN [1] ELSE [] END |
+         |  SET processed.workspaceNodeId = processing.workspaceNodeId
+         |)
+         |DELETE processing
+         |""".stripMargin,
+      parameters(
+        "uri", uri,
+        "extractorName", extractorName,
+      )
+    )
+
+    val counters = result.summary().counters()
+
+    if (counters.relationshipsCreated() != 1 || counters.relationshipsDeleted() != 1) {
+      Left(IllegalStateFailure(s"Unexpected number of creates/deletes in markAsComplete. Created: ${counters.relationshipsCreated()}. Deleted: ${counters.relationshipsDeleted()}"))
+    } else {
+      Right(())
+    }
+  }
+
   override def markAsComplete(params: ExtractionParams, blob: Blob, extractor: Extractor): Either[Failure, Unit] = transaction { tx =>
     logger.info(s"Marking ${blob.uri.value} / ${extractor.name} as complete")
 
@@ -611,6 +651,60 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
     val counters = result.summary().counters()
 
     if(counters.relationshipsCreated() != 1 || counters.relationshipsDeleted() != 1) {
+      Left(IllegalStateFailure(s"Unexpected number of creates/deletes in markAsComplete. Created: ${counters.relationshipsCreated()}. Deleted: ${counters.relationshipsDeleted()}"))
+    } else {
+      Right(())
+    }
+  }
+
+  override def markExternalAsProcessing(params: ExtractionParams, blob: Blob, extractor: Extractor): Either[Failure, Unit] = transaction { tx =>
+    logger.info(s"Marking ${blob.uri.value} / ${extractor.name} as complete")
+
+    val maybeWorkspaceProperties = params.workspace.map { _ =>
+      """
+        |,
+        |workspaceId: {workspaceId},
+        |workspaceNodeId: {workspaceNodeId},
+        |workspaceBlobUri: {workspaceBlobUri}
+        |""".stripMargin
+    }.getOrElse("")
+
+    val result = tx.run(
+      s"""
+         |MATCH (b :Blob:Resource {uri: {uri}})<-[todo:TODO {
+         |  ingestion: {ingestion},
+         |  parentBlobs: {parentBlobs},
+         |  languages: {languages}
+         |  ${maybeWorkspaceProperties}
+         |}]-(e: Extractor {name: {extractorName}})
+         |
+         |DELETE todo
+         |
+         |MERGE (b)<-[processing_externally:PROCESSING_EXTERNALLY {
+         |  ingestion: {ingestion},
+         |  parentBlobs: {parentBlobs},
+         |  languages: {languages}
+         |  ${maybeWorkspaceProperties}
+         |}]-(e)
+         |    ON CREATE SET processing_externally.attempts = 0,
+         |                  processing_externally.cost = e.cost,
+         |                  processing_externally.priority = e.priority
+         |""".stripMargin,
+      parameters(
+        "uri", blob.uri.value,
+        "extractorName", extractor.name,
+        "ingestion", params.ingestion,
+        "languages", params.languages.map(_.key).asJava,
+        "parentBlobs", params.parentBlobs.map(_.value).asJava,
+        "workspaceId", params.workspace.map(_.workspaceId).orNull,
+        "workspaceNodeId", params.workspace.map(_.workspaceNodeId).orNull,
+        "workspaceBlobUri", params.workspace.map(_.blobAddedToWorkspace).orNull
+      )
+    )
+
+    val counters = result.summary().counters()
+
+    if (counters.relationshipsCreated() != 1 || counters.relationshipsDeleted() != 1) {
       Left(IllegalStateFailure(s"Unexpected number of creates/deletes in markAsComplete. Created: ${counters.relationshipsCreated()}. Deleted: ${counters.relationshipsDeleted()}"))
     } else {
       Right(())

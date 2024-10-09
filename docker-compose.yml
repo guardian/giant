@@ -53,7 +53,7 @@ services:
     entrypoint:
       sh
     command:
-      -c 'mkdir -p /export/ingest-data && mkdir -p /export/ingest-data-dead-letter && mkdir -p /export/data && mkdir -p /export/preview && minio server /export --console-address ":9001"'
+      -c 'mkdir -p /export/ingest-data && mkdir -p /export/transcription-output-data && mkdir -p /export/ingest-data-dead-letter && mkdir -p /export/data && mkdir -p /export/preview && minio server /export --console-address ":9001"'
 
   postgres:
     image: postgres:15.3

@@ -1,16 +1,15 @@
 package extraction
 
-import java.io.InputStream
-import java.util.concurrent.atomic.AtomicInteger
 import cats.syntax.either._
 import extraction.Worker.Batch
 import model.manifest.{Blob, WorkItem}
-import services.{Metrics, MetricsService, ObjectStorage}
 import services.manifest.WorkerManifest
-import services.observability.{EventDetails, IngestionEvent, IngestionEventType, EventMetadata, PostgresClient, EventStatus}
+import services.observability._
+import services.{Metrics, MetricsService, ObjectStorage}
 import utils.Logging
 import utils.attempt._
 
+import java.io.InputStream
 import scala.concurrent.ExecutionContext
 import scala.language.postfixOps
 import scala.util.control.NonFatal
@@ -90,14 +89,19 @@ class Worker(
 
       result match {
         case Right(_) =>
-          markAsComplete(params, blob, extractor)
-          postgresClient.insertEvent(
-            IngestionEvent(
-              observabilityMetadata,
-              IngestionEventType.RunExtractor,
-              status = EventStatus.Success,
-              details = EventDetails.extractorDetails(extractor.name))
-          )
+          if (extractor.external) {
+            markExternalAsProcessing(params, blob, extractor)
+          } else {
+            markAsComplete(params, blob, extractor)
+            postgresClient.insertEvent(
+              IngestionEvent(
+                observabilityMetadata,
+                IngestionEventType.RunExtractor,
+                status = EventStatus.Success,
+                details = EventDetails.extractorDetails(extractor.name))
+            )
+          }
+
           completed + 1
 
         case Left(SubprocessInterruptedFailure) =>
@@ -139,6 +143,12 @@ class Worker(
 
   private def markAsComplete(params: ExtractionParams, blob: Blob, extractor: Extractor): Unit = {
     manifest.markAsComplete(params, blob, extractor).leftMap { failure =>
+      logger.error(s"Failed to mark '${blob.uri.value}' processed by '${extractor.name}' as complete: ${failure.msg}")
+    }
+  }
+
+  private def markExternalAsProcessing(params: ExtractionParams, blob: Blob, extractor: Extractor): Unit = {
+    manifest.markExternalAsProcessing(params, blob, extractor).leftMap { failure =>
       logger.error(s"Failed to mark '${blob.uri.value}' processed by '${extractor.name}' as complete: ${failure.msg}")
     }
   }

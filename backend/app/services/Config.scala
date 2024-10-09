@@ -81,7 +81,10 @@ case class OcrConfig(
 )
 
 case class TranscribeConfig(
-  whisperModelFilename: String,
+                             whisperModelFilename: String,
+                             transcriptionServiceQueueUrl: String,
+                             transcriptionOutputQueueUrl: String,
+                             transcriptionOutputDeadLetterQueueUrl: String
 )
 
 case class WorkerConfig(
@@ -90,7 +93,8 @@ case class WorkerConfig(
   controlInterval: FiniteDuration,
   controlCooldown: FiniteDuration,
   enabled: Boolean,
-  workspace: String
+  workspace: String,
+  useExternalExtractors: Boolean
 )
 
 case class Neo4jQueryLoggingConfig(
@@ -154,11 +158,17 @@ case class S3Config(
   sseAlgorithm: Option[String]
 )
 
+case class SQSConfig(
+                    region: String,
+                    endpoint: Option[String]
+                    )
+
 case class BucketConfig(
   ingestion: String,
   deadLetter: String,
   collections: String,
-  preview: String
+  preview: String,
+  transcription: String
 ) {
   val all: List[String] = List(ingestion, deadLetter, collections, preview)
 }
@@ -173,19 +183,20 @@ case class AWSDiscoveryConfig(
 )
 
 case class Config(
-  underlying: com.typesafe.config.Config,
-  app: AppConfig,
-  auth: AuthConfig,
-  worker: WorkerConfig,
-  neo4j: Neo4jConfig,
-  postgres: Option[PostgresConfig],
-  elasticsearch: ElasticsearchConfig,
-  ingestion: IngestConfig,
-  preview: PreviewConfig,
-  s3: S3Config,
-  aws: Option[AWSDiscoveryConfig],
-  ocr: OcrConfig,
-  transcribe: TranscribeConfig
+                   underlying: com.typesafe.config.Config,
+                   app: AppConfig,
+                   auth: AuthConfig,
+                   worker: WorkerConfig,
+                   neo4j: Neo4jConfig,
+                   postgres: Option[PostgresConfig],
+                   elasticsearch: ElasticsearchConfig,
+                   ingestion: IngestConfig,
+                   preview: PreviewConfig,
+                   s3: S3Config,
+                   aws: Option[AWSDiscoveryConfig],
+                   ocr: OcrConfig,
+                   transcribe: TranscribeConfig,
+                   sqs: SQSConfig
 )
 
 object Config {
@@ -202,7 +213,8 @@ object Config {
     raw.as[S3Config]("s3"),
     raw.as[Option[AWSDiscoveryConfig]]("aws"),
     raw.as[OcrConfig]("ocr"),
-    raw.as[TranscribeConfig]("transcribe")
+    raw.as[TranscribeConfig]("transcribe"),
+    raw.as[SQSConfig]("sqs")
   )
 
   private def parseAuth(rawAuthConfig: com.typesafe.config.Config): AuthConfig = {

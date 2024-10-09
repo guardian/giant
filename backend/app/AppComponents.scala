@@ -1,6 +1,8 @@
 import org.apache.pekko.actor.{ActorSystem, CoordinatedShutdown}
 import org.apache.pekko.actor.CoordinatedShutdown.Reason
 import cats.syntax.either._
+import com.amazonaws.client.builder.AwsClientBuilder
+import com.amazonaws.services.sqs.{AmazonSQSClient, AmazonSQSClientBuilder}
 import com.gu.pandomainauth
 import com.gu.pandomainauth.PublicSettings
 import controllers.AssetsComponents
@@ -15,7 +17,7 @@ import extraction.email.olm.OlmEmailExtractor
 import extraction.email.pst.PstEmailExtractor
 import extraction.ocr.{ImageOcrExtractor, OcrMyPdfExtractor, OcrMyPdfImageExtractor, TesseractPdfOcrExtractor}
 import extraction.tables.{CsvTableExtractor, ExcelTableExtractor}
-import extraction.{DocumentBodyExtractor, MimeTypeMapper, TranscriptionExtractor, Worker}
+import extraction.{DocumentBodyExtractor, ExternalTranscriptionExtractor, ExternalTranscriptionWorker, MimeTypeMapper, TranscriptionExtractor, Worker}
 import ingestion.phase2.IngestStorePolling
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.neo4j.driver.v1.{AuthTokens, GraphDatabase}
@@ -75,6 +77,11 @@ class AppComponents(context: Context, config: Config)
 
     val s3Client = new S3Client(config.s3)(s3ExecutionContext)
 
+    val sqsClient = if (config.sqs.endpoint.isDefined)
+      AmazonSQSClientBuilder.standard().withEndpointConfiguration(new AwsClientBuilder.EndpointConfiguration(config.sqs.endpoint.get, config.sqs.region)).build()
+    else
+      AmazonSQSClientBuilder.standard().withRegion(config.sqs.region).build()
+
     val workerName = config.worker.name.getOrElse(InetAddress.getLocalHost.getHostName)
 
     val scratchSpace = new ScratchSpace(Paths.get(config.ingestion.scratchPath))
@@ -83,6 +90,7 @@ class AppComponents(context: Context, config: Config)
     // data storage services
     val ingestStorage = S3IngestStorage(s3Client, config.s3.buckets.ingestion, config.s3.buckets.deadLetter).valueOr(failure => throw new Exception(failure.msg))
     val blobStorage = S3ObjectStorage(s3Client, config.s3.buckets.collections).valueOr(failure => throw new Exception(failure.msg))
+    val transcriptStorage = S3ObjectStorage(s3Client, config.s3.buckets.transcription).valueOr(failure => throw new Exception(failure.msg))
 
     val postgresClient = config.postgres match {
       case Some(postgresConfig) =>  new PostgresClientImpl(postgresConfig)
@@ -150,7 +158,12 @@ class AppComponents(context: Context, config: Config)
     val imageOcrExtractor = new ImageOcrExtractor(config.ocr, scratchSpace, esResources, ingestionServices)
     val ocrMyPdfImageExtractor = new OcrMyPdfImageExtractor(config.ocr, scratchSpace, esResources, previewStorage, ingestionServices)
 
-    val transcriptionExtractor = new TranscriptionExtractor(esResources, scratchSpace, config.transcribe)
+
+    val transcriptionExtractor = if (config.worker.useExternalExtractors) {
+      new ExternalTranscriptionExtractor(esResources, config.transcribe, blobStorage, transcriptStorage, sqsClient)
+    } else {
+      new TranscriptionExtractor(esResources, scratchSpace, config.transcribe)
+    }
 
     val ocrExtractors = config.ocr.defaultEngine match {
       case OcrEngine.OcrMyPdf => List(ocrMyPdfExtractor, ocrMyPdfImageExtractor)
@@ -214,6 +227,12 @@ class AppComponents(context: Context, config: Config)
       val workerScheduler = new WorkerScheduler(actorSystem, worker, config.worker.interval)(workerExecutionContext)
       workerScheduler.start()
       applicationLifecycle.addStopHook(() => workerScheduler.stop())
+
+      // external extractor
+      val externalWorker = new ExternalTranscriptionWorker(manifest, sqsClient, config.transcribe, transcriptStorage, esResources)
+      val externalWorkerScheduler = new ExternalWorkerScheduler(actorSystem, externalWorker, config.worker.interval)(workerExecutionContext)
+      externalWorkerScheduler.start()
+      applicationLifecycle.addStopHook(() => externalWorkerScheduler.stop())
     } else {
       logger.info("Worker disabled on this instance")
 
