@@ -71,12 +71,15 @@ object AwsDiscovery extends Logging {
       // Using the instanceId as the worker name will allow us to break locks on terminated instances in the future
       worker = maybeInstanceId.map { instanceId =>
         config.worker.copy(
-          name = Some(instanceId)
-        )
+          name = Some(instanceId))
       }.getOrElse(config.worker),
       transcribe = config.transcribe.copy(
-        whisperModelFilename = readSSMParameter("transcribe/modelFilename", stack, stage, ssmClient)
+        whisperModelFilename = readSSMParameter("transcribe/modelFilename", stack, stage, ssmClient),
+        transcriptionOutputQueueUrl = readSSMParameter("transcribe/transcriptionOutputQueueUrl", stack, stage, ssmClient),
+        transcriptionServiceQueueUrl = readSSMParameter("transcribe/transcriptionServiceQueueUrl", stack, stage, ssmClient),
+        transcriptionOutputDeadLetterQueueUrl = readSSMParameter("transcribe/transcriptionOutputDeadLetterQueueUrl", stack, stage, ssmClient)
       ),
+      sqs = config.sqs.copy(endpoint = None),
       underlying = config.underlying
         .withValue("play.http.secret.key", fromAnyRef(readSSMParameter("pfi/playSecret", stack, stage, ssmClient)))
         .withValue("pekko.actor.provider", fromAnyRef("local")) // disable Pekko clustering, we query EC2 directly
@@ -163,7 +166,8 @@ object AwsDiscovery extends Logging {
       ingestion = s"$stack-${before.ingestion}-$lowerCaseStage",
       deadLetter = s"$stack-${before.deadLetter}-$lowerCaseStage",
       collections = s"$stack-${before.collections}-$lowerCaseStage",
-      preview = s"$stack-${before.preview}-$lowerCaseStage"
+      preview = s"$stack-${before.preview}-$lowerCaseStage",
+      transcription = s"$stack-${before.transcription}-$lowerCaseStage"
     )
 
     logger.info(s"AWS discovery buckets: [${after.all.mkString(",")}]")

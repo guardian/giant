@@ -101,7 +101,7 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
         |OPTIONAL MATCH (workspace)<-[:PART_OF]-(node :WorkspaceNode)<-[:CREATED]-(nodeCreator :User)
         |OPTIONAL MATCH (node)-[:PARENT]->(parentNode :WorkspaceNode)
         |
-        |OPTIONAL MATCH (:Resource {uri: node.uri})<-[todo:TODO]-(:Extractor)
+        |OPTIONAL MATCH (:Resource {uri: node.uri})<-[todo:TODO|:PROCESSING_EXTERNALLY]-(:Extractor)
         |RETURN node, nodeCreator, parentNode.id,
         |	count(todo) AS numberOfTodos,
         |	collect(todo)[0].note as note,
