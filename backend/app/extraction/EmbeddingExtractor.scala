@@ -13,9 +13,10 @@ import utils.attempt.{Failure, FfMpegFailure, UnknownFailure}
 import java.io.File
 import scala.concurrent.ExecutionContext
 
-class EmbeddingExtractor(index: Index, pages: Pages, scratchSpace: ScratchSpace, transcribeConfig: TranscribeConfig)(implicit executionContext: ExecutionContext) extends FileExtractor(scratchSpace) with Logging {
+class EmbeddingExtractor(index: Index, pages: Pages, scratchSpace: ScratchSpace)(implicit executionContext: ExecutionContext) extends FileExtractor(scratchSpace) with Logging {
   val mimeTypes: Set[String] = Set(
-    "application/pdf"
+    // TODO: switch on
+//    "application/pdf"
   )
 
   def canProcessMimeType: String => Boolean = mimeTypes.contains
@@ -29,8 +30,9 @@ class EmbeddingExtractor(index: Index, pages: Pages, scratchSpace: ScratchSpace,
 
     // Get the pages from elasticsearch
     for {
-      page <- pages.getAllPages(blob.uri)
+      pages <- pages.getAllPages(blob.uri)
     } yield {
+      pages.foreach(page => logger.info(s"EmbeddingExtractor: got page ${page.page}"))
       // Run page through embedding model
       // Write embeddings to a vector field against the page
     }
