@@ -124,8 +124,7 @@ class AppComponents(context: Context, config: Config)
         val publicSettings = new PublicSettings(config.publicSettingsKey, config.bucketName, pandaS3Client)
         // start polling of S3 bucket for public key
         publicSettings.start()
-        val getCurrentPublicKey: () => Option[pandomainauth.PublicKey] = () => publicSettings.publicKey
-        new PanDomainUserProvider(config, getCurrentPublicKey, users, metricsService)
+        new PanDomainUserProvider(config, () => publicSettings.verification, users, metricsService)
     }
 
     logger.info(s"Initialised authentication provider '${config.auth.provider}'")

@@ -1,18 +1,19 @@
 package utils.auth.providers
 
-import com.gu.pandomainauth.{PanDomain, PublicKey}
+import com.gu.pandomainauth.PanDomain
 import com.gu.pandomainauth.model._
-import model.frontend.user.PartialUser
+import com.gu.pandomainauth.service.CryptoConf.Verification
 import model.frontend.TotpActivation
+import model.frontend.user.PartialUser
 import model.user.{DBUser, UserPermissions}
 import play.api.libs.json.{JsString, JsValue}
 import play.api.mvc.{AnyContent, Request}
 import services.users.UserManagement
 import services.{MetricsService, PandaAuthConfig}
-import utils.{Epoch, Logging}
-import utils.attempt._
 import utils.attempt.AttemptAwait._
+import utils.attempt._
 import utils.auth.totp.TfaToken
+import utils.{Epoch, Logging}
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
@@ -20,7 +21,7 @@ import scala.concurrent.duration._
 /**
   * A UserAuthenticator implementation that authenticates a valid user based on the presence of a pan-domain cookie
   */
-class PanDomainUserProvider(val config: PandaAuthConfig, currentPublicKey: () => Option[PublicKey], users: UserManagement, metricsService: MetricsService)(implicit ec: ExecutionContext)
+class PanDomainUserProvider(val config: PandaAuthConfig, verificationProvider: () => Verification, users: UserManagement, metricsService: MetricsService)(implicit ec: ExecutionContext)
   extends UserProvider with Logging {
 
   /** The client needs to know where to redirect the user so they can pick up a pan domain cookie **/
@@ -38,9 +39,9 @@ class PanDomainUserProvider(val config: PandaAuthConfig, currentPublicKey: () =>
 
     val maybeCookie = request.cookies.get(config.cookieName)
 
-    (currentPublicKey(), maybeCookie) match {
-      case (Some(publicKey), Some(cookieData)) =>
-        val status = PanDomain.authStatus(cookieData.value, publicKey, validateUser, 0L, "giant", false, false)
+    maybeCookie match {
+      case Some(cookieData) =>
+        val status = PanDomain.authStatus(cookieData.value, verificationProvider(), validateUser, 0L, "giant", false, false)
         status match {
           case Authenticated(authedUser) =>
             val downcasedAuthedUser = authedUser.copy(user = authedUser.user.copy(email = authedUser.user.email.toLowerCase()))
@@ -57,14 +58,13 @@ class PanDomainUserProvider(val config: PandaAuthConfig, currentPublicKey: () =>
               PartialUser(user.username, user.displayName.getOrElse(displayName))
             }
           case NotAuthorized(authedUser) => Attempt.Left(PanDomainCookieInvalid(s"User ${authedUser.user.email} is not authorised to use this system.", reportAsFailure = true))
-          case InvalidCookie(exception) => Attempt.Left(PanDomainCookieInvalid(s"Pan domain cookie invalid: ${exception.getMessage}", reportAsFailure = true))
+          case InvalidCookie(integrityFailure) => Attempt.Left(PanDomainCookieInvalid(s"Pan domain cookie invalid: $integrityFailure", reportAsFailure = true))
           case Expired(authedUser) => Attempt.Left(PanDomainCookieInvalid(s"User ${authedUser.user.email} panda cookie has expired.", reportAsFailure = false))
           case other =>
             logger.warn(s"Pan domain auth failure: $other")
             Attempt.Left(AuthenticationFailure(s"Pan domain auth failed: $other", reportAsFailure = true))
         }
-      case (None, _) => Attempt.Left(AuthenticationFailure("Pan domain library not initialised - no public key available", reportAsFailure = true))
-      case (_, None) => Attempt.Left(PanDomainCookieInvalid(s"No pan domain cookie available in request with name ${config.cookieName}", reportAsFailure = false))
+      case None => Attempt.Left(PanDomainCookieInvalid(s"No pan domain cookie available in request with name ${config.cookieName}", reportAsFailure = false))
     }
   }
 
