@@ -23,7 +23,8 @@ case class OutputBucketUrls(text: SignedUrl, srt: SignedUrl, json: SignedUrl)
 case class OutputBucketKeys(text: String, srt: String, json: String)
 case class TranscriptionJob(id: String, originalFilename: String, inputSignedUrl: String, sentTimestamp: String,
                             userEmail: String, transcriptDestinationService: String, outputBucketUrls: OutputBucketUrls,
-                            languageCode: String, translate: Boolean, translationOutputBucketUrls: OutputBucketUrls)
+                            languageCode: String, translate: Boolean, translationOutputBucketUrls: OutputBucketUrls,
+                            diarize: Boolean = false, engine: String = "whispercpp")
 object OutputBucketUrls {
   implicit val formats = Json.format[OutputBucketUrls]
 }
