@@ -11,10 +11,12 @@ import services.{ObjectStorage, TranscribeConfig}
 import utils.Logging
 import utils.attempt.{DocumentUpdateFailure, ExternalTranscriptionOutputFailure, Failure, JsonParseFailure}
 
+import java.io.{BufferedReader, InputStream, InputStreamReader}
 import java.nio.charset.StandardCharsets
+import java.util.zip.ZipInputStream
 import scala.concurrent.ExecutionContext
 import scala.jdk.CollectionConverters.CollectionHasAsScala
-import scala.util.Try
+import scala.util.{Success, Try, Failure => ScalaFailure}
 
 case class TranscriptionMessageAttribute(receiveCount: Int, messageGroupId: String)
 case class TranscriptionTexts(transcript: String, translation: Option[String])
@@ -83,20 +85,41 @@ class ExternalTranscriptionWorker(manifest: WorkerManifest, amazonSQSClient: Ama
   }
 
   private def getTranscriptionTexts(transcriptionOutput: TranscriptionOutputSuccess): Either[Failure, TranscriptionTexts] = {
-    val transcript = blobStorage.get(transcriptionOutput.outputBucketKeys.text)
+    val transcript = blobStorage.get(transcriptionOutput.outputBucketKeys.zip).flatMap { transcriptStream =>
+      extractFileFromZip(transcriptStream, "transcript.txt")
+    }
 
-    transcript.flatMap { transcriptStream =>
-      val transcriptText = new String(transcriptStream.readAllBytes(), StandardCharsets.UTF_8)
 
-      transcriptionOutput.translationOutputBucketKeys match {
-        case Some(keys) =>
-          val translation = blobStorage.get(keys.text)
-          translation.map { translationStream =>
-            val text = new String(translationStream.readAllBytes(), StandardCharsets.UTF_8)
-            TranscriptionTexts(transcriptText, Some(text))
-          }
-        case None => Right(TranscriptionTexts(transcriptText, None))
-      }
+    val translation = transcriptionOutput.translationOutputBucketKeys match {
+      case Some(keys) =>
+        blobStorage.get(keys.zip).flatMap { translationStream =>
+          extractFileFromZip(translationStream, "transcript.txt")
+        }.map(Some(_)) // Wrap in Some to indicate translation exists
+      case None => Right(None) // No translation zip, return None
+    }
+
+    for {
+      transcriptText <- transcript
+      translationText <- translation
+    } yield TranscriptionTexts(transcriptText, translationText)
+  }
+
+  private def extractFileFromZip(zipStream: InputStream, fileName: String): Either[Failure, String] = {
+    val zipInputStream = new ZipInputStream(zipStream, StandardCharsets.UTF_8)
+
+    Try {
+      Iterator.continually(zipInputStream.getNextEntry)
+        .takeWhile(_ != null) // Process entries until we hit null
+        .find(entry => !entry.isDirectory && entry.getName == fileName)
+        .map { _ =>
+          val reader = new BufferedReader(new InputStreamReader(zipInputStream, StandardCharsets.UTF_8))
+          val content = reader.lines().toArray.mkString("\n") // Read all lines into a string
+          zipInputStream.closeEntry()
+          content
+        }.toRight(ExternalTranscriptionOutputFailure(s"File '$fileName' not found in the ZIP archive"))
+    } match {
+      case Success(result) => result
+      case ScalaFailure(exception) => Left(ExternalTranscriptionOutputFailure(s"Failed to extract '$fileName': ${exception.getMessage}"))
     }
   }
 

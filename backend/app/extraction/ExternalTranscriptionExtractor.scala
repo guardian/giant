@@ -19,8 +19,8 @@ case class SignedUrl(url: String, key: String)
 object SignedUrl {
   implicit val formats = Json.format[SignedUrl]
 }
-case class OutputBucketUrls(text: SignedUrl, srt: SignedUrl, json: SignedUrl)
-case class OutputBucketKeys(text: String, srt: String, json: String)
+case class OutputBucketUrls(zip: SignedUrl)
+case class OutputBucketKeys(zip: String)
 case class TranscriptionJob(id: String, originalFilename: String, inputSignedUrl: String, sentTimestamp: String,
                             userEmail: String, transcriptDestinationService: String, outputBucketUrls: OutputBucketUrls,
                             languageCode: String, translate: Boolean, translationOutputBucketUrls: OutputBucketUrls,
@@ -118,19 +118,13 @@ class ExternalTranscriptionExtractor(index: Index, transcribeConfig: TranscribeC
   override def priority = 2
 
   private def getOutputBucketUrls(blobUri: String): Either[Failure, OutputBucketUrls] = {
-    val srtKey = s"srt/$blobUri.srt"
-    val jsonKey = s"json/$blobUri.json"
-    val textKey = s"text/$blobUri.txt"
+    val zipKey = s"zip/$blobUri.zip"
 
     val bucketUrls = for {
-      srt <- outputStorage.getUploadSignedUrl(srtKey)
-      json <- outputStorage.getUploadSignedUrl(jsonKey)
-      text <- outputStorage.getUploadSignedUrl(textKey)
+      zip <- outputStorage.getUploadSignedUrl(zipKey)
     } yield {
       OutputBucketUrls(
-        SignedUrl(text, textKey),
-        SignedUrl(srt, srtKey),
-        SignedUrl(json, jsonKey)
+        SignedUrl(zip, zipKey),
       )
     }
 
