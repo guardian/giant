@@ -83,13 +83,15 @@ class ExternalTranscriptionWorker(manifest: WorkerManifest, amazonSQSClient: Ama
   }
 
   private def getTranscriptionTexts(transcriptionOutput: TranscriptionOutputSuccess): Either[Failure, TranscriptionTexts] = {
-    val transcript = blobStorage.get(transcriptionOutput.outputBucketKeys.text)
+    val transcript = blobStorage.get(transcriptionOutput.outputBucketKeys.srt)
 
     transcript.flatMap { transcriptStream =>
       val transcriptText = new String(transcriptStream.readAllBytes(), StandardCharsets.UTF_8)
 
       transcriptionOutput.translationOutputBucketKeys match {
         case Some(keys) =>
+          println("keys: ")
+          println(keys)
           val translation = blobStorage.get(keys.text)
           translation.map { translationStream =>
             val text = new String(translationStream.readAllBytes(), StandardCharsets.UTF_8)
