@@ -5,6 +5,7 @@ import ErrorIcon from 'react-icons/lib/md/error';
 import { EmbeddedPdfViewer } from './EmbeddedPdfViewer';
 import { getPreviewType, getPreviewImage, fetchPreviewLink } from '../../services/PreviewApi';
 import { ProgressAnimation } from '../UtilComponents/ProgressAnimation';
+import { getVTTURL } from "./videoHelper";
 
 function LoadingPreview() {
     return <div className='preview__dialog'>
@@ -29,7 +30,8 @@ PreviewError.propTypes = { message: PropTypes.string.isRequired };
 
 export class Preview extends React.Component {
     static propTypes = {
-        fingerprint: PropTypes.string.isRequired
+        fingerprint: PropTypes.string.isRequired,
+        subtitle: PropTypes.string,
     }
 
     baseState = {
@@ -59,11 +61,17 @@ export class Preview extends React.Component {
                         });
 
                     default:
-                        return fetchPreviewLink(fingerprint).then(doc => {
-                            if (this.state.currentFingerprint === fingerprint) {
+                        const docRsponse = fetchPreviewLink(
+                            fingerprint
+                        ).then((doc) => {
+                            if (
+                                this.state.currentFingerprint ===
+                                fingerprint
+                            ) {
                                 this.setState({ doc, mimeType });
                             }
                         });
+                        return docRsponse;
                 }
             }).catch(e => {
                 this.setState({ error: String(e) });
@@ -98,7 +106,22 @@ export class Preview extends React.Component {
             }
 
             if(this.state.mimeType.startsWith('video/')) {
-                return <video className="viewer__preview-video" src={this.state.doc} controls onError={this.onMediaError} />;
+                const vttUrl = getVTTURL(this.props.subtitle);
+                return (
+                    <video
+                        className="viewer__preview-video"
+                        src={this.state.doc}
+                        controls
+                        onError={this.onMediaError}
+                    >
+                        <track
+                            src="/api/preview/get/subtitle/6Lv3S8g4EMDfc0ElhXe6i1Rzcn3Ia1RTvp1ryLyG_fLxO7zLRipvxQWFjyG0xntlNCphMO6jl3qYSFlckcjnyg"
+                            kind="subtitles"
+                            srclang="en"
+                            label="English"
+                        />
+                    </video>
+                );
             }
 
             if(this.state.mimeType.startsWith('audio/')) {

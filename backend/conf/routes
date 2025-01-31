@@ -76,6 +76,7 @@ POST          /api/preview/generate/:uri                                    cont
 GET           /api/preview/download/:uri                                    controllers.api.Previews.getPreview(uri: model.Uri)
 GET           /api/preview/auth/:uri                                        controllers.api.Previews.authoriseDownload(uri: model.Uri)
 GET           /api/preview/get/:uri                                         controllers.api.Previews.preAuthorizedDownload(uri: model.Uri)
+GET           /api/preview/get/subtitle/:uri                                controllers.api.Previews.getResourceSubtitle(uri: model.Uri)
 
 # === User actions ===
 GET           /api/users                                                    controllers.api.Users.listUsers()

@@ -275,7 +275,7 @@ class Viewer extends React.Component<Props, State> {
         if (view === 'table') {
             return <TablePreview text={resource.text.contents}/>
         } else if (view === 'preview') {
-            return <Preview fingerprint={resource.uri} />;
+            return <Preview fingerprint={resource.uri} subtitle={getSubtitle(resource.transcript)}/>
         } else if (view.startsWith('ocr')) {
             if (resource.ocr) {
                 return this.renderTextPreview(resource, _.get(this.props.resource, view), view);
@@ -367,6 +367,22 @@ class Viewer extends React.Component<Props, State> {
                 </div>
             </div>);
     }
+}
+
+function getSubtitle(
+    transcript:
+        | {
+              [lang: string]: HighlightableText;
+          }
+        | undefined
+) {
+    if (transcript) {
+        if (transcript["english"]) {
+            return transcript["english"].contents;
+        }
+    }
+
+    return undefined;
 }
 
 function mapStateToProps(state: GiantState) {

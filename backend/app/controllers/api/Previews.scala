@@ -1,5 +1,6 @@
 package controllers.api
 
+import model.index.Document
 import org.apache.pekko.stream.scaladsl.StreamConverters
 import model.{ObjectData, ObjectMetadata, Uri}
 import play.api.http.HttpEntity
@@ -10,7 +11,7 @@ import services.manifest.Manifest
 import services.previewing.PreviewService
 import services.users.UserManagement
 import utils.attempt.Attempt
-import utils.controller.{OptionalAuthApiController, AuthControllerComponents, ResourceDownloadHelper}
+import utils.controller.{AuthControllerComponents, OptionalAuthApiController, ResourceDownloadHelper}
 
 import scala.concurrent.duration._
 
@@ -25,6 +26,22 @@ class Previews(override val controllerComponents: AuthControllerComponents, val 
       } yield {
         Result(ResponseHeader(200), HttpEntity.NoEntity.as(mimeType))
       }
+    }
+  }
+
+
+  def getResourceSubtitle(uri: Uri) = noAuth.ApiAction.attempt { implicit request: RequestHeader =>
+    previews.getSubtitle(uri).flatMap { resource =>
+      val res = resource match {
+        case doc: Document =>
+          doc.transcript
+        case _ => None
+      }
+
+      println("subtitle vtt: ")
+      println(res.get.getOrElse("english", ""))
+      Attempt.Right(Ok(res.get.getOrElse("english", ""))
+        .as("text/vtt"))
     }
   }
 

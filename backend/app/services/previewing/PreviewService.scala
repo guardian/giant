@@ -21,6 +21,8 @@ trait PreviewService {
   def getPreviewType(uri: Uri): Attempt[String]
   def generatePreview(uri: Uri): Attempt[Unit]
   def getPreviewObject(uri: Uri): Attempt[ObjectData]
+
+  def getSubtitle(uri: Uri): Attempt[IndexedResource]
 }
 
 class DefaultPreviewService(index: Index, blobStorage: ObjectStorage, previewStorage: ObjectStorage,
@@ -66,6 +68,12 @@ class DefaultPreviewService(index: Index, blobStorage: ObjectStorage, previewSto
     data <- getPreviewObjectGeneratingItIfRequired(resource, uri.toStoragePath)
   } yield {
     data
+  }
+
+  override def getSubtitle(uri: Uri): Attempt[IndexedResource] =  {
+    val resource = index.getResource(uri, highlightTextQuery = None)
+
+    resource
   }
 
   private def getPreviewObjectGeneratingItIfRequired(resource: IndexedResource, storagePathInS3: String): Attempt[ObjectData] = {
