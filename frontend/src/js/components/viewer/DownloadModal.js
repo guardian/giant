@@ -169,7 +169,7 @@ Email Body:
             types.push({value: 'preview', label: 'PDF Preview'});
         }
 
-        if (this.props.resource.text.contents) {
+        if (this.props.resource.text && this.props.resource.text.contents) {
             types.push({value: 'extractedText', label: 'Extracted Text'});
         }
 
