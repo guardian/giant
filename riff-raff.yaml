@@ -22,7 +22,7 @@ deployments:
     parameters:
       amiEncrypted: true
       amiTags:
-        Recipe: investigations-neo4j
+        Recipe: investigations-neo4j-jammy
         AmigoStage: PROD
         Encrypted: pfi-playground
 
