@@ -20,7 +20,7 @@ import { getWorkspace } from '../../actions/workspaces/getWorkspace';
 import { useDispatch } from 'react-redux';
 import { AppActionType } from '../../types/redux/GiantActions';
 
-const MAX_FILE_UPLOAD_SIZE_MBYTES = 250 // should correspond to http.parser.maxDiskBuffer in application.conf
+const MAX_FILE_UPLOAD_SIZE_MBYTES = 300 // should correspond to http.parser.maxDiskBuffer in application.conf
 const MAX_FILE_UPLOAD_SIZE_BYTES = MAX_FILE_UPLOAD_SIZE_MBYTES*1024*1024
 
 
