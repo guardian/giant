@@ -131,7 +131,7 @@ object WorkspaceEntry {
           mimeType = v.get("mimeType").asString(),
           // there are nodes in Playground where this is null, which breaks things
           // if I don't make it optional
-          size = v.get("addedOn").optionally(_.asLong()),
+          size = v.get("size").optionally(_.asLong()),
         )
       )
     }
