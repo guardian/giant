@@ -445,7 +445,7 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
         |  WITH
         |    worker
         |
-        |MATCH (e: Extractor)-[todo: TODO]->(b: Blob:Resource)
+        |MATCH (e: Extractor)-[todo: TODO|:PROCESSING_EXTERNALLY]->(b: Blob:Resource)
         |  WHERE
         |    NOT (b)-[:LOCKED_BY]->(:Worker) AND todo.attempts < {maxExtractionAttempts}
         |
