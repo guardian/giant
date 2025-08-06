@@ -180,7 +180,7 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
             name: 'Name',
             align: 'left' as const,
             style: {
-                width: '400px'
+                width: '500px'
             },
             render: (entry: TreeEntry<WorkspaceEntry>) => {
                 const workspaceId = this.props.match.params.id;
@@ -212,7 +212,7 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
             name: 'Added By',
             align: 'left' as const,
             style: {
-                width: '150px',
+                width: '170px',
             },
             render: (entry: TreeEntry<WorkspaceEntry>) =>
                 <React.Fragment>
@@ -262,7 +262,7 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
             name: 'Processing Stage',
             align: 'center' as const,
             style: {
-                width: '120px',
+                width: '220px',
             },
             render: (entry: TreeEntry<WorkspaceEntry>) => (
                 this.renderStatus(entry)
