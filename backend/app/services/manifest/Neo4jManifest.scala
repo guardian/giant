@@ -996,7 +996,7 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
         |// we need DISTINCT because if there are multiple failures
         |// we'll get the blob and failedExtractor duplicated
         |WITH DISTINCT blob, failedExtractor
-        |MATCH (blob)<-[todo :TODO]-(failedExtractor)
+        |MATCH (blob)<-[todo :TODO|:PROCESSING_EXTERNALLY]-(failedExtractor)
         |WHERE todo.attempts > 0
         |SET todo.attempts = 0
         |""".stripMargin,

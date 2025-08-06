@@ -76,8 +76,10 @@ object TranscriptionOutput {
   implicit val transcriptionOutputReads: Reads[TranscriptionOutput] = new Reads[TranscriptionOutput] {
     def reads(json: JsValue): JsResult[TranscriptionOutput] = {
       (json \ "status").as[String] match {
+        // NOTE: These statuses are defined in the transcription service:
+        // https://github.com/guardian/transcription-service/blob/main/packages/common/src/types.ts
         case "SUCCESS" => json.validate[TranscriptionOutputSuccess]
-        case "FAILURE" => json.validate[TranscriptionOutputFailure]
+        case "TRANSCRIPTION_FAILURE" => json.validate[TranscriptionOutputFailure]
         case other     => JsError(s"Unknown status type: $other")
       }
     }
