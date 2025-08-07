@@ -60,3 +60,10 @@ deployments:
       bucket: pfi-playground-dist
       cacheControl: private
       publicReadAcl: false
+
+  pfi-public-downloads:
+    type: aws-s3
+    parameters:
+      bucket: investigations-public-dist
+      cacheControl: private
+      publicReadAcl: false
