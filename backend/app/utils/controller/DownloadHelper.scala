@@ -2,9 +2,9 @@ package utils.controller
 
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
-
 import commands.{GetResource, ResourceFetchMode}
 import model.Uri
+import org.joda.time.DateTime
 import play.api.mvc._
 import play.utils.UriEncoding
 import services.annotations.Annotations
@@ -75,6 +75,7 @@ trait DownloadHelper extends Logging {
         Some(true)
 
       case Some(exp) =>
+        logger.warn(s"Expired session key - expired at ${new DateTime(exp)}")
         Some(false)
 
       case _ =>
