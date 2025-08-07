@@ -55,7 +55,8 @@ object PandaAuthConfig {
 case class AuthTimeouts(
   maxLoginAge: FiniteDuration,
   maxVerificationAge: FiniteDuration,
-  maxDownloadAuthAge: FiniteDuration
+  maxDownloadAuthAge: FiniteDuration,
+  maxDownloadAuthAgePreview: FiniteDuration
 )
 
 case class AuthConfig(
