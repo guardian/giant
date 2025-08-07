@@ -155,7 +155,7 @@ class StatusBar extends React.Component {
                 <KeyboardShortcut shortcut={keyboardShortcuts.previousHighlight} func={this.previousSearchHighlight} />
                 <KeyboardShortcut shortcut={keyboardShortcuts.nextHighlight} func={this.nextSearchHighlight} />
                 <span>
-                    <NavButton IconElement={PreviousIcon} title={`Previous result (${keyboardShortcuts.previousResult})`} onClick={this.props.previousFn} />
+                    <NavButton IconElement={PreviousIcon} title={`Previous result from search (${keyboardShortcuts.previousResult})`} onClick={this.props.previousFn} />
                     <button onClick={this.highlightButtonClicked}
                         className='btn viewer__toggle-highlighting-button'>
                         Highlighting
@@ -165,7 +165,7 @@ class StatusBar extends React.Component {
                 </span>
                 <span>
                     <PreviewSwitcher view={this.props.view} resource={this.props.resource}/>
-                    <NavButton IconElement={NextIcon} title={`Next result (${keyboardShortcuts.nextResult})`} onClick={this.props.nextFn} />
+                    <NavButton IconElement={NextIcon} title={`Next result from search (${keyboardShortcuts.nextResult})`} onClick={this.props.nextFn} />
                 </span>
             </div>
         );
