@@ -445,23 +445,23 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
         |  WITH
         |    worker
         |
-        |MATCH (e: Extractor)-[todo: TODO|:PROCESSING_EXTERNALLY]->(b: Blob:Resource)
+        |MATCH (e: Extractor)-[todo_or_pe: TODO|:PROCESSING_EXTERNALLY]->(b: Blob:Resource)
         |  WHERE
-        |    NOT (b)-[:LOCKED_BY]->(:Worker) AND todo.attempts < {maxExtractionAttempts}
+        |    NOT (b)-[:LOCKED_BY]->(:Worker) AND todo_or_pe.attempts < {maxExtractionAttempts}
         |
-        |  WITH worker, todo, e, b
+        |  WITH worker, todo_or_pe, e, b
         |  // priority was originally just defined for extractors, we later extended it out to todos as well
         |  // This maintains roll forward/backward compatibility with both
-        |  ORDER BY coalesce(todo.priority, e.priority) DESC
+        |  ORDER BY coalesce(todo_or_pe.priority, e.priority) DESC
         |  LIMIT {maxBatchSize}
         |
-        |WITH collect({todo: todo, extractor: e, blob: b, worker: worker}) as allTasks
+        |WITH collect({todo_or_pe: todo_or_pe, extractor: e, blob: b, worker: worker}) as allTasks
         |WITH tail(reduce(acc = [0, []], task in allTasks |
         |    case
-        |      when size(acc[1]) > 0 AND (acc[0] + task.todo.cost) >= {maxCost}
+        |      when size(acc[1]) > 0 AND (acc[0] + task.todo_or_pe.cost) >= {maxCost}
         |        then [acc[0], acc[1]]
         |      else
-        |        [acc[0] + task.todo.cost, acc[1] + task]
+        |        [acc[0] + task.todo_or_pe.cost, acc[1] + task]
         |     end
         |  )) as tasks
         |
@@ -469,19 +469,19 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
         |  MATCH (blob: Blob:Resource { uri: task.blob.uri })-[:TYPE_OF]-(m: MimeType)
         |  MATCH (worker :Worker { name: task.worker.name })
         |
-        |  SET task.todo.attempts = task.todo.attempts + 1
+        |  SET task.todo_or_pe.attempts = task.todo_or_pe.attempts + 1
         |  MERGE (blob)-[:LOCKED_BY]->(worker)
         |
         |RETURN
         |    blob,
         |    collect(m) as types,
         |    task.extractor.name as extractorName,
-        |    task.todo.ingestion as ingestion,
-        |    task.todo.languages as languages,
-        |    task.todo.parentBlobs as parentBlobs,
-        |    task.todo.workspaceId as workspaceId,
-        |    task.todo.workspaceNodeId as workspaceNodeId,
-        |    task.todo.workspaceBlobUri as workspaceBlobUri
+        |    task.todo_or_pe.ingestion as ingestion,
+        |    task.todo_or_pe.languages as languages,
+        |    task.todo_or_pe.parentBlobs as parentBlobs,
+        |    task.todo_or_pe.workspaceId as workspaceId,
+        |    task.todo_or_pe.workspaceNodeId as workspaceNodeId,
+        |    task.todo_or_pe.workspaceBlobUri as workspaceBlobUri
       """.stripMargin,
       parameters(
         "workerName", workerName,
@@ -996,9 +996,9 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
         |// we need DISTINCT because if there are multiple failures
         |// we'll get the blob and failedExtractor duplicated
         |WITH DISTINCT blob, failedExtractor
-        |MATCH (blob)<-[todo :TODO|:PROCESSING_EXTERNALLY]-(failedExtractor)
-        |WHERE todo.attempts > 0
-        |SET todo.attempts = 0
+        |MATCH (blob)<-[todo_or_pe :TODO|:PROCESSING_EXTERNALLY]-(failedExtractor)
+        |WHERE todo_or_pe.attempts > 0
+        |SET todo_or_pe.attempts = 0
         |""".stripMargin,
       parameters(
         "uri", uri.value
