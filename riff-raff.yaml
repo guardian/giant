@@ -66,5 +66,4 @@ deployments:
     parameters:
       bucket: investigations-public-dist
       cacheControl: private
-      # This is the default but if you specify it explictly Riff-Raff issues a warning
-      publicReadAcl: true
+      publicReadAcl: false
