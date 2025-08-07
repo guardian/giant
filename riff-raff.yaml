@@ -60,11 +60,3 @@ deployments:
       bucket: pfi-playground-dist
       cacheControl: private
       publicReadAcl: false
-
-  pfi-public-downloads:
-    type: aws-s3
-    parameters:
-      bucket: investigations-public-dist
-      cacheControl: private
-      # This is the default but if you specify it explictly Riff-Raff issues a warning
-      publicReadAcl: true
