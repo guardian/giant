@@ -66,6 +66,7 @@ class Blobs(override val controllerComponents: AuthControllerComponents, manifes
           if (rerunFailedParam.getOrElse(true)) {
             logger.info(s"Reprocessing failed extractors for blob ${id}")
             manifest.rerunFailedExtractorsForBlob(uri)
+            manifest.rerunFailedExternalExtractorsForBlob(uri)
           } else {
             Attempt.Right(())
           }

@@ -239,6 +239,7 @@ class Collections(override val controllerComponents: AuthControllerComponents, m
 
     for {
       _ <- manifest.rerunFailedExtractorsForBlob(uri)
+      _ <- manifest.rerunFailedExternalExtractorsForBlob(uri)
       _ <- manifest.rerunSuccessfulExtractorsForBlob(uri)
     } yield {
       Created(Json.toJson(ingestFile))

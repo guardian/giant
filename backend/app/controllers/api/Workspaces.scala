@@ -80,7 +80,10 @@ class Workspaces(override val controllerComponents: AuthControllerComponents, an
   }
 
   private def reprocessBlob(uri: Uri, rerunSuccessful: Boolean, rerunFailed: Boolean): Attempt[Unit] = for {
-    _ <- if(rerunFailed) { manifest.rerunFailedExtractorsForBlob(uri) } else { Attempt.Right(()) }
+    _ <- if(rerunFailed) {
+      manifest.rerunFailedExtractorsForBlob(uri)
+      manifest.rerunFailedExternalExtractorsForBlob(uri)
+    } else { Attempt.Right(()) }
     _ <- if(rerunSuccessful) { manifest.rerunSuccessfulExtractorsForBlob(uri) } else { Attempt.Right(()) }
   } yield {
     ()
