@@ -88,6 +88,12 @@ case class TranscribeConfig(
                              transcriptionOutputDeadLetterQueueUrl: String
 )
 
+case class MediaDownloadConfig(
+                              taskQueueUrl: String,
+                              taskDeadLetterQueueUrl: String,
+                              outputQueueUrl: String
+                              )
+
 case class WorkerConfig(
   name: Option[String],
   interval: FiniteDuration,
@@ -197,6 +203,7 @@ case class Config(
                    aws: Option[AWSDiscoveryConfig],
                    ocr: OcrConfig,
                    transcribe: TranscribeConfig,
+                   mediaDownload: MediaDownloadConfig,
                    sqs: SQSConfig
 )
 
@@ -215,6 +222,7 @@ object Config {
     raw.as[Option[AWSDiscoveryConfig]]("aws"),
     raw.as[OcrConfig]("ocr"),
     raw.as[TranscribeConfig]("transcribe"),
+    raw.as[MediaDownloadConfig]("mediaDownload"),
     raw.as[SQSConfig]("sqs")
   )
 
