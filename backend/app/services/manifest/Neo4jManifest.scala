@@ -1024,8 +1024,9 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
 
   override def rerunFailedExternalExtractorsForBlob(uri: Uri): Attempt[Unit] = attemptTransaction { tx =>
     // Re-run extractors that failed.
-    // Failed external extractors leave in place a PROCESSING_EXTERNALLY relation and an EXTRACTION_FAILURE.
-    // We delete the EXTRACTION_FAILUREs and replace the PROCESSING_EXTERNALLY relation with a new TODO
+    // this function can deal with multiple failure scenarios:
+    //  - Giant fails to send a message to the transcription service = 1 TODO to reset, 1 EXTRACTION_FAILED to delete
+    //  - the transcription service fails to transcribe the file = 1 TODO to create, 1 PROCESSING_EXTERNALLY to delete, 1 or more EXTRACTION_FAILED to delete
     tx.run(
       """
         |MATCH (blob :Blob:Resource {uri: {uri}})<-[failure :EXTRACTION_FAILURE]-(failedExtractor :Extractor {external: true})
@@ -1056,9 +1057,6 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
       val relationshipsDeleted = counters.relationshipsDeleted()
       val propertiesSet = counters.propertiesSet()
 
-      // this function can deal with multiple failure scenarios:
-      //  - Giant fails to send a message to the transcription service = 1 TODO to reset, 1 EXTRACTION_FAILED to delete
-      //  - the transcription service fails to transcribe the file = 1 TODO to create, 1 PROCESSING_EXTERNALLY to delete, 1 or more EXTRACTION_FAILED to delete
       if (relationshipsDeleted  < 1 || propertiesSet < 1 ) {
         Attempt.Left(IllegalStateFailure(
           s"When re-running failed external extractors for blob ${uri.value}, ${relationshipsDeleted} relations were deleted and ${propertiesSet} TODOs had their attempts reset to 0. We expected at least one EXTRACTION_FAILED relation to be deleted and one counter reset."
