@@ -1031,20 +1031,21 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
         |MATCH (blob :Blob:Resource {uri: {uri}})<-[failure :EXTRACTION_FAILURE]-(failedExtractor :Extractor {external: true})
         |DELETE failure
         |
-        |// we need DISTINCT because if there are multiple failures
-        |// we'll get the blob and failedExtractor duplicated
-        |WITH DISTINCT blob, failedExtractor
-        |// replace PROCESSING_EXTERNALLY with TODO
-        |MATCH (blob)<-[processing_externally :PROCESSING_EXTERNALLY]-(failedExtractor)
-        |MERGE (blob)<-[todo:TODO]-(failedExtractor)
-        |ON CREATE SET todo = processing_externally, todo.attempts = 0
-        |DELETE processing_externally
-        |
         |// if there is a TODO, reset attempts
         |WITH DISTINCT blob, failedExtractor
         |MATCH (blob)<-[todo :TODO]-(failedExtractor)
         |WHERE todo.attempts > 0
         |SET todo.attempts = 0
+        |
+        |// replace PROCESSING_EXTERNALLY with TODO
+        |// we need DISTINCT because if there are multiple failures
+        |// we'll get the blob and failedExtractor duplicated
+        |WITH DISTINCT blob, failedExtractor
+        |MATCH (blob)<-[processing_externally :PROCESSING_EXTERNALLY]-(failedExtractor)
+        |MERGE (blob)<-[todo:TODO]-(failedExtractor)
+        |ON CREATE SET todo = processing_externally, todo.attempts = 0
+        |DELETE processing_externally
+        |
         |""".stripMargin,
       parameters(
         "uri", uri.value
@@ -1055,13 +1056,16 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
       val relationshipsDeleted = counters.relationshipsDeleted()
       val propertiesSet = counters.propertiesSet()
 
-      if (relationshipsCreated != 1 || relationshipsDeleted  < 1 ) {
+      // this function can deal with multiple failure scenarios:
+      //  - Giant fails to send a message to the transcription service = 1 TODO to reset, 1 EXTRACTION_FAILED to delete
+      //  - the transcription service fails to transcribe the file = 1 TODO to create, 1 PROCESSING_EXTERNALLY to delete, 1 or more EXTRACTION_FAILED to delete
+      if (relationshipsDeleted  < 1 || propertiesSet < 1 ) {
         Attempt.Left(IllegalStateFailure(
-          s"When re-running failed external extractors for blob ${uri.value},ps :${propertiesSet} ${relationshipsCreated} TODO relations were created and ${relationshipsDeleted} relations deleted. Expected 1 TODO created and 2 relations deleted (1 PROCESSING_EXTERNALLY, 1 EXTRACTION_FAILURE)"
+          s"When re-running failed external extractors for blob ${uri.value}, ${relationshipsDeleted} relations were deleted and ${propertiesSet} TODOs had their attempts reset to 0. We expected at least one EXTRACTION_FAILED relation to be deleted and one counter reset."
         ))
-      } else {
+      }  else {
         logger.info(
-          s"When re-running failed external extractors for blob ${uri.value}, ${relationshipsCreated} relations created and ${relationshipsDeleted} relations deleted"
+          s"When re-running failed external extractors for blob ${uri.value}, ${relationshipsCreated} relations created, ${propertiesSet} properties set and ${relationshipsDeleted} relations deleted"
         )
         Attempt.Right(())
       }
