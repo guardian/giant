@@ -1023,7 +1023,7 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
   }
 
   override def rerunFailedExternalExtractorsForBlob(uri: Uri): Attempt[Unit] = attemptTransaction { tx =>
-    // Re-run extractors that failed.
+    // Re-run external extractors that failed.
     // this function can deal with multiple failure scenarios:
     //  - Giant fails to send a message to the transcription service = 1 TODO to reset, 1 EXTRACTION_FAILED to delete
     //  - the transcription service fails to transcribe the file = 1 TODO to create, 1 PROCESSING_EXTERNALLY to delete, 1 or more EXTRACTION_FAILED to delete
