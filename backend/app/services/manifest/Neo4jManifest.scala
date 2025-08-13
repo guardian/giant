@@ -1026,7 +1026,6 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
   def resetExternalExtractorTodoAttemptsForBlob(uri: Uri, tx: AttemptWrappedTransaction): Attempt[Unit] =  {
     tx.run(
       """
-        |WITH DISTINCT blob, extractor
         |MATCH (blob :Blob:Resource {uri: {uri}})<-[todo :TODO]-(extractor :Extractor {external: true})
         |WHERE todo.attempts > 0
         |SET todo.attempts = 0
@@ -1046,7 +1045,6 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
   def replaceProcessingExternallyWithTodosForBlob(uri: Uri, tx: AttemptWrappedTransaction): Attempt[Unit] =  {
     tx.run(
       """
-        |WITH DISTINCT blob, extractor
         |MATCH (blob :Blob:Resource {uri: {uri}})<-[processing_externally :PROCESSING_EXTERNALLY]-(extractor :Extractor {external: true})
         |MERGE (blob)<-[todo:TODO]-(extractor)
         |ON CREATE SET todo = processing_externally, todo.attempts = 0)
