@@ -1061,7 +1061,7 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
       // (1 property if there is a TODO, more if there's a PROCESSING_EXTERNALLY relation to replace with a TODO)
       if (relationshipsDeleted != 0 && propertiesSet < 1 ) {
         Attempt.Left(IllegalStateFailure(
-          s"When re-running failed external extractors for blob ${uri.value}, ${relationshipsDeleted} relations were deleted and ${propertiesSet} TODOs had their attempts reset to 0. We expected at least one EXTRACTION_FAILED relation to be deleted and one counter reset."
+          s"When re-running failed external extractors for blob ${uri.value}, ${relationshipsDeleted} relations were deleted and ${propertiesSet} properties were set. Where an EXTRACTION_FAILED relation to an external extractor exists, we expect at least one relation to be deleted and one counter reset."
         ))
       }  else {
         logger.info(
