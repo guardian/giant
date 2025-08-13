@@ -1023,10 +1023,11 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
   }
 
   // Reset TODO attempts property for all TODO relations between the blob and an external extractor
-  def resetExternalExtractorTodoAttemptsForBlob(uri: Uri, tx: AttemptWrappedTransaction): Attempt[Unit] =  {
+  private def resetExternalExtractorTodoAttemptsForBlob(uri: Uri, tx: AttemptWrappedTransaction): Attempt[Unit] =  {
     tx.run(
       """
-        |MATCH (blob :Blob:Resource {uri: {uri}})<-[todo :TODO]-(extractor :Extractor {external: true})
+        |MATCH (blob :Blob:Resource {uri: {uri}})<-[failure :EXTRACTION_FAILURE]-(failedExtractor :Extractor {external: true})
+        |MATCH (blob)<-[todo :TODO]-(failedExtractor)
         |WHERE todo.attempts > 0
         |SET todo.attempts = 0
        """.stripMargin,
@@ -1042,10 +1043,11 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
   }
 
   // Replace all PROCESSING_EXTERNALLY relations between the blob and an external extractor with a single TODO
-  def replaceProcessingExternallyWithTodosForBlob(uri: Uri, tx: AttemptWrappedTransaction): Attempt[Unit] =  {
+  private def replaceProcessingExternallyWithTodosForBlob(uri: Uri, tx: AttemptWrappedTransaction): Attempt[Unit] =  {
     tx.run(
       """
-        |MATCH (blob :Blob:Resource {uri: {uri}})<-[processing_externally :PROCESSING_EXTERNALLY]-(extractor :Extractor {external: true})
+        |MATCH (blob :Blob:Resource {uri: {uri}})<-[failure :EXTRACTION_FAILURE]-(failedExtractor :Extractor {external: true})
+        |MATCH (blob)<-[processing_externally :PROCESSING_EXTERNALLY]-(failedExtractor)
         |MERGE (blob)<-[todo:TODO]-(extractor)
         |ON CREATE SET todo = processing_externally, todo.attempts = 0
         |DELETE processing_externally
@@ -1070,7 +1072,7 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
     })
   }
 
-  def deleteExternalExtractorFailuresForBlob(uri: Uri, tx: AttemptWrappedTransaction): Attempt[Unit] =  {
+  private def deleteExternalExtractorFailuresForBlob(uri: Uri, tx: AttemptWrappedTransaction): Attempt[Int] =  {
     tx.run(
       """
         |MATCH (blob :Blob:Resource {uri: {uri}})<-[failure :EXTRACTION_FAILURE]-(failedExtractor :Extractor {external: true})
@@ -1083,11 +1085,8 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
       val counters = result.summary().counters()
       val relationshipsDeleted = counters.relationshipsDeleted()
 
-      if (relationshipsDeleted > 0) {
-        logger.info(s"Deleted ${relationshipsDeleted} EXTRACTION_FAILURE relations for blob ${uri.value}")
-      }
-
-      Attempt.Right(())
+      logger.info(s"Deleted ${relationshipsDeleted} EXTRACTION_FAILURE relations for blob ${uri.value}")
+      Attempt.Right(relationshipsDeleted)
     })
   }
 
