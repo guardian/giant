@@ -1022,32 +1022,36 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
     })
   }
 
-  override def rerunFailedExternalExtractorsForBlob(uri: Uri): Attempt[Unit] = attemptTransaction { tx =>
-    // Re-run external extractors that failed.
-    // this function can deal with multiple failure scenarios:
-    //  - Giant fails to send a message to the transcription service = 1 TODO to reset, 1 EXTRACTION_FAILED to delete
-    //  - the transcription service fails to transcribe the file = 1 TODO to create, 1 PROCESSING_EXTERNALLY to delete, 1 or more EXTRACTION_FAILED to delete
+  // Reset TODO attempts property for all TODO relations between the blob and an external extractor
+  private def resetExternalExtractorTodoAttemptsForBlob(uri: Uri, tx: AttemptWrappedTransaction): Attempt[Unit] =  {
     tx.run(
       """
         |MATCH (blob :Blob:Resource {uri: {uri}})<-[failure :EXTRACTION_FAILURE]-(failedExtractor :Extractor {external: true})
-        |DELETE failure
-        |
-        |// if there is a TODO, reset attempts
-        |WITH DISTINCT blob, failedExtractor
         |MATCH (blob)<-[todo :TODO]-(failedExtractor)
         |WHERE todo.attempts > 0
         |SET todo.attempts = 0
-        |
-        |// replace PROCESSING_EXTERNALLY with TODO
-        |// we need DISTINCT because if there are multiple failures
-        |// we'll get the blob and failedExtractor duplicated
-        |WITH DISTINCT blob, failedExtractor
+       """.stripMargin,
+      parameters(
+        "uri", uri.value
+    )
+    ).flatMap(result => {
+      val counters = result.summary().counters()
+      val propertiesSet = counters.propertiesSet()
+      logger.info(s"When resetting TODO attempts for blob ${uri.value}, ${propertiesSet} properties were set")
+      Attempt.Right(())
+    })
+  }
+
+  // Replace all PROCESSING_EXTERNALLY relations between the blob and an external extractor with a single TODO
+  private def replaceProcessingExternallyWithTodosForBlob(uri: Uri, tx: AttemptWrappedTransaction): Attempt[Unit] =  {
+    tx.run(
+      """
+        |MATCH (blob :Blob:Resource {uri: {uri}})<-[failure :EXTRACTION_FAILURE]-(failedExtractor :Extractor {external: true})
         |MATCH (blob)<-[processing_externally :PROCESSING_EXTERNALLY]-(failedExtractor)
         |MERGE (blob)<-[todo:TODO]-(failedExtractor)
         |ON CREATE SET todo = processing_externally, todo.attempts = 0
         |DELETE processing_externally
-        |
-        |""".stripMargin,
+      """.stripMargin,
       parameters(
         "uri", uri.value
       )
@@ -1055,21 +1059,50 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
       val counters = result.summary().counters()
       val relationshipsCreated = counters.relationshipsCreated()
       val relationshipsDeleted = counters.relationshipsDeleted()
-      val propertiesSet = counters.propertiesSet()
-
-      // if the blob has an EXTRACTION_FAILURE relation then that will be deleted and we expect to set at least one property
-      // (1 property if there is a TODO, more if there's a PROCESSING_EXTERNALLY relation to replace with a TODO)
-      if (relationshipsDeleted != 0 && propertiesSet < 1 ) {
+      if (relationshipsDeleted > 0 && relationshipsCreated != 1) {
         Attempt.Left(IllegalStateFailure(
-          s"When re-running failed external extractors for blob ${uri.value}, ${relationshipsDeleted} relations were deleted and ${propertiesSet} properties were set. Where an EXTRACTION_FAILED relation to an external extractor exists, we expect at least one relation to be deleted and one counter reset."
+          s"When replacing PROCESSING_EXTERNALLY with TODO for blob ${uri.value}, ${relationshipsDeleted} relations were deleted and ${relationshipsCreated} TODOs created. We expect exactly 1 TODO to be created."
         ))
-      }  else {
+      } else {
         logger.info(
-          s"When re-running failed external extractors for blob ${uri.value}, ${relationshipsCreated} relations created, ${propertiesSet} properties set and ${relationshipsDeleted} relations deleted"
+          s"When replacing PROCESSING_EXTERNALLY with TODO for blob ${uri.value}, ${relationshipsCreated} relations created and ${relationshipsDeleted} relations deleted"
         )
         Attempt.Right(())
       }
     })
+  }
+
+  private def deleteExternalExtractorFailuresForBlob(uri: Uri, tx: AttemptWrappedTransaction): Attempt[Int] =  {
+    tx.run(
+      """
+        |MATCH (blob :Blob:Resource {uri: {uri}})<-[failure :EXTRACTION_FAILURE]-(failedExtractor :Extractor {external: true})
+        |DELETE failure
+      """.stripMargin,
+      parameters(
+        "uri", uri.value
+      )
+    ).flatMap(result => {
+      val counters = result.summary().counters()
+      val relationshipsDeleted = counters.relationshipsDeleted()
+
+      logger.info(s"Deleted ${relationshipsDeleted} EXTRACTION_FAILURE relations for blob ${uri.value}")
+      Attempt.Right(relationshipsDeleted)
+    })
+  }
+
+  // Re-run external extractors that failed.
+  // this function can deal with multiple failure scenarios:
+  //  - Giant fails to send a message to the transcription service = 1 TODO to reset, 1 EXTRACTION_FAILED to delete
+  //  - the transcription service fails to transcribe the file = 1 TODO to create, 1 PROCESSING_EXTERNALLY to delete, 1 or more EXTRACTION_FAILED to delete
+  override def rerunFailedExternalExtractorsForBlob(uri: Uri): Attempt[Unit] = attemptTransaction { tx =>
+    for {
+      // Reset TODO attempts property for all TODO relations between the blob and an external extractor
+      _ <- resetExternalExtractorTodoAttemptsForBlob(uri, tx)
+      // Replace all PROCESSING_EXTERNALLY relations between the blob and an external extractor with a single TODO
+      _ <- replaceProcessingExternallyWithTodosForBlob(uri, tx)
+      // clean up EXTRACTION_FAILURE relations
+      _ <- deleteExternalExtractorFailuresForBlob(uri, tx)
+    } yield ()
   }
 
   override def getBlob(uri: Uri): Either[Failure, Blob] = transaction { tx =>
