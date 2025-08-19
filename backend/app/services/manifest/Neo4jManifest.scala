@@ -1048,7 +1048,7 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
       """
         |MATCH (blob :Blob:Resource {uri: {uri}})<-[failure :EXTRACTION_FAILURE]-(failedExtractor :Extractor {external: true})
         |MATCH (blob)<-[processing_externally :PROCESSING_EXTERNALLY]-(failedExtractor)
-        |MERGE (blob)<-[todo:TODO]-(extractor)
+        |MERGE (blob)<-[todo:TODO]-(failedExtractor)
         |ON CREATE SET todo = processing_externally, todo.attempts = 0
         |DELETE processing_externally
       """.stripMargin,
