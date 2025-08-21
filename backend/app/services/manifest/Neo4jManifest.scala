@@ -570,40 +570,61 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
   override def markExternalAsComplete(uri: String, extractorName: String): Either[Failure, Unit] = transaction { tx =>
 
     logger.info(s"Marking ${uri} / ${extractorName} as complete")
-    val result = tx.run(
-      s"""
-         |MATCH (b :Blob:Resource {uri: {uri}})<-[processing:PROCESSING_EXTERNALLY]-(e: Extractor {name: {extractorName}})
-         |
-         |MERGE (b)<-[processed:PROCESSED {
-         |  ingestion: processing.ingestion,
-         |  parentBlobs: processing.parentBlobs,
-         |  languages: processing.languages
-         |  }]-(e)
-         |
-         |FOREACH (_ IN CASE WHEN exists(processing.workspaceId) THEN [1] ELSE [] END |
-         |  SET processed.workspaceId = processing.workspaceId
-         |)
-         |FOREACH (_ IN CASE WHEN exists(processing.workspaceBlobUri) THEN [1] ELSE [] END |
-         |  SET processed.workspaceBlobUri = processing.workspaceBlobUri
-         |)
-         |FOREACH (_ IN CASE WHEN exists(processing.workspaceNodeId) THEN [1] ELSE [] END |
-         |  SET processed.workspaceNodeId = processing.workspaceNodeId
-         |)
-         |DELETE processing
-         |""".stripMargin,
+
+    // First check if already processed
+    val existingProcessed = tx.run(
+      """
+        |MATCH (b :Blob:Resource {uri: {uri}})<-[processed:PROCESSED]-(e: Extractor {name: {extractorName}})
+        |RETURN count(processed) as count
+        |""".stripMargin,
       parameters(
         "uri", uri,
-        "extractorName", extractorName,
+        "extractorName", extractorName
       )
     )
 
-    val counters = result.summary().counters()
+    val processedCount = existingProcessed.single().get("count").asInt()
 
-    if (counters.relationshipsCreated() != 1 || counters.relationshipsDeleted() != 1) {
-      Left(IllegalStateFailure(s"Unexpected number of creates/deletes in markAsComplete. Created: ${counters.relationshipsCreated()}. Deleted: ${counters.relationshipsDeleted()}"))
-    } else {
+    if (processedCount > 0) {
+      logger.info(s"There is already a processed relation between blob ${uri} and extractor ${extractorName}. Doing nothing.")
       Right(())
+    } else {
+      val result = tx.run(
+        s"""
+           |MATCH (b :Blob:Resource {uri: {uri}})<-[processing:PROCESSING_EXTERNALLY]-(e: Extractor {name: {extractorName}})
+           |
+           |MERGE (b)<-[processed:PROCESSED {
+           |  ingestion: processing.ingestion,
+           |  parentBlobs: processing.parentBlobs,
+           |  languages: processing.languages
+           |  }]-(e)
+           |
+           |FOREACH (_ IN CASE WHEN exists(processing.workspaceId) THEN [1] ELSE [] END |
+           |  SET processed.workspaceId = processing.workspaceId
+           |)
+           |FOREACH (_ IN CASE WHEN exists(processing.workspaceBlobUri) THEN [1] ELSE [] END |
+           |  SET processed.workspaceBlobUri = processing.workspaceBlobUri
+           |)
+           |FOREACH (_ IN CASE WHEN exists(processing.workspaceNodeId) THEN [1] ELSE [] END |
+           |  SET processed.workspaceNodeId = processing.workspaceNodeId
+           |)
+           |DELETE processing
+           |""".stripMargin,
+        parameters(
+          "uri", uri,
+          "extractorName", extractorName,
+        )
+      )
+
+      val counters = result.summary().counters()
+
+      if (counters.relationshipsCreated() != 1 || counters.relationshipsDeleted() != 1) {
+        Left(IllegalStateFailure(s"Unexpected number of creates/deletes in markAsComplete. Created: ${counters.relationshipsCreated()}. Deleted: ${counters.relationshipsDeleted()}"))
+      } else {
+        Right(())
+      }
     }
+
   }
 
   override def markAsComplete(params: ExtractionParams, blob: Blob, extractor: Extractor): Either[Failure, Unit] = transaction { tx =>

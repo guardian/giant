@@ -143,6 +143,7 @@ class ExternalTranscriptionWorker(manifest: WorkerManifest, amazonSQSClient: Ama
         Left(ExternalTranscriptionOutputFailure.apply(s"External transcription service failed to transcribe the file ${output.originalFilename}"))
 
       case JsError(errors) =>
+        logger.error(s"Failed to parse transcription output message: ${message.getBody}, errors: ${errors.mkString(", ")}")
         Left(JsonParseFailure(errors))
     }
   }
