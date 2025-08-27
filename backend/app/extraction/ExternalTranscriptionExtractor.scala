@@ -34,19 +34,16 @@ object OutputBucketKeys {
   implicit val formats = Json.format[OutputBucketKeys]
 }
 object TranscriptionJob {
+  implicit val combinedOutputUrlFormat = Json.format[CombinedOutputUrl]
   implicit val formats = Json.format[TranscriptionJob]
 }
 
 case class TranscriptionMetadata(detectedLanguageCode: String)
 case class Transcripts(srt: String, text: String, json: String)
 case class TranscriptionResult(transcripts: Transcripts, transcriptTranslations: Option[Transcripts], metadata: TranscriptionMetadata)
-object TranscriptionMetadata {
-  implicit val formats = Json.format[TranscriptionMetadata]
-}
-object Transcripts {
-  implicit val formats = Json.format[Transcripts]
-}
 object TranscriptionResult {
+  implicit val metadataFormat = Json.format[TranscriptionMetadata]
+  implicit val transcriptsFormat = Json.format[Transcripts]
   implicit val formats = Json.format[TranscriptionResult]
 }
 

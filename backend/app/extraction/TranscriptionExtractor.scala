@@ -53,7 +53,7 @@ class TranscriptionExtractor(index: Index, scratchSpace: ScratchSpace, transcrib
 
     val result = Either.catchNonFatal{
       val convertedFile = FfMpeg.convertToWav(file.toPath, ffMpegTmpDir)
-      val transcriptResult: TranscriptionResult = Whisper.invokeWhisper(convertedFile, transcribeConfig, tmpDir, stdErrLogger, translate = false)
+      val transcriptResult: WhisperResult = Whisper.invokeWhisper(convertedFile, transcribeConfig, tmpDir, stdErrLogger, translate = false)
       val translationResult = if (transcriptResult.language != "en") Some(Whisper.invokeWhisper(convertedFile, transcribeConfig, tmpDir, stdErrLogger, translate = true)) else None
 
       index.addDocumentTranscription(blob.uri, transcriptResult.text, translationResult.map(r => r.text), Languages.getByIso6391Code(transcriptResult.language)
