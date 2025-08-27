@@ -11,6 +11,8 @@ import services.{ObjectStorage, TranscribeConfig}
 import utils.Logging
 import utils.attempt.{DocumentUpdateFailure, ExternalTranscriptionOutputFailure, Failure, JsonParseFailure}
 
+import java.io.ByteArrayInputStream
+import java.util.zip.GZIPInputStream
 import java.nio.charset.StandardCharsets
 import scala.concurrent.ExecutionContext
 import scala.jdk.CollectionConverters.CollectionHasAsScala
@@ -81,11 +83,20 @@ class ExternalTranscriptionWorker(manifest: WorkerManifest, amazonSQSClient: Ama
     }
   }
 
+  private def gunzip (data: Array[Byte]): String = {
+    val byteStream = new ByteArrayInputStream(data)
+    val gzipStream = new GZIPInputStream(byteStream)
+    val decompressedData = gzipStream.readAllBytes()
+    gzipStream.close()
+    new String(decompressedData, StandardCharsets.UTF_8)
+  }
+
   private def getTranscripts(transcriptionOutput: TranscriptionOutputSuccess): Either[Failure, TranscriptionResult] = {
     val combinedTranscripts = blobStorage.get(transcriptionOutput.combinedOutputKey)
 
     combinedTranscripts.flatMap { transcriptStream =>
-      val combinedTranscriptsText = new String(transcriptStream.readAllBytes(), StandardCharsets.UTF_8)
+      val allBytes = transcriptStream.readAllBytes()
+      val combinedTranscriptsText = gunzip(allBytes)
       val parsedTranscripts = Json.fromJson[TranscriptionResult](Json.parse(combinedTranscriptsText))
 
       parsedTranscripts.asEither.leftMap { errors =>
