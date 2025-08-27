@@ -36,6 +36,19 @@ object TranscriptionJob {
   implicit val formats = Json.format[TranscriptionJob]
 }
 
+case class TranscriptionMetadata(detectedLanguageCode: String)
+case class Transcripts(srt: String, text: String, json: String)
+case class TranscriptionResult(transcripts: Transcripts, transcriptTranslations: Option[Transcripts], metadata: TranscriptionMetadata)
+object TranscriptionMetadata {
+  implicit val formats = Json.format[TranscriptionMetadata]
+}
+object Transcripts {
+  implicit val formats = Json.format[Transcripts]
+}
+object TranscriptionResult {
+  implicit val formats = Json.format[TranscriptionResult]
+}
+
 sealed trait TranscriptionOutput {
   def id: String
   def originalFilename: String
@@ -52,6 +65,7 @@ case class TranscriptionOutputSuccess(
                                           status: String = "SUCCESS",
                                           languageCode: String,
                                           outputBucketKeys: OutputBucketKeys,
+                                          combinedOutputKey: String,
                                           translationOutputBucketKeys: Option[OutputBucketKeys]
                                         ) extends TranscriptionOutput
 

@@ -56,8 +56,8 @@ class ExternalTranscriptionWorker(manifest: WorkerManifest, amazonSQSClient: Ama
   private def handleMessage(message: Message, messageAttributes: TranscriptionMessageAttribute, completed: Int) = {
     val result = for {
       transcriptionOutput <- parseMessage(message)
-      transcriptionTexts <- getTranscriptionTexts(transcriptionOutput)
-      _ <- addDocumentTranscription(transcriptionOutput, transcriptionTexts.transcript, transcriptionTexts.translation)
+      transcripts <- getTranscripts(transcriptionOutput)
+      _ <- addDocumentTranscription(transcriptionOutput, transcripts.transcripts.text, transcripts.transcriptTranslations.map(_.text))
       _ <- markExternalExtractorAsComplete(transcriptionOutput.id, EXTRACTOR_NAME)
     } yield {
       amazonSQSClient.deleteMessage(
@@ -82,20 +82,15 @@ class ExternalTranscriptionWorker(manifest: WorkerManifest, amazonSQSClient: Ama
     }
   }
 
-  private def getTranscriptionTexts(transcriptionOutput: TranscriptionOutputSuccess): Either[Failure, TranscriptionTexts] = {
-    val transcript = blobStorage.get(transcriptionOutput.outputBucketKeys.text)
+  private def getTranscripts(transcriptionOutput: TranscriptionOutputSuccess): Either[Failure, TranscriptionResult] = {
+    val combinedTranscripts = blobStorage.get(transcriptionOutput.combinedOutputKey)
 
-    transcript.flatMap { transcriptStream =>
-      val transcriptText = new String(transcriptStream.readAllBytes(), StandardCharsets.UTF_8)
+    combinedTranscripts.flatMap { transcriptStream =>
+      val combinedTranscriptsText = new String(transcriptStream.readAllBytes(), StandardCharsets.UTF_8)
+      val parsedTranscripts = Json.fromJson[TranscriptionResult](Json.parse(combinedTranscriptsText))
 
-      transcriptionOutput.translationOutputBucketKeys match {
-        case Some(keys) =>
-          val translation = blobStorage.get(keys.text)
-          translation.map { translationStream =>
-            val text = new String(translationStream.readAllBytes(), StandardCharsets.UTF_8)
-            TranscriptionTexts(transcriptText, Some(text))
-          }
-        case None => Right(TranscriptionTexts(transcriptText, None))
+      parsedTranscripts.asEither.leftMap { errors =>
+        JsonParseFailure(errors)
       }
     }
   }
