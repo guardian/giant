@@ -17,7 +17,6 @@ import scala.jdk.CollectionConverters.CollectionHasAsScala
 import scala.util.Try
 
 case class TranscriptionMessageAttribute(receiveCount: Int, messageGroupId: String)
-case class TranscriptionTexts(transcript: String, translation: Option[String])
 
 class ExternalTranscriptionWorker(manifest: WorkerManifest, amazonSQSClient: AmazonSQS, transcribeConfig: TranscribeConfig, blobStorage: ObjectStorage, index: Index)(implicit executionContext: ExecutionContext)  extends Logging{
 

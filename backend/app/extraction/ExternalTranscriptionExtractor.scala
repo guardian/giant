@@ -21,10 +21,11 @@ object SignedUrl {
 }
 case class OutputBucketUrls(text: SignedUrl, srt: SignedUrl, json: SignedUrl)
 case class OutputBucketKeys(text: String, srt: String, json: String)
+case class CombinedOutputUrl(url: String, key: String)
 case class TranscriptionJob(id: String, originalFilename: String, inputSignedUrl: String, sentTimestamp: String,
                             userEmail: String, transcriptDestinationService: String, outputBucketUrls: OutputBucketUrls,
-                            languageCode: String, translate: Boolean, translationOutputBucketUrls: OutputBucketUrls,
-                            diarize: Boolean = false, engine: String = "whispercpp")
+                            combinedOutputUrl: CombinedOutputUrl, languageCode: String, translate: Boolean,
+                            translationOutputBucketUrls: OutputBucketUrls, diarize: Boolean = false, engine: String = "whispercpp")
 object OutputBucketUrls {
   implicit val formats = Json.format[OutputBucketUrls]
 }
@@ -154,13 +155,25 @@ class ExternalTranscriptionExtractor(index: Index, transcribeConfig: TranscribeC
   }
 
   override def triggerExtraction(blob: Blob, params: ExtractionParams): Either[Failure, Unit] = {
+    val combinedOutputKey = s"combined/${blob.uri.value}.json"
     val transcriptionJob =  for {
       downloadSignedUrl <- transcriptionStorage.getSignedUrl (blob.uri.toStoragePath)
       transcriptsOutputSignedUrls <- getOutputBucketUrls(blob.uri.value)
+      combinedOutputUrl <- outputStorage.getUploadSignedUrl(combinedOutputKey)
       translationOutputSignedUrls <- getOutputBucketUrls(s"${blob.uri.value}-translation")
     } yield {
-      TranscriptionJob(blob.uri.value, blob.uri.value, downloadSignedUrl, DateTime.now().toString, "giant", "Giant",
-        transcriptsOutputSignedUrls, "auto", true, translationOutputSignedUrls)
+      TranscriptionJob(
+        id = blob.uri.value,
+        originalFilename = blob.uri.value,
+        inputSignedUrl = downloadSignedUrl,
+        sentTimestamp = DateTime.now().toString,
+        userEmail = "giant",
+        transcriptDestinationService = "Giant",
+        outputBucketUrls = transcriptsOutputSignedUrls,
+        combinedOutputUrl = CombinedOutputUrl(url = combinedOutputUrl,key = combinedOutputKey),
+        languageCode = "auto",
+        translate = true,
+        translationOutputBucketUrls = translationOutputSignedUrls)
     }
 
     transcriptionJob.flatMap {
