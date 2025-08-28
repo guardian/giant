@@ -14,8 +14,9 @@ import java.util.UUID
 import scala.concurrent.ExecutionContext
 import scala.jdk.CollectionConverters.MapHasAsJava
 
+// NOTE: these types need to be kept in sync with the corresponding types in the transcription service:
+// https://github.com/guardian/transcription-service/blob/main/packages/common/src/types.ts
 case class SignedUrl(url: String, key: String)
-
 object SignedUrl {
   implicit val formats = Json.format[SignedUrl]
 }
@@ -37,7 +38,6 @@ object TranscriptionJob {
   implicit val combinedOutputUrlFormat = Json.format[CombinedOutputUrl]
   implicit val formats = Json.format[TranscriptionJob]
 }
-
 case class TranscriptionMetadata(detectedLanguageCode: String)
 case class Transcripts(srt: String, text: String, json: String)
 case class TranscriptionResult(transcripts: Transcripts, transcriptTranslations: Option[Transcripts], metadata: TranscriptionMetadata)
