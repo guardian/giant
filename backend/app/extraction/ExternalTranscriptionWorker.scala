@@ -16,7 +16,7 @@ import java.util.zip.GZIPInputStream
 import java.nio.charset.StandardCharsets
 import scala.concurrent.ExecutionContext
 import scala.jdk.CollectionConverters.CollectionHasAsScala
-import scala.util.Try
+import scala.util.{Try, Using}
 
 case class TranscriptionMessageAttribute(receiveCount: Int, messageGroupId: String)
 
@@ -83,12 +83,13 @@ class ExternalTranscriptionWorker(manifest: WorkerManifest, amazonSQSClient: Ama
     }
   }
 
-  private def gunzip (data: Array[Byte]): String = {
-    val byteStream = new ByteArrayInputStream(data)
-    val gzipStream = new GZIPInputStream(byteStream)
-    val decompressedData = gzipStream.readAllBytes()
-    gzipStream.close()
-    new String(decompressedData, StandardCharsets.UTF_8)
+  private def unzipBytes (data: Array[Byte]): String = {
+    Using.resource(new ByteArrayInputStream(data)){ byteStream =>
+      Using.resource(new GZIPInputStream(byteStream)) { gzipStream =>
+        val decompressedData = gzipStream.readAllBytes()
+        new String(decompressedData, StandardCharsets.UTF_8)
+      }
+    }
   }
 
   private def getTranscripts(transcriptionOutput: TranscriptionOutputSuccess): Either[Failure, TranscriptionResult] = {
@@ -96,7 +97,8 @@ class ExternalTranscriptionWorker(manifest: WorkerManifest, amazonSQSClient: Ama
 
     combinedTranscripts.flatMap { transcriptStream =>
       val allBytes = transcriptStream.readAllBytes()
-      val combinedTranscriptsText = gunzip(allBytes)
+      // combined transcript file is gzipped, so we have to unzip it
+      val combinedTranscriptsText = unzipBytes(allBytes)
       val parsedTranscripts = Json.fromJson[TranscriptionResult](Json.parse(combinedTranscriptsText))
 
       parsedTranscripts.asEither.leftMap { errors =>
