@@ -11,13 +11,14 @@ import services.{ObjectStorage, TranscribeConfig}
 import utils.Logging
 import utils.attempt.{DocumentUpdateFailure, ExternalTranscriptionOutputFailure, Failure, JsonParseFailure}
 
+import java.io.ByteArrayInputStream
+import java.util.zip.GZIPInputStream
 import java.nio.charset.StandardCharsets
 import scala.concurrent.ExecutionContext
 import scala.jdk.CollectionConverters.CollectionHasAsScala
-import scala.util.Try
+import scala.util.{Try, Using}
 
 case class TranscriptionMessageAttribute(receiveCount: Int, messageGroupId: String)
-case class TranscriptionTexts(transcript: String, translation: Option[String])
 
 class ExternalTranscriptionWorker(manifest: WorkerManifest, amazonSQSClient: AmazonSQS, transcribeConfig: TranscribeConfig, blobStorage: ObjectStorage, index: Index)(implicit executionContext: ExecutionContext)  extends Logging{
 
@@ -56,8 +57,8 @@ class ExternalTranscriptionWorker(manifest: WorkerManifest, amazonSQSClient: Ama
   private def handleMessage(message: Message, messageAttributes: TranscriptionMessageAttribute, completed: Int) = {
     val result = for {
       transcriptionOutput <- parseMessage(message)
-      transcriptionTexts <- getTranscriptionTexts(transcriptionOutput)
-      _ <- addDocumentTranscription(transcriptionOutput, transcriptionTexts.transcript, transcriptionTexts.translation)
+      transcripts <- getTranscripts(transcriptionOutput)
+      _ <- addDocumentTranscription(transcriptionOutput, transcripts.transcripts.text, transcripts.transcriptTranslations.map(_.text))
       _ <- markExternalExtractorAsComplete(transcriptionOutput.id, EXTRACTOR_NAME)
     } yield {
       amazonSQSClient.deleteMessage(
@@ -82,20 +83,26 @@ class ExternalTranscriptionWorker(manifest: WorkerManifest, amazonSQSClient: Ama
     }
   }
 
-  private def getTranscriptionTexts(transcriptionOutput: TranscriptionOutputSuccess): Either[Failure, TranscriptionTexts] = {
-    val transcript = blobStorage.get(transcriptionOutput.outputBucketKeys.text)
+  private def unzipBytes (data: Array[Byte]): String = {
+    Using.resource(new ByteArrayInputStream(data)){ byteStream =>
+      Using.resource(new GZIPInputStream(byteStream)) { gzipStream =>
+        val decompressedData = gzipStream.readAllBytes()
+        new String(decompressedData, StandardCharsets.UTF_8)
+      }
+    }
+  }
 
-    transcript.flatMap { transcriptStream =>
-      val transcriptText = new String(transcriptStream.readAllBytes(), StandardCharsets.UTF_8)
+  private def getTranscripts(transcriptionOutput: TranscriptionOutputSuccess): Either[Failure, TranscriptionResult] = {
+    val combinedTranscripts = blobStorage.get(transcriptionOutput.combinedOutputKey)
 
-      transcriptionOutput.translationOutputBucketKeys match {
-        case Some(keys) =>
-          val translation = blobStorage.get(keys.text)
-          translation.map { translationStream =>
-            val text = new String(translationStream.readAllBytes(), StandardCharsets.UTF_8)
-            TranscriptionTexts(transcriptText, Some(text))
-          }
-        case None => Right(TranscriptionTexts(transcriptText, None))
+    combinedTranscripts.flatMap { transcriptStream =>
+      val allBytes = transcriptStream.readAllBytes()
+      // combined transcript file is gzipped, so we have to unzip it
+      val combinedTranscriptsText = unzipBytes(allBytes)
+      val parsedTranscripts = Json.fromJson[TranscriptionResult](Json.parse(combinedTranscriptsText))
+
+      parsedTranscripts.asEither.leftMap { errors =>
+        JsonParseFailure(errors)
       }
     }
   }

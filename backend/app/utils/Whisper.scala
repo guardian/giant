@@ -6,7 +6,7 @@ import java.nio.file.Path
 import scala.io.Source
 import scala.sys.process._
 
-case class TranscriptionResult(text: String, language: String)
+case class WhisperResult(text: String, language: String)
 
 object Whisper extends Logging {
   private class WhisperSubprocessCrashedException(exitCode: Int, stderr: String) extends Exception(s"Exit code: $exitCode: ${stderr}")
@@ -21,7 +21,7 @@ object Whisper extends Logging {
     outputText
   }
 
-  def invokeWhisper(audioFilePath: Path, config: TranscribeConfig, tmpDir: Path, whisperLogger: BasicStdErrLogger, translate: Boolean): TranscriptionResult = {
+  def invokeWhisper(audioFilePath: Path, config: TranscribeConfig, tmpDir: Path, whisperLogger: BasicStdErrLogger, translate: Boolean): WhisperResult = {
     val tempFile = tmpDir.resolve(s"${audioFilePath.getFileName}")
 
     val translateParam = if(translate) "--translate" else ""
@@ -34,10 +34,10 @@ object Whisper extends Logging {
         val languageSplit = whisperLogger.getOutput.split("auto-detected language: ")
         if (languageSplit.length > 1) {
           val detectedLanguage = if (translate) "en" else languageSplit(1).slice(0,2).mkString("")
-          TranscriptionResult(transcriptText, detectedLanguage)
+          WhisperResult(transcriptText, detectedLanguage)
         } else {
           logger.warn("Failed to detect language - transcription may have failed. Falling back to english.")
-          TranscriptionResult(transcriptText, "en")
+          WhisperResult(transcriptText, "en")
         }
       case _ =>
         logger.error("Whisper extraction failed")

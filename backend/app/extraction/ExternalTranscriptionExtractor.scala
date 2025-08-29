@@ -14,17 +14,19 @@ import java.util.UUID
 import scala.concurrent.ExecutionContext
 import scala.jdk.CollectionConverters.MapHasAsJava
 
+// NOTE: these types need to be kept in sync with the corresponding types in the transcription service:
+// https://github.com/guardian/transcription-service/blob/main/packages/common/src/types.ts
 case class SignedUrl(url: String, key: String)
-
 object SignedUrl {
   implicit val formats = Json.format[SignedUrl]
 }
 case class OutputBucketUrls(text: SignedUrl, srt: SignedUrl, json: SignedUrl)
 case class OutputBucketKeys(text: String, srt: String, json: String)
+case class CombinedOutputUrl(url: String, key: String)
 case class TranscriptionJob(id: String, originalFilename: String, inputSignedUrl: String, sentTimestamp: String,
                             userEmail: String, transcriptDestinationService: String, outputBucketUrls: OutputBucketUrls,
-                            languageCode: String, translate: Boolean, translationOutputBucketUrls: OutputBucketUrls,
-                            diarize: Boolean = false, engine: String = "whispercpp")
+                            combinedOutputUrl: CombinedOutputUrl, languageCode: String, translate: Boolean,
+                            translationOutputBucketUrls: OutputBucketUrls, diarize: Boolean = false, engine: String = "whispercpp")
 object OutputBucketUrls {
   implicit val formats = Json.format[OutputBucketUrls]
 }
@@ -33,7 +35,16 @@ object OutputBucketKeys {
   implicit val formats = Json.format[OutputBucketKeys]
 }
 object TranscriptionJob {
+  implicit val combinedOutputUrlFormat = Json.format[CombinedOutputUrl]
   implicit val formats = Json.format[TranscriptionJob]
+}
+case class TranscriptionMetadata(detectedLanguageCode: String)
+case class Transcripts(srt: String, text: String, json: String)
+case class TranscriptionResult(transcripts: Transcripts, transcriptTranslations: Option[Transcripts], metadata: TranscriptionMetadata)
+object TranscriptionResult {
+  implicit val metadataFormat = Json.format[TranscriptionMetadata]
+  implicit val transcriptsFormat = Json.format[Transcripts]
+  implicit val formats = Json.format[TranscriptionResult]
 }
 
 sealed trait TranscriptionOutput {
@@ -52,6 +63,7 @@ case class TranscriptionOutputSuccess(
                                           status: String = "SUCCESS",
                                           languageCode: String,
                                           outputBucketKeys: OutputBucketKeys,
+                                          combinedOutputKey: String,
                                           translationOutputBucketKeys: Option[OutputBucketKeys]
                                         ) extends TranscriptionOutput
 
@@ -140,13 +152,25 @@ class ExternalTranscriptionExtractor(index: Index, transcribeConfig: TranscribeC
   }
 
   override def triggerExtraction(blob: Blob, params: ExtractionParams): Either[Failure, Unit] = {
+    val combinedOutputKey = s"combined/${blob.uri.value}.json"
     val transcriptionJob =  for {
       downloadSignedUrl <- transcriptionStorage.getSignedUrl (blob.uri.toStoragePath)
       transcriptsOutputSignedUrls <- getOutputBucketUrls(blob.uri.value)
+      combinedOutputUrl <- outputStorage.getUploadSignedUrl(combinedOutputKey)
       translationOutputSignedUrls <- getOutputBucketUrls(s"${blob.uri.value}-translation")
     } yield {
-      TranscriptionJob(blob.uri.value, blob.uri.value, downloadSignedUrl, DateTime.now().toString, "giant", "Giant",
-        transcriptsOutputSignedUrls, "auto", true, translationOutputSignedUrls)
+      TranscriptionJob(
+        id = blob.uri.value,
+        originalFilename = blob.uri.value,
+        inputSignedUrl = downloadSignedUrl,
+        sentTimestamp = DateTime.now().toString,
+        userEmail = "giant",
+        transcriptDestinationService = "Giant",
+        outputBucketUrls = transcriptsOutputSignedUrls,
+        combinedOutputUrl = CombinedOutputUrl(url = combinedOutputUrl,key = combinedOutputKey),
+        languageCode = "auto",
+        translate = true,
+        translationOutputBucketUrls = translationOutputSignedUrls)
     }
 
     transcriptionJob.flatMap {
