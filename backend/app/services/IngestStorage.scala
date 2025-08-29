@@ -3,9 +3,11 @@ package services
 import java.io.InputStream
 import java.util.UUID
 import cats.syntax.either._
+import com.amazonaws.HttpMethod
 import com.amazonaws.services.s3.model.S3ObjectSummary
 import model.{Languages, Uri}
 import model.ingestion._
+import org.joda.time.DateTime
 import play.api.libs.json.{JsError, JsSuccess, Json}
 import utils.Logging
 import utils.attempt.{Failure, IllegalStateFailure, JsonParseFailure, UnknownFailure}
@@ -18,6 +20,7 @@ import scala.util.control.NonFatal
 trait IngestStorage {
   def list: Either[Failure, Iterable[Key]]
   def getData(key: Key): Either[Failure, InputStream]
+  def getData(key: String): Either[Failure, InputStream]
   def getMetadata(key: Key): Either[Failure, FileContext]
   def delete(key: Key): Either[Failure, Unit]
   def sendToDeadLetterBucket(key: Key): Either[Failure, Unit]
@@ -33,6 +36,13 @@ class S3IngestStorage private(client: S3Client, ingestBucket: String, deadLetter
     timestamp -> uuid
   }
 
+  def getUploadSignedUrl(key: String): Either[Failure, String] = {
+
+    val thisTimeTomorrow = new DateTime().plusDays(1)
+
+    Either.catchNonFatal(client.aws.generatePresignedUrl(ingestBucket, key, thisTimeTomorrow.toDate, HttpMethod.PUT).toString).leftMap(UnknownFailure.apply)
+  }
+
   override def list = {
     Either.catchNonFatal {
       val result = client.aws.listObjects(ingestBucket, dataPrefix)
@@ -43,6 +53,10 @@ class S3IngestStorage private(client: S3Client, ingestBucket: String, deadLetter
 
   override def getData(key: Key): Either[Failure, InputStream] = {
     Either.catchNonFatal(client.aws.getObject(ingestBucket, dataKey(key)).getObjectContent).leftMap(UnknownFailure.apply)
+  }
+
+  override def getData(key: String): Either[Failure, InputStream]= {
+    Either.catchNonFatal(client.aws.getObject(ingestBucket, key).getObjectContent).leftMap(UnknownFailure.apply)
   }
 
   override def getMetadata(key: Key): Either[Failure, FileContext] = {

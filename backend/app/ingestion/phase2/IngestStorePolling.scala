@@ -7,7 +7,7 @@ import cats.syntax.either._
 import com.amazonaws.services.cloudwatch.model.MetricDatum
 import extraction.Worker
 import model.Uri
-import model.ingestion.Key
+import model.ingestion.{Key, dataKey}
 import org.apache.xmlbeans.impl.soap.Detail
 import services.ingestion.IngestionServices
 import services.{FingerprintServices, IngestStorage, MetricUpdate, Metrics, MetricsService, ScratchSpace}
@@ -18,7 +18,7 @@ import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
 import scala.util.{Success, Failure => SFailure}
-import services.observability.{EventDetails, IngestionEvent, IngestionEventType, EventMetadata, PostgresClient, EventStatus}
+import services.observability.{EventDetails, EventMetadata, EventStatus, IngestionEvent, IngestionEventType, PostgresClient}
 
 
 case class WorkSelector(numberOfNodes: Int, thisNode: Int) extends Logging {
@@ -140,15 +140,14 @@ class IngestStorePolling(
   }
 
   /* Fetches the data from the object store, computing the fingerprint in flight */
-  def fetchData[T](key: Key)(f: (Path, Uri) => Either[Failure, T]): Either[Failure, T] = {
+  def fetchData[T](key: String, downloadPath: Path)(f: (Path, Uri) => Either[Failure, T]): Either[Failure, T] = {
     ingestStorage.getData(key).flatMap { sourceInputStream =>
       try {
         Either.catchNonFatal {
-          val path = scratchSpace.pathFor(key)
-          logger.info(s"Fetching data for $key to $path")
+          logger.info(s"Fetching data for $key to $downloadPath")
 
-          Files.copy(sourceInputStream, path)
-          path -> Uri(FingerprintServices.createFingerprintFromFile(path.toFile))
+          Files.copy(sourceInputStream, downloadPath)
+          downloadPath -> Uri(FingerprintServices.createFingerprintFromFile(downloadPath.toFile))
         }.leftMap(UnknownFailure.apply)
       } finally {
         sourceInputStream.close()
@@ -161,6 +160,8 @@ class IngestStorePolling(
       }
     }
   }
+
+  def fetchData[T](key: Key)(f: (Path, Uri) => Either[Failure, T]): Either[Failure, T] = fetchData(dataKey(key), scratchSpace.pathFor(key))(f)
 
   def getNextBatch: Attempt[Iterable[(Long, UUID)]] = {
     for {

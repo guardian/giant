@@ -31,7 +31,7 @@ import services._
 import services.annotations.Neo4jAnnotations
 import services.events.ElasticsearchEvents
 import services.index.{ElasticsearchPages, ElasticsearchResources, Pages2}
-import services.ingestion.IngestionServices
+import ingestion.{IngestionServices, RemoteIngestWorker}
 import services.manifest.Neo4jManifest
 import services.observability.{PostgresClientDoNothing, PostgresClientImpl}
 import services.previewing.PreviewService
@@ -232,6 +232,12 @@ class AppComponents(context: Context, config: Config)
       val externalWorkerScheduler = new ExternalWorkerScheduler(actorSystem, externalWorker, config.worker.interval)(workerExecutionContext)
       externalWorkerScheduler.start()
       applicationLifecycle.addStopHook(() => externalWorkerScheduler.stop())
+
+      val remoteIngestWorker = new RemoteIngestWorker(postgresClient, sqsClient, ingestStorage, config.mediaDownload, annotations)
+      val remoteIngestScheduler = new RemoteIngestScheduler(actorSystem, remoteIngestWorker, config.worker.interval)(workerExecutionContext)
+      remoteIngestWorker.start()
+      remoteIngestScheduler.start()
+      applicationLifecycle.addStopHook(() => remoteIngestScheduler.stop())
     } else {
       logger.info("Worker disabled on this instance")
 

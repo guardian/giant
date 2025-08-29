@@ -64,6 +64,7 @@ GET           /api/workspaces/:workspaceId                                  cont
 GET           /api/workspaces/:workspaceId/nodes                            controllers.api.Workspaces.getContents(workspaceId: String)
 POST          /api/workspaces/:workspaceId/reprocess                        controllers.api.Workspaces.reprocess(workspaceId: String, rerunSuccessful: Option[Boolean], rerunFailed: Option[Boolean])
 POST          /api/workspaces/:workspaceId/nodes                            controllers.api.Workspaces.addItemToWorkspace(workspaceId: String)
+POST          /api/workspaces/:workspaceId/remoteUrl                        controllers.api.Workspaces.addRemoteUrlToWorkspace(workspaceId: String)
 PUT           /api/workspaces/:workspaceId/nodes/:itemId/name               controllers.api.Workspaces.renameItem(workspaceId: String, itemId: String)
 PUT           /api/workspaces/:workspaceId/nodes/:itemId/parent             controllers.api.Workspaces.moveItem(workspaceId: String, itemId: String)
 POST           /api/workspaces/:workspaceId/nodes/:itemId/copy               controllers.api.Workspaces.copyItem(workspaceId: String, itemId: String)
