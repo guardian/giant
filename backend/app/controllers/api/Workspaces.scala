@@ -7,7 +7,7 @@ import model.frontend.{TreeEntry, TreeLeaf, TreeNode}
 import model.ingestion.RemoteIngest
 import net.logstash.logback.marker.LogstashMarker
 import net.logstash.logback.marker.Markers.append
-import org.joda.time.DateTime
+import org.joda.time.{DateTime, Duration}
 import play.api.libs.json._
 import play.api.mvc.Action
 import services.ObjectStorage
@@ -23,6 +23,7 @@ import utils.auth.{User, UserIdentityRequest}
 import utils.controller.{AuthApiController, AuthControllerComponents}
 
 import java.util.UUID
+import scala.concurrent.duration.Duration
 
 case class CreateWorkspaceData(name: String, isPublic: Boolean, tagColor: String)
 object CreateWorkspaceData {
@@ -255,7 +256,6 @@ class Workspaces(override val controllerComponents: AuthControllerComponents, an
     for {
       data <- req.body.validate[AddRemoteUrlData].toAttempt
       itemId = UUID.randomUUID().toString
-
       _ = logAction(req.user, workspaceId, s"Add remote url to workspace. Node ID: $itemId. Data: $data")
       id <- Attempt.fromEither(postgresClient.insertRemoteIngest(
         RemoteIngest(
@@ -267,7 +267,7 @@ class Workspaces(override val controllerComponents: AuthControllerComponents, an
           url = data.url,
           workspaceNodeId = data.workspaceNodeId,
           parentFolderId = data.parentFolderId,
-          timeoutAt = DateTime.now.plus(4 * 60 *60 * 1000), // 4 hours
+          timeoutAt = DateTime.now.plus(Duration.standardHours(4)), // 4 hours
           status = "pending",
           userEmail = req.user.username
         )

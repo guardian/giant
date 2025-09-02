@@ -20,9 +20,9 @@ class RemoteIngestWorker(
       jobs <- postgresClient.getRemoteIngestJobs(Some("pending"))
     } yield {
       jobs.foreach { job =>
-        logger.info(s"Sending job with id ${job.id}, json $jobJson, queue: ${config.taskQueueUrl}")
+        logger.info(s"Sending job with id ${job.id}, queue: ${config.taskQueueUrl}")
         val signedUploadUrl = ingestStorage.getUploadSignedUrl(job.id).getOrElse(throw new Exception(s"Failed to get signed upload URL for job ${job.id}"))
-        val mediaDownloadJob = MediaDownloadJob(job.id, job.url, "EXTERNAL", config.outputQueueUrl, signedUploadUrl)
+        val mediaDownloadJob = MediaDownloadJob(job.id, job.url, MediaDownloadJob.CLIENT_IDENTIFIER, config.outputQueueUrl, signedUploadUrl)
         val jobJson = Json.stringify(Json.toJson(mediaDownloadJob))
         try {
           postgresClient.updateRemoteIngestJobStatus(job.id, "started")
