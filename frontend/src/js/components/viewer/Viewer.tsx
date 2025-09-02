@@ -283,6 +283,15 @@ class Viewer extends React.Component<Props, State> {
                 // Only matters if a user has manually changed the view in the URL params or is visiting a link with them in
                 return this.renderNoPreview();
             }
+        }else if (view.startsWith('transcriptVtt')) {
+            console.log("hwfg transcriptVtt", resource);
+            if (resource.transcriptVtt) {
+                return this.renderTextPreview(resource, _.get(this.props.resource, view), view);
+            }else {
+                // Only matters if a user has manually changed the view in the URL params or is visiting a link with them in
+                return this.renderNoPreview();
+            }
+
         } else if (view.startsWith('transcript')) {
             if (resource.transcript) {
                 return this.renderTextPreview(resource, _.get(this.props.resource, view), view);
@@ -290,7 +299,7 @@ class Viewer extends React.Component<Props, State> {
                 // Only matters if a user has manually changed the view in the URL params or is visiting a link with them in
                 return this.renderNoPreview();
             }
-        } else if (resource.extracted) {
+        }  else if (resource.extracted) {
             return this.renderTextPreview(resource, resource.text, 'text');
         } else if (resource.children.length) {
             return <LazyTreeBrowser

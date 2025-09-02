@@ -234,6 +234,7 @@ object HitReaders {
       text = fields.optMultiLanguageField(text).getOrElse(""),
       ocr = readOcr(fields),
       transcript = readTranscript(fields),
+      transcriptVtt = readTranscriptVtt(fields),
       enrichedMetadata = readEnrichedMetadata(fields),
       flag = fields.optField[String](flags),
       extracted = fields.optField[Boolean](extracted).getOrElse(false),
@@ -261,6 +262,12 @@ object HitReaders {
 
   private def readTranscript(fields: FieldMap): Option[Map[String, String]] = {
     fields.optField[FieldMap](transcript).map { languages =>
+      languages.view.mapValues(_.asInstanceOf[String]).toMap
+    }
+  }
+
+  private def readTranscriptVtt(fields: FieldMap): Option[Map[String, String]] = {
+    fields.optField[FieldMap](transcriptVtt).map { languages =>
       languages.view.mapValues(_.asInstanceOf[String]).toMap
     }
   }

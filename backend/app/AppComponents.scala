@@ -49,6 +49,7 @@ import java.net.InetAddress
 import java.nio.file.Paths
 import java.security.Security
 import java.time.Clock
+import java.util.concurrent.TimeUnit
 import scala.concurrent.Await
 import scala.concurrent.duration._
 import scala.language.postfixOps
@@ -229,7 +230,7 @@ class AppComponents(context: Context, config: Config)
 
       // external extractor
       val externalWorker = new ExternalTranscriptionWorker(manifest, sqsClient, config.transcribe, transcriptStorage, esResources)
-      val externalWorkerScheduler = new ExternalWorkerScheduler(actorSystem, externalWorker, config.worker.interval)(workerExecutionContext)
+      val externalWorkerScheduler = new ExternalWorkerScheduler(actorSystem, externalWorker, FiniteDuration.apply(5, TimeUnit.SECONDS))(workerExecutionContext)
       externalWorkerScheduler.start()
       applicationLifecycle.addStopHook(() => externalWorkerScheduler.stop())
     } else {

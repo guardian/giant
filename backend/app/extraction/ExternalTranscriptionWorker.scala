@@ -58,7 +58,7 @@ class ExternalTranscriptionWorker(manifest: WorkerManifest, amazonSQSClient: Ama
     val result = for {
       transcriptionOutput <- parseMessage(message)
       transcripts <- getTranscripts(transcriptionOutput)
-      _ <- addDocumentTranscription(transcriptionOutput, transcripts.transcripts.text, transcripts.transcriptTranslations.map(_.text))
+      _ <- addDocumentTranscription(transcriptionOutput, transcripts)
       _ <- markExternalExtractorAsComplete(transcriptionOutput.id, EXTRACTOR_NAME)
     } yield {
       amazonSQSClient.deleteMessage(
@@ -124,9 +124,9 @@ class ExternalTranscriptionWorker(manifest: WorkerManifest, amazonSQSClient: Ama
     }
   }
 
-  private def addDocumentTranscription(transcriptionOutput: TranscriptionOutputSuccess, transcriptText: String, translationText: Option[String]) = {
+  private def addDocumentTranscription(transcriptionOutput: TranscriptionOutputSuccess, transcription: TranscriptionResult) = {
     Either.catchNonFatal {
-      index.addDocumentTranscription(Uri(transcriptionOutput.originalFilename), transcriptText, translationText, Languages.getByIso6391Code(transcriptionOutput.languageCode).getOrElse(English))
+      index.addDocumentTranscription(Uri(transcriptionOutput.originalFilename), transcription)
         .recoverWith {
           case _ =>
             val msg = s"Failed to write transcript result to elasticsearch. Transcript language: ${transcriptionOutput.languageCode}"
