@@ -4,9 +4,12 @@ import commands.DeleteResource
 import model.Uri
 import model.annotations.{Workspace, WorkspaceEntry, WorkspaceLeaf}
 import model.frontend.{TreeEntry, TreeLeaf, TreeNode}
+import model.ingestion.RemoteIngest
 import net.logstash.logback.marker.LogstashMarker
 import net.logstash.logback.marker.Markers.append
+import org.joda.time.DateTime
 import play.api.libs.json._
+import play.api.mvc.Action
 import services.ObjectStorage
 import services.manifest.Manifest
 import services.observability.PostgresClient
@@ -43,6 +46,11 @@ object UpdateWorkspaceName {
 case class AddItemParameters(uri: Option[String], size: Option[Long], mimeType: Option[String])
 object AddItemParameters {
   implicit val format = Json.format[AddItemParameters]
+}
+
+case class AddRemoteUrlData(url: String, title: String, parentFolderId: String, workspaceNodeId: String, collection: String, ingestion: String)
+object AddRemoteUrlData {
+  implicit val format = Json.format[AddRemoteUrlData]
 }
 
 case class AddItemData(name: String, parentId: String, `type`: String, icon: Option[String], parameters: AddItemParameters)
@@ -238,6 +246,32 @@ class Workspaces(override val controllerComponents: AuthControllerComponents, an
 
       _ = logAction(req.user, workspaceId, s"Add item to workspace. Node ID: $itemId. Data: $data")
       id <- insertItem(req.user.username, workspaceId, itemId, data)
+    } yield {
+      Created(Json.obj("id" -> id))
+    }
+  }
+
+  def addRemoteUrlToWorkspace(workspaceId: String): Action[JsValue] = ApiAction.attempt(parse.json) { req =>
+    for {
+      data <- req.body.validate[AddRemoteUrlData].toAttempt
+      itemId = UUID.randomUUID().toString
+
+      _ = logAction(req.user, workspaceId, s"Add remote url to workspace. Node ID: $itemId. Data: $data")
+      id <- Attempt.fromEither(postgresClient.insertRemoteIngest(
+        RemoteIngest(
+          id = itemId,
+          workspaceId = workspaceId,
+          collection = data.collection,
+          ingestion = data.ingestion,
+          title = data.title,
+          url = data.url,
+          workspaceNodeId = data.workspaceNodeId,
+          parentFolderId = data.parentFolderId,
+          timeoutAt = DateTime.now.plus(4 * 60 *60 * 1000), // 4 hours
+          status = "pending",
+          userEmail = req.user.username
+        )
+      ))
     } yield {
       Created(Json.obj("id" -> id))
     }
