@@ -9,7 +9,7 @@ import com.sksamuel.elastic4s.requests.searches.DateHistogramInterval
 import com.sksamuel.elastic4s.requests.searches.SearchResponse
 import com.sksamuel.elastic4s.requests.searches.queries.compound.BoolQuery
 import com.sksamuel.elastic4s.requests.update.UpdateByQueryRequest
-import extraction.EnrichedMetadata
+import extraction.{EnrichedMetadata, TranscriptionResult}
 import model.frontend._
 import model.frontend.email.EmailMetadata
 import model.index._
@@ -32,6 +32,7 @@ class ElasticsearchResources(override val client: ElasticClient, indexName: Stri
         emptyMultiLanguageField(IndexFields.text),
         emptyMultiLanguageField(IndexFields.ocr),
         emptyMultiLanguageField(IndexFields.transcript),
+        emptyMultiLanguageField(IndexFields.vttTranscript),
         textKeywordField(IndexFields.flags),
         dateField(IndexFields.createdAt),
         dateField(IndexFields.lastModifiedAt),
@@ -96,6 +97,7 @@ class ElasticsearchResources(override val client: ElasticClient, indexName: Stri
         multiLanguageField(IndexFields.text, language),
         multiLanguageField(IndexFields.ocr, language),
         multiLanguageField(IndexFields.transcript, language),
+        multiLanguageField(IndexFields.vttTranscript, language),
         ObjectField(IndexFields.metadataField, properties = Seq(
           multiLanguageField(IndexFields.metadata.fileUris, language),
           ObjectField(IndexFields.metadata.fromField, properties = Seq(
@@ -266,12 +268,19 @@ class ElasticsearchResources(override val client: ElasticClient, indexName: Stri
     }
   }
 
-  override def addDocumentTranscription(uri: Uri, transcription: String, translation: Option[String], language: Language): Attempt[Unit] = {
+  override def addDocumentTranscription(uri: Uri, transcription: TranscriptionResult): Attempt[Unit] = {
     logger.info(s"Adding transcription to ${uri.value} in index")
 
-    val transcriptMap  = Map(IndexFields.transcript -> (Map(
-      language.key -> transcription
-    ) ++ translation.map(translationText => English.key -> translationText)))
+    val transcriptMap  = Map(
+      IndexFields.transcript -> (
+        Map(
+          transcription.metadata.detectedLanguageCode.key -> transcription.transcripts.text
+        ) ++ transcription.transcriptTranslations.map(translationText => English.key -> translationText.text)),
+      IndexFields.vttTranscript -> (
+        Map(
+          transcription.metadata.detectedLanguageCode.key -> transcription.transcripts.srt
+        ) ++ transcription.transcriptTranslations.map(translationText => English.key -> translationText.srt))
+    )
 
     val fieldMap = Map(
       IndexFields.transcriptExtracted -> true
@@ -731,6 +740,7 @@ object IndexFields {
   val text = "text"
   val ocr = "ocr"
   val transcript = "transcript"
+  val vttTranscript = "vttTranscript"
   val flags = "flags"
   val flagsRaw = "flags.keyword"
 

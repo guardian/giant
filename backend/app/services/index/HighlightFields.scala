@@ -13,6 +13,7 @@ object HighlightFields {
     text -> "Body Text",
     ocr -> "OCR Text",
     transcript -> "Transcript Text",
+    vttTranscript -> "Transcript (timecodes)",
     metadataField + "." + metadata.subject -> "Email Subject",
     metadataField + "." + metadata.fromField + "." + metadata.recipients.name -> "Email From",
     metadataField + "." + metadata.fromField + "." + metadata.recipients.address -> "Email From",
@@ -51,8 +52,9 @@ object HighlightFields {
     val textFieldHighlighters = languageHighlighters(IndexFields.text, topLevelSearchQuery)
     val ocrFieldHighlighters = languageHighlighters(IndexFields.ocr, topLevelSearchQuery)
     val transcriptFieldHighlighters = languageHighlighters(IndexFields.transcript, topLevelSearchQuery)
+    val vttTranscriptFieldHighlighters = languageHighlighters(IndexFields.vttTranscript, topLevelSearchQuery)
 
-    textFieldHighlighters ++ ocrFieldHighlighters ++ transcriptFieldHighlighters
+    textFieldHighlighters ++ ocrFieldHighlighters ++ transcriptFieldHighlighters ++ vttTranscriptFieldHighlighters
   }
 
   def parseHit(hit: SearchHit): Seq[Highlight] = {
@@ -108,7 +110,7 @@ object HighlightFields {
     // as multiple languages. The vast majority are processed using a single language.
 
     highlights.foldLeft(Map.empty[String, Seq[String]]) {
-      case (acc, (key, values)) if key.startsWith(IndexFields.ocr) || key.startsWith(IndexFields.transcript) =>
+      case (acc, (key, values)) if key.startsWith(IndexFields.ocr) || key.startsWith(IndexFields.transcript) || key.startsWith(IndexFields.vttTranscript) =>
         acc + (key -> values)
 
       case (acc, (key, values)) =>

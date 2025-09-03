@@ -2,9 +2,10 @@ package extraction
 
 import com.amazonaws.services.sqs.AmazonSQS
 import com.amazonaws.services.sqs.model.{MessageAttributeValue, SendMessageRequest}
+import model.{English, Language, Languages}
 import model.manifest.Blob
 import org.joda.time.DateTime
-import play.api.libs.json.{JsError, JsResult, JsValue, Json, Reads}
+import play.api.libs.json.{JsError, JsResult, JsValue, Json, Reads, Writes}
 import services.index.Index
 import services.{ObjectStorage, TranscribeConfig}
 import utils._
@@ -38,11 +39,17 @@ object TranscriptionJob {
   implicit val combinedOutputUrlFormat = Json.format[CombinedOutputUrl]
   implicit val formats = Json.format[TranscriptionJob]
 }
-case class TranscriptionMetadata(detectedLanguageCode: String)
+case class TranscriptionMetadata(detectedLanguageCode: Language)
+object TranscriptionMetadata {
+  implicit val languageReads: Reads[Language] = Reads.of[String].map { code =>
+    Languages.getByIso6391Code(code).getOrElse(English)
+  }
+  implicit val languageWrites: Writes[Language] = Writes.of[String].contramap(_.iso6391Code)
+  implicit val formats = Json.format[TranscriptionMetadata]
+}
 case class Transcripts(srt: String, text: String, json: String)
 case class TranscriptionResult(transcripts: Transcripts, transcriptTranslations: Option[Transcripts], metadata: TranscriptionMetadata)
 object TranscriptionResult {
-  implicit val metadataFormat = Json.format[TranscriptionMetadata]
   implicit val transcriptsFormat = Json.format[Transcripts]
   implicit val formats = Json.format[TranscriptionResult]
 }

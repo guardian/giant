@@ -56,8 +56,9 @@ class TranscriptionExtractor(index: Index, scratchSpace: ScratchSpace, transcrib
       val transcriptResult: WhisperResult = Whisper.invokeWhisper(convertedFile, transcribeConfig, tmpDir, stdErrLogger, translate = false)
       val translationResult = if (transcriptResult.language != "en") Some(Whisper.invokeWhisper(convertedFile, transcribeConfig, tmpDir, stdErrLogger, translate = true)) else None
 
-      index.addDocumentTranscription(blob.uri, transcriptResult.text, translationResult.map(r => r.text), Languages.getByIso6391Code(transcriptResult.language)
-        .getOrElse(English)).recoverWith {
+      val transcription = TranscriptionResult(Transcripts("", transcriptResult.text, ""), translationResult.map(r => Transcripts("", r.text, "")), TranscriptionMetadata(Languages.getByIso6391Code(transcriptResult.language).getOrElse(English)))
+
+      index.addDocumentTranscription(blob.uri, transcription).recoverWith {
         case _ =>
           val msg = s"Failed to write transcript result to elasticsearch. Transcript language: ${transcriptResult.language}"
           logger.error(msg)

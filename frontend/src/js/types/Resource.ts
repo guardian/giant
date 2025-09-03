@@ -72,6 +72,9 @@ export type Resource = BasicResource & {
     transcript?: {
         [lang: string]: HighlightableText
     }
+    vttTranscript?: {
+        [lang: string]: HighlightableText
+    }
 }
 
 export const resourcePropType = PropTypes.shape({
