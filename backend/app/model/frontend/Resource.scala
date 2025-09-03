@@ -143,25 +143,25 @@ object EmailResource {
 }
 
 case class DocumentResource private (
-  uri: String,
-  display: Option[String],
-  parents: List[RelatedResource],
-  children: List[RelatedResource],
-  text: HighlightableText,
-  ocr: Option[Map[String, HighlightableText]],
-  transcript: Option[Map[String, HighlightableText]],
-  transcriptVtt: Option[Map[String, HighlightableText]],
-  metadata: Map[String, Seq[String]],
-  enrichedMetadata: Option[EnrichedMetadata],
-  previewStatus: PreviewStatus,
-  flag: Option[String],
-  extracted: Boolean,
-  fileSize: Long,
-  mimeTypes: Set[String],
-  `type`: String = "blob",
-  isBasic: Boolean = false,
-  isExpandable: Boolean,
-  comments: List[Comment]
+                                      uri: String,
+                                      display: Option[String],
+                                      parents: List[RelatedResource],
+                                      children: List[RelatedResource],
+                                      text: HighlightableText,
+                                      ocr: Option[Map[String, HighlightableText]],
+                                      transcript: Option[Map[String, HighlightableText]],
+                                      vttTranscript: Option[Map[String, HighlightableText]],
+                                      metadata: Map[String, Seq[String]],
+                                      enrichedMetadata: Option[EnrichedMetadata],
+                                      previewStatus: PreviewStatus,
+                                      flag: Option[String],
+                                      extracted: Boolean,
+                                      fileSize: Long,
+                                      mimeTypes: Set[String],
+                                      `type`: String = "blob",
+                                      isBasic: Boolean = false,
+                                      isExpandable: Boolean,
+                                      comments: List[Comment]
 ) extends Resource
 
 object DocumentResource {
@@ -174,7 +174,7 @@ object DocumentResource {
       text = HighlightableText.fromString(document.text, page = None),
       ocr = document.ocr.map(ocrMap => ocrMap.view.mapValues { v => HighlightableText.fromString(v, page = None) }.toMap),
       transcript = document.transcript.map(transcriptMap => transcriptMap.view.mapValues { v => HighlightableText.fromString(v, page = None) }.toMap),
-      transcriptVtt = document.transcriptVtt.map(transcriptVttMap => transcriptVttMap.view.mapValues { v => HighlightableText.fromString(v, page = None) }.toMap),
+      vttTranscript = document.vttTranscript.map(vttTranscriptMap => vttTranscriptMap.view.mapValues { v => HighlightableText.fromString(v, page = None) }.toMap),
       metadata = document.metadata,
       enrichedMetadata = document.enrichedMetadata,
       previewStatus = PreviewService.previewStatus(document.mimeTypes),

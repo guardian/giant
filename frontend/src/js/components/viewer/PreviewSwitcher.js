@@ -103,7 +103,7 @@ class PreviewSwitcher extends React.Component {
             <KeyboardShortcut shortcut={keyboardShortcuts.showPreview} func={this.showPreview} />
             {this.props.resource.text && !this.props.resource.transcript ? <PreviewLink current={current} text='Text' to='text' navigate={this.props.setResourceView} />    : false}
             {this.props.resource.transcript  ? this.renderMultiLangLinks(current, 'transcript', 'Transcript')    : false}
-            {this.props.resource.transcriptVtt  ? this.renderMultiLangLinks(current, 'transcriptVtt', 'Transcript time codes')    : false}
+            {this.props.resource.vttTranscript  ? this.renderMultiLangLinks(current, 'vttTranscript', 'Transcript time codes')    : false}
             {!this.props.resource.transcript && this.renderMultiLangLinks(current, 'ocr', 'OCR')}
             {this.canPreview(this.props.resource.previewStatus) ? <PreviewLink current={current} text='Preview' to='preview' navigate={this.props.setResourceView} /> : false}
             {parents && parents.some(m => m.uri.endsWith("csv") || m.uri.endsWith("tsv")) && <PreviewLink current={current} text="Table" to="table" navigate={this.props.setResourceView} /> }

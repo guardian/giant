@@ -114,7 +114,8 @@ object HitReaders {
             resource.copy(
               text = highlights.flatMap(highlightedText(_, text)).getOrElse(resource.text),
               ocr = highlightedOcr(highlights).orElse(resource.ocr),
-              transcript = highlightedTranscript(highlights, resource.transcript).orElse(resource.transcript)
+              transcript = highlightedTranscript(highlights, resource.transcript, IndexFields.transcript).orElse(resource.transcript),
+              vttTranscript = highlightedTranscript(highlights, resource.vttTranscript, IndexFields.vttTranscript).orElse(resource.vttTranscript)
             )
           )
 
@@ -234,7 +235,7 @@ object HitReaders {
       text = fields.optMultiLanguageField(text).getOrElse(""),
       ocr = readOcr(fields),
       transcript = readTranscript(fields),
-      transcriptVtt = readTranscriptVtt(fields),
+      vttTranscript = readVttTranscript(fields),
       enrichedMetadata = readEnrichedMetadata(fields),
       flag = fields.optField[String](flags),
       extracted = fields.optField[Boolean](extracted).getOrElse(false),
@@ -266,8 +267,8 @@ object HitReaders {
     }
   }
 
-  private def readTranscriptVtt(fields: FieldMap): Option[Map[String, String]] = {
-    fields.optField[FieldMap](transcriptVtt).map { languages =>
+  private def readVttTranscript(fields: FieldMap): Option[Map[String, String]] = {
+    fields.optField[FieldMap](vttTranscript).map { languages =>
       languages.view.mapValues(_.asInstanceOf[String]).toMap
     }
   }
@@ -315,13 +316,13 @@ object HitReaders {
     }
   }
 
-  private def highlightedTranscript(maybeHighlights: Option[Map[String, Seq[String]]], maybeTranscript: Option[Map[String, String]]): Option[Map[String, String]] = {
+  private def highlightedTranscript(maybeHighlights: Option[Map[String, Seq[String]]], maybeTranscript: Option[Map[String, String]], indexField: String): Option[Map[String, String]] = {
     maybeHighlights match {
       case Some(highlights) if highlights.nonEmpty =>
-        val prefix = IndexFields.transcript + "."
+        val prefix = indexField + "."
 
         val highlightedLanguages = highlights.collect {
-          case (key, values) if key.startsWith(IndexFields.transcript) && values.nonEmpty =>
+          case (key, values) if key.startsWith(indexField) && values.nonEmpty =>
             key.substring(prefix.length) -> values.head
         }
         // don't discard languages without matches

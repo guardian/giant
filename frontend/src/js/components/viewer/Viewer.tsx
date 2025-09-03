@@ -283,10 +283,10 @@ class Viewer extends React.Component<Props, State> {
                 // Only matters if a user has manually changed the view in the URL params or is visiting a link with them in
                 return this.renderNoPreview();
             }
-        }else if (view.startsWith('transcriptVtt')) {
-            if (resource.transcriptVtt) {
+        } else if (view.startsWith('vttTranscript')) {
+            if (resource.vttTranscript) {
                 return this.renderTextPreview(resource, _.get(this.props.resource, view), view);
-            }else {
+            } else {
                 // Only matters if a user has manually changed the view in the URL params or is visiting a link with them in
                 return this.renderNoPreview();
             }

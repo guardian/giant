@@ -230,7 +230,7 @@ class AppComponents(context: Context, config: Config)
 
       // external extractor
       val externalWorker = new ExternalTranscriptionWorker(manifest, sqsClient, config.transcribe, transcriptStorage, esResources)
-      val externalWorkerScheduler = new ExternalWorkerScheduler(actorSystem, externalWorker, FiniteDuration.apply(5, TimeUnit.SECONDS))(workerExecutionContext)
+      val externalWorkerScheduler = new ExternalWorkerScheduler(actorSystem, externalWorker, config.worker.interval)(workerExecutionContext)
       externalWorkerScheduler.start()
       applicationLifecycle.addStopHook(() => externalWorkerScheduler.stop())
     } else {

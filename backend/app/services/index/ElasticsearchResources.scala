@@ -32,7 +32,7 @@ class ElasticsearchResources(override val client: ElasticClient, indexName: Stri
         emptyMultiLanguageField(IndexFields.text),
         emptyMultiLanguageField(IndexFields.ocr),
         emptyMultiLanguageField(IndexFields.transcript),
-        emptyMultiLanguageField(IndexFields.transcriptVtt),
+        emptyMultiLanguageField(IndexFields.vttTranscript),
         textKeywordField(IndexFields.flags),
         dateField(IndexFields.createdAt),
         dateField(IndexFields.lastModifiedAt),
@@ -97,7 +97,7 @@ class ElasticsearchResources(override val client: ElasticClient, indexName: Stri
         multiLanguageField(IndexFields.text, language),
         multiLanguageField(IndexFields.ocr, language),
         multiLanguageField(IndexFields.transcript, language),
-        multiLanguageField(IndexFields.transcriptVtt, language),
+        multiLanguageField(IndexFields.vttTranscript, language),
         ObjectField(IndexFields.metadataField, properties = Seq(
           multiLanguageField(IndexFields.metadata.fileUris, language),
           ObjectField(IndexFields.metadata.fromField, properties = Seq(
@@ -276,7 +276,7 @@ class ElasticsearchResources(override val client: ElasticClient, indexName: Stri
         Map(
           transcription.metadata.detectedLanguageCode.key -> transcription.transcripts.text
         ) ++ transcription.transcriptTranslations.map(translationText => English.key -> translationText.text)),
-      IndexFields.transcriptVtt -> (
+      IndexFields.vttTranscript -> (
         Map(
           transcription.metadata.detectedLanguageCode.key -> transcription.transcripts.srt
         ) ++ transcription.transcriptTranslations.map(translationText => English.key -> translationText.srt))
@@ -740,7 +740,7 @@ object IndexFields {
   val text = "text"
   val ocr = "ocr"
   val transcript = "transcript"
-  val transcriptVtt = "transcriptVtt"
+  val vttTranscript = "vttTranscript"
   val flags = "flags"
   val flagsRaw = "flags.keyword"
 

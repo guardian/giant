@@ -72,7 +72,7 @@ export type Resource = BasicResource & {
     transcript?: {
         [lang: string]: HighlightableText
     }
-    transcriptVtt?: {
+    vttTranscript?: {
         [lang: string]: HighlightableText
     }
 }

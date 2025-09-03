@@ -50,7 +50,7 @@ export class SearchResult extends React.Component {
         // The fieldWithMostHighlights might be, say, metadata.fileUris
         // or one of the many fields for which we don't have an separate view
         // (generally these are metadata that appear in the sidebar)
-        if (fieldWithMostHighlights && (fieldWithMostHighlights === 'text' || fieldWithMostHighlights.startsWith('ocr') || fieldWithMostHighlights.startsWith('transcript'))) {
+        if (fieldWithMostHighlights && (fieldWithMostHighlights === 'text' || fieldWithMostHighlights.startsWith('ocr') || fieldWithMostHighlights.startsWith('transcript') || fieldWithMostHighlights.startsWith('vttTranscript'))) {
             linkParams = { view: fieldWithMostHighlights };
         }
 
