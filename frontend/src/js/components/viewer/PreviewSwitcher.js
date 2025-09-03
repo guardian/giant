@@ -112,7 +112,7 @@ class PreviewSwitcher extends React.Component {
 }
 
 function PreviewLink({current, text, to, navigate }) {
-    const active = current === to.toLowerCase();
+    const active = current.toLowerCase() === to.toLowerCase();
     const clazz = `btn-link preview__link ${active ? 'preview__link--active' : ''}`;
 
     const onClick = (e) => {

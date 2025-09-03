@@ -284,7 +284,6 @@ class Viewer extends React.Component<Props, State> {
                 return this.renderNoPreview();
             }
         }else if (view.startsWith('transcriptVtt')) {
-            console.log("hwfg transcriptVtt", resource);
             if (resource.transcriptVtt) {
                 return this.renderTextPreview(resource, _.get(this.props.resource, view), view);
             }else {
