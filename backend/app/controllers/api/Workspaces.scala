@@ -23,7 +23,6 @@ import utils.auth.{User, UserIdentityRequest}
 import utils.controller.{AuthApiController, AuthControllerComponents}
 
 import java.util.UUID
-import scala.concurrent.duration.Duration
 
 case class CreateWorkspaceData(name: String, isPublic: Boolean, tagColor: String)
 object CreateWorkspaceData {

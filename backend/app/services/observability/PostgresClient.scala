@@ -43,7 +43,17 @@ class PostgresClientDoNothing extends PostgresClient {
 
   def updateRemoteIngestJobStatus(id: String, status: String): Either[GiantFailure, Unit] = Right(())
 
-  def getRemoteIngestJob(id: String): Either[GiantFailure, RemoteIngest] = Right(None)
+  def getRemoteIngestJob(id: String): Either[GiantFailure, RemoteIngest] = Right(RemoteIngest(
+    "abc",
+    "Test Ingest",
+    "pending",
+    "workspace1",
+    "node1",
+    "folder1",
+    "collection1",
+    "ingestion1",
+    DateTime.now(DateTimeZone.UTC).plusHours(1),
+    "test", "a@b.com"))
 
 }
 

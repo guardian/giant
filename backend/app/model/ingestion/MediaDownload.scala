@@ -12,5 +12,6 @@ object MediaDownloadJob {
 case class MediaDownloadOutputMetadata(title: String, extension: String, mediaPath: String, duration: String)
 case class MediaDownloadOutput(id: String, status: String, metadata: Option[MediaDownloadOutputMetadata])
 object MediaDownloadOutput {
+  implicit val mediaDownloadOutputMetadataFormat: Format[MediaDownloadOutputMetadata] = Json.format[MediaDownloadOutputMetadata]
   implicit val mediaDownloadOutputFormat: Format[MediaDownloadOutput] = Json.format[MediaDownloadOutput]
 }
