@@ -170,7 +170,6 @@ class PostgresClientImpl(postgresConfig: PostgresConfig) extends PostgresClient 
     } match {
       case Success(results) => Right(results)
       case Failure(exception) =>
-        println("ergh")
         logger.error(s"An exception occurred while fetching remote ingest jobs: ${exception.getMessage}", exception)
         Left(PostgresReadFailure(exception, s"getRemoteIngestJobs failed: ${exception.getMessage}"))
     }

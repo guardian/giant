@@ -35,19 +35,25 @@ class RemoteIngestWorker(
     }
   }
   private def processFinishedJobs(): Unit = {
-    val finishedJobs = amazonSQSClient.receiveMessage(new ReceiveMessageRequest(config.outputQueueUrl)
-      .withMaxNumberOfMessages(10)).getMessages.asScala
+    try {
+      val finishedJobs = amazonSQSClient.receiveMessage(new ReceiveMessageRequest(config.outputQueueUrl)
+        .withMaxNumberOfMessages(10)).getMessages.asScala
 
-    finishedJobs.foreach { job =>
+      finishedJobs.foreach { job =>
 
-      for {
-        parsedJob <- Json.fromJson[MediaDownloadOutput](Json.parse(job.getBody)).asEither
-      } yield {
-        // TODO: Implement ingestion of the file. For now, just delete the finished job from the queue
-        logger.info(s"Fetched remote ingest job status with id ${parsedJob.id} and status ${parsedJob.status}")
-        amazonSQSClient.deleteMessage(config.outputQueueUrl, job.getReceiptHandle)
+        for {
+          parsedJob <- Json.fromJson[MediaDownloadOutput](Json.parse(job.getBody)).asEither
+        } yield {
+          // TODO: Implement ingestion of the file. For now, just delete the finished job from the queue
+          logger.info(s"Fetched remote ingest job status with id ${parsedJob.id} and status ${parsedJob.status}")
+          amazonSQSClient.deleteMessage(config.outputQueueUrl, job.getReceiptHandle)
+        }
       }
+    } catch  {
+      case e: Exception =>
+        logger.error(s"Failed to process finished jobs from SQS: ${e.getMessage}", e)
     }
+
   }
 
   def start(): Unit = {
