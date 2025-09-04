@@ -149,7 +149,7 @@ class Worker(
 
   private def markExternalAsProcessing(params: ExtractionParams, blob: Blob, extractor: Extractor): Unit = {
     manifest.markExternalAsProcessing(params, blob, extractor).leftMap { failure =>
-      logger.error(s"Failed to mark '${blob.uri.value}' processed by '${extractor.name}' as complete: ${failure.msg}")
+      logger.error(s"Failed to mark '${blob.uri.value}' processed by '${extractor.name}' as processing: ${failure.msg}")
     }
   }
 
