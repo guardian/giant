@@ -82,7 +82,8 @@ export const CaptureFromUrl = connect(
   }, [maybeCaptureFromUrlViaQueryParamValue]);
 
   const onSubmit = () => {
-    setIsOpen(false);
+    //TODO history (from react router) push /workspaces/:id if its not already
+    setIsOpen(false); //TODO this when fetch succeeds
   }
 
   return <>
@@ -117,8 +118,7 @@ export const CaptureFromUrl = connect(
               label: w.name
             }))}
             searchable
-            clearable
-            cle
+            clearable={false}
             isMulti={false}
             value={workspace ? {
               label: workspace.name,
