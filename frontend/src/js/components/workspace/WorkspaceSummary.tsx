@@ -12,6 +12,7 @@ import { Collection } from '../../types/Collection';
 import { TreeEntry, TreeNode } from '../../types/Tree';
 import { getWorkspace } from '../../actions/workspaces/getWorkspace';
 import ShareWorkspaceModal from './ShareWorkspaceModal';
+import {CaptureFromUrl} from "../Uploads/CaptureFromUrl";
 
 type Props = {
     workspace: Workspace,
@@ -66,6 +67,7 @@ export default function WorkspaceSummary({
             </span>
         </div>
         <div>
+            <CaptureFromUrl maybePreSelectedWorkspace={workspace} withButton />
             <UploadFiles
                 username={currentUser.username}
                 workspace={workspace}
