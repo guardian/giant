@@ -19,10 +19,10 @@ import play.api.test.FakeRequest
 import play.api.test.Helpers.{contentAsJson, contentAsString, status, stubControllerComponents => playStubControllerComponents}
 import services.annotations.Neo4jAnnotations
 import services.ingestion.IngestionServices
-import services.manifest.Neo4jManifest
+import services.manifest.{Neo4jManifest, Neo4jRemoteIngestManifest}
 import services.users.{Neo4jUserManagement, UserManagement}
 import services.{BucketConfig, Neo4jQueryLoggingConfig, S3Config, TestTypeDetector}
-import services.{NoOpMetricsService}
+import services.NoOpMetricsService
 import test.integration.Helpers.BlobAndNodeId
 import test.{TestAuthActionBuilder, TestObjectStorage, TestPostgresClient, TestPreviewService, TestUserManagement}
 import utils.Logging
@@ -235,6 +235,7 @@ object Helpers extends Matchers with Logging with OptionValues with Inside {
 
     val queryLoggingConfig = new Neo4jQueryLoggingConfig(1.second, logAllQueries = false)
     val manifest = Neo4jManifest.setupManifest(neo4jDriver, ec, queryLoggingConfig).toOption.get
+    val remoteIngestManifest = Neo4jRemoteIngestManifest.setupManifest(neo4jDriver, ec, queryLoggingConfig).toOption.get
     val annotations = Neo4jAnnotations.setupAnnotations(neo4jDriver, ec, queryLoggingConfig).toOption.get
 
     val typeDetector = new TestTypeDetector("application/pdf")
@@ -257,7 +258,7 @@ object Helpers extends Matchers with Logging with OptionValues with Inside {
       val collectionsController = new Collections(controllerComponents, manifest, userManagement, elasticsearch.elasticResources, s3Config, elasticsearch.elasticEvents, elasticsearch.elasticPages, ingestionServices, annotations)
       val resourceController = new Resource(controllerComponents, manifest, elasticsearch.elasticResources, elasticsearch.elasticPages,  annotations, null)
       val filtersController = new Filters(controllerComponents, manifest, annotations)
-      val workspaceController = new Workspaces(controllerComponents, annotations, elasticsearch.elasticResources, manifest, userManagement, new TestObjectStorage(), new TestObjectStorage(), new TestPostgresClient)
+      val workspaceController = new Workspaces(controllerComponents, annotations, elasticsearch.elasticResources, manifest, userManagement, new TestObjectStorage(), new TestObjectStorage(), new TestPostgresClient(), remoteIngestManifest)
       val metricsService = new NoOpMetricsService()
       val searchController = new Search(controllerComponents, userManagement, elasticsearch.elasticResources, annotations, metricsService)
       val documentsController = new Documents(controllerComponents, manifest, elasticsearch.elasticResources, null, userManagement, annotations, downloadExpiryPeriod)

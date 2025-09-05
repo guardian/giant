@@ -31,8 +31,8 @@ import services._
 import services.annotations.Neo4jAnnotations
 import services.events.ElasticsearchEvents
 import services.index.{ElasticsearchPages, ElasticsearchResources, Pages2}
-import services.ingestion.IngestionServices
-import services.manifest.Neo4jManifest
+import ingestion.{IngestionServices, RemoteIngestWorker}
+import services.manifest.{Neo4jManifest, Neo4jRemoteIngestManifest}
 import services.observability.{PostgresClientDoNothing, PostgresClientImpl}
 import services.previewing.PreviewService
 import services.table.ElasticsearchTable
@@ -108,6 +108,7 @@ class AppComponents(context: Context, config: Config)
 
     val neo4jDriver = GraphDatabase.driver(config.neo4j.url, AuthTokens.basic(config.neo4j.user, config.neo4j.password))
     val manifest = Neo4jManifest.setupManifest(neo4jDriver, neo4jExecutionContext, config.neo4j.queryLogging).valueOr(failure => throw new Exception(failure.msg))
+    val remoteIngestManifest = Neo4jRemoteIngestManifest.setupManifest(neo4jDriver, neo4jExecutionContext, config.neo4j.queryLogging).valueOr(failure => throw new Exception(failure.msg))
     val annotations = Neo4jAnnotations.setupAnnotations(neo4jDriver, neo4jExecutionContext, config.neo4j.queryLogging).valueOr(failure => throw new Exception(failure.msg))
     val users = Neo4jUserManagement(neo4jDriver, neo4jExecutionContext, config.neo4j.queryLogging, manifest, esResources, esPages, annotations)
     val metricsService = config.aws.map(new CloudwatchMetricsService(_)).getOrElse(new NoOpMetricsService())
@@ -195,7 +196,7 @@ class AppComponents(context: Context, config: Config)
     val emailController = new Emails(authControllerComponents, manifest, esResources, annotations)
     val mimeTypesController = new MimeTypes(authControllerComponents, manifest)
     val previewController = new Previews(authControllerComponents, manifest, esResources, previewService, users, annotations, config.auth.timeouts.maxDownloadAuthAgePreview)
-    val workspacesController = new Workspaces(authControllerComponents, annotations, esResources, manifest, users, blobStorage, previewStorage, postgresClient)
+    val workspacesController = new Workspaces(authControllerComponents, annotations, esResources, manifest, users, blobStorage, previewStorage, postgresClient, remoteIngestManifest)
     val commentsController = new Comments(authControllerComponents, manifest, esResources, annotations)
     val usersController = new Users(authControllerComponents, userProvider)
     val pagesController = new PagesController(authControllerComponents, manifest, esResources, pages2, annotations, previewStorage)
@@ -233,6 +234,12 @@ class AppComponents(context: Context, config: Config)
       val externalWorkerScheduler = new ExternalWorkerScheduler(actorSystem, externalWorker, config.worker.interval)(workerExecutionContext)
       externalWorkerScheduler.start()
       applicationLifecycle.addStopHook(() => externalWorkerScheduler.stop())
+
+      val remoteIngestWorker = new RemoteIngestWorker(remoteIngestManifest, sqsClient, ingestStorage, config.mediaDownload)
+      val remoteIngestScheduler = new RemoteIngestScheduler(actorSystem, remoteIngestWorker, config.worker.interval)(workerExecutionContext)
+      remoteIngestWorker.start()
+      remoteIngestScheduler.start()
+      applicationLifecycle.addStopHook(() => remoteIngestScheduler.stop())
     } else {
       logger.info("Worker disabled on this instance")
 

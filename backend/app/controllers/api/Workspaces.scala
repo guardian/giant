@@ -4,11 +4,14 @@ import commands.DeleteResource
 import model.Uri
 import model.annotations.{Workspace, WorkspaceEntry, WorkspaceLeaf}
 import model.frontend.{TreeEntry, TreeLeaf, TreeNode}
+import model.ingestion.RemoteIngest
 import net.logstash.logback.marker.LogstashMarker
 import net.logstash.logback.marker.Markers.append
+import org.joda.time.{DateTime, Duration}
 import play.api.libs.json._
+import play.api.mvc.Action
 import services.ObjectStorage
-import services.manifest.Manifest
+import services.manifest.{Manifest, RemoteIngestManifest}
 import services.observability.PostgresClient
 import services.annotations.Annotations
 import services.annotations.Annotations.AffectedResource
@@ -45,6 +48,11 @@ object AddItemParameters {
   implicit val format = Json.format[AddItemParameters]
 }
 
+case class AddRemoteUrlData(url: String, title: String, parentFolderId: String, workspaceNodeId: String, collection: String, ingestion: String)
+object AddRemoteUrlData {
+  implicit val format = Json.format[AddRemoteUrlData]
+}
+
 case class AddItemData(name: String, parentId: String, `type`: String, icon: Option[String], parameters: AddItemParameters)
 object AddItemData {
   implicit val format = Json.format[AddItemData]
@@ -61,7 +69,7 @@ object MoveCopyDestination {
 }
 
 class Workspaces(override val controllerComponents: AuthControllerComponents, annotation: Annotations, index: Index, manifest: Manifest,
-                 users: UserManagement, objectStorage: ObjectStorage, previewStorage: ObjectStorage, postgresClient: PostgresClient) extends AuthApiController with Logging {
+                 users: UserManagement, objectStorage: ObjectStorage, previewStorage: ObjectStorage, postgresClient: PostgresClient, remoteIngestManifest: RemoteIngestManifest) extends AuthApiController with Logging {
 
   def create = ApiAction.attempt(parse.json) { req =>
     for {
@@ -238,6 +246,30 @@ class Workspaces(override val controllerComponents: AuthControllerComponents, an
 
       _ = logAction(req.user, workspaceId, s"Add item to workspace. Node ID: $itemId. Data: $data")
       id <- insertItem(req.user.username, workspaceId, itemId, data)
+    } yield {
+      Created(Json.obj("id" -> id))
+    }
+  }
+
+  def addRemoteUrlToWorkspace(workspaceId: String): Action[JsValue] = ApiAction.attempt(parse.json) { req =>
+    for {
+      data <- req.body.validate[AddRemoteUrlData].toAttempt
+      itemId = UUID.randomUUID().toString
+      _ = logAction(req.user, workspaceId, s"Add remote url to workspace. Node ID: $itemId. Data: $data")
+      id <- remoteIngestManifest.insertRemoteIngest(
+        RemoteIngest(
+          id = itemId,
+          workspaceId = workspaceId,
+          collection = data.collection,
+          ingestion = data.ingestion,
+          title = data.title,
+          url = data.url,
+          parentFolderId = data.parentFolderId,
+          timeoutAt = DateTime.now.plus(Duration.standardHours(4)), // 4 hours
+          status = "pending",
+          userEmail = req.user.username
+        )
+      )
     } yield {
       Created(Json.obj("id" -> id))
     }
