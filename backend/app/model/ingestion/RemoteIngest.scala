@@ -9,7 +9,6 @@ case class RemoteIngest(
                          title: String,
                          status: String,
                          workspaceId: String,
-                         workspaceNodeId: String,
                          parentFolderId: String,
                          collection: String,
                          ingestion: String,

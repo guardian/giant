@@ -48,7 +48,6 @@ class PostgresClientDoNothing extends PostgresClient {
     "Test Ingest",
     "pending",
     "workspace1",
-    "node1",
     "folder1",
     "collection1",
     "ingestion1",
@@ -78,10 +77,9 @@ class PostgresClientImpl(postgresConfig: PostgresConfig) extends PostgresClient 
           title,
           status,
           workspace_id,
-          workspace_node_id,
           parent_folder_id,
           collection,
-          ingestion
+          ingestion,
           timeout_at,
           user_email,
           url
@@ -90,7 +88,6 @@ class PostgresClientImpl(postgresConfig: PostgresConfig) extends PostgresClient 
           ${ingest.title},
           ${ingest.status},
           ${ingest.workspaceId},
-          ${ingest.workspaceNodeId},
           ${ingest.parentFolderId},
           ${ingest.collection},
           ${ingest.ingestion},
@@ -111,7 +108,6 @@ class PostgresClientImpl(postgresConfig: PostgresConfig) extends PostgresClient 
     remoteIngestResult.string("title"),
     remoteIngestResult.string("status"),
     remoteIngestResult.string("workspace_id"),
-    remoteIngestResult.string("workspace_node_id"),
     remoteIngestResult.string("parent_folder_id"),
     remoteIngestResult.string("collection"),
     remoteIngestResult.string("ingestion"),
@@ -125,7 +121,6 @@ class PostgresClientImpl(postgresConfig: PostgresConfig) extends PostgresClient 
                               title,
                               status,
                               workspace_id,
-                              workspace_node_id
                               parent_folder_id,
                               collection,
                               ingestion,

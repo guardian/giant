@@ -264,7 +264,6 @@ class Workspaces(override val controllerComponents: AuthControllerComponents, an
           ingestion = data.ingestion,
           title = data.title,
           url = data.url,
-          workspaceNodeId = data.workspaceNodeId,
           parentFolderId = data.parentFolderId,
           timeoutAt = DateTime.now.plus(Duration.standardHours(4)), // 4 hours
           status = "pending",
