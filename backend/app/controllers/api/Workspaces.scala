@@ -11,7 +11,7 @@ import org.joda.time.{DateTime, Duration}
 import play.api.libs.json._
 import play.api.mvc.Action
 import services.ObjectStorage
-import services.manifest.Manifest
+import services.manifest.{Manifest, RemoteIngestManifest}
 import services.observability.PostgresClient
 import services.annotations.Annotations
 import services.annotations.Annotations.AffectedResource
@@ -69,7 +69,7 @@ object MoveCopyDestination {
 }
 
 class Workspaces(override val controllerComponents: AuthControllerComponents, annotation: Annotations, index: Index, manifest: Manifest,
-                 users: UserManagement, objectStorage: ObjectStorage, previewStorage: ObjectStorage, postgresClient: PostgresClient) extends AuthApiController with Logging {
+                 users: UserManagement, objectStorage: ObjectStorage, previewStorage: ObjectStorage, postgresClient: PostgresClient, remoteIngestManifest: RemoteIngestManifest) extends AuthApiController with Logging {
 
   def create = ApiAction.attempt(parse.json) { req =>
     for {
@@ -256,7 +256,7 @@ class Workspaces(override val controllerComponents: AuthControllerComponents, an
       data <- req.body.validate[AddRemoteUrlData].toAttempt
       itemId = UUID.randomUUID().toString
       _ = logAction(req.user, workspaceId, s"Add remote url to workspace. Node ID: $itemId. Data: $data")
-      id <- Attempt.fromEither(postgresClient.insertRemoteIngest(
+      id <- remoteIngestManifest.insertRemoteIngest(
         RemoteIngest(
           id = itemId,
           workspaceId = workspaceId,
@@ -269,7 +269,7 @@ class Workspaces(override val controllerComponents: AuthControllerComponents, an
           status = "pending",
           userEmail = req.user.username
         )
-      ))
+      )
     } yield {
       Created(Json.obj("id" -> id))
     }

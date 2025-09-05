@@ -6,7 +6,7 @@ import model._
 import model.annotations.WorkspaceMetadata
 import model.frontend.email.EmailNeighbours
 import model.frontend.{BasicResource, ExtractionFailures, ResourcesForExtractionFailure}
-import model.ingestion.{IngestionFile, WorkspaceItemContext, WorkspaceItemUploadContext}
+import model.ingestion.{IngestionFile, RemoteIngest, WorkspaceItemContext, WorkspaceItemUploadContext}
 import model.manifest._
 import services.manifest.Manifest.WorkCounts
 import utils.attempt.{Attempt, Failure}
@@ -98,4 +98,13 @@ trait Manifest extends WorkerManifest {
   def deleteResourceAndDescendants(uri: Uri): Attempt[Unit]
 
   def getWorkspaceChildrenWithUri(workspaceNodeId: Option[WorkspaceItemUploadContext], childUri: String): Attempt[List[IngestFileResult]]
+}
+
+trait RemoteIngestManifest {
+  def setup(): Either[Failure, Unit]
+
+  def insertRemoteIngest(ingest: RemoteIngest): Attempt[String]
+  def getRemoteIngestJob(id: String): Attempt[RemoteIngest]
+  def getRemoteIngestJobs(status: Option[String]): Attempt[List[RemoteIngest]]
+  def updateRemoteIngestJobStatus(id: String, status: String): Attempt[Unit]
 }

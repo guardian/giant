@@ -1,6 +1,5 @@
 package services.observability
 
-import model.ingestion.RemoteIngest
 import org.joda.time.{DateTime, DateTimeZone}
 import play.api.libs.json.Json
 import scalikejdbc._
@@ -8,7 +7,7 @@ import services.PostgresConfig
 
 import scala.util.{Failure, Success, Try}
 import utils.Logging
-import utils.attempt.{NotFoundFailure, PostgresReadFailure, PostgresWriteFailure, Failure => GiantFailure}
+import utils.attempt.{PostgresReadFailure, PostgresWriteFailure, Failure => GiantFailure}
 
 trait PostgresClient {
   def insertEvent(event: IngestionEvent): Either[GiantFailure, Unit]
@@ -19,13 +18,6 @@ trait PostgresClient {
 
   def deleteBlobIngestionEventsAndMetadata(blobId: String): Either[GiantFailure, Long]
 
-  def insertRemoteIngest(ingest: RemoteIngest): Either[GiantFailure, String]
-
-  def getRemoteIngestJobs(status: Option[String]): Either[GiantFailure, List[RemoteIngest]]
-
-  def updateRemoteIngestJobStatus(id: String, status: String): Either[GiantFailure, Unit]
-
-  def getRemoteIngestJob(id: String): Either[GiantFailure, RemoteIngest]
 }
 
 class PostgresClientDoNothing extends PostgresClient {
@@ -36,23 +28,6 @@ class PostgresClientDoNothing extends PostgresClient {
   override def getEvents(ingestId: String, ingestIdIsPrefix: Boolean): Either[GiantFailure, List[BlobStatus]] = Right(List())
 
   def deleteBlobIngestionEventsAndMetadata(blobId: String): Either[GiantFailure, Long] = Right(0)
-
-  def insertRemoteIngest(ingest: RemoteIngest): Either[GiantFailure, String] = Right("abc")
-
-  def getRemoteIngestJobs(status: Option[String]): Either[GiantFailure, List[RemoteIngest]] = Right(List.empty[RemoteIngest])
-
-  def updateRemoteIngestJobStatus(id: String, status: String): Either[GiantFailure, Unit] = Right(())
-
-  def getRemoteIngestJob(id: String): Either[GiantFailure, RemoteIngest] = Right(RemoteIngest(
-    "abc",
-    "Test Ingest",
-    "pending",
-    "workspace1",
-    "folder1",
-    "collection1",
-    "ingestion1",
-    DateTime.now(DateTimeZone.UTC).plusHours(1),
-    "test", "a@b.com"))
 
 }
 
@@ -68,121 +43,6 @@ class PostgresClientImpl(postgresConfig: PostgresConfig) extends PostgresClient 
   implicit val session: AutoSession.type = AutoSession
 
   import EventDetails.detailsFormat
-
-  def insertRemoteIngest(ingest: RemoteIngest): Either[GiantFailure, String] = {
-    Try {
-      sql"""
-        INSERT INTO remote_ingest (
-          id,
-          title,
-          status,
-          workspace_id,
-          parent_folder_id,
-          collection,
-          ingestion,
-          timeout_at,
-          user_email,
-          url
-        ) VALUES (
-          ${ingest.id},
-          ${ingest.title},
-          ${ingest.status},
-          ${ingest.workspaceId},
-          ${ingest.parentFolderId},
-          ${ingest.collection},
-          ${ingest.ingestion},
-          ${ingest.timeoutAt},
-          ${ingest.userEmail},
-          ${ingest.url}
-        );""".execute()
-    } match {
-      case Success(_) => Right(ingest.id)
-      case Failure(exception) =>
-        logger.warn(s"An exception occurred while inserting remote ingest: ${exception.getMessage}", exception)
-        Left(PostgresWriteFailure(exception))
-    }
-  }
-
-  private def parseRemoteIngestResult(remoteIngestResult: WrappedResultSet) = RemoteIngest(
-    remoteIngestResult.string("id"),
-    remoteIngestResult.string("title"),
-    remoteIngestResult.string("status"),
-    remoteIngestResult.string("workspace_id"),
-    remoteIngestResult.string("parent_folder_id"),
-    remoteIngestResult.string("collection"),
-    remoteIngestResult.string("ingestion"),
-    PostgresHelpers.postgresEpochToDateTime(remoteIngestResult.double("timeout_at_epoch")),
-    remoteIngestResult.string("url"),
-    remoteIngestResult.string("user_email"))
-
-  def getRemoteIngestJob(id: String): Either[GiantFailure, RemoteIngest] = {
-    Try {
-      val query = sql""" SELECT id,
-                              title,
-                              status,
-                              workspace_id,
-                              parent_folder_id,
-                              collection,
-                              ingestion,
-                              Extract(epoch FROM timeout_at) AS timeout_at_epoch,
-                              url,
-                              user_email
-                       FROM   remote_ingest
-                       WHERE  id = $id  """
-      query.map(parseRemoteIngestResult).first.apply()
-    } match {
-      case Success(Some(remoteIngest)) => Right(remoteIngest)
-      case Success(None) =>
-        val msg = s"Requested ingest job with id $id doesn't exist in database"
-        logger.error(msg)
-        Left(NotFoundFailure(msg))
-      case Failure(exception) =>
-        logger.error(s"An exception occurred while fetching remote ingest jobs with id $id ${exception.getMessage}", exception)
-        Left(PostgresReadFailure(exception, s"getRemoteIngestJobs failed: ${exception.getMessage}"))
-    }
-  }
-
-  def getRemoteIngestJobs(status: Option[String]): Either[GiantFailure, List[RemoteIngest]] = {
-    Try {
-
-      val whereClause = status.map(s => sqls"where status = $s").getOrElse(sqls"")
-      val query =
-        sql"""
-             SELECT
-              id,
-              title,
-              status,
-              workspace_id,
-              workspace_node_id,
-              parent_folder_id,
-              collection,
-              ingestion,
-              EXTRACT(EPOCH FROM timeout_at) as timeout_at_epoch,
-              url,
-              user_email
-            FROM remote_ingest $whereClause"""
-      query.map(parseRemoteIngestResult).list()
-    } match {
-      case Success(results) => Right(results)
-      case Failure(exception) =>
-        logger.error(s"An exception occurred while fetching remote ingest jobs: ${exception.getMessage}", exception)
-        Left(PostgresReadFailure(exception, s"getRemoteIngestJobs failed: ${exception.getMessage}"))
-    }
-  }
-
-  def updateRemoteIngestJobStatus(id: String, status: String): Either[GiantFailure, Unit] = {
-    Try {
-      sql"""
-        UPDATE remote_ingest
-        SET status = $status
-        WHERE id = $id;""".execute()
-    } match {
-      case Success(_) => Right(())
-      case Failure(exception) =>
-        logger.warn(s"An exception occurred while updating remote ingest job status: ${exception.getMessage}", exception)
-        Left(PostgresWriteFailure(exception))
-    }
-  }
 
   def insertMetadata(metaData: BlobMetadata): Either[GiantFailure, Unit] = {
     Try {

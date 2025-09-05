@@ -4,20 +4,21 @@ import com.amazonaws.services.sqs.AmazonSQS
 import com.amazonaws.services.sqs.model.ReceiveMessageRequest
 import model.ingestion.{MediaDownloadJob, MediaDownloadOutput}
 import play.api.libs.json.Json
-import services.observability.PostgresClient
+import services.manifest.Neo4jRemoteIngestManifest
 import services.{MediaDownloadConfig, S3IngestStorage}
 import utils.Logging
 
+import scala.concurrent.ExecutionContext
 import scala.jdk.CollectionConverters.CollectionHasAsScala
 class RemoteIngestWorker(
-                          postgresClient: PostgresClient,
+                          remoteIngestManifest: Neo4jRemoteIngestManifest,
                           amazonSQSClient: AmazonSQS,
                           ingestStorage: S3IngestStorage,
-                          config: MediaDownloadConfig) extends Logging  {
+                          config: MediaDownloadConfig)(implicit executionContext: ExecutionContext) extends Logging  {
 
   private def startPendingJobs(): Unit = {
     for {
-      jobs <- postgresClient.getRemoteIngestJobs(Some("pending"))
+      jobs <- remoteIngestManifest.getRemoteIngestJobs(Some("pending"))
     } yield {
       jobs.foreach { job =>
         logger.info(s"Sending job with id ${job.id}, queue: ${config.taskQueueUrl}")
@@ -25,7 +26,7 @@ class RemoteIngestWorker(
         val mediaDownloadJob = MediaDownloadJob(job.id, job.url, MediaDownloadJob.CLIENT_IDENTIFIER, config.outputQueueUrl, signedUploadUrl)
         val jobJson = Json.stringify(Json.toJson(mediaDownloadJob))
         try {
-          postgresClient.updateRemoteIngestJobStatus(job.id, "started")
+          remoteIngestManifest.updateRemoteIngestJobStatus(job.id, "started")
           amazonSQSClient.sendMessage(config.taskQueueUrl, jobJson)
         } catch {
           case e: Exception =>
@@ -40,13 +41,16 @@ class RemoteIngestWorker(
         .withMaxNumberOfMessages(10)).getMessages.asScala
 
       finishedJobs.foreach { job =>
+        logger.info(s"Processing finished job from SQS with id ${job.getMessageId}")
 
-        for {
-          parsedJob <- Json.fromJson[MediaDownloadOutput](Json.parse(job.getBody)).asEither
-        } yield {
-          // TODO: Implement ingestion of the file. For now, just delete the finished job from the queue
-          logger.info(s"Fetched remote ingest job status with id ${parsedJob.id} and status ${parsedJob.status}")
-          amazonSQSClient.deleteMessage(config.outputQueueUrl, job.getReceiptHandle)
+        Json.fromJson[MediaDownloadOutput](Json.parse(job.getBody)).asEither match {
+          case Right(parsedJob) =>
+            // TODO: Implement ingestion of the file. For now, just delete the finished job from the queue
+            logger.info(s"Fetched remote ingest job status with id ${parsedJob.id} and status ${parsedJob.status}")
+            amazonSQSClient.deleteMessage(config.outputQueueUrl, job.getReceiptHandle)
+          case Left(errors) =>
+            logger.error(s"Failed to parse finished job from SQS with id ${job.getMessageId}: ${errors}")
+            amazonSQSClient.deleteMessage(config.outputQueueUrl, job.getReceiptHandle)
         }
       }
     } catch  {
@@ -57,6 +61,7 @@ class RemoteIngestWorker(
   }
 
   def start(): Unit = {
+    logger.info("Starting Remote Ingest Worker cycle")
     startPendingJobs()
     processFinishedJobs()
   }

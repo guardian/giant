@@ -9,7 +9,7 @@ object MediaDownloadJob {
   val CLIENT_IDENTIFIER = "EXTERNAL"
 }
 
-case class MediaDownloadOutputMetadata(title: String, extension: String, mediaPath: String, duration: String)
+case class MediaDownloadOutputMetadata(title: String, extension: String, mediaPath: String, duration: Int)
 case class MediaDownloadOutput(id: String, status: String, metadata: Option[MediaDownloadOutputMetadata])
 object MediaDownloadOutput {
   implicit val mediaDownloadOutputMetadataFormat: Format[MediaDownloadOutputMetadata] = Json.format[MediaDownloadOutputMetadata]
