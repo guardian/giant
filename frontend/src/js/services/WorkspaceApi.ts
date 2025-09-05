@@ -95,6 +95,27 @@ export function addFolderToWorkspace(workspaceId: string, parentId: string, name
     return addItemToWorkspace(workspaceId, parentId, name, undefined, 'folder', {});
 }
 
+export async function captureFromUrl(workspaceId: string, payload: {
+    url: string
+    title: string
+    parentFolderId: string
+    workspaceNodeId: string
+    collection: string
+    ingestion: string
+}) {
+    const response = await authFetch(`/api/workspaces/${workspaceId}/remoteUrl`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify(payload)
+    });
+    if (!response.ok) {
+        throw Error(`HTTP Error: ${response.status} ${response.statusText}`);
+    }
+    return await response.json();
+}
+
 export type AddItemParameters = {
     uri?: string,
     size?: number,
