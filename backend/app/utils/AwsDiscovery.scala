@@ -79,6 +79,11 @@ object AwsDiscovery extends Logging {
         transcriptionServiceQueueUrl = readSSMParameter("transcribe/transcriptionServiceQueueUrl", stack, stage, ssmClient),
         transcriptionOutputDeadLetterQueueUrl = readSSMParameter("transcribe/transcriptionOutputDeadLetterQueueUrl", stack, stage, ssmClient)
       ),
+      mediaDownload = config.mediaDownload.copy(
+        taskQueueUrl = readSSMParameter("mediaDownload/taskQueueUrl", stack, stage, ssmClient),
+        outputDeadLetterQueueUrl = readSSMParameter("mediaDownload/outputDeadLetterQueueUrl", stack, stage, ssmClient),
+        outputQueueUrl = readSSMParameter("mediaDownload/outputQueueUrl", stack, stage, ssmClient)
+      ),
       sqs = config.sqs.copy(endpoint = None),
       underlying = config.underlying
         .withValue("play.http.secret.key", fromAnyRef(readSSMParameter("pfi/playSecret", stack, stage, ssmClient)))
