@@ -89,9 +89,9 @@ case class TranscribeConfig(
 )
 
 case class MediaDownloadConfig(
-                              taskQueueUrl: String,
-                              taskDeadLetterQueueUrl: String,
-                              outputQueueUrl: String
+                                taskQueueUrl: String,
+                                outputDeadLetterQueueUrl: String,
+                                outputQueueUrl: String
                               )
 
 case class WorkerConfig(
