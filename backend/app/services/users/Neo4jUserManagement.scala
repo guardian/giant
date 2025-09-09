@@ -3,7 +3,7 @@ package services.users
 import commands.{CreateCollection, CreateIngestion}
 import model.CreateIngestionRequest
 import model.frontend.user.PartialUser
-import model.manifest.{Collection, Ingestion}
+import model.manifest.{Collection}
 import model.user.{BCryptPassword, DBUser, UserPermission, UserPermissions}
 import org.neo4j.driver.v1.Values.parameters
 import org.neo4j.driver.v1.exceptions.ClientException
@@ -278,6 +278,17 @@ class Neo4jUserManagement(neo4jDriver: Driver, executionContext: ExecutionContex
         acc + (collection -> after)
       }
     }
+  }
+
+  override def getDefaultCollectionUriForUser(username: String): Attempt[String] = attemptTransaction { tx =>
+    tx.run(
+      """
+        | MATCH (user: User { username: 'admin' })-[:CAN_SEE]->(collection: Collection)<-[:PARENT]-(ingestion:Ingestion { default: true })
+        | RETURN collection.uri as collectionUri
+        | ORDER BY ID(ingestion) ASC
+        | LIMIT 1
+        |""".stripMargin
+    ).map(_.single().get("collectionUri").asString())
   }
 
   override def getUsersForCollection(collectionUri: String): Attempt[Set[String]] = attemptTransaction { tx =>
