@@ -138,3 +138,5 @@ case class DocumentUpdateFailure(throwable: Throwable) extends FailureWithThrowa
 case class ExternalTranscriptionOutputFailure(msg: String) extends Failure
 
 case class SQSSendMessageFailure(msg: String) extends Failure
+
+case class RemoteIngestFailure(msg: String) extends Failure
