@@ -4,7 +4,6 @@ import com.amazonaws.services.sqs.AmazonSQS
 import com.amazonaws.services.sqs.model.SendMessageRequest
 import org.joda.time.DateTime
 import play.api.libs.json.Json
-import services.ingestion.RemoteIngestStore
 import services.{IngestStorage, MediaDownloadConfig}
 import services.observability.JodaReadWrites
 import utils.Logging
@@ -17,10 +16,14 @@ case class RemoteIngest(
                          parentFolderId: String,
                          collection: String,
                          ingestion: String,
-                         timeoutAt: DateTime,
+                         createdAt: DateTime,
                          url: String,
                          userEmail: String,
-                         blobUri: Option[String] = None)
+                         blobUri: Option[String] = None) {
+
+  val ingestionKey: Key = (createdAt.getMillis, java.util.UUID.fromString(id))
+  // val timeoutAt = createdAt.plus(Duration.standardHours(4)) TODO implement timeouts
+}
 
 object RemoteIngest extends Logging {
   implicit val dateWrites = JodaReadWrites.dateWrites

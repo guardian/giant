@@ -55,7 +55,7 @@ object AddItemParameters {
   implicit val format = Json.format[AddItemParameters]
 }
 
-case class AddRemoteUrlData(url: String, title: String, parentFolderId: String, workspaceNodeId: String)
+case class AddRemoteUrlData(url: String, title: String, parentFolderId: String)
 object AddRemoteUrlData {
   implicit val format = Json.format[AddRemoteUrlData]
 }
@@ -298,7 +298,7 @@ class Workspaces(
         title = data.title,
         url = data.url,
         parentFolderId = data.parentFolderId,
-        timeoutAt = DateTime.now.plus(Duration.standardHours(4)), // 4 hours
+        createdAt = DateTime.now,
         status = "started",
         userEmail = req.user.username
       )
