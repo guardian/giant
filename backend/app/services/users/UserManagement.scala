@@ -21,6 +21,7 @@ trait UserManagement {
   def getUser(username: String): Attempt[DBUser]
   def removeUser(username: String): Attempt[Unit]
   def updateInvalidatedTime(username: String, invalidatedTime: Long): Attempt[DBUser]
+  def getDefaultCollectionUriForUser(username: String): Attempt[String]
   def getAllCollectionUrisAndUsernames(): Attempt[Map[String, Set[String]]]
   def getUsersForCollection(collectionUri: String): Attempt[Set[String]]
   def getVisibleCollectionUrisForUser(user: String): Attempt[Set[String]]
