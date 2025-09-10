@@ -277,11 +277,11 @@ class Workspaces(
         url = data.url,
         parentFolderId = data.parentFolderId,
         timeoutAt = DateTime.now.plus(Duration.standardHours(4)), // 4 hours
-        status = "pending",
+        status = "started",
         userEmail = req.user.username
       )
       id <- remoteIngestManifest.insertRemoteIngest(remoteIngest)
-      _ <- RemoteIngest.sendRemoteIngestJob(remoteIngest, mediaDownloadConfig, sqsClient, remoteIngestManifest, ingestStorage).toAttempt(msg => SQSSendMessageFailure(msg))
+      _ <- RemoteIngest.sendRemoteIngestJob(remoteIngest, mediaDownloadConfig, sqsClient, ingestStorage).toAttempt(msg => SQSSendMessageFailure(msg))
     } yield {
       Created(Json.obj("id" -> id))
     }
