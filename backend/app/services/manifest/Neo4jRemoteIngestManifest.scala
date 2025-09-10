@@ -59,8 +59,6 @@ class Neo4jRemoteIngestManifest(driver: Driver, executionContext: ExecutionConte
       "url", ingest.url,
       "userEmail", ingest.userEmail
     )
-
-    println(query, params)
     
     tx.run(query, params).map(res => res.single().get("id").asString())
   }
@@ -134,7 +132,6 @@ class Neo4jRemoteIngestManifest(driver: Driver, executionContext: ExecutionConte
           |       ri.userEmail AS user_email
         """.stripMargin, parameters())
     }
-    println(query, params)
     tx.run(query, params).map { result =>
       result.list().asScala.map(recordToRemoteIngest).toList
     }

@@ -1,5 +1,6 @@
 package test.integration
 
+import com.amazonaws.services.sqs.AmazonSQSClientBuilder
 import org.apache.pekko.util.Timeout
 import commands.IngestFileResult
 import controllers.api._
@@ -21,10 +22,9 @@ import services.annotations.Neo4jAnnotations
 import services.ingestion.IngestionServices
 import services.manifest.{Neo4jManifest, Neo4jRemoteIngestManifest}
 import services.users.{Neo4jUserManagement, UserManagement}
-import services.{BucketConfig, Neo4jQueryLoggingConfig, S3Config, TestTypeDetector}
-import services.NoOpMetricsService
+import services.{BucketConfig, MediaDownloadConfig, Neo4jQueryLoggingConfig, NoOpMetricsService, S3Config, TestTypeDetector}
 import test.integration.Helpers.BlobAndNodeId
-import test.{TestAuthActionBuilder, TestObjectStorage, TestPostgresClient, TestPreviewService, TestUserManagement}
+import test.{TestAuthActionBuilder, TestIngestStorage, TestObjectStorage, TestPostgresClient, TestPreviewService, TestUserManagement}
 import utils.Logging
 import utils.attempt.AttemptAwait._
 import utils.auth.User
@@ -245,6 +245,8 @@ object Helpers extends Matchers with Logging with OptionValues with Inside {
     elasticsearch.resetIndices()
 
     val s3Config = S3Config("fake", BucketConfig("fake", "fake", "fake", "fake", "fake"), None, None, None, None)
+    val mediaDownloadConfig = MediaDownloadConfig("", "", "")
+    val sqsClient = AmazonSQSClientBuilder.defaultClient()
     val downloadExpiryPeriod = 1.minute
 
     val userManagement = Neo4jUserManagement(neo4jDriver, ec, queryLoggingConfig, manifest, elasticsearch.elasticResources, elasticsearch.elasticPages, annotations)
@@ -258,7 +260,7 @@ object Helpers extends Matchers with Logging with OptionValues with Inside {
       val collectionsController = new Collections(controllerComponents, manifest, userManagement, elasticsearch.elasticResources, s3Config, elasticsearch.elasticEvents, elasticsearch.elasticPages, ingestionServices, annotations)
       val resourceController = new Resource(controllerComponents, manifest, elasticsearch.elasticResources, elasticsearch.elasticPages,  annotations, null)
       val filtersController = new Filters(controllerComponents, manifest, annotations)
-      val workspaceController = new Workspaces(controllerComponents, annotations, elasticsearch.elasticResources, manifest, userManagement, new TestObjectStorage(), new TestObjectStorage(), new TestPostgresClient(), remoteIngestManifest)
+      val workspaceController = new Workspaces(controllerComponents, annotations, elasticsearch.elasticResources, manifest, userManagement, new TestObjectStorage(), new TestObjectStorage(), new TestPostgresClient(), remoteIngestManifest, new TestIngestStorage(), mediaDownloadConfig, sqsClient)
       val metricsService = new NoOpMetricsService()
       val searchController = new Search(controllerComponents, userManagement, elasticsearch.elasticResources, annotations, metricsService)
       val documentsController = new Documents(controllerComponents, manifest, elasticsearch.elasticResources, null, userManagement, annotations, downloadExpiryPeriod)

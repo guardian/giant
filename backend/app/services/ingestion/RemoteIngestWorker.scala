@@ -11,30 +11,9 @@ import utils.Logging
 import scala.concurrent.ExecutionContext
 import scala.jdk.CollectionConverters.CollectionHasAsScala
 class RemoteIngestWorker(
-                          remoteIngestManifest: Neo4jRemoteIngestManifest,
                           amazonSQSClient: AmazonSQS,
-                          ingestStorage: S3IngestStorage,
                           config: MediaDownloadConfig)(implicit executionContext: ExecutionContext) extends Logging  {
 
-  private def startPendingJobs(): Unit = {
-    for {
-      jobs <- remoteIngestManifest.getRemoteIngestJobs(Some("pending"))
-    } yield {
-      jobs.foreach { job =>
-        logger.info(s"Sending job with id ${job.id}, queue: ${config.taskQueueUrl}")
-        val signedUploadUrl = ingestStorage.getUploadSignedUrl(job.id).getOrElse(throw new Exception(s"Failed to get signed upload URL for job ${job.id}"))
-        val mediaDownloadJob = MediaDownloadJob(job.id, job.url, MediaDownloadJob.CLIENT_IDENTIFIER, config.outputQueueUrl, signedUploadUrl)
-        val jobJson = Json.stringify(Json.toJson(mediaDownloadJob))
-        try {
-          remoteIngestManifest.updateRemoteIngestJobStatus(job.id, "started")
-          amazonSQSClient.sendMessage(config.taskQueueUrl, jobJson)
-        } catch {
-          case e: Exception =>
-            logger.info(s"Failed to send job with id ${job.id} to SQS: ${e.getMessage}", e)
-        }
-      }
-    }
-  }
   private def processFinishedJobs(): Unit = {
     try {
       val finishedJobs = amazonSQSClient.receiveMessage(new ReceiveMessageRequest(config.outputQueueUrl)
@@ -62,7 +41,6 @@ class RemoteIngestWorker(
 
   def start(): Unit = {
     logger.info("Starting Remote Ingest Worker cycle")
-    startPendingJobs()
     processFinishedJobs()
   }
 

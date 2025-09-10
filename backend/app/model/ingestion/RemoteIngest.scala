@@ -1,8 +1,12 @@
 package model.ingestion
 
+import com.amazonaws.services.sqs.{AmazonSQS}
 import org.joda.time.DateTime
 import play.api.libs.json.Json
+import services.{IngestStorage, MediaDownloadConfig}
+import services.manifest.RemoteIngestManifest
 import services.observability.JodaReadWrites
+import utils.Logging
 
 case class RemoteIngest(
                          id: String,
@@ -15,9 +19,27 @@ case class RemoteIngest(
                          timeoutAt: DateTime,
                          url: String,
                          userEmail: String)
-case object RemoteIngest {
+
+object RemoteIngest extends Logging {
   implicit val dateWrites = JodaReadWrites.dateWrites
   implicit val dateReads = JodaReadWrites.dateReads
   implicit val remoteIngestFormat = Json.format[RemoteIngest]
-}
 
+
+  def sendRemoteIngestJob(job: RemoteIngest, config: MediaDownloadConfig, amazonSQSClient: AmazonSQS, remoteIngestManifest: RemoteIngestManifest, ingestStorage: IngestStorage) = {
+    logger.info(s"Sending job with id ${job.id}, queue: ${config.taskQueueUrl}")
+    val signedUploadUrl = ingestStorage.getUploadSignedUrl(job.id).getOrElse(throw new Exception(s"Failed to get signed upload URL for job ${job.id}"))
+    val mediaDownloadJob = MediaDownloadJob(job.id, job.url, MediaDownloadJob.CLIENT_IDENTIFIER, config.outputQueueUrl, signedUploadUrl)
+    val jobJson = Json.stringify(Json.toJson(mediaDownloadJob))
+    try {
+      amazonSQSClient.sendMessage(config.taskQueueUrl, jobJson)
+      remoteIngestManifest.updateRemoteIngestJobStatus(job.id, "started")
+      Right(job.id)
+    } catch {
+      case e: Exception =>
+        val msg = s"Failed to send job with id ${job.id} to SQS"
+        logger.error(s"$msg: ${e.getMessage}", e)
+        Left(msg)
+    }
+  }
+}

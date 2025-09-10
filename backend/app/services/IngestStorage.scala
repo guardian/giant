@@ -24,6 +24,7 @@ trait IngestStorage {
   def delete(key: Key): Either[Failure, Unit]
   def sendToDeadLetterBucket(key: Key): Either[Failure, Unit]
   def retryDeadLetters(): Either[Failure, Unit]
+  def getUploadSignedUrl(key: String): Either[Failure, String]
 }
 
 class S3IngestStorage private(client: S3Client, ingestBucket: String, deadLetterBucket: String) extends IngestStorage with Logging {

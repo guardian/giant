@@ -1,5 +1,6 @@
 package controllers.api
 
+import com.amazonaws.services.sqs.AmazonSQS
 import commands.DeleteResource
 import model.Uri
 import model.annotations.{Workspace, WorkspaceEntry, WorkspaceLeaf}
@@ -10,7 +11,7 @@ import net.logstash.logback.marker.Markers.append
 import org.joda.time.{DateTime, Duration}
 import play.api.libs.json._
 import play.api.mvc.Action
-import services.ObjectStorage
+import services.{Config, IngestStorage, MediaDownloadConfig, ObjectStorage}
 import services.manifest.{Manifest, RemoteIngestManifest}
 import services.observability.PostgresClient
 import services.annotations.Annotations
@@ -68,8 +69,19 @@ object MoveCopyDestination {
   implicit val format = Json.format[MoveCopyDestination]
 }
 
-class Workspaces(override val controllerComponents: AuthControllerComponents, annotation: Annotations, index: Index, manifest: Manifest,
-                 users: UserManagement, objectStorage: ObjectStorage, previewStorage: ObjectStorage, postgresClient: PostgresClient, remoteIngestManifest: RemoteIngestManifest) extends AuthApiController with Logging {
+class Workspaces(
+                  override val controllerComponents: AuthControllerComponents,
+                  annotation: Annotations,
+                  index: Index,
+                  manifest: Manifest,
+                  users: UserManagement,
+                  objectStorage: ObjectStorage,
+                  previewStorage: ObjectStorage,
+                  postgresClient: PostgresClient,
+                  remoteIngestManifest: RemoteIngestManifest,
+                  ingestStorage: IngestStorage,
+                  mediaDownloadConfig: MediaDownloadConfig,
+                  sqsClient: AmazonSQS) extends AuthApiController with Logging {
 
   def create = ApiAction.attempt(parse.json) { req =>
     for {
@@ -256,20 +268,20 @@ class Workspaces(override val controllerComponents: AuthControllerComponents, an
       data <- req.body.validate[AddRemoteUrlData].toAttempt
       itemId = UUID.randomUUID().toString
       _ = logAction(req.user, workspaceId, s"Add remote url to workspace. Node ID: $itemId. Data: $data")
-      id <- remoteIngestManifest.insertRemoteIngest(
-        RemoteIngest(
-          id = itemId,
-          workspaceId = workspaceId,
-          collection = data.collection,
-          ingestion = data.ingestion,
-          title = data.title,
-          url = data.url,
-          parentFolderId = data.parentFolderId,
-          timeoutAt = DateTime.now.plus(Duration.standardHours(4)), // 4 hours
-          status = "pending",
-          userEmail = req.user.username
-        )
+      remoteIngest = RemoteIngest(
+        id = itemId,
+        workspaceId = workspaceId,
+        collection = data.collection,
+        ingestion = data.ingestion,
+        title = data.title,
+        url = data.url,
+        parentFolderId = data.parentFolderId,
+        timeoutAt = DateTime.now.plus(Duration.standardHours(4)), // 4 hours
+        status = "pending",
+        userEmail = req.user.username
       )
+      id <- remoteIngestManifest.insertRemoteIngest(remoteIngest)
+      _ <- RemoteIngest.sendRemoteIngestJob(remoteIngest, mediaDownloadConfig, sqsClient, remoteIngestManifest, ingestStorage).toAttempt(msg => SQSSendMessageFailure(msg))
     } yield {
       Created(Json.obj("id" -> id))
     }
