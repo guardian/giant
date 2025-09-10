@@ -1,6 +1,7 @@
 package model.ingestion
 
-import com.amazonaws.services.sqs.{AmazonSQS}
+import com.amazonaws.services.sqs.AmazonSQS
+import com.amazonaws.services.sqs.model.SendMessageRequest
 import org.joda.time.DateTime
 import play.api.libs.json.Json
 import services.{IngestStorage, MediaDownloadConfig}
@@ -31,8 +32,12 @@ object RemoteIngest extends Logging {
     val signedUploadUrl = ingestStorage.getUploadSignedUrl(job.id).getOrElse(throw new Exception(s"Failed to get signed upload URL for job ${job.id}"))
     val mediaDownloadJob = MediaDownloadJob(job.id, job.url, MediaDownloadJob.CLIENT_IDENTIFIER, config.outputQueueUrl, signedUploadUrl)
     val jobJson = Json.stringify(Json.toJson(mediaDownloadJob))
+    val sendMessageRequest = new SendMessageRequest()
+      .withQueueUrl(config.taskQueueUrl)
+      .withMessageBody(jobJson)
+      .withMessageGroupId(job.id)
     try {
-      amazonSQSClient.sendMessage(config.taskQueueUrl, jobJson)
+      amazonSQSClient.sendMessage(sendMessageRequest)
       Right(job.id)
     } catch {
       case e: Exception =>
