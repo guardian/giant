@@ -27,7 +27,7 @@ case class CombinedOutputUrl(url: String, key: String)
 case class TranscriptionJob(id: String, originalFilename: String, inputSignedUrl: String, sentTimestamp: String,
                             userEmail: String, transcriptDestinationService: String, outputBucketUrls: OutputBucketUrls,
                             combinedOutputUrl: CombinedOutputUrl, languageCode: String, translate: Boolean,
-                            translationOutputBucketUrls: OutputBucketUrls, diarize: Boolean = false, engine: String = "whispercpp")
+                            translationOutputBucketUrls: OutputBucketUrls, diarize: Boolean = false, engine: String = "whisperx")
 object OutputBucketUrls {
   implicit val formats = Json.format[OutputBucketUrls]
 }
