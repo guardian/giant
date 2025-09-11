@@ -4,8 +4,7 @@ import com.amazonaws.services.sqs.AmazonSQS
 import com.amazonaws.services.sqs.model.ReceiveMessageRequest
 import model.ingestion.{MediaDownloadJob, MediaDownloadOutput}
 import play.api.libs.json.Json
-import services.manifest.Neo4jRemoteIngestManifest
-import services.{MediaDownloadConfig, S3IngestStorage}
+import services.MediaDownloadConfig
 import utils.Logging
 
 import scala.concurrent.ExecutionContext

@@ -31,8 +31,8 @@ import services._
 import services.annotations.Neo4jAnnotations
 import services.events.ElasticsearchEvents
 import services.index.{ElasticsearchPages, ElasticsearchResources, Pages2}
-import ingestion.{IngestionServices, RemoteIngestWorker}
-import services.manifest.{Neo4jManifest, Neo4jRemoteIngestManifest}
+import ingestion.{IngestionServices, Neo4jRemoteIngestStore, RemoteIngestWorker}
+import services.manifest.Neo4jManifest
 import services.observability.{PostgresClientDoNothing, PostgresClientImpl}
 import services.previewing.PreviewService
 import services.table.ElasticsearchTable
@@ -107,7 +107,7 @@ class AppComponents(context: Context, config: Config)
 
     val neo4jDriver = GraphDatabase.driver(config.neo4j.url, AuthTokens.basic(config.neo4j.user, config.neo4j.password))
     val manifest = Neo4jManifest.setupManifest(neo4jDriver, neo4jExecutionContext, config.neo4j.queryLogging).valueOr(failure => throw new Exception(failure.msg))
-    val remoteIngestManifest = Neo4jRemoteIngestManifest.setupManifest(neo4jDriver, neo4jExecutionContext, config.neo4j.queryLogging).valueOr(failure => throw new Exception(failure.msg))
+    val remoteIngestManifest = Neo4jRemoteIngestStore.setupManifest(neo4jDriver, neo4jExecutionContext, config.neo4j.queryLogging).valueOr(failure => throw new Exception(failure.msg))
     val annotations = Neo4jAnnotations.setupAnnotations(neo4jDriver, neo4jExecutionContext, config.neo4j.queryLogging).valueOr(failure => throw new Exception(failure.msg))
     val users = Neo4jUserManagement(neo4jDriver, neo4jExecutionContext, config.neo4j.queryLogging, manifest, esResources, esPages, annotations)
     val metricsService = config.aws.map(new CloudwatchMetricsService(_)).getOrElse(new NoOpMetricsService())

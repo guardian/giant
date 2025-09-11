@@ -1,24 +1,24 @@
-package services.manifest
+package services.ingestion
 
 import model.ingestion.RemoteIngest
 import org.neo4j.driver.v1.Driver
-import services.Neo4jQueryLoggingConfig
-import utils.{Logging, Neo4jHelper}
-import utils.attempt.{Attempt, Failure, NotFoundFailure}
 import org.neo4j.driver.v1.Values.parameters
+import services.Neo4jQueryLoggingConfig
+import utils.attempt.{Attempt, Failure, NotFoundFailure}
+import utils.{Logging, Neo4jHelper}
 
 import scala.concurrent.ExecutionContext
 import scala.jdk.CollectionConverters.CollectionHasAsScala
 
-object Neo4jRemoteIngestManifest {
-  def setupManifest(driver: Driver, executionContext: ExecutionContext, queryLoggingConfig: Neo4jQueryLoggingConfig): Either[Failure, Neo4jRemoteIngestManifest] = {
-    val neo4jManifest = new Neo4jRemoteIngestManifest(driver, executionContext, queryLoggingConfig)
+object Neo4jRemoteIngestStore {
+  def setupManifest(driver: Driver, executionContext: ExecutionContext, queryLoggingConfig: Neo4jQueryLoggingConfig): Either[Failure, Neo4jRemoteIngestStore] = {
+    val neo4jManifest = new Neo4jRemoteIngestStore(driver, executionContext, queryLoggingConfig)
     neo4jManifest.setup().map(_ => neo4jManifest)
   }
 }
 
-class Neo4jRemoteIngestManifest(driver: Driver, executionContext: ExecutionContext, queryLoggingConfig: Neo4jQueryLoggingConfig)
-  extends Neo4jHelper(driver, executionContext, queryLoggingConfig) with RemoteIngestManifest with Logging {
+class Neo4jRemoteIngestStore(driver: Driver, executionContext: ExecutionContext, queryLoggingConfig: Neo4jQueryLoggingConfig)
+  extends Neo4jHelper(driver, executionContext, queryLoggingConfig) with RemoteIngestStore with Logging {
 
 
   implicit val ec: ExecutionContext = executionContext
@@ -64,6 +64,7 @@ class Neo4jRemoteIngestManifest(driver: Driver, executionContext: ExecutionConte
   }
 
   private def recordToRemoteIngest(record: org.neo4j.driver.v1.Record): RemoteIngest = {
+    val blobUri = if (record.containsKey("blob_uri")) Some(record.get("blob_uri").asString()) else None
     RemoteIngest(
       record.get("id").asString(),
       record.get("title").asString(),
@@ -74,7 +75,8 @@ class Neo4jRemoteIngestManifest(driver: Driver, executionContext: ExecutionConte
       record.get("ingestion").asString(),
       new org.joda.time.DateTime(record.get("timeout_at").asLong(), org.joda.time.DateTimeZone.UTC),
       record.get("url").asString(),
-      record.get("user_email").asString()
+      record.get("user_email").asString(),
+      blobUri
     )
   }
 
@@ -92,6 +94,7 @@ class Neo4jRemoteIngestManifest(driver: Driver, executionContext: ExecutionConte
         |       ri.timeoutAt AS timeout_at,
         |       ri.url AS url,
         |       ri.userEmail AS user_email
+        |       ri.blobUri AS blob_uri
       """.stripMargin
 
     val params = parameters("id", id)
@@ -149,6 +152,22 @@ class Neo4jRemoteIngestManifest(driver: Driver, executionContext: ExecutionConte
       val updatedCount = result.single().get("updatedCount").asInt()
       if (updatedCount == 0) {
         Attempt.Left(NotFoundFailure(s"No RemoteIngest job found with id $id to update status."))
+      } else ()
+    }
+  }
+
+  override def updateRemoteIngestJobBlobUri(id: String, blobUri: String): Attempt[Unit] = attemptTransaction { tx =>
+    val query =
+      """
+        |MATCH (ri:RemoteIngest {id: $id})
+        |SET ri.blobUri = $blobUri
+        |RETURN COUNT(ri) AS updatedCount
+      """.stripMargin
+    val params = parameters("id", id, "blobUri", blobUri)
+    tx.run(query, params).map { result =>
+      val updatedCount = result.single().get("updatedCount").asInt()
+      if (updatedCount == 0) {
+        Attempt.Left(NotFoundFailure(s"No RemoteIngest job found with id $id to update blobUri."))
       } else ()
     }
   }

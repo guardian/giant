@@ -99,12 +99,3 @@ trait Manifest extends WorkerManifest {
 
   def getWorkspaceChildrenWithUri(workspaceNodeId: Option[WorkspaceItemUploadContext], childUri: String): Attempt[List[IngestFileResult]]
 }
-
-trait RemoteIngestManifest {
-  def setup(): Either[Failure, Unit]
-
-  def insertRemoteIngest(ingest: RemoteIngest): Attempt[String]
-  def getRemoteIngestJob(id: String): Attempt[RemoteIngest]
-  def getRemoteIngestJobs(status: Option[String]): Attempt[List[RemoteIngest]]
-  def updateRemoteIngestJobStatus(id: String, status: String): Attempt[Unit]
-}

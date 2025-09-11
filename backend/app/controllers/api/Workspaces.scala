@@ -12,11 +12,12 @@ import org.joda.time.{DateTime, Duration}
 import play.api.libs.json._
 import play.api.mvc.Action
 import services.{Config, IngestStorage, MediaDownloadConfig, ObjectStorage}
-import services.manifest.{Manifest, RemoteIngestManifest}
+import services.manifest.Manifest
 import services.observability.PostgresClient
 import services.annotations.Annotations
 import services.annotations.Annotations.AffectedResource
 import services.index.Index
+import services.ingestion.RemoteIngestStore
 import services.users.UserManagement
 import utils.Logging
 import utils.attempt._
@@ -78,7 +79,7 @@ class Workspaces(
                   objectStorage: ObjectStorage,
                   previewStorage: ObjectStorage,
                   postgresClient: PostgresClient,
-                  remoteIngestManifest: RemoteIngestManifest,
+                  remoteIngestManifest: RemoteIngestStore,
                   ingestStorage: IngestStorage,
                   mediaDownloadConfig: MediaDownloadConfig,
                   sqsClient: AmazonSQS) extends AuthApiController with Logging {
