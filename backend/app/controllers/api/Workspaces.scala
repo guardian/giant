@@ -50,7 +50,7 @@ object AddItemParameters {
   implicit val format = Json.format[AddItemParameters]
 }
 
-case class AddRemoteUrlData(url: String, title: String, parentFolderId: String, workspaceNodeId: String, collection: String, ingestion: String)
+case class AddRemoteUrlData(url: String, title: String, parentFolderId: String)
 object AddRemoteUrlData {
   implicit val format = Json.format[AddRemoteUrlData]
 }
@@ -269,15 +269,16 @@ class Workspaces(
       data <- req.body.validate[AddRemoteUrlData].toAttempt
       itemId = UUID.randomUUID().toString
       _ = logAction(req.user, workspaceId, s"Add remote url to workspace. Node ID: $itemId. Data: $data")
+      defaultCollectionUriForUser <- users.getDefaultCollectionUriForUser(req.user.username)
       remoteIngest = RemoteIngest(
         id = itemId,
         workspaceId = workspaceId,
-        collection = data.collection,
-        ingestion = data.ingestion,
+        collection = defaultCollectionUriForUser,
+        ingestion = itemId, // re-use the itemId as ingestion ID for now
         title = data.title,
         url = data.url,
         parentFolderId = data.parentFolderId,
-        timeoutAt = DateTime.now.plus(Duration.standardHours(4)), // 4 hours
+        createdAt = DateTime.now,
         status = "started",
         userEmail = req.user.username
       )
