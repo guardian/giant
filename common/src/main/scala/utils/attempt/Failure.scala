@@ -136,3 +136,5 @@ case class DeleteNotAllowed(msg: String) extends Failure
 
 case class DocumentUpdateFailure(throwable: Throwable) extends FailureWithThrowable
 case class ExternalTranscriptionOutputFailure(msg: String) extends Failure
+
+case class SQSSendMessageFailure(msg: String) extends Failure

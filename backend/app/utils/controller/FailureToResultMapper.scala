@@ -135,6 +135,9 @@ object FailureToResultMapper extends Logging {
       case FfMpegFailure(error, message) =>
         logger.error(message)
         Results.InternalServerError(message)
+      case SQSSendMessageFailure(msg) =>
+        logger.error(msg)
+        Results.InternalServerError(msg)
     }
   }
 }
