@@ -283,11 +283,14 @@ class Neo4jUserManagement(neo4jDriver: Driver, executionContext: ExecutionContex
   override def getDefaultCollectionUriForUser(username: String): Attempt[String] = attemptTransaction { tx =>
     tx.run(
       """
-        | MATCH (user: User { username: 'admin' })-[:CAN_SEE]->(collection: Collection)<-[:PARENT]-(ingestion:Ingestion { default: true })
+        | MATCH (user: User { username: {username} })-[:CAN_SEE]->(collection: Collection)<-[:PARENT]-(ingestion:Ingestion { default: true })
         | RETURN collection.uri as collectionUri
         | ORDER BY ID(ingestion) ASC
         | LIMIT 1
-        |""".stripMargin
+        |""".stripMargin,
+      parameters(
+        "username", username
+      )
     ).map(_.single().get("collectionUri").asString())
   }
 
