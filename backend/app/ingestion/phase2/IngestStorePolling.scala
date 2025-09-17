@@ -110,7 +110,7 @@ class IngestStorePolling(
   def processKey(key: Key): Either[Failure, Unit] = {
     for {
       context <- ingestStorage.getMetadata(key)
-      _ <- fetchData(key) { case (path, fingerprint) =>
+      _ <- IngestStorePolling.fetchData(key, ingestStorage, scratchSpace) { case (path, fingerprint) =>
         val ingestionMetaData = EventMetadata(fingerprint.value, context.ingestion)
 
         try {
@@ -139,29 +139,6 @@ class IngestStorePolling(
     }
   }
 
-  /* Fetches the data from the object store, computing the fingerprint in flight */
-  def fetchData[T](key: Key)(f: (Path, Uri) => Either[Failure, T]): Either[Failure, T] = {
-    ingestStorage.getData(key).flatMap { sourceInputStream =>
-      try {
-        Either.catchNonFatal {
-          val path = scratchSpace.pathFor(key)
-          logger.info(s"Fetching data for $key to $path")
-
-          Files.copy(sourceInputStream, path)
-          path -> Uri(FingerprintServices.createFingerprintFromFile(path.toFile))
-        }.leftMap(UnknownFailure.apply)
-      } finally {
-        sourceInputStream.close()
-      }
-    }.flatMap{ case (path, uri) =>
-      try {
-        f(path, uri)
-      } finally {
-        Files.delete(path)
-      }
-    }
-  }
-
   def getNextBatch: Attempt[Iterable[(Long, UUID)]] = {
     for {
       selector <- workSelector
@@ -182,6 +159,31 @@ class IngestStorePolling(
     workerControl.getWorkerDetails.map { details =>
       logger.info(s"Cluster state ${details}")
       WorkSelector(details.nodes.size, details.nodes.toSeq.indexOf(details.thisNode))
+    }
+  }
+}
+
+object IngestStorePolling extends Logging {
+  /* Fetches the data from the object store, computing the fingerprint in flight */
+  def fetchData[T](key: Key, ingestStorage: IngestStorage, scratchSpace: ScratchSpace)(f: (Path, Uri) => Either[Failure, T]): Either[Failure, T] = {
+    ingestStorage.getData(key).flatMap { sourceInputStream =>
+      try {
+        Either.catchNonFatal {
+          val path = scratchSpace.pathFor(key)
+          logger.info(s"Fetching data for $key to $path")
+
+          Files.copy(sourceInputStream, path)
+          path -> Uri(FingerprintServices.createFingerprintFromFile(path.toFile))
+        }.leftMap(UnknownFailure.apply)
+      } finally {
+        sourceInputStream.close()
+      }
+    }.flatMap{ case (path, uri) =>
+      try {
+        f(path, uri)
+      } finally {
+        Files.delete(path)
+      }
     }
   }
 }

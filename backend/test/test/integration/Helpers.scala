@@ -244,7 +244,7 @@ object Helpers extends Matchers with Logging with OptionValues with Inside {
 
     elasticsearch.resetIndices()
 
-    val s3Config = S3Config("fake", BucketConfig("fake", "fake", "fake", "fake", "fake"), None, None, None, None)
+    val s3Config = S3Config("fake", BucketConfig("fake", "fake", "fake", "fake", "fake", "fake"), None, None, None, None)
     val mediaDownloadConfig = MediaDownloadConfig("", "", "")
     val sqsClient = AmazonSQSClientBuilder.defaultClient()
     val downloadExpiryPeriod = 1.minute

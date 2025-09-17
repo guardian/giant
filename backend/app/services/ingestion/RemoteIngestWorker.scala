@@ -8,7 +8,7 @@ import ingestion.phase2.IngestStorePolling
 import model.Uri
 import model.ingestion.{MediaDownloadOutput, WorkspaceItemUploadContext}
 import play.api.libs.json.Json
-import services.{MediaDownloadConfig, S3Config}
+import services.{IngestStorage, MediaDownloadConfig, S3Config, ScratchSpace}
 import services.annotations.Annotations
 import services.index.Pages
 import services.manifest.Manifest
@@ -27,7 +27,8 @@ class RemoteIngestWorker(
   s3Config: S3Config,
   annotations: Annotations,
   remoteIngestStore: Neo4jRemoteIngestStore,
-  ingestStorePolling: IngestStorePolling,
+  ingestStorage: IngestStorage,
+  scratchSpace: ScratchSpace,
   manifest: Manifest,
   esEvents: services.events.Events,
   index: services.index.Index,
@@ -54,7 +55,7 @@ class RemoteIngestWorker(
             workspaceMetadata <- annotations.getWorkspaceMetadata(job.userEmail, job.workspaceId)
             _ <- remoteIngestStore.updateRemoteIngestJobStatus(parsedJob.id, "INGESTING")
             ingestion <- Collections.createIngestionIfNotExists(Uri(job.collection), job.ingestion, manifest, index, pages, s3Config)
-            ingestFileResult <- ingestStorePolling.fetchData(job.ingestionKey){(path, fingerprint) =>
+            ingestFileResult <- IngestStorePolling.fetchData(job.ingestionKey, ingestStorage, scratchSpace){(path, fingerprint) =>
               val collectionUri = Uri(job.collection)
               Await.result(
                 new IngestFile(
