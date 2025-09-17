@@ -33,7 +33,7 @@ object RemoteIngest extends Logging {
 
   def sendRemoteIngestJob(job: RemoteIngest, config: MediaDownloadConfig, amazonSQSClient: AmazonSQS, ingestStorage: IngestStorage): Either[String, String] = {
     logger.info(s"Sending job with id ${job.id}, queue: ${config.taskQueueUrl}")
-    val signedUploadUrl = ingestStorage.getUploadSignedUrl(job.id).getOrElse(throw new Exception(s"Failed to get signed upload URL for job ${job.id}"))
+    val signedUploadUrl = ingestStorage.getUploadSignedUrl(job.ingestionKey).getOrElse(throw new Exception(s"Failed to get signed upload URL for job ${job.id}"))
     val mediaDownloadJob = MediaDownloadJob(job.id, job.url, MediaDownloadJob.CLIENT_IDENTIFIER, config.outputQueueUrl, signedUploadUrl)
     val jobJson = Json.stringify(Json.toJson(mediaDownloadJob))
     val sendMessageRequest = new SendMessageRequest()
