@@ -5,13 +5,13 @@ import commands.DeleteResource
 import model.Uri
 import model.annotations.{Workspace, WorkspaceEntry, WorkspaceLeaf}
 import model.frontend.{TreeEntry, TreeLeaf, TreeNode}
-import model.ingestion.RemoteIngest
+import model.ingestion.{RemoteIngest, RemoteIngestStatus}
 import net.logstash.logback.marker.LogstashMarker
 import net.logstash.logback.marker.Markers.append
-import org.joda.time.{DateTime, Duration}
+import org.joda.time.DateTime
 import play.api.libs.json._
 import play.api.mvc.Action
-import services.{Config, IngestStorage, MediaDownloadConfig, ObjectStorage}
+import services.{IngestStorage, MediaDownloadConfig, ObjectStorage}
 import services.manifest.Manifest
 import services.observability.PostgresClient
 import services.annotations.Annotations
@@ -76,18 +76,19 @@ object MoveCopyDestination {
 }
 
 class Workspaces(
-                  override val controllerComponents: AuthControllerComponents,
-                  annotation: Annotations,
-                  index: Index,
-                  manifest: Manifest,
-                  users: UserManagement,
-                  objectStorage: ObjectStorage,
-                  previewStorage: ObjectStorage,
-                  postgresClient: PostgresClient,
-                  remoteIngestManifest: RemoteIngestStore,
-                  remoteIngestStorage: IngestStorage,
-                  mediaDownloadConfig: MediaDownloadConfig,
-                  sqsClient: AmazonSQS) extends AuthApiController with Logging {
+  override val controllerComponents: AuthControllerComponents,
+  annotation: Annotations,
+  index: Index,
+  manifest: Manifest,
+  users: UserManagement,
+  objectStorage: ObjectStorage,
+  previewStorage: ObjectStorage,
+  postgresClient: PostgresClient,
+  remoteIngestStore: RemoteIngestStore,
+  remoteIngestStorage: IngestStorage,
+  mediaDownloadConfig: MediaDownloadConfig,
+  sqsClient: AmazonSQS
+) extends AuthApiController with Logging {
 
   def create = ApiAction.attempt(parse.json) { req =>
     for {
@@ -284,6 +285,18 @@ class Workspaces(
     }
   }
 
+  def getRelevantRemoteJobs(workspaceId: String) = ApiAction.attempt { req =>
+    for {
+      jobs <- remoteIngestStore.getRemoteIngestJobs(
+        maybeWorkspaceId = Some(workspaceId),
+        maybeOnlyStatuses = List(RemoteIngestStatus.Queued, RemoteIngestStatus.Ingesting, RemoteIngestStatus.Failed),
+        maybeSinceUTCEpoch = Some(DateTime.now.minusDays(14).getMillis)
+      )
+    } yield {
+      Ok(Json.toJson(jobs))
+    }
+  }
+
   def addRemoteUrlToWorkspace(workspaceId: String): Action[JsValue] = ApiAction.attempt(parse.json) { req =>
     for {
       data <- req.body.validate[AddRemoteUrlData].toAttempt
@@ -299,10 +312,10 @@ class Workspaces(
         url = data.url,
         parentFolderId = data.parentFolderId,
         createdAt = DateTime.now,
-        status = "started",
+        status = RemoteIngestStatus.Queued,
         userEmail = req.user.username
       )
-      id <- remoteIngestManifest.insertRemoteIngest(remoteIngest)
+      id <- remoteIngestStore.insertRemoteIngest(remoteIngest)
       _ <- RemoteIngest.sendRemoteIngestJob(remoteIngest, mediaDownloadConfig, sqsClient, remoteIngestStorage).toAttempt(msg => SQSSendMessageFailure(msg))
     } yield {
       Created(Json.obj("id" -> id))
