@@ -73,7 +73,7 @@ class Neo4jRemoteIngestStore(driver: Driver, executionContext: ExecutionContext,
       record.get("parent_folder_id").asString(),
       record.get("collection").asString(),
       record.get("ingestion").asString(),
-      new org.joda.time.DateTime(record.get("timeout_at").asLong(), org.joda.time.DateTimeZone.UTC),
+      new org.joda.time.DateTime(record.get("created_at").asLong(), org.joda.time.DateTimeZone.UTC),
       record.get("url").asString(),
       record.get("user_email").asString(),
       blobUri
@@ -93,7 +93,7 @@ class Neo4jRemoteIngestStore(driver: Driver, executionContext: ExecutionContext,
         |       ri.ingestion AS ingestion,
         |       ri.createdAt AS created_at,
         |       ri.url AS url,
-        |       ri.userEmail AS user_email
+        |       ri.userEmail AS user_email,
         |       ri.blobUri AS blob_uri
       """.stripMargin
 

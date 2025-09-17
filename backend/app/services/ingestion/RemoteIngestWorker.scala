@@ -3,12 +3,14 @@ package services.ingestion
 import com.amazonaws.services.sqs.AmazonSQS
 import com.amazonaws.services.sqs.model.ReceiveMessageRequest
 import commands.IngestFile
+import controllers.api.Collections
 import ingestion.phase2.IngestStorePolling
 import model.Uri
 import model.ingestion.{MediaDownloadOutput, WorkspaceItemUploadContext}
 import play.api.libs.json.Json
-import services.MediaDownloadConfig
+import services.{MediaDownloadConfig, S3Config}
 import services.annotations.Annotations
+import services.index.Pages
 import services.manifest.Manifest
 import utils.Logging
 import utils.attempt.{Attempt, JsonParseFailure, RemoteIngestFailure}
@@ -22,11 +24,14 @@ import scala.jdk.CollectionConverters.CollectionHasAsScala
 class RemoteIngestWorker(
   amazonSQSClient: AmazonSQS,
   config: MediaDownloadConfig,
+  s3Config: S3Config,
   annotations: Annotations,
   remoteIngestStore: Neo4jRemoteIngestStore,
   ingestStorePolling: IngestStorePolling,
   manifest: Manifest,
   esEvents: services.events.Events,
+  index: services.index.Index,
+  pages: Pages,
   ingestionServices: IngestionServices
 )(implicit executionContext: ExecutionContext) extends Logging  {
 
@@ -48,12 +53,13 @@ class RemoteIngestWorker(
             job <- remoteIngestStore.getRemoteIngestJob(parsedJob.id)
             workspaceMetadata <- annotations.getWorkspaceMetadata(job.userEmail, job.workspaceId)
             _ <- remoteIngestStore.updateRemoteIngestJobStatus(parsedJob.id, "INGESTING")
+            ingestion <- Collections.createIngestionIfNotExists(Uri(job.collection), job.ingestion, manifest, index, pages, s3Config)
             ingestFileResult <- ingestStorePolling.fetchData(job.ingestionKey){(path, fingerprint) =>
               val collectionUri = Uri(job.collection)
               Await.result(
                 new IngestFile(
                   collectionUri,
-                  ingestionUri = collectionUri.chain(job.ingestion),
+                  ingestionUri = Uri(ingestion.uri),
                   uploadId = job.id,
                   workspace = Some(WorkspaceItemUploadContext(
                     workspaceId = job.workspaceId,
@@ -79,14 +85,17 @@ class RemoteIngestWorker(
             failureDetail => {
               val maybeParsedJob =  messageParseResult.asOpt
               logger.error(s"Failed to ingest remote file for job with id ${maybeParsedJob.map(_.id).getOrElse(s"unknown (but had sqs id ${sqsMessage.getMessageId}")}: $failureDetail")
+              // TODO: Do we care if this sending to dead letter queue fails?
+              amazonSQSClient.sendMessage(config.outputDeadLetterQueueUrl, sqsMessage.getBody)
               maybeParsedJob.map(parsedJob =>
                 remoteIngestStore.updateRemoteIngestJobStatus(parsedJob.id, "FAILED")
               )
             },
             job => logger.info(s"Successfully ingested remote file for job with id ${job.id} in workspace ${job.workspaceId}")
-        ).onComplete(_ =>
+        ).onComplete { _ =>
           amazonSQSClient.deleteMessage(config.outputQueueUrl, sqsMessage.getReceiptHandle)
-        )
+          //TODO: Delete file from S3
+        }
       }
     } catch  {
       case e: Exception =>
