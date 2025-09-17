@@ -1,46 +1,59 @@
-import { TreeEntry, TreeNode } from './Tree';
-import { PartialUser } from './User';
-import { ProcessingStage } from './Resource';
+import {TreeEntry, TreeNode} from './Tree';
+import {PartialUser} from './User';
+import {ProcessingStage} from './Resource';
 
 
 export interface BaseWorkspaceEntry {
-    addedBy: PartialUser,
-    addedOn?: number,
-    maybeParentId?: string
+ addedBy: PartialUser,
+ addedOn?: number,
+ maybeParentId?: string
 }
 
 export interface WorkspaceNode extends BaseWorkspaceEntry {}
 
 export interface WorkspaceLeaf extends BaseWorkspaceEntry {
-    processingStage: ProcessingStage,
-    uri: string,
-    mimeType: string,
-    size?: number,
+ processingStage: ProcessingStage,
+ uri: string,
+ mimeType: string,
+ size?: number,
 }
 
 export type WorkspaceEntry = WorkspaceNode | WorkspaceLeaf
 
 
 export function isWorkspaceLeaf(workspaceEntry: WorkspaceEntry): workspaceEntry is WorkspaceLeaf {
-    return (workspaceEntry as WorkspaceLeaf).uri !== undefined;
+ return (workspaceEntry as WorkspaceLeaf).uri !== undefined;
 }
 
 export type WorkspaceMetadata = {
-    id: string,
-    name: string,
-    isPublic: boolean,
-    tagColor: string,
-    owner: PartialUser,
-    followers: PartialUser[],
+ id: string,
+ name: string,
+ isPublic: boolean,
+ tagColor: string,
+ owner: PartialUser,
+ followers: PartialUser[],
 }
 
 export type WorkspaceContents = {
-    rootNode: TreeNode<WorkspaceEntry>
+ rootNode: TreeNode<WorkspaceEntry>
 }
 
 export type Workspace = WorkspaceMetadata & WorkspaceContents
 
+export type RemoteIngest = {
+  collection: string,
+  createdAt: string,
+  id: string,
+  ingestion: string,
+  parentFolderId: string,
+  status: string,
+  title: string,
+  url: string,
+  userEmail: string,
+  workspaceId: string,
+}
+
 export type FocusedWorkspace = {
-    workspace: WorkspaceMetadata,
-    entry?: TreeEntry<WorkspaceEntry>
+ workspace: WorkspaceMetadata,
+ entry?: TreeEntry<WorkspaceEntry>
 }

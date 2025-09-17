@@ -111,6 +111,7 @@ export const CaptureFromUrl = connect(
     }).then(json => {
       console.log(json);
       push(`/workspaces/${currentWorkspace.id}`);
+      getWorkspace(currentWorkspace.id); // refresh the workspace to show the new job
       setIsOpen(false);
     }).catch(e => {
       console.error(e);

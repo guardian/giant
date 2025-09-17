@@ -4,22 +4,28 @@ import com.amazonaws.services.sqs.AmazonSQS
 import com.amazonaws.services.sqs.model.SendMessageRequest
 import org.joda.time.DateTime
 import play.api.libs.json.Json
-import services.{IngestStorage, MediaDownloadConfig}
 import services.observability.JodaReadWrites
+import services.{IngestStorage, MediaDownloadConfig}
 import utils.Logging
 
+object RemoteIngestStatus extends Enumeration {
+  type RemoteIngestStatus = Value
+  val Queued, Ingesting, Completed, Failed  = Value
+}
+
 case class RemoteIngest(
-                         id: String,
-                         title: String,
-                         status: String,
-                         workspaceId: String,
-                         parentFolderId: String,
-                         collection: String,
-                         ingestion: String,
-                         createdAt: DateTime,
-                         url: String,
-                         userEmail: String,
-                         blobUri: Option[String] = None) {
+  id: String,
+  title: String,
+  status: RemoteIngestStatus.RemoteIngestStatus,
+  workspaceId: String,
+  parentFolderId: String,
+  collection: String,
+  ingestion: String,
+  createdAt: DateTime,
+  url: String,
+  userEmail: String,
+  blobUri: Option[String] = None
+) {
 
   val ingestionKey: Key = (createdAt.getMillis, java.util.UUID.fromString(id))
   // val timeoutAt = createdAt.plus(Duration.standardHours(4)) TODO implement timeouts
@@ -28,7 +34,7 @@ case class RemoteIngest(
 object RemoteIngest extends Logging {
   implicit val dateWrites = JodaReadWrites.dateWrites
   implicit val dateReads = JodaReadWrites.dateReads
-  implicit val remoteIngestFormat = Json.format[RemoteIngest]
+  implicit val remoteIngestWrites = Json.writes[RemoteIngest]
 
 
   def sendRemoteIngestJob(job: RemoteIngest, config: MediaDownloadConfig, amazonSQSClient: AmazonSQS, ingestStorage: IngestStorage): Either[String, String] = {

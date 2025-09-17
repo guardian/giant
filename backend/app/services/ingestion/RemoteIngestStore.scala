@@ -1,6 +1,7 @@
 package services.ingestion
 
 import model.ingestion.RemoteIngest
+import model.ingestion.RemoteIngestStatus.RemoteIngestStatus
 import utils.attempt.{Attempt, Failure}
 
 trait RemoteIngestStore {
@@ -8,8 +9,8 @@ trait RemoteIngestStore {
 
   def insertRemoteIngest(ingest: RemoteIngest): Attempt[String]
   def getRemoteIngestJob(id: String): Attempt[RemoteIngest]
-  def getRemoteIngestJobs(status: Option[String]): Attempt[List[RemoteIngest]]
-  def updateRemoteIngestJobStatus(id: String, status: String): Attempt[Unit]
+  def getRemoteIngestJobs(maybeWorkspaceId: Option[String], maybeOnlyStatuses: List[RemoteIngestStatus], maybeSinceUTCEpoch: Option[Long]): Attempt[List[RemoteIngest]]
+  def updateRemoteIngestJobStatus(id: String, status: RemoteIngestStatus): Attempt[Unit]
   def updateRemoteIngestJobBlobUri(id: String, blobUri: String): Attempt[Unit]
 
 }
