@@ -92,6 +92,7 @@ class AppComponents(context: Context, config: Config)
     val ingestStorage = S3IngestStorage(s3Client, config.s3.buckets.ingestion, config.s3.buckets.deadLetter).valueOr(failure => throw new Exception(failure.msg))
     val blobStorage = S3ObjectStorage(s3Client, config.s3.buckets.collections).valueOr(failure => throw new Exception(failure.msg))
     val transcriptStorage = S3ObjectStorage(s3Client, config.s3.buckets.transcription).valueOr(failure => throw new Exception(failure.msg))
+    val remoteIngestStorage = S3IngestStorage(s3Client, config.s3.buckets.remoteIngestion, config.s3.buckets.deadLetter).valueOr(failure => throw new Exception(failure.msg))
 
     val postgresClient = config.postgres match {
       case Some(postgresConfig) =>  new PostgresClientImpl(postgresConfig)
@@ -235,7 +236,7 @@ class AppComponents(context: Context, config: Config)
       externalWorkerScheduler.start()
       applicationLifecycle.addStopHook(() => externalWorkerScheduler.stop())
 
-      val remoteIngestWorker = new RemoteIngestWorker(sqsClient, config.mediaDownload, config.s3, annotations, remoteIngestStore, phase2IngestionScheduler, manifest, esEvents, esResources, esPages, ingestionServices)
+      val remoteIngestWorker = new RemoteIngestWorker(sqsClient, config.mediaDownload, config.s3, annotations, remoteIngestStore, remoteIngestStorage, scratchSpace, manifest, esEvents, esResources, esPages, ingestionServices)
       val remoteIngestScheduler = new RemoteIngestScheduler(actorSystem, remoteIngestWorker, config.worker.interval)(workerExecutionContext)
       remoteIngestWorker.start()
       remoteIngestScheduler.start()

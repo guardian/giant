@@ -172,7 +172,8 @@ object AwsDiscovery extends Logging {
       deadLetter = s"$stack-${before.deadLetter}-$lowerCaseStage",
       collections = s"$stack-${before.collections}-$lowerCaseStage",
       preview = s"$stack-${before.preview}-$lowerCaseStage",
-      transcription = s"$stack-${before.transcription}-$lowerCaseStage"
+      transcription = s"$stack-${before.transcription}-$lowerCaseStage",
+      remoteIngestion = s"$stack-${before.remoteIngestion}-$lowerCaseStage",
     )
 
     logger.info(s"AWS discovery buckets: [${after.all.mkString(",")}]")
