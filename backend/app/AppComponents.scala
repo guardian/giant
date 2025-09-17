@@ -235,7 +235,7 @@ class AppComponents(context: Context, config: Config)
       externalWorkerScheduler.start()
       applicationLifecycle.addStopHook(() => externalWorkerScheduler.stop())
 
-      val remoteIngestWorker = new RemoteIngestWorker(sqsClient, config.mediaDownload, annotations, remoteIngestStore, phase2IngestionScheduler, manifest, esEvents, ingestionServices)
+      val remoteIngestWorker = new RemoteIngestWorker(sqsClient, config.mediaDownload, config.s3, annotations, remoteIngestStore, phase2IngestionScheduler, manifest, esEvents, esResources, esPages, ingestionServices)
       val remoteIngestScheduler = new RemoteIngestScheduler(actorSystem, remoteIngestWorker, config.worker.interval)(workerExecutionContext)
       remoteIngestWorker.start()
       remoteIngestScheduler.start()
