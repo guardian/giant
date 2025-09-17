@@ -85,7 +85,7 @@ class Workspaces(
                   previewStorage: ObjectStorage,
                   postgresClient: PostgresClient,
                   remoteIngestManifest: RemoteIngestStore,
-                  ingestStorage: IngestStorage,
+                  remoteIngestStorage: IngestStorage,
                   mediaDownloadConfig: MediaDownloadConfig,
                   sqsClient: AmazonSQS) extends AuthApiController with Logging {
 
@@ -303,7 +303,7 @@ class Workspaces(
         userEmail = req.user.username
       )
       id <- remoteIngestManifest.insertRemoteIngest(remoteIngest)
-      _ <- RemoteIngest.sendRemoteIngestJob(remoteIngest, mediaDownloadConfig, sqsClient, ingestStorage).toAttempt(msg => SQSSendMessageFailure(msg))
+      _ <- RemoteIngest.sendRemoteIngestJob(remoteIngest, mediaDownloadConfig, sqsClient, remoteIngestStorage).toAttempt(msg => SQSSendMessageFailure(msg))
     } yield {
       Created(Json.obj("id" -> id))
     }
