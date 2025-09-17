@@ -22,6 +22,8 @@ import utils.attempt._
 import utils.auth.UserIdentityRequest
 import utils.controller.{AuthApiController, AuthControllerComponents}
 
+import scala.concurrent.ExecutionContext
+
 class Collections(override val controllerComponents: AuthControllerComponents, manifest: Manifest,
                   users: UserManagement, index: Index, s3Config: S3Config, esEvents: services.events.Events,
                   pages: Pages, ingestionServices: IngestionServices, annotations: Annotations)
@@ -136,7 +138,7 @@ class Collections(override val controllerComponents: AuthControllerComponents, m
               if (blobs.length > 0) {
                 reprocess(fingerprint, blobs.head)
               } else {
-                val ingestionAttempt = createIngestionIfNotExists(collection, ingestionName)
+                val ingestionAttempt = Collections.createIngestionIfNotExists(collection, ingestionName, manifest, index, pages, s3Config)
 
                 ingestionAttempt.flatMap { ingestion =>
                   processIngestion(req, collection, Uri(ingestion.uri), uploadId, maybeWorkspaceContext, rawOriginalPath, Some(fingerprint))
@@ -218,22 +220,6 @@ class Collections(override val controllerComponents: AuthControllerComponents, m
     WorkspaceItemUploadContext(workspaceId, workspaceNodeId, workspaceParentNodeId, workspaceName)
   }
 
-  private def createIngestionIfNotExists(collection: Uri, ingestionName: String) = {
-    // TODO: the language fixed values used to come from client. Though the only variable was the ingestion name
-    val data = CreateIngestionRequest(None, Some(ingestionName), List("english"), Some(false), None)
-    val command = CreateIngestion(data, collection, manifest, index, pages)
-    for {
-      id <- command.createOrGet()
-    } yield {
-      CreateIngestionResponse(
-        uri = id.value,
-        bucket = s3Config.buckets.ingestion,
-        region = s3Config.region,
-        endpoint = s3Config.endpoint
-      )
-    }
-  }
-
   private def reprocess(fingerprint: String, ingestFile: IngestFileResult) = {
     val uri = Uri(fingerprint)
 
@@ -262,6 +248,24 @@ class Collections(override val controllerComponents: AuthControllerComponents, m
       manifest, esEvents, ingestionServices, annotations, fingerprint
     ).process().map { result =>
       Created(Json.toJson(result))
+    }
+  }
+}
+
+object Collections {
+  def createIngestionIfNotExists(collection: Uri, ingestionName: String, manifest: Manifest, index: Index, pages:Pages, s3Config: S3Config)(implicit executionContext: ExecutionContext): Attempt[CreateIngestionResponse] = {
+    // TODO: the language fixed values used to come from client. Though the only variable was the ingestion name
+    val data = CreateIngestionRequest(None, Some(ingestionName), List("english"), Some(false), None)
+    val command = CreateIngestion(data, collection, manifest, index, pages)
+    for {
+      id <- command.createOrGet()
+    } yield {
+      CreateIngestionResponse(
+        uri = id.value,
+        bucket = s3Config.buckets.ingestion,
+        region = s3Config.region,
+        endpoint = s3Config.endpoint
+      )
     }
   }
 }
