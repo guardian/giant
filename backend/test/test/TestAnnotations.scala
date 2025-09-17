@@ -1,8 +1,8 @@
 package test
 
 import model.Uri
-import model.annotations.{Comment, CommentAnchor, WorkspaceEntry, WorkspaceMetadata}
-import model.frontend.TreeEntry
+import model.annotations.{Comment, CommentAnchor, WorkspaceEntry, WorkspaceLeaf, WorkspaceMetadata}
+import model.frontend.{TreeEntry, TreeLeaf}
 import services.annotations.Annotations
 import services.annotations.Annotations.CopyDestination
 import utils.attempt.{Attempt, Failure, UnsupportedOperationFailure}
@@ -33,7 +33,7 @@ class TestAnnotations(usersToWorkspaces: Map[String, List[String]] = Map.empty) 
   override def postComment(currentUser: String, uri: Uri, text: String, anchor: Option[CommentAnchor]): Attempt[Unit] = Attempt.Left(UnsupportedOperationFailure(""))
   override def getComments(uri: Uri): Attempt[List[Comment]] = Attempt.Left(UnsupportedOperationFailure(""))
   override def deleteComment(currentUser: String, commentId: String): Attempt[Unit] = Attempt.Left(UnsupportedOperationFailure(""))
-  override def getWorkspaceContents(currentUser: String, id: String): Attempt[TreeEntry[WorkspaceEntry]] = Attempt.Left(UnsupportedOperationFailure(""))
+  override def getWorkspaceContents(currentUser: String, id: String, extraLeavesToMixIn: List[TreeLeaf[WorkspaceLeaf]] = List.empty): Attempt[TreeEntry[WorkspaceEntry]] = Attempt.Left(UnsupportedOperationFailure(""))
   override def getWorkspaceMetadata(currentUser: String, id: String): Attempt[WorkspaceMetadata] = Attempt.Left(UnsupportedOperationFailure(""))
   override def getBlobOwners(blobUri: String): Attempt[Set[String]] = Attempt.Left(UnsupportedOperationFailure(""))
 }

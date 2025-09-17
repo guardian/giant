@@ -3,9 +3,10 @@ package controllers.api
 import com.amazonaws.services.sqs.AmazonSQS
 import commands.DeleteResource
 import model.Uri
-import model.annotations.{Workspace, WorkspaceEntry, WorkspaceLeaf}
+import model.annotations.{ProcessingStage, Workspace, WorkspaceEntry, WorkspaceLeaf}
+import model.frontend.user.PartialUser
 import model.frontend.{TreeEntry, TreeLeaf, TreeNode}
-import model.ingestion.{MediaDownloadJob, RemoteIngest}
+import model.ingestion.{MediaDownloadJob, RemoteIngest, RemoteIngestStatus}
 import net.logstash.logback.marker.LogstashMarker
 import net.logstash.logback.marker.Markers.append
 import org.joda.time.DateTime
@@ -76,18 +77,19 @@ object MoveCopyDestination {
 }
 
 class Workspaces(
-                  override val controllerComponents: AuthControllerComponents,
-                  annotation: Annotations,
-                  index: Index,
-                  manifest: Manifest,
-                  users: UserManagement,
-                  objectStorage: ObjectStorage,
-                  previewStorage: ObjectStorage,
-                  postgresClient: PostgresClient,
-                  remoteIngestManifest: RemoteIngestStore,
-                  remoteIngestStorage: IngestStorage,
-                  mediaDownloadConfig: MediaDownloadConfig,
-                  sqsClient: AmazonSQS) extends AuthApiController with Logging {
+  override val controllerComponents: AuthControllerComponents,
+  annotation: Annotations,
+  index: Index,
+  manifest: Manifest,
+  users: UserManagement,
+  objectStorage: ObjectStorage,
+  previewStorage: ObjectStorage,
+  postgresClient: PostgresClient,
+  remoteIngestStore: RemoteIngestStore,
+  remoteIngestStorage: IngestStorage,
+  mediaDownloadConfig: MediaDownloadConfig,
+  sqsClient: AmazonSQS
+) extends AuthApiController with Logging {
 
   def create = ApiAction.attempt(parse.json) { req =>
     for {
@@ -147,7 +149,28 @@ class Workspaces(
   def get(workspaceId: String) = ApiAction.attempt { req: UserIdentityRequest[_] =>
     for {
       metadata <- annotation.getWorkspaceMetadata(req.user.username, workspaceId)
-      contents <- annotation.getWorkspaceContents(req.user.username, workspaceId)
+      relevantRemoteJobs <- remoteIngestStore.getRelevantRemoteIngestJobs(workspaceId)
+      extraLeavesToMixIn = relevantRemoteJobs.map(job => TreeLeaf(
+        id = job.id,
+        name = s"${job.title} (Capturing: ${job.url})",
+        data = WorkspaceLeaf(
+          uri = job.id, // TODO maybe improve this
+          mimeType = "Capturing URL",
+          maybeParentId = Some(job.parentFolderId),
+          addedOn = Some(job.createdAt.getMillis),
+          addedBy = job.addedBy,
+          processingStage = job.status match {
+            case RemoteIngestStatus.Failed => ProcessingStage.Failed
+            case _ => ProcessingStage.Processing(
+              tasksRemaining = 1,
+              note = Some(job.status.toString)
+            )
+          },
+          size = None
+        ),
+        isExpandable = false
+      ))
+      contents <- annotation.getWorkspaceContents(req.user.username, workspaceId, extraLeavesToMixIn)
     } yield {
       Ok(Json.toJson(Workspace.fromMetadataAndRootNode(metadata, contents)))
     }
@@ -284,6 +307,14 @@ class Workspaces(
     }
   }
 
+  def getRelevantRemoteJobs(workspaceId: String) = ApiAction.attempt { req =>
+    for {
+      jobs <- remoteIngestStore.getRelevantRemoteIngestJobs(workspaceId)
+    } yield {
+      Ok(Json.toJson(jobs))
+    }
+  }
+
   def addRemoteUrlToWorkspace(workspaceId: String): Action[JsValue] = ApiAction.attempt(parse.json) { req =>
     for {
       data <- req.body.validate[AddRemoteUrlData].toAttempt
@@ -293,7 +324,7 @@ class Workspaces(
       createdAt = DateTime.now
       ingestionKey = RemoteIngest.ingestionKey(createdAt, itemId)
       _ <- MediaDownloadJob.sendRemoteIngestJob(itemId, ingestionKey, data.url, mediaDownloadConfig, sqsClient, remoteIngestStorage).toAttempt(msg => SQSSendMessageFailure(msg))
-      id <- remoteIngestManifest.insertRemoteIngest(
+      id <- remoteIngestStore.insertRemoteIngest(
         id = itemId,
         workspaceId = workspaceId,
         collection = defaultCollectionUriForUser,

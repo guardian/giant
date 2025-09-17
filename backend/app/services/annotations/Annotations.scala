@@ -2,7 +2,7 @@ package services.annotations
 
 import model.Uri
 import model.annotations._
-import model.frontend.TreeEntry
+import model.frontend.{TreeEntry, TreeLeaf}
 import services.annotations.Annotations.{AffectedResource, CopyDestination, DeleteItemResult, MoveItemResult}
 import utils.attempt.{Attempt, Failure}
 import org.neo4j.driver.v1.Value
@@ -14,7 +14,7 @@ trait Annotations {
   //def (currentUser: String, workspaceId: String): Attempt[Boolean]
   def getAllWorkspacesMetadata(currentUser: String): Attempt[List[WorkspaceMetadata]]
   def getWorkspaceMetadata(currentUser: String, id: String): Attempt[WorkspaceMetadata]
-  def getWorkspaceContents(currentUser: String, id: String): Attempt[TreeEntry[WorkspaceEntry]]
+  def getWorkspaceContents(currentUser: String, id: String, extraLeavesToMixIn: List[TreeLeaf[WorkspaceLeaf]] = List.empty): Attempt[TreeEntry[WorkspaceEntry]]
   def insertWorkspace(username: String, id: String, name: String, isPublic: Boolean, tagColor: String): Attempt[Unit]
   def updateWorkspaceName(currentUser: String, id: String, name: String): Attempt[Unit]
   def updateWorkspaceOwner(currentUser: String, id: String, owner: String): Attempt[Unit]
