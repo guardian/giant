@@ -27,7 +27,7 @@ class RemoteIngestWorker(
   s3Config: S3Config,
   annotations: Annotations,
   remoteIngestStore: Neo4jRemoteIngestStore,
-  ingestStorage: IngestStorage,
+  remoteIngestStorage: IngestStorage,
   scratchSpace: ScratchSpace,
   manifest: Manifest,
   esEvents: services.events.Events,
@@ -55,7 +55,7 @@ class RemoteIngestWorker(
             workspaceMetadata <- annotations.getWorkspaceMetadata(job.userEmail, job.workspaceId)
             _ <- remoteIngestStore.updateRemoteIngestJobStatus(parsedJob.id, "INGESTING")
             ingestion <- Collections.createIngestionIfNotExists(Uri(job.collection), job.ingestion, manifest, index, pages, s3Config)
-            ingestFileResult <- IngestStorePolling.fetchData(job.ingestionKey, ingestStorage, scratchSpace){(path, fingerprint) =>
+            ingestFileResult <- IngestStorePolling.fetchData(job.ingestionKey, remoteIngestStorage, scratchSpace){(path, fingerprint) =>
               val collectionUri = Uri(job.collection)
               Await.result(
                 new IngestFile(
@@ -81,7 +81,8 @@ class RemoteIngestWorker(
                 15.minutes
               )
             }.toAttempt
-            _ <- remoteIngestStore.updateRemoteIngestJobStatus(parsedJob.id, "COMPLETED"/*, ingestFileResult.blob.uri TODO store blob uri on success */)
+            _ <- remoteIngestStore.updateRemoteIngestJobStatus(parsedJob.id, "COMPLETED")
+            _ <- remoteIngestStore.updateRemoteIngestJobBlobUri(parsedJob.id, ingestFileResult.blob.uri.value)
           } yield job).fold(
             failureDetail => {
               val maybeParsedJob =  messageParseResult.asOpt
@@ -92,7 +93,10 @@ class RemoteIngestWorker(
                 remoteIngestStore.updateRemoteIngestJobStatus(parsedJob.id, "FAILED")
               )
             },
-            job => logger.info(s"Successfully ingested remote file for job with id ${job.id} in workspace ${job.workspaceId}")
+            job => {
+              logger.info(s"Successfully ingested remote file for job with id ${job.id} in workspace ${job.workspaceId}")
+              remoteIngestStorage.delete(job.ingestionKey)
+            }
         ).onComplete { _ =>
           amazonSQSClient.deleteMessage(config.outputQueueUrl, sqsMessage.getReceiptHandle)
           //TODO: Delete file from S3
