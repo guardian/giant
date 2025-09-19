@@ -36,8 +36,6 @@ class ExternalTranscriptionWorker(manifest: WorkerManifest, amazonSQSClient: Ama
 
     if (messages.size() > 0)
       logger.info(s"retrieved ${messages.size()} messages from queue Transcription Output Queue")
-    else
-      logger.info("No sqs message found")
 
     val messagesCompleted = messages.asScala.toList.foldLeft(0) { (completed, message) =>
       getMessageAttribute(message) match {
@@ -48,8 +46,9 @@ class ExternalTranscriptionWorker(manifest: WorkerManifest, amazonSQSClient: Ama
           completed
       }
     }
-
-    logger.info(s"${messagesCompleted} out of ${messages.size()} number of messages successfully completed")
+    if (messages.size() > 0) {
+      logger.info(s"${messagesCompleted} out of ${messages.size()} number of messages successfully completed")
+    }
 
     messagesCompleted
   }
