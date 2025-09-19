@@ -1,4 +1,5 @@
 package services.observability
+
 import org.joda.time.{DateTime, DateTimeZone}
 import play.api.libs.json.Json
 import scalikejdbc._
@@ -9,40 +10,43 @@ import utils.Logging
 import utils.attempt.{PostgresReadFailure, PostgresWriteFailure, Failure => GiantFailure}
 
 trait PostgresClient {
-    def insertEvent(event: IngestionEvent): Either[GiantFailure, Unit]
-    def insertMetadata(metaData: BlobMetadata): Either[GiantFailure, Unit]
-    def getEvents (ingestId: String, ingestIdIsPrefix: Boolean): Either[GiantFailure, List[BlobStatus]]
+  def insertEvent(event: IngestionEvent): Either[GiantFailure, Unit]
 
-    def deleteBlobIngestionEventsAndMetadata(blobId: String): Either[GiantFailure, Long]
+  def insertMetadata(metaData: BlobMetadata): Either[GiantFailure, Unit]
+
+  def getEvents(ingestId: String, ingestIdIsPrefix: Boolean): Either[GiantFailure, List[BlobStatus]]
+
+  def deleteBlobIngestionEventsAndMetadata(blobId: String): Either[GiantFailure, Long]
+
 }
 
 class PostgresClientDoNothing extends PostgresClient {
-    override def insertEvent(event: IngestionEvent): Either[GiantFailure, Unit] = Right(())
+  override def insertEvent(event: IngestionEvent): Either[GiantFailure, Unit] = Right(())
 
-    override def insertMetadata(metaData: BlobMetadata): Either[GiantFailure, Unit] = Right(())
+  override def insertMetadata(metaData: BlobMetadata): Either[GiantFailure, Unit] = Right(())
 
-    override def getEvents (ingestId: String, ingestIdIsPrefix: Boolean): Either[GiantFailure, List[BlobStatus]] = Right(List())
+  override def getEvents(ingestId: String, ingestIdIsPrefix: Boolean): Either[GiantFailure, List[BlobStatus]] = Right(List())
 
-    def deleteBlobIngestionEventsAndMetadata(blobId: String): Either[GiantFailure, Long] = Right(0)
+  def deleteBlobIngestionEventsAndMetadata(blobId: String): Either[GiantFailure, Long] = Right(0)
 
 }
 
 object PostgresHelpers {
-  def postgresEpochToDateTime(epoch: Double) = new DateTime((epoch*1000).toLong, DateTimeZone.UTC)
+  def postgresEpochToDateTime(epoch: Double) = new DateTime((epoch * 1000).toLong, DateTimeZone.UTC)
 }
 
 class PostgresClientImpl(postgresConfig: PostgresConfig) extends PostgresClient with Logging {
-    val dbHost = s"jdbc:postgresql://${postgresConfig.host}:${postgresConfig.port}/giant"
-    // initialize JDBC driver & connection pool
-    Class.forName("org.postgresql.Driver")
-    ConnectionPool.singleton(dbHost, postgresConfig.username, postgresConfig.password)
-    implicit val session: AutoSession.type = AutoSession
+  val dbHost = s"jdbc:postgresql://${postgresConfig.host}:${postgresConfig.port}/giant"
+  // initialize JDBC driver & connection pool
+  Class.forName("org.postgresql.Driver")
+  ConnectionPool.singleton(dbHost, postgresConfig.username, postgresConfig.password)
+  implicit val session: AutoSession.type = AutoSession
 
-    import EventDetails.detailsFormat
+  import EventDetails.detailsFormat
 
-    def insertMetadata(metaData: BlobMetadata): Either[GiantFailure, Unit] = {
-        Try {
-            sql"""
+  def insertMetadata(metaData: BlobMetadata): Either[GiantFailure, Unit] = {
+    Try {
+      sql"""
             INSERT INTO blob_metadata (
               ingest_id,
                 blob_id,
@@ -56,21 +60,23 @@ class PostgresClientImpl(postgresConfig: PostgresConfig) extends PostgresClient 
         ${metaData.path},
               now()
             );""".execute()
-        } match {
-            case Success(_) => Right(())
-            case Failure(exception) =>
-                logger.warn(s"""
+    } match {
+      case Success(_) => Right(())
+      case Failure(exception) =>
+        logger.warn(
+          s"""
               An exception occurred while inserting blob metadata
               blobId: ${metaData.blobId}, ingestId: ${metaData.ingestId} path: ${metaData.path}
               exception: ${exception.getMessage()}""", exception
-                )
-                Left(PostgresWriteFailure(exception))
-        }
+        )
+        Left(PostgresWriteFailure(exception))
     }
-    def insertEvent(event: IngestionEvent): Either[GiantFailure, Unit] = {
-        Try {
-            val detailsJson = event.details.map(Json.toJson(_).toString).getOrElse("{}")
-            sql"""
+  }
+
+  def insertEvent(event: IngestionEvent): Either[GiantFailure, Unit] = {
+    Try {
+      val detailsJson = event.details.map(Json.toJson(_).toString).getOrElse("{}")
+      sql"""
             INSERT INTO ingestion_events (
                 blob_id,
                 ingest_id,
@@ -86,42 +92,44 @@ class PostgresClientImpl(postgresConfig: PostgresConfig) extends PostgresClient 
                 $detailsJson::JSONB,
                 now()
             );""".execute()
-        } match {
-            case Success(_) => Right(())
-            case Failure(exception) =>
-                logger.warn(s"""
+    } match {
+      case Success(_) => Right(())
+      case Failure(exception) =>
+        logger.warn(
+          s"""
           An exception occurred while inserting ingestion event
           blobId: ${event.metadata.blobId}, ingestId: ${event.metadata.ingestId} eventType: ${event.eventType.toString()}
           exception: ${exception.getMessage()}"""
-                )
-                Left(PostgresWriteFailure(exception))
-        }
+        )
+        Left(PostgresWriteFailure(exception))
     }
+  }
 
-    def getEvents(ingestId: String, ingestIdIsPrefix: Boolean): Either[PostgresReadFailure, List[BlobStatus]] = {
-        Try {
-          /**
-            * The aim of this query is to merge ingestion events for each blob into a single row, containing the success/failure
-            * status of each extractor that was expected to run on the ingestion.
-            *
-            * The subqueries are as follows:
-            *   blob_extractors - get the extractors expected to run for each blob
-            *   extractor_statuses - get the success/failure status for the extractors identified in blob_extractors
-            *
-            */
-          val results = sql"""
+  def getEvents(ingestId: String, ingestIdIsPrefix: Boolean): Either[PostgresReadFailure, List[BlobStatus]] = {
+    Try {
+      /**
+        * The aim of this query is to merge ingestion events for each blob into a single row, containing the success/failure
+        * status of each extractor that was expected to run on the ingestion.
+        *
+        * The subqueries are as follows:
+        * blob_extractors - get the extractors expected to run for each blob
+        * extractor_statuses - get the success/failure status for the extractors identified in blob_extractors
+        *
+        */
+      val results =
+        sql"""
           WITH problem_blobs AS (
             -- assume that blobs with more than 100 ingestion_events are failing to be ingested in an infinite loop
             SELECT blob_id
             from ingestion_events
-            WHERE ingest_id LIKE ${if(ingestIdIsPrefix) LikeConditionEscapeUtil.beginsWith(ingestId) else ingestId}
+            WHERE ingest_id LIKE ${if (ingestIdIsPrefix) LikeConditionEscapeUtil.beginsWith(ingestId) else ingestId}
             group by 1
             having count(*) > 100
           ),
           blob_extractors AS (
             -- get all the extractors expected for a given blob
             SELECT ingest_id, blob_id, jsonb_array_elements_text(details -> 'extractors') as extractor from ingestion_events
-            WHERE ingest_id LIKE ${if(ingestIdIsPrefix) LikeConditionEscapeUtil.beginsWith(ingestId) else ingestId}
+            WHERE ingest_id LIKE ${if (ingestIdIsPrefix) LikeConditionEscapeUtil.beginsWith(ingestId) else ingestId}
             AND type = ${IngestionEventType.MimeTypeDetected.toString}
             AND blob_id NOT IN (SELECT blob_id FROM problem_blobs)
           ),
@@ -178,7 +186,7 @@ class PostgresClientImpl(postgresConfig: PostgresConfig) extends PostgresClient 
               (ARRAY_AGG(details ->> 'mimeTypes')  FILTER (WHERE details ->> 'mimeTypes' IS NOT NULL))[1] as mime_types,
               FALSE AS infinite_loop
             FROM ingestion_events
-            WHERE ingest_id LIKE ${if(ingestIdIsPrefix) LikeConditionEscapeUtil.beginsWith(ingestId) else ingestId}
+            WHERE ingest_id LIKE ${if (ingestIdIsPrefix) LikeConditionEscapeUtil.beginsWith(ingestId) else ingestId}
             AND blob_id NOT IN (SELECT blob_id FROM problem_blobs)
             GROUP BY 1,2
             UNION
@@ -196,7 +204,7 @@ class PostgresClientImpl(postgresConfig: PostgresConfig) extends PostgresClient 
               NULL AS mime_types,
               TRUE AS infinite_loop
             FROM ingestion_events
-            WHERE ingest_id LIKE ${if(ingestIdIsPrefix) LikeConditionEscapeUtil.beginsWith(ingestId) else ingestId}
+            WHERE ingest_id LIKE ${if (ingestIdIsPrefix) LikeConditionEscapeUtil.beginsWith(ingestId) else ingestId}
             AND blob_id IN (SELECT blob_id FROM problem_blobs)
             GROUP BY 1,2
           ) AS ie
@@ -207,45 +215,45 @@ class PostgresClientImpl(postgresConfig: PostgresConfig) extends PostgresClient 
           GROUP BY 1,2,3,4,5,6,7,8,9,10,11
           ORDER by ingest_start desc
      """.map(rs => {
-            val eventTypes = rs.array("event_types").getArray.asInstanceOf[Array[String]]
-                BlobStatus(
-                  EventMetadata(
-                      rs.string("blob_id"),
-                      rs.string("ingest_id")
-                  ),
-                  BlobStatus.parsePathsArray(rs.array("paths").getArray().asInstanceOf[Array[String]]),
-                  rs.longOpt("fileSize"),
-                  rs.stringOpt("workspaceName"),
-                  PostgresHelpers.postgresEpochToDateTime(rs.double("ingest_start")),
-                  PostgresHelpers.postgresEpochToDateTime(rs.double("most_recent_event")),
-                  IngestionEventStatus.parseEventStatus(
-                    rs.array("event_times").getArray.asInstanceOf[Array[java.math.BigDecimal]].map(t =>PostgresHelpers.postgresEpochToDateTime(t.doubleValue)),
-                    eventTypes,
-                    rs.array("event_statuses").getArray.asInstanceOf[Array[String]]
-                  ),
-                  rs.arrayOpt("extractors").map { extractors =>
-                      ExtractorStatus.parseDbStatusEvents(
-                          extractors.getArray().asInstanceOf[Array[String]],
-                          rs.array("extractorEventTimes").getArray().asInstanceOf[Array[String]],
-                          rs.array("extractorStatuses").getArray().asInstanceOf[Array[String]]
-                      )
-                  }.getOrElse(List()),
-                  IngestionError.parseIngestionErrors(
-                    rs.array("errors").getArray.asInstanceOf[Array[String]],
-                    eventTypes
-                  ),
-                  rs.stringOpt("mimeTypes"),
-                  rs.boolean("infiniteLoop")
-                )
-            }
-            ).list()
-            results
+          val eventTypes = rs.array("event_types").getArray.asInstanceOf[Array[String]]
+          BlobStatus(
+            EventMetadata(
+              rs.string("blob_id"),
+              rs.string("ingest_id")
+            ),
+            BlobStatus.parsePathsArray(rs.array("paths").getArray().asInstanceOf[Array[String]]),
+            rs.longOpt("fileSize"),
+            rs.stringOpt("workspaceName"),
+            PostgresHelpers.postgresEpochToDateTime(rs.double("ingest_start")),
+            PostgresHelpers.postgresEpochToDateTime(rs.double("most_recent_event")),
+            IngestionEventStatus.parseEventStatus(
+              rs.array("event_times").getArray.asInstanceOf[Array[java.math.BigDecimal]].map(t => PostgresHelpers.postgresEpochToDateTime(t.doubleValue)),
+              eventTypes,
+              rs.array("event_statuses").getArray.asInstanceOf[Array[String]]
+            ),
+            rs.arrayOpt("extractors").map { extractors =>
+              ExtractorStatus.parseDbStatusEvents(
+                extractors.getArray().asInstanceOf[Array[String]],
+                rs.array("extractorEventTimes").getArray().asInstanceOf[Array[String]],
+                rs.array("extractorStatuses").getArray().asInstanceOf[Array[String]]
+              )
+            }.getOrElse(List()),
+            IngestionError.parseIngestionErrors(
+              rs.array("errors").getArray.asInstanceOf[Array[String]],
+              eventTypes
+            ),
+            rs.stringOpt("mimeTypes"),
+            rs.boolean("infiniteLoop")
+          )
         }
-        match {
-            case Success(results) => Right(results)
-            case Failure(exception) => Left(PostgresReadFailure(exception, s"getEvents failed: ${exception.getMessage}"))
-        }
+        ).list()
+      results
     }
+    match {
+      case Success(results) => Right(results)
+      case Failure(exception) => Left(PostgresReadFailure(exception, s"getEvents failed: ${exception.getMessage}"))
+    }
+  }
 
   def deleteBlobIngestionEventsAndMetadata(blobId: String): Either[GiantFailure, Long] = {
     Try {
