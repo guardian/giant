@@ -50,7 +50,6 @@ export default function ShareWorkspaceModal(props: Props) {
         }
 
         if (isPublic !== undefined && isPublic !== currentIsPublic) {
-            console.log(`setting workspaceID${props.workspace.id} to public:${isPublic}`);
             props.setWorkspaceIsPublic(props.workspace.id, isPublic)
         }
 

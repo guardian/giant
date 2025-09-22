@@ -26,7 +26,6 @@ export function updateWorkspaceIsPublic(id: string, isPublic: boolean) {
 }
 
 export function updateWorkspaceName(id: string, name: string) {
-    console.log("^^^^^^^ Updating the workspace name in the API")
     return authFetch(`/api/workspaces/${id}/name`, {
         headers: new Headers({'Content-Type': 'application/json'}),
         method: 'PUT',
@@ -35,7 +34,6 @@ export function updateWorkspaceName(id: string, name: string) {
 }
 
 export function updateWorkspaceOwner(workspaceId: string, owner: string) {
-    console.log("^^^^^^^ Updating the workspace owner in the API")
     return authFetch(`/api/workspaces/${workspaceId}/owner?owner=${owner}`, {
         headers: new Headers({'Content-Type': 'application/json'}),
         method: 'PUT',

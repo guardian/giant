@@ -36,7 +36,6 @@ class DatabaseUserProvider(val config: DatabaseAuthConfig, passwordHashing: Pass
       tfaCode = formData.get("tfa").flatMap(_.headOption)
       dbUser <- passwordHashing.verifyUser(users.getUser(username), password, RequireRegistered)
       _ <- totp.checkUser2fa(config.require2FA, dbUser.totpSecret, tfaCode, time)
-      _ = logger.info(s"********** User ${dbUser.toString}")
     } yield dbUser.toPartial
   }
 
