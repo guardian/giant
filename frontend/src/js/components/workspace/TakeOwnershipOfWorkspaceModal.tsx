@@ -1,15 +1,7 @@
 import React, { useState } from 'react';
-import { Dropdown } from 'semantic-ui-react';
-import _ from 'lodash';
 import Modal from '../UtilComponents/Modal';
 import { Workspace } from '../../types/Workspaces';
 import { PartialUser } from '../../types/User';
-import uniq from 'lodash/uniq';
-import { setWorkspaceFollowers } from '../../actions/workspaces/setWorkspaceFollowers';
-import { Checkbox } from '../UtilComponents/Checkbox';
-import { setWorkspaceIsPublic } from '../../actions/workspaces/setWorkspaceIsPublic';
-import { WorkspacePublicInfoIcon } from './WorkspacePublicInfoIcon';
-import { WorkspacePublicMessage } from './WorkspacePublicMessage';
 import {takeOwnershipOfWorkspace} from "../../actions/workspaces/takeOwnershipOfWorkspace";
 
 type Props = {
