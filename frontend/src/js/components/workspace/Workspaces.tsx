@@ -50,6 +50,7 @@ import { PartialUser } from '../../types/User';
 import { getMyPermissions } from '../../actions/users/getMyPermissions';
 import buildLink from '../../util/buildLink';
 import history from '../../util/history';
+import {takeOwnershipOfWorkspace} from "../../actions/workspaces/takeOwnershipOfWorkspace";
 
 
 type Props = ReturnType<typeof mapStateToProps>
@@ -740,6 +741,7 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
                     setWorkspaceIsPublic={this.props.setWorkspaceIsPublic}
                     renameWorkspace={this.props.renameWorkspace}
                     deleteWorkspace={this.props.deleteWorkspace}
+                    takeOwnershipOfWorkspace={this.props.takeOwnershipOfWorkspace}
                     collections={this.props.collections}
                     getWorkspaceContents={this.props.getWorkspace}
                     focusedEntry={this.props.focusedEntry}
@@ -817,6 +819,7 @@ function mapDispatchToProps(dispatch: GiantDispatch) {
         setNodeAsExpanded: bindActionCreators(setNodeAsExpanded, dispatch),
         setNodeAsCollapsed: bindActionCreators(setNodeAsCollapsed, dispatch),
         renameWorkspace: bindActionCreators(renameWorkspace, dispatch),
+        takeOwnershipOfWorkspace: bindActionCreators(takeOwnershipOfWorkspace, dispatch),
         setWorkspaceFollowers: bindActionCreators(setWorkspaceFollowers, dispatch),
         setWorkspaceIsPublic: bindActionCreators(setWorkspaceIsPublic, dispatch),
         listUsers: bindActionCreators(listUsers, dispatch),
