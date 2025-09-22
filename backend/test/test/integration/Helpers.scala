@@ -371,6 +371,11 @@ object Helpers extends Matchers with Logging with OptionValues with Inside {
       .apply(FakeRequest().withBody(Json.toJson(UpdateWorkspaceName(name))))
   }
 
+  def setWorkspaceOwner(workspaceId: String, owner: String)(implicit timeout: Timeout, controllers: Controllers): Future[Result] = {
+    controllers.workspace.updateWorkspaceOwner(workspaceId, owner)
+      .apply(FakeRequest().withBody(Json.toJson(UpdateWorkspaceOwner(owner))))
+  }
+
   def getFilters()(implicit controllers: Controllers, timeout: Timeout): List[Filter] = {
     contentAsJson(controllers.filters.getFilters().apply(FakeRequest())).as[List[Filter]]
   }

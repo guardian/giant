@@ -12,6 +12,8 @@ import { Collection } from '../../types/Collection';
 import { TreeEntry, TreeNode } from '../../types/Tree';
 import { getWorkspace } from '../../actions/workspaces/getWorkspace';
 import ShareWorkspaceModal from './ShareWorkspaceModal';
+import TakeOwnershipOfWorkspaceModal from "./TakeOwnershipOfWorkspaceModal";
+import {takeOwnershipOfWorkspace} from "../../actions/workspaces/takeOwnershipOfWorkspace";
 
 type Props = {
     workspace: Workspace,
@@ -21,6 +23,7 @@ type Props = {
     setWorkspaceIsPublic: typeof setWorkspaceIsPublic,
     renameWorkspace: typeof renameWorkspace,
     deleteWorkspace: typeof deleteWorkspace,
+    takeOwnershipOfWorkspace: typeof takeOwnershipOfWorkspace,
     collections: Collection[],
     getWorkspaceContents: typeof getWorkspace,
     focusedEntry: TreeEntry<WorkspaceEntry> | null,
@@ -37,6 +40,7 @@ export default function WorkspaceSummary({
     setWorkspaceIsPublic,
     renameWorkspace,
     deleteWorkspace,
+    takeOwnershipOfWorkspace,
     collections,
     getWorkspaceContents,
     focusedEntry,
@@ -54,7 +58,8 @@ export default function WorkspaceSummary({
         <div>
             <h1 className='workspace__title'>{workspace.name}</h1>
             <span className='workspace__created-by'>
-                <Label>Created by {workspace.owner.displayName}</Label>
+                {workspace.owner.username !== workspace.creator.username && (<Label>Created by {workspace.creator.displayName}</Label>)}
+                <Label>Owned by {workspace.owner.displayName}</Label>
                 {workspaceUsers.length ?
                     <Popup content={workspaceUsers.map(u => u.displayName).join(', ')} trigger={
                         <Label>
@@ -74,6 +79,12 @@ export default function WorkspaceSummary({
                 focusedWorkspaceEntry={focusedEntry}
                 expandedNodes={expandedNodes}
             />
+            {workspace.owner.username !== currentUser.username && (<TakeOwnershipOfWorkspaceModal
+                workspace={workspace}
+                isAdmin={isAdmin}
+                currentUser={currentUser}
+                takeOwnershipOfWorkspace={takeOwnershipOfWorkspace}
+            />)}
             <ShareWorkspaceModal
                 workspace={workspace}
                 workspaceUsers={workspaceUsers}

@@ -98,7 +98,7 @@ class WorkspacesSidebarUnconnected extends React.Component<Props, State> {
         return (
             <div className='sidebar'>
                 <div className='sidebar__group'>
-                    <div className='sidebar__title'>Created By Me</div>
+                    <div className='sidebar__title'>Owned by me</div>
                     {this.state.myWorkspaces.length !== 0 ?
                         this.renderSidebarItems(this.state.myWorkspaces)
                         : noWorkspacesMessage
@@ -110,7 +110,7 @@ class WorkspacesSidebarUnconnected extends React.Component<Props, State> {
                 </div>
                 {this.state.sharedWorkspaces.length !== 0 ?
                     <div className='sidebar__group'>
-                        <div className='sidebar__title'>Shared With Me</div>
+                        <div className='sidebar__title'>Shared with me</div>
                         {this.renderSidebarItems(this.state.sharedWorkspaces)}
                     </div> : null
                 }
