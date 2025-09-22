@@ -33,6 +33,14 @@ export function updateWorkspaceName(id: string, name: string) {
     });
 }
 
+export function updateWorkspaceOwner(workspaceId: string, owner: string) {
+    return authFetch(`/api/workspaces/${workspaceId}/owner`, {
+        headers: new Headers({'Content-Type': 'application/json'}),
+        method: 'PUT',
+        body: JSON.stringify({owner})
+    });
+}
+
 export function deleteWorkspace(id: string) {
     return authFetch(`/api/workspaces/${id}`, {
         method: 'DELETE',

@@ -48,9 +48,10 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
     tx.run(
       """
         |MATCH (workspace :Workspace)
-        |WHERE (:User { username: {currentUser} })-[:FOLLOWING|:CREATED]->(workspace) OR workspace.isPublic
+        |WHERE (:User { username: {currentUser} })-[:FOLLOWING|:OWNS]->(workspace) OR workspace.isPublic
         |MATCH (creator :User)-[:CREATED]->(workspace)<-[:FOLLOWING]-(follower :User)
-        |RETURN workspace, creator, collect(distinct follower) as followers
+        |MATCH (owner :User)-[:OWNS]->(workspace)
+        |RETURN workspace, creator, owner, collect(distinct follower) as followers
       """.stripMargin,
       parameters(
         "currentUser", currentUser
@@ -59,9 +60,10 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
       summary.list().asScala.toList.map { r =>
         val workspace = r.get("workspace")
         val creator = DBUser.fromNeo4jValue(r.get("creator"))
+        val owner = DBUser.fromNeo4jValue(r.get("owner"))
         val followers = r.get("followers").asList[DBUser](DBUser.fromNeo4jValue(_)).asScala.toList
 
-        WorkspaceMetadata.fromNeo4jValue(workspace, creator, followers)
+        WorkspaceMetadata.fromNeo4jValue(workspace, creator, owner, followers)
       }
     }
   }
@@ -70,9 +72,10 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
     tx.run(
       """
         |MATCH (workspace :Workspace {id: {id} })
-        |WHERE (:User { username: {currentUser} })-[:FOLLOWING|:CREATED]->(workspace) OR workspace.isPublic
+        |WHERE (:User { username: {currentUser} })-[:FOLLOWING|:OWNS]->(workspace) OR workspace.isPublic
         |MATCH (creator :User)-[:CREATED]->(workspace)<-[:FOLLOWING]-(follower :User)
-        |RETURN workspace, creator, collect(distinct follower) as followers
+        |MATCH (owner :User)-[:OWNS]->(workspace)
+        |RETURN workspace, creator, owner, collect(distinct follower) as followers
       """.stripMargin,
       parameters(
         "currentUser", currentUser,
@@ -85,9 +88,10 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
       ).map { r =>
         val workspace = r.head.get("workspace")
         val creator = DBUser.fromNeo4jValue(r.head.get("creator"))
+        val owner = DBUser.fromNeo4jValue(r.head.get("owner"))
         val followers = r.head.get("followers").asList[DBUser](DBUser.fromNeo4jValue(_)).asScala.toList
 
-        WorkspaceMetadata.fromNeo4jValue(workspace, creator, followers)
+        WorkspaceMetadata.fromNeo4jValue(workspace, creator, owner, followers)
       }
     }
   }
@@ -96,9 +100,10 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
     tx.run(
       """
         |MATCH (workspace: Workspace { id: {id} })
-        |WHERE (:User { username: {currentUser} })-[:FOLLOWING|:CREATED]->(workspace) OR workspace.isPublic
+        |WHERE (:User { username: {currentUser} })-[:FOLLOWING|:OWNS]->(workspace) OR workspace.isPublic
         |
         |OPTIONAL MATCH (workspace)<-[:PART_OF]-(node :WorkspaceNode)<-[:CREATED]-(nodeCreator :User)
+        |
         |OPTIONAL MATCH (node)-[:PARENT]->(parentNode :WorkspaceNode)
         |
         |OPTIONAL MATCH (:Resource {uri: node.uri})<-[todo:TODO|:PROCESSING_EXTERNALLY]-(:Extractor)
@@ -147,6 +152,7 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
         |CREATE (w: Workspace {id: {id}, name: {name}, isPublic: {isPublic}, tagColor: {tagColor}})
         |CREATE (w)<-[:CREATED]-(u)
         |CREATE (w)<-[:FOLLOWING]-(u)
+        |CREATE (w)<-[:OWNS]-(u)
         |
         |CREATE (u)-[:CREATED]->(f: WorkspaceNode {id: {rootFolderId}, name: {name}, type: 'folder'})-[:PART_OF]->(w)
         |
@@ -170,10 +176,10 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
   override def updateWorkspaceFollowers(currentUser: String, id: String, followers: List[String]): Attempt[Unit] = attemptTransaction { tx =>
     tx.run(
       """
-        |MATCH (workspace :Workspace {id: {workspaceId}})<-[:CREATED]-(creator :User {username: {username}})
+        |MATCH (workspace :Workspace {id: {workspaceId}})<-[:OWNS]-(owner :User {username: {username}})
         |
         |OPTIONAL MATCH (existingFollower :User)-[existingFollow :FOLLOWING]->(workspace)
-        |  WHERE existingFollower.username <> creator.username
+        |  WHERE existingFollower.username <> owner.username
         |
         |OPTIONAL MATCH (newFollower :User)
         |  WHERE newFollower.username IN {followers}
@@ -201,7 +207,7 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
   override def updateWorkspaceIsPublic(currentUser: String, id: String, isPublic: Boolean): Attempt[Unit] = attemptTransaction { tx =>
     tx.run(
       """
-        |MATCH (workspace :Workspace {id: {workspaceId}})<-[:CREATED]-(creator :User {username: {username}})
+        |MATCH (workspace :Workspace {id: {workspaceId}})<-[:OWNS]-(owner :User {username: {username}})
         |
         |SET workspace.isPublic = {isPublic}
         |
@@ -222,7 +228,7 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
   override def updateWorkspaceName(currentUser: String, id: String, name: String): Attempt[Unit] = attemptTransaction { tx =>
     tx.run(
       """
-        |MATCH (rootNode :WorkspaceNode)-[:PART_OF]->(workspace :Workspace {id: {workspaceId}})<-[:CREATED]-(creator :User {username: {username}})
+        |MATCH (rootNode :WorkspaceNode)-[:PART_OF]->(workspace :Workspace {id: {workspaceId}})<-[:OWNS]-(owner :User {username: {username}})
         |   WHERE NOT exists((rootNode)-[:PARENT]->(:WorkspaceNode))
         |
         |SET workspace.name = {name}
@@ -241,11 +247,36 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
     }
   }
 
+  override def updateWorkspaceOwner(currentUser: String, id: String, owner: String): Attempt[Unit] = attemptTransaction { tx =>
+    val query = """
+                  MATCH (user: User { username: {username}})
+                  |MATCH (newOwner: User { username: {owner}})
+                  |MATCH (workspace: Workspace {id:{workspaceId}} )<-[ownsRelationship:OWNS]-(currentOwner:User)
+                  |WHERE (:Permission {name: "CanPerformAdminOperations"})<-[:HAS_PERMISSION]-(user)
+                  |CREATE (workspace)<-[:FOLLOWING]-(newOwner)
+                  |CREATE (workspace)<-[:OWNS]-(newOwner)
+                  |DELETE ownsRelationship
+      """.stripMargin
+    tx.run(
+      query,
+      parameters(
+        "workspaceId", id,
+        "owner", owner,
+        "username", currentUser
+      )
+    ).flatMap {
+      case r if r.summary().counters().relationshipsCreated() != 2 =>
+        Attempt.Left(IllegalStateFailure(s"Error when updating workspace owner, unexpected properties set ${r.summary().counters().propertiesSet()}"))
+      case _ =>
+        Attempt.Right(())
+    }
+  }
+
   override def deleteWorkspace(currentUser: String, workspace: String): Attempt[Unit] = attemptTransaction { tx =>
     tx.run(
       """
         |MATCH (user: User { username: {username} })
-        |MATCH (workspace: Workspace {id: {workspaceId}})<-[:CREATED]-(u:User)
+        |MATCH (workspace: Workspace {id: {workspaceId}})<-[:OWNS]-(u:User)
         |WHERE u.username = {username} OR (workspace.isPublic and (:Permission {name: "CanPerformAdminOperations"})<-[:HAS_PERMISSION]-(user))
         |MATCH (workspace)<-[:PART_OF]-(node: WorkspaceNode)
         |

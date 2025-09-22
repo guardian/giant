@@ -10,7 +10,7 @@ import utils.attempt.{Attempt, Failure, UnsupportedOperationFailure}
 class TestAnnotations(usersToWorkspaces: Map[String, List[String]] = Map.empty) extends Annotations {
   override def getAllWorkspacesMetadata(currentUser: String): Attempt[List[WorkspaceMetadata]] = {
     val workspaces = usersToWorkspaces.getOrElse(currentUser, List.empty).map { id =>
-      WorkspaceMetadata(id, id, isPublic = false, "", null, List.empty)
+      WorkspaceMetadata(id, id, isPublic = false, tagColor="", creator=null, owner=null, followers=List.empty)
     }
 
     Attempt.Right(workspaces)
@@ -21,6 +21,7 @@ class TestAnnotations(usersToWorkspaces: Map[String, List[String]] = Map.empty) 
   override def updateWorkspaceFollowers(currentUser: String, id: String, followers: List[String]): Attempt[Unit] = Attempt.Left(UnsupportedOperationFailure(""))
   override def updateWorkspaceIsPublic(currentUser: String, id: String, isPublic: Boolean): Attempt[Unit] = Attempt.Left(UnsupportedOperationFailure(""))
   override def updateWorkspaceName(currentUser: String, id: String, name: String): Attempt[Unit] = Attempt.Left(UnsupportedOperationFailure(""))
+  override def updateWorkspaceOwner(currentUser: String, id: String, owner: String): Attempt[Unit] = Attempt.Left(UnsupportedOperationFailure(""))
   override def deleteWorkspace(currentUser: String, workspace: String): Attempt[Unit] = Attempt.Left(UnsupportedOperationFailure(""))
   override def addFolder(currentUser: String, workspaceId: String, parentFolderId: String, folderName: String): Attempt[String] = Attempt.Left(UnsupportedOperationFailure(""))
   override def addResourceToWorkspaceFolder(currentUser: String, fileName: String, uri: Uri, size: Option[Long], mimeType: Option[String], icon: String, workspaceId: String, folderId: String, nodeId: String): Attempt[String] = Attempt.Left(UnsupportedOperationFailure(""))
