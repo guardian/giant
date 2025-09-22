@@ -31,25 +31,13 @@ class DatabaseUserProvider(val config: DatabaseAuthConfig, passwordHashing: Pass
   override def authenticate(request: Request[AnyContent], time: Epoch): Attempt[PartialUser] = {
     for {
       formData <- request.body.asFormUrlEncoded.toAttempt(Attempt.Left(ClientFailure("No form data")))
-      _ = logger.info(s"********** Form data ${formData.toString}")
-
       username <- formData.get("username").flatMap(_.headOption).toAttempt(Attempt.Left(ClientFailure("No username form parameter")))
-      _ = logger.info(s"********** username ${username.toString}")
-
       password <-formData.get("password").flatMap(_.headOption).toAttempt(Attempt.Left(ClientFailure("No password form parameter")))
-
-      _ = logger.info(s"********** password ${password.toString}")
       tfaCode = formData.get("tfa").flatMap(_.headOption)
-
-      _ = logger.info(s"********** tfaCode ${tfaCode.toString}")
-
       dbUser <- passwordHashing.verifyUser(users.getUser(username), password, RequireRegistered)
       _ <- totp.checkUser2fa(config.require2FA, dbUser.totpSecret, tfaCode, time)
       _ = logger.info(s"********** User ${dbUser.toString}")
-    } yield {
-      logger.info(s"********** Username ${dbUser.username} found ")
-      dbUser.toPartial
-    }
+    } yield dbUser.toPartial
   }
 
   override def generate2faToken(username: String, instance: String): Attempt[TfaToken] = {
