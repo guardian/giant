@@ -12,6 +12,8 @@ import { Collection } from '../../types/Collection';
 import { TreeEntry, TreeNode } from '../../types/Tree';
 import { getWorkspace } from '../../actions/workspaces/getWorkspace';
 import ShareWorkspaceModal from './ShareWorkspaceModal';
+import MdEdit from "react-icons/lib/md/edit";
+import MdDelete from "react-icons/lib/md/delete";
 import TakeOwnershipOfWorkspaceModal from "./TakeOwnershipOfWorkspaceModal";
 import {takeOwnershipOfWorkspace} from "../../actions/workspaces/takeOwnershipOfWorkspace";
 
@@ -102,6 +104,7 @@ export default function WorkspaceSummary({
                 onConfirm={(newName) => renameWorkspace(workspace.id, newName)}
                 disabled={currentUser.username !== workspace.owner.username}
             >
+                <MdEdit />
                 Rename Workspace
             </ModalAction>
             <ModalAction
@@ -112,6 +115,7 @@ export default function WorkspaceSummary({
                 onConfirm={() => deleteWorkspace(workspace.id)}
                 disabled={currentUser.username !== workspace.owner.username && !(isAdmin && workspace.isPublic)}
             >
+                <MdDelete />
                 Delete Workspace
             </ModalAction>
         </div>

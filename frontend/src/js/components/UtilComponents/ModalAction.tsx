@@ -50,7 +50,7 @@ export default function ModalAction(props: React.PropsWithChildren<ConfirmProps 
                 }
 
                 break;
-            
+
             case 'select_multiple':
                 if(value && !_.isEqual(value, props.currentValues)) {
                     props.onConfirm((value as string[]));
@@ -70,12 +70,13 @@ export default function ModalAction(props: React.PropsWithChildren<ConfirmProps 
     const canSubmit = props.actionType === "edit" ? value !== undefined && value !== "" : true;
 
     return <React.Fragment>
-        
+
         {/* The component that triggers the modal (pass-through rendering of children) */}
         <button
             className={props.className}
             disabled={props.disabled}
             onClick={() => setOpen(true)}
+            title={props.title}
         >
             {props.children}
         </button>
@@ -115,7 +116,7 @@ export default function ModalAction(props: React.PropsWithChildren<ConfirmProps 
                                 fluid
                                 multiple
                                 selection
-                                search    
+                                search
                                 placeholder='Select'
                                 options={props.possibleValues.map(value => { return { value, text: value } })}
                                 defaultValue={value || props.currentValues}

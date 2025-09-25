@@ -306,6 +306,7 @@ export default function UploadFiles(props: Props) {
             <button
                 className='btn file-upload__button'
                 onClick={onClick}
+                title="Upload to workspace"
             >
               <MdFileUpload className='file-upload__icon'/>
               Upload to workspace
