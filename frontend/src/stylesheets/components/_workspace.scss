@@ -8,6 +8,15 @@
         justify-content: space-between;
     }
 
+    @media(max-width: 1200px) {
+        &__header button {
+            font-size: 0; // hides the text
+        }
+        &__header button svg {
+            font-size: 16px; // unhides the icon (and slightly bigger than it is normally
+        }
+    }
+
     &__title {
         display: inline-block;
     }
