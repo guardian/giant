@@ -9,6 +9,10 @@ export const workspaceWithZeroProcessing: Workspace = {
         "username": "joe",
         "displayName": "joe"
     },
+    "creator": {
+        "username": "sabina",
+        "displayName": "sabina"
+    },
     "followers": [
         {
             "username": "joe",
@@ -181,6 +185,10 @@ export const workspaceWithOneProcessing: Workspace = {
     "owner": {
         "username": "joe",
         "displayName": "joe"
+    },
+    "creator": {
+        "username": "sabina",
+        "displayName": "sabina"
     },
     "followers": [
         {
@@ -355,6 +363,10 @@ export const workspaceWithTwoProcessing: Workspace = {
         "username": "joe",
         "displayName": "joe"
     },
+    "creator": {
+        "username": "sabina",
+        "displayName": "sabina"
+    },
     "followers": [
         {
             "username": "joe",
@@ -519,6 +531,10 @@ export const workspaceWithOneProcessingBottomHeavyTree: Workspace = {
         "username": "joe",
         "displayName": "joe"
     },
+    "creator": {
+        "username": "sabina",
+        "displayName": "sabina"
+    },
     "followers": [
         {
             "username": "joe",
@@ -668,6 +684,10 @@ export const workspaceWithZeroProcessingBottomHeavyTree: Workspace = {
     "owner": {
         "username": "joe",
         "displayName": "joe"
+    },
+    "creator": {
+        "username": "sabina",
+        "displayName": "sabina"
     },
     "followers": [
         {
@@ -819,6 +839,10 @@ export const workspaceFlatWithZeroProcessing: Workspace = {
         "username": "joe",
         "displayName": "joe"
     },
+    "creator": {
+        "username": "sabina",
+        "displayName": "sabina"
+    },
     "followers": [
         {
             "username": "joe",
@@ -886,6 +910,10 @@ export const workspaceFlatWithOneProcessing: Workspace = {
     "owner": {
         "username": "joe",
         "displayName": "joe"
+    },
+    "creator": {
+        "username": "sabina",
+        "displayName": "sabina"
     },
     "followers": [
         {

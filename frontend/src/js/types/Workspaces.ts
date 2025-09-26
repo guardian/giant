@@ -31,6 +31,7 @@ export type WorkspaceMetadata = {
     isPublic: boolean,
     tagColor: string,
     owner: PartialUser,
+    creator: PartialUser,
     followers: PartialUser[],
 }
 

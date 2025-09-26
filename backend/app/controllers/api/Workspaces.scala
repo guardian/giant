@@ -40,6 +40,11 @@ object UpdateWorkspaceName {
   implicit val format = Json.format[UpdateWorkspaceName]
 }
 
+case class UpdateWorkspaceOwner(owner: String)
+object UpdateWorkspaceOwner {
+  implicit val format = Json.format[UpdateWorkspaceOwner]
+}
+
 case class AddItemParameters(uri: Option[String], size: Option[Long], mimeType: Option[String])
 object AddItemParameters {
   implicit val format = Json.format[AddItemParameters]
@@ -172,6 +177,21 @@ class Workspaces(override val controllerComponents: AuthControllerComponents, an
         req.user.username,
         workspaceId,
         data.name
+      )
+    } yield {
+      NoContent
+    }
+  }
+
+  def updateWorkspaceOwner(workspaceId: String, owner: String) = ApiAction.attempt(parse.json) { req =>
+    for {
+      data <- req.body.validate[UpdateWorkspaceOwner].toAttempt
+
+      _ = logAction(req.user, workspaceId, s"Updating workspace owner. Data: $data")
+      _ <- annotation.updateWorkspaceOwner(
+        req.user.username,
+        owner,
+        workspaceId,
       )
     } yield {
       NoContent

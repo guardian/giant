@@ -108,9 +108,10 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
         summary.list().asScala.toList.map { r =>
           val workspace = r.get("workspace")
           val creator = DBUser.fromNeo4jValue(r.get("creator"))
+          val owner = DBUser.fromNeo4jValue(r.get("owner"))
           val followers = r.get("followers").asList[DBUser](DBUser.fromNeo4jValue(_)).asScala.toList
 
-          WorkspaceMetadata.fromNeo4jValue(workspace, creator, followers)
+          WorkspaceMetadata.fromNeo4jValue(workspace, creator, owner, followers)
         }
     }
   }

@@ -142,6 +142,7 @@ case class WorkspaceMetadata(id: String,
                              name: String,
                              isPublic: Boolean,
                              tagColor: String,
+                             creator: PartialUser,
                              owner: PartialUser,
                              followers: List[PartialUser]
 )
@@ -150,12 +151,13 @@ object WorkspaceMetadata {
   implicit val write: Writes[WorkspaceMetadata] = Json.writes[WorkspaceMetadata]
   implicit val read: Reads[WorkspaceMetadata] = Json.reads[WorkspaceMetadata]
 
-  def fromNeo4jValue(v: Value, owner: DBUser, followers: List[DBUser]): WorkspaceMetadata = {
+  def fromNeo4jValue(v: Value, creator: DBUser, owner:DBUser, followers: List[DBUser]): WorkspaceMetadata = {
     WorkspaceMetadata(
       v.get("id").asString(),
       v.get("name").asString(),
       v.get("isPublic").asBoolean(),
       v.get("tagColor").asString(),
+      creator.toPartial,
       owner.toPartial,
       followers.map(_.toPartial)
     )
@@ -166,6 +168,7 @@ case class Workspace(id: String,
                      name: String,
                      isPublic: Boolean,
                      tagColor: String,
+                     creator: PartialUser,
                      owner: PartialUser,
                      followers: List[PartialUser],
                      rootNode: TreeEntry[WorkspaceEntry])
@@ -180,6 +183,7 @@ object Workspace {
       name = metadata.name,
       isPublic = metadata.isPublic,
       tagColor = metadata.tagColor,
+      creator = metadata.creator,
       owner = metadata.owner,
       followers = metadata.followers,
       rootNode = rootNode
