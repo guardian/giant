@@ -276,7 +276,7 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
     tx.run(
       """
         |MATCH (user: User { username: {username} })
-        |MATCH (workspace: Workspace {id: {workspaceId}})<-[:CREATED]-(u:User)
+        |MATCH (workspace: Workspace {id: {workspaceId}})<-[:OWNS]-(u:User)
         |WHERE u.username = {username} OR (workspace.isPublic and (:Permission {name: "CanPerformAdminOperations"})<-[:HAS_PERMISSION]-(user))
         |MATCH (workspace)<-[:PART_OF]-(node: WorkspaceNode)
         |
