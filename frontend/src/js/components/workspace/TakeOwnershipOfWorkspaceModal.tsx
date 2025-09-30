@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import Modal from '../UtilComponents/Modal';
+import { MdPerson } from "react-icons/md";
 import { Workspace } from '../../types/Workspaces';
 import { PartialUser } from '../../types/User';
 import {takeOwnershipOfWorkspace} from "../../actions/workspaces/takeOwnershipOfWorkspace";
