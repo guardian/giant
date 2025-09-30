@@ -80,6 +80,7 @@ class IngestStorePolling(
                   logger.warn(s"Failed to process $key: $failure. File will be moved to dead letter bucket. To re-ingest the file, " +
                     s"either re-upload it or use the /api/ingestion/retry-dead-letter-files endpoint to re-ingest all dead letter files.")
                   ingestStorage.sendToDeadLetterBucket(key)
+                  ingestStorage.delete(key)
                 case _ => ingestStorage.delete(key)
               }
               result
