@@ -79,12 +79,12 @@ export default function WorkspaceSummary({
                 focusedWorkspaceEntry={focusedEntry}
                 expandedNodes={expandedNodes}
             />
-            {workspace.owner.username !== currentUser.username && (<TakeOwnershipOfWorkspaceModal
+            <TakeOwnershipOfWorkspaceModal
                 workspace={workspace}
                 isAdmin={isAdmin}
                 currentUser={currentUser}
                 takeOwnershipOfWorkspace={takeOwnershipOfWorkspace}
-            />)}
+            />
             <ShareWorkspaceModal
                 workspace={workspace}
                 workspaceUsers={workspaceUsers}
