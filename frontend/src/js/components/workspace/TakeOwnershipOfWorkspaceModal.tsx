@@ -49,7 +49,6 @@ export default function TakeOwnershipOfWorkspaceModal(props: Props) {
                         <button
                             className='btn'
                             onClick={onSubmit}
-                            disabled={false}
                             autoFocus={false}
                         >
                             Take Ownership
