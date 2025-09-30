@@ -84,7 +84,10 @@ object Ocr extends Logging {
   // Reduces the ppi of the images within the pdf to 300 if they are over this limit.
   // This improves the performance of ocrMyPdf but also reduced the chance of ocr failures
   // because ocrMyPdf can not handle images sizes over 500000000 pixels
-  def preProcessPdf(inputFilePath: Path, tmpDir: Path, stderr: OcrStderrLogger): Option[Path] = {
+  // Also, optionally downsize large pages to a1 - this is important as we use the --redo-ocr setting with ocrmypdf
+  // which will cause it to rasterise the whole page at 300dpi - if the page is too big then we will end up with a massive
+  // rasterised image that will use too much memory/cpu to process.
+  def preProcessPdf(inputFilePath: Path, tmpDir: Path, stderr: OcrStderrLogger, fitToA1: Boolean): Option[Path] = {
     val tempDownSampledFile = tmpDir.resolve(s"${inputFilePath.getFileName}.downsampled.pdf")
 
     val cmd = new StringBuilder("gs ")
@@ -95,6 +98,11 @@ object Ocr extends Logging {
     cmd.append("-dColorImageResolution=300 ")
     cmd.append("-dGrayImageResolution=300 ")
     cmd.append("-dMonoImageResolution=300 ")
+    if (fitToA1) {
+      cmd.append("-dPDFFitPage ")
+      cmd.append("-sPAPERSIZE=a1 ")
+    }
+
     cmd.append(s"-o $tempDownSampledFile ")
     cmd.append(inputFilePath.toAbsolutePath)
 
@@ -105,6 +113,38 @@ object Ocr extends Logging {
       case _ =>
         logger.warn(s"Failed to down sample the file ${inputFilePath.getFileName}. exit code ${exitCode} .")
         None
+    }
+  }
+
+  // Uses pdfinfo to get the page size of the first page of the PDF, true if it's bigger than A1
+  def isBiggerThanA1(inputFilePath: Path, stderrLogger: OcrStderrLogger): Boolean = {
+    val a1PageSizePtArea = 4014656 // https://www.a1-size.com/a1-size-in-point/
+    val cmd = s"pdfinfo ${inputFilePath.toAbsolutePath}"
+    val stdout = mutable.Buffer.empty[String]
+    val exitCode = Process(cmd).!(ProcessLogger(stdout.append(_), stderrLogger.append))
+    exitCode match {
+      case 0 =>
+        val biggerThanA1 = stdout.find(_.startsWith("Page size:")).map { line =>
+          val sizePattern = """Page size:\s+([\d.]+) x ([\d.]+) pts.*""".r
+          line match {
+            case sizePattern(width, height) =>
+              val w = width.toDouble
+              val h = height.toDouble
+              val area = w * h
+              val bigger = area > a1PageSizePtArea
+              if (bigger) {
+                logger.info(s"Page size of ${inputFilePath.getFileName} is bigger than A1 - will be downsized to A1")
+              }
+              bigger
+          }
+        }
+        biggerThanA1.getOrElse({
+          logger.warn(s"Failed to calculate page size for ${inputFilePath.getFileName}, assuming it's not too big")
+          false
+        })
+      case _ =>
+        logger.warn(s"Failed to get pdf info for ${inputFilePath.getFileName}. exit code ${exitCode} .")
+        false
     }
   }
 
