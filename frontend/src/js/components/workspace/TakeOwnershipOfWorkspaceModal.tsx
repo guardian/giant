@@ -29,12 +29,11 @@ export default function TakeOwnershipOfWorkspaceModal(props: Props) {
         setOpen(false);
     }
 
-    return <React.Fragment>
+    return props.currentUser.username !== props.workspace.owner.username && !props.isAdmin ? null : <React.Fragment>
 
         {/* The component that triggers the modal (pass-through rendering of children) */}
         <button
             className='btn workspace__button'
-            disabled={props.currentUser.username !== props.workspace.owner.username && !props.isAdmin}
             onClick={() => setOpen(true)}
         >
             Take Ownership
