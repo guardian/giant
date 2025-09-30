@@ -55,6 +55,7 @@ class RemoteIngestWorker(
             workspaceMetadata <- annotations.getWorkspaceMetadata(job.userEmail, job.workspaceId)
             _ <- remoteIngestStore.updateRemoteIngestJobStatus(parsedJob.id, "INGESTING")
             ingestion <- Collections.createIngestionIfNotExists(Uri(job.collection), job.ingestion, manifest, index, pages, s3Config)
+            parentFolder <- annotations.addFolder(job.userEmail, job.workspaceId, job.parentFolderId, job.title)
             ingestFileResult <- IngestStorePolling.fetchData(job.ingestionKey, remoteIngestStorage, scratchSpace){(path, fingerprint) =>
               val collectionUri = Uri(job.collection)
               Await.result(
@@ -65,12 +66,12 @@ class RemoteIngestWorker(
                   workspace = Some(WorkspaceItemUploadContext(
                     workspaceId = job.workspaceId,
                     workspaceNodeId = UUID.randomUUID().toString,
-                    workspaceParentNodeId = job.parentFolderId,
+                    workspaceParentNodeId = parentFolder,
                     workspaceName = workspaceMetadata.name
                   )),
                   username = job.userEmail,
                   temporaryFilePath = path,
-                  originalPath = Paths.get(s"${job.title}/${parsedJob.metadata.map(meta => s"${meta.title}.${meta.extension}").getOrElse(job.id)}"),
+                  originalPath = Paths.get(parsedJob.metadata.map(meta => s"${meta.title}.${meta.extension}").getOrElse(job.id)),
                   lastModifiedTime = None,
                   manifest = manifest,
                   esEvents = esEvents,
