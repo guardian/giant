@@ -35,6 +35,7 @@ export default function TakeOwnershipOfWorkspaceModal(props: Props) {
         <button
             className='btn workspace__button'
             onClick={() => setOpen(true)}
+			title='Take ownership'
         >
             Take Ownership
         </button>
