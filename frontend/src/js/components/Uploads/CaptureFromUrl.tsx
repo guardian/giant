@@ -1,6 +1,6 @@
 import MdGlobeIcon from "react-icons/lib/md/public";
 
-import React, {useEffect, useMemo, useState} from "react";
+import React, {FormEvent, useEffect, useMemo, useState} from "react";
 import {Workspace, WorkspaceEntry, WorkspaceMetadata} from "../../types/Workspaces";
 import Modal from "../UtilComponents/Modal";
 import Select from "react-select";
@@ -16,6 +16,9 @@ import {setNodeAsCollapsed} from "../../actions/workspaces/setNodeAsCollapsed";
 import {displayRelativePath} from "../../util/workspaceUtils";
 import {getWorkspacesMetadata} from "../../actions/workspaces/getWorkspacesMetadata";
 import {setFocusedEntry} from "../../actions/workspaces/setFocusedEntry";
+import {captureFromUrl} from "../../services/WorkspaceApi";
+import {AppActionType, ErrorAction} from "../../types/redux/GiantActions";
+import {useHistory} from "react-router-dom";
 
 export const getMaybeCaptureFromUrlQueryParamValue = () =>
   new URLSearchParams(window.location.search).get("capture_from_url");
@@ -32,6 +35,9 @@ interface CaptureFromUrlProps {
   setNodeAsCollapsed: (node: TreeNode<WorkspaceEntry>) => void,
   focusedEntry: TreeEntry<WorkspaceEntry> | null,
   setFocusedEntry: (entry: TreeEntry<WorkspaceEntry> | null) => void,
+  refreshWorkspace: (workspaceId: string) => void,
+
+  showError(errorAction: ErrorAction): void
 }
 
 export const CaptureFromUrl = connect(
@@ -47,6 +53,10 @@ export const CaptureFromUrl = connect(
     setNodeAsExpanded: bindActionCreators(setNodeAsExpanded, dispatch),
     setNodeAsCollapsed: bindActionCreators(setNodeAsCollapsed, dispatch),
     setFocusedEntry: bindActionCreators(setFocusedEntry, dispatch),
+    showError(errorAction: ErrorAction) {
+      dispatch(errorAction)
+    },
+    refreshWorkspace: bindActionCreators(getWorkspace, dispatch)
   })
 )(({
      withButton,
@@ -59,10 +69,14 @@ export const CaptureFromUrl = connect(
      setNodeAsCollapsed,
      focusedEntry,
      setFocusedEntry,
+     showError,
+     refreshWorkspace
    }: CaptureFromUrlProps) => {
 
   const [isOpen, setIsOpen] = useState(false);
-  useEffect(() => {getWorkspacesMetadata()}, [isOpen]);
+  useEffect(() => {
+    getWorkspacesMetadata()
+  }, [isOpen]);
 
   const maybeCaptureFromUrlViaQueryParamValue = useMemo(
     getMaybeCaptureFromUrlQueryParamValue,
@@ -81,8 +95,39 @@ export const CaptureFromUrl = connect(
     }
   }, [maybeCaptureFromUrlViaQueryParamValue]);
 
-  const onSubmit = () => {
-    setIsOpen(false);
+  const {push} = useHistory();
+
+  const onSubmit = (e: FormEvent) => {
+
+    e.preventDefault();
+
+    if (!url || !currentWorkspace || !saveAs) {
+      return console.error("Missing value", {
+        url, currentWorkspace, saveAs
+      });
+    }
+
+    captureFromUrl(currentWorkspace.id, {
+      url,
+      title: saveAs,
+      parentFolderId: focusedEntry?.id || currentWorkspace.rootNode.id,
+    }).then(json => {
+      console.log(json);
+      push(`/workspaces/${currentWorkspace.id}`);
+      setIsOpen(false);
+    }).catch(e => {
+      console.error(e);
+      showError({
+        type: AppActionType.APP_SHOW_ERROR,
+        error: e,
+        message: "Failed to capture from URL"
+      });
+    }).finally(() => {
+      // ensure the target folder is expanded to show the new job
+      setNodeAsExpanded((focusedEntry && isTreeNode(focusedEntry) && focusedEntry) || currentWorkspace.rootNode);
+      // refresh the workspace to show the new job
+      refreshWorkspace(currentWorkspace.id);
+    });
   }
 
   return <>
@@ -117,8 +162,7 @@ export const CaptureFromUrl = connect(
               label: w.name
             }))}
             searchable
-            clearable
-            cle
+            clearable={false}
             isMulti={false}
             value={workspace ? {
               label: workspace.name,
@@ -142,18 +186,24 @@ export const CaptureFromUrl = connect(
                   clearFocus={() => setFocusedEntry(null)}
                   selectedEntries={focusedEntry ? [focusedEntry] : []}
                   focusedEntry={focusedEntry}
-                  onMoveItems={() => {}} // can't move things in this view
-                  onContextMenu={() => {}} // can't rename things in this view
-                  onSelectLeaf={() => {}} // leaves are not valid targets to add to, so are not selectable
-                  onExpandLeaf={() => {}} // entire tree is in memory up-front, so no need for an expand leaf callback
-                  onClickColumn={() => {}} // only one column, don't allow reversing the sorting
+                  onMoveItems={() => {
+                  }} // can't move things in this view
+                  onContextMenu={() => {
+                  }} // can't rename things in this view
+                  onSelectLeaf={() => {
+                  }} // leaves are not valid targets to add to, so are not selectable
+                  onExpandLeaf={() => {
+                  }} // entire tree is in memory up-front, so no need for an expand leaf callback
+                  onClickColumn={() => {
+                  }} // only one column, don't allow reversing the sorting
                   columnsConfig={{
                     columns: [{
                       name: 'Name',
                       align: 'left',
                       render: (entry) =>
                         isTreeNode(entry)
-                          ? <>{entry.name || '--'} <span style={{marginLeft: "5px", fontSize: "smaller", color: "#666"}}>
+                          ? <>{entry.name || '--'} <span
+                            style={{marginLeft: "5px", fontSize: "smaller", color: "#666"}}>
                             ({entry.children.filter(isTreeLeaf).length} files & {entry.children.filter(isTreeNode).length} folders)
                           </span></>
                           : <></>, // don't render leaves since they can't be selected
@@ -184,10 +234,10 @@ export const CaptureFromUrl = connect(
 
         <div className='form__row'>
           <button type='submit' className='btn' disabled={!currentWorkspace || !saveAs}>
-            Save
+            Capture
           </button>
           {currentWorkspace && saveAs && (<>
-          {" "} to <code>{`${displayRelativePath(currentWorkspace.rootNode, focusedEntry?.id || currentWorkspace.rootNode.id)}${saveAs}`}</code>
+            {" "} to <code>{`${displayRelativePath(currentWorkspace.rootNode, focusedEntry?.id || currentWorkspace.rootNode.id)}${saveAs}`}</code>
           </>)}
         </div>
 
