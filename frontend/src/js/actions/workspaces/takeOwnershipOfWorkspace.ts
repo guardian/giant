@@ -13,7 +13,7 @@ export function takeOwnershipOfWorkspace(
         return updateWorkspaceOwner(id, user)
             .then(res => {
                 dispatch(getWorkspacesMetadata());
-                // We need to fire off this second call because "is public" metadata as
+                // We need to fire off this second call because "created by"/"owned by" labels as
                 // displayed in the "current workspace" view is accessed from the currentWorkspace state,
                 // so we need to refresh it. It's also in the workspacesMetadata state, but we don't want to
                 // search through that array to find the current workspace: currentWorkspace should always
