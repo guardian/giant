@@ -34,7 +34,7 @@ export function updateWorkspaceName(id: string, name: string) {
 }
 
 export function updateWorkspaceOwner(workspaceId: string, owner: string) {
-    return authFetch(`/api/workspaces/${workspaceId}/owner?owner=${owner}`, {
+    return authFetch(`/api/workspaces/${workspaceId}/owner`, {
         headers: new Headers({'Content-Type': 'application/json'}),
         method: 'PUT',
         body: JSON.stringify({owner})

@@ -204,15 +204,15 @@ class Workspaces(
     }
   }
 
-  def updateWorkspaceOwner(workspaceId: String, owner: String) = ApiAction.attempt(parse.json) { req =>
+  def updateWorkspaceOwner(workspaceId: String) = ApiAction.attempt(parse.json) { req =>
     for {
       data <- req.body.validate[UpdateWorkspaceOwner].toAttempt
 
       _ = logAction(req.user, workspaceId, s"Updating workspace owner. Data: $data")
       _ <- annotation.updateWorkspaceOwner(
         req.user.username,
-        owner,
         workspaceId,
+        data.owner
       )
     } yield {
       NoContent
