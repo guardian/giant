@@ -10,7 +10,7 @@ import utils.attempt.{Attempt, Failure, UnsupportedOperationFailure}
 class TestAnnotations(usersToWorkspaces: Map[String, List[String]] = Map.empty) extends Annotations {
   override def getAllWorkspacesMetadata(currentUser: String): Attempt[List[WorkspaceMetadata]] = {
     val workspaces = usersToWorkspaces.getOrElse(currentUser, List.empty).map { id =>
-      WorkspaceMetadata(id, id, isPublic = false, "", null, null, List.empty)
+      WorkspaceMetadata(id, id, isPublic = false, tagColor="", creator=null, owner=null, followers=List.empty)
     }
 
     Attempt.Right(workspaces)
