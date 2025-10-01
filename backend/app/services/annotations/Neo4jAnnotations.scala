@@ -247,7 +247,7 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
     }
   }
 
-  override def updateWorkspaceOwner(currentUser: String, owner: String, id: String): Attempt[Unit] = attemptTransaction { tx =>
+  override def updateWorkspaceOwner(currentUser: String, id: String, owner: String): Attempt[Unit] = attemptTransaction { tx =>
     val query = """
                   MATCH (user: User { username: {username}})
                   |MATCH (newOwner: User { username: {owner}})
