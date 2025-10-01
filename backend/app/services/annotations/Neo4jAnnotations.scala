@@ -334,7 +334,7 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
     }
   }
 
-  override def addFolder(currentUser: String, workspaceId: String, parentFolderId: String, folderName: String): Attempt[String] = attemptTransaction {  tx =>
+  private def addFolder(tx: AttemptWrappedTransaction, currentUser: String, workspaceId: String, parentFolderId: String, folderName: String): Attempt[String] = {
     tx.run(
       """
         |MATCH (p :WorkspaceNode {id: {parentFolderId}})-[:PART_OF]->(w: Workspace {id: {workspaceId}})
@@ -363,6 +363,39 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
         Attempt.Left(NotFoundFailure("Could not find node to create folder at"))
       case r =>
         Attempt.Right(r.single().get("f").get("id").asString())
+    }
+    }
+
+  override def addFolder(currentUser: String, workspaceId: String, parentFolderId: String, folderName: String): Attempt[String] = attemptTransaction {  tx =>
+    addFolder(tx, currentUser, workspaceId, parentFolderId, folderName)
+  }
+
+  // Checks for a folder with the given name under the given parent folder, returning its ID if found.
+  // If there are multiple folders with the same name, return the first
+  private def getFolder(tx: AttemptWrappedTransaction, workspaceId: String, parentFolderId: String, folderName: String): Attempt[String] = {
+    tx.run(
+      """
+      | MATCH  (parentFolder :WorkspaceNode {id: {parentFolderId}})-[:PART_OF]->(w: Workspace {id: {workspaceId}})
+      | MATCH  (folder :WorkspaceNode {name: {folderName}, type: 'folder'})-[:PARENT]->(parentFolder)
+      | RETURN folder
+      """.stripMargin,
+      parameters(
+        "workspaceId", workspaceId,
+        "parentFolderId", parentFolderId,
+        "folderName", folderName
+      )
+    ).flatMap {
+      case r if r.keys().asScala.isEmpty =>
+        Attempt.Left(NotFoundFailure("Could not find folder"))
+      case r =>
+        Attempt.Right(r.list().asScala.head.get("folder").get("id").asString())
+    }
+  }
+
+  override def addOrGetFolder(currentUser: String, workspaceId: String, parentFolderId: String, folderName: String): Attempt[String] = attemptTransaction {  tx =>
+    getFolder(tx, workspaceId, parentFolderId, folderName).recoverWith {
+      case _: NotFoundFailure =>
+        addFolder(tx, currentUser, workspaceId, parentFolderId, folderName)
     }
   }
 
