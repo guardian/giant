@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import Modal from '../UtilComponents/Modal';
-import { MdPerson } from "react-icons/md";
+import MdPerson from "react-icons/lib/md/person";
 import { Workspace } from '../../types/Workspaces';
 import { PartialUser } from '../../types/User';
 import {takeOwnershipOfWorkspace} from "../../actions/workspaces/takeOwnershipOfWorkspace";
@@ -39,7 +39,6 @@ export default function TakeOwnershipOfWorkspaceModal(props: Props) {
 			title='Take ownership'
         >
             <MdPerson />
-            Take Ownership
         </button>
 
         <Modal isOpen={open} dismiss={onDismiss} panelClassName="modal-action__panel">
