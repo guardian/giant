@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import Modal from '../UtilComponents/Modal';
-import MdPerson from "react-icons/lib/md/person";
+import MdSupervisorAccount from "react-icons/lib/md/supervisor-account";
 import { Workspace } from '../../types/Workspaces';
 import { PartialUser } from '../../types/User';
 import {takeOwnershipOfWorkspace} from "../../actions/workspaces/takeOwnershipOfWorkspace";
@@ -30,7 +30,12 @@ export default function TakeOwnershipOfWorkspaceModal(props: Props) {
         setOpen(false);
     }
 
-    return props.currentUser.username !== props.workspace.owner.username && !props.isAdmin ? null : <React.Fragment>
+    if (props.currentUser.username === props.workspace.owner.username)
+        return null
+    if (!props.isAdmin)
+        return null
+
+    return <React.Fragment>
 
         {/* The component that triggers the modal (pass-through rendering of children) */}
         <button
@@ -38,7 +43,7 @@ export default function TakeOwnershipOfWorkspaceModal(props: Props) {
             onClick={() => setOpen(true)}
 			title='Take ownership'
         >
-            <MdPerson />
+            <MdSupervisorAccount /> Take Ownership
         </button>
 
         <Modal isOpen={open} dismiss={onDismiss} panelClassName="modal-action__panel">
