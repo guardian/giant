@@ -100,7 +100,6 @@ class RemoteIngestWorker(
             }
         ).onComplete { _ =>
           amazonSQSClient.deleteMessage(config.outputQueueUrl, sqsMessage.getReceiptHandle)
-          //TODO: Delete file from S3
         }
       }
     } catch  {
