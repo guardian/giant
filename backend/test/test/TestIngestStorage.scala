@@ -27,6 +27,6 @@ class TestIngestStorage extends IngestStorage {
   override def retryDeadLetters(): Either[Failure, Unit] =
     Left(UnsupportedOperationFailure("retryDeadLetters not supported in test"))
 
-  override def getUploadSignedUrl(key: String): Either[Failure, String] =
+  override def getUploadSignedUrl(key: Key): Either[Failure, String] =
     Left(UnsupportedOperationFailure("getUploadSignedUrl not supported in test"))
 }

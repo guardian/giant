@@ -22,6 +22,7 @@ trait Annotations {
   def updateWorkspaceFollowers(currentUser: String, id: String, followers: List[String]): Attempt[Unit]
   def deleteWorkspace(currentUser: String, workspace: String): Attempt[Unit]
   def addFolder(currentUser: String, workspaceId: String, parentFolderId: String, folderName: String): Attempt[String]
+  def addOrGetFolder(currentUser: String, workspaceId: String, parentFolderId: String, folderName: String): Attempt[String]
   def addResourceToWorkspaceFolder(currentUser: String, fileName: String, uri: Uri, size: Option[Long], mimeType: Option[String], icon: String, workspaceId: String, folderId: String, nodeId: String): Attempt[String]
   def renameWorkspaceItem(currentUser: String, workspaceId: String, itemId: String, name: String): Attempt[Unit]
   def moveWorkspaceItem(currentUser: String, workspaceId: String, itemId: String, newWorkspaceId: Option[String], newParentId: Option[String]): Attempt[MoveItemResult]

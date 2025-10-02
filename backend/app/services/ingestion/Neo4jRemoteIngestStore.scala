@@ -11,9 +11,9 @@ import scala.concurrent.ExecutionContext
 import scala.jdk.CollectionConverters.CollectionHasAsScala
 
 object Neo4jRemoteIngestStore {
-  def setupManifest(driver: Driver, executionContext: ExecutionContext, queryLoggingConfig: Neo4jQueryLoggingConfig): Either[Failure, Neo4jRemoteIngestStore] = {
-    val neo4jManifest = new Neo4jRemoteIngestStore(driver, executionContext, queryLoggingConfig)
-    neo4jManifest.setup().map(_ => neo4jManifest)
+  def setup(driver: Driver, executionContext: ExecutionContext, queryLoggingConfig: Neo4jQueryLoggingConfig): Either[Failure, Neo4jRemoteIngestStore] = {
+    val neo4jStore = new Neo4jRemoteIngestStore(driver, executionContext, queryLoggingConfig)
+    neo4jStore.setup().map(_ => neo4jStore)
   }
 }
 
@@ -40,7 +40,7 @@ class Neo4jRemoteIngestStore(driver: Driver, executionContext: ExecutionContext,
         |  parentFolderId: $parentFolderId,
         |  collection: $collection,
         |  ingestion: $ingestion,
-        |  timeoutAt: $timeoutAt,
+        |  createdAt: $createdAt,
         |  url: $url,
         |  userEmail: $userEmail
         |})
@@ -55,11 +55,11 @@ class Neo4jRemoteIngestStore(driver: Driver, executionContext: ExecutionContext,
       "parentFolderId", ingest.parentFolderId,
       "collection", ingest.collection,
       "ingestion", ingest.ingestion,
-      "timeoutAt", ingest.timeoutAt.getMillis,
+      "createdAt", ingest.createdAt.getMillis,
       "url", ingest.url,
       "userEmail", ingest.userEmail
     )
-    
+
     tx.run(query, params).map(res => res.single().get("id").asString())
   }
 
@@ -73,7 +73,7 @@ class Neo4jRemoteIngestStore(driver: Driver, executionContext: ExecutionContext,
       record.get("parent_folder_id").asString(),
       record.get("collection").asString(),
       record.get("ingestion").asString(),
-      new org.joda.time.DateTime(record.get("timeout_at").asLong(), org.joda.time.DateTimeZone.UTC),
+      new org.joda.time.DateTime(record.get("created_at").asLong(), org.joda.time.DateTimeZone.UTC),
       record.get("url").asString(),
       record.get("user_email").asString(),
       blobUri
@@ -91,9 +91,9 @@ class Neo4jRemoteIngestStore(driver: Driver, executionContext: ExecutionContext,
         |       ri.parentFolderId AS parent_folder_id,
         |       ri.collection AS collection,
         |       ri.ingestion AS ingestion,
-        |       ri.timeoutAt AS timeout_at,
+        |       ri.createdAt AS created_at,
         |       ri.url AS url,
-        |       ri.userEmail AS user_email
+        |       ri.userEmail AS user_email,
         |       ri.blobUri AS blob_uri
       """.stripMargin
 
@@ -116,7 +116,7 @@ class Neo4jRemoteIngestStore(driver: Driver, executionContext: ExecutionContext,
           |       ri.parentFolderId AS parent_folder_id,
           |       ri.collection AS collection,
           |       ri.ingestion AS ingestion,
-          |       ri.timeoutAt AS timeout_at,
+          |       ri.createdAt AS created_at,
           |       ri.url AS url,
           |       ri.userEmail AS user_email
         """.stripMargin, parameters("status", s))
@@ -130,7 +130,7 @@ class Neo4jRemoteIngestStore(driver: Driver, executionContext: ExecutionContext,
           |       ri.parentFolderId AS parent_folder_id,
           |       ri.collection AS collection,
           |       ri.ingestion AS ingestion,
-          |       ri.timeoutAt AS timeout_at,
+          |       ri.createdAt AS created_at,
           |       ri.url AS url,
           |       ri.userEmail AS user_email
         """.stripMargin, parameters())
