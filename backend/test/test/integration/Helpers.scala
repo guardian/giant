@@ -372,7 +372,7 @@ object Helpers extends Matchers with Logging with OptionValues with Inside {
   }
 
   def setWorkspaceOwner(workspaceId: String, owner: String)(implicit timeout: Timeout, controllers: Controllers): Future[Result] = {
-    controllers.workspace.updateWorkspaceOwner(workspaceId, owner)
+    controllers.workspace.updateWorkspaceOwner(workspaceId)
       .apply(FakeRequest().withBody(Json.toJson(UpdateWorkspaceOwner(owner))))
   }
 
