@@ -10,6 +10,7 @@ import { Checkbox } from '../UtilComponents/Checkbox';
 import { setWorkspaceIsPublic } from '../../actions/workspaces/setWorkspaceIsPublic';
 import { WorkspacePublicInfoIcon } from './WorkspacePublicInfoIcon';
 import { WorkspacePublicMessage } from './WorkspacePublicMessage';
+import MdShare from "react-icons/lib/md/share";
 
 type Props = {
     workspace: Workspace,
@@ -76,7 +77,9 @@ export default function ShareWorkspaceModal(props: Props) {
             className='btn workspace__button'
             disabled={props.currentUser.username !== props.workspace.owner.username}
             onClick={() => setOpen(true)}
+            title="Share Workspace"
         >
+            <MdShare />
             Share Workspace
         </button>
 

@@ -12,6 +12,8 @@ import { Collection } from '../../types/Collection';
 import { TreeEntry, TreeNode } from '../../types/Tree';
 import { getWorkspace } from '../../actions/workspaces/getWorkspace';
 import ShareWorkspaceModal from './ShareWorkspaceModal';
+import MdEdit from "react-icons/lib/md/edit";
+import MdDelete from "react-icons/lib/md/delete";
 import TakeOwnershipOfWorkspaceModal from "./TakeOwnershipOfWorkspaceModal";
 import {takeOwnershipOfWorkspace} from "../../actions/workspaces/takeOwnershipOfWorkspace";
 
@@ -55,65 +57,64 @@ export default function WorkspaceSummary({
     )
 
     return <div className='page-title workspace__header'>
-        <div>
-            <h1 className='workspace__title'>{workspace.name}</h1>
-            <span className='workspace__created-by'>
-                {workspace.owner.username !== workspace.creator.username && (<Label>Created by {workspace.creator.displayName}</Label>)}
-                <Label>Owned by {workspace.owner.displayName}</Label>
-                {workspaceUsers.length ?
-                    <Popup content={workspaceUsers.map(u => u.displayName).join(', ')} trigger={
-                        <Label>
-                            Shared with {workspaceUsers.length} {workspaceUsers.length > 1 ? 'other people' : 'other person'}
-                        </Label>
-                    }/>
-                    : false
-                }
-            </span>
+        <h1 className='workspace__title'>{workspace.name}</h1>
+        <div className='workspace__badges'>
+            {workspace.owner.username !== workspace.creator.username && (<Label>Created&nbsp;by {workspace.creator.displayName}</Label>)}
+            <Label>Owned&nbsp;by {workspace.owner.displayName}</Label>
+            {workspaceUsers.length ?
+                <Popup content={workspaceUsers.map(u => u.displayName).join(', ')} trigger={
+                    <Label>
+                        Shared&nbsp;with {workspaceUsers.length}&nbsp;other&nbsp;{workspaceUsers.length > 1 ? 'people' : 'person'}
+                    </Label>
+                }/>
+                : false
+            }
         </div>
-        <div>
-            <UploadFiles
-                username={currentUser.username}
-                workspace={workspace}
-                collections={collections}
-                getResource={getWorkspaceContents}
-                focusedWorkspaceEntry={focusedEntry}
-                expandedNodes={expandedNodes}
-            />
-            <TakeOwnershipOfWorkspaceModal
+        <div style={{flexGrow: 1}}></div>
+        <UploadFiles
+          username={currentUser.username}
+          workspace={workspace}
+          collections={collections}
+          getResource={getWorkspaceContents}
+          focusedWorkspaceEntry={focusedEntry}
+          expandedNodes={expandedNodes}
+        />
+        <TakeOwnershipOfWorkspaceModal
                 workspace={workspace}
                 isAdmin={isAdmin}
                 currentUser={currentUser}
                 takeOwnershipOfWorkspace={takeOwnershipOfWorkspace}
             />
             <ShareWorkspaceModal
-                workspace={workspace}
-                workspaceUsers={workspaceUsers}
-                allUsers={users}
-                currentUser={currentUser}
-                setWorkspaceFollowers={setWorkspaceFollowers}
-                setWorkspaceIsPublic={setWorkspaceIsPublic}
-            />
-            <ModalAction
-                actionType="edit"
-                className='btn workspace__button'
-                actionDescription='Rename'
-                title={`Rename workspace '${workspace.name}'`}
-                value={workspace.name}
-                onConfirm={(newName) => renameWorkspace(workspace.id, newName)}
-                disabled={currentUser.username !== workspace.owner.username}
-            >
-                Rename Workspace
-            </ModalAction>
-            <ModalAction
-                actionType="confirm"
-                className='btn workspace__button'
-                actionDescription='Delete'
-                title={`Delete workspace '${workspace.name}'?`}
-                onConfirm={() => deleteWorkspace(workspace.id)}
-                disabled={currentUser.username !== workspace.owner.username && !(isAdmin && workspace.isPublic)}
-            >
-                Delete Workspace
-            </ModalAction>
-        </div>
+          workspace={workspace}
+          workspaceUsers={workspaceUsers}
+          allUsers={users}
+          currentUser={currentUser}
+          setWorkspaceFollowers={setWorkspaceFollowers}
+          setWorkspaceIsPublic={setWorkspaceIsPublic}
+        />
+        <ModalAction
+          actionType="edit"
+          className='btn workspace__button'
+          actionDescription='Rename'
+          title={`Rename workspace '${workspace.name}'`}
+          value={workspace.name}
+          onConfirm={(newName) => renameWorkspace(workspace.id, newName)}
+          disabled={currentUser.username !== workspace.owner.username}
+        >
+            <MdEdit />
+            Rename Workspace
+        </ModalAction>
+        <ModalAction
+          actionType="confirm"
+          className='btn workspace__button'
+          actionDescription='Delete'
+          title={`Delete workspace '${workspace.name}'?`}
+          onConfirm={() => deleteWorkspace(workspace.id)}
+          disabled={currentUser.username !== workspace.owner.username && !(isAdmin && workspace.isPublic)}
+        >
+            <MdDelete />
+            Delete Workspace
+        </ModalAction>
     </div>;
 }
