@@ -79,6 +79,7 @@ class WorkspacesSidebarUnconnected extends React.Component<Props, State> {
 
     renderSidebarItems = (workspaces: WorkspaceMetadata[]) => workspaces.map(w =>
         <WorkspacesSidebarItem
+            key={w.id}
             selectedWorkspaceId={this.props.match.params.id}
             linkedToWorkspaceId={w.id}
             linkedToWorkspaceName={w.name}
