@@ -36,7 +36,6 @@ object RemoteIngest extends Logging {
     val sendMessageRequest = new SendMessageRequest()
       .withQueueUrl(config.taskQueueUrl)
       .withMessageBody(jobJson)
-      .withMessageGroupId(job.id)
     try {
       amazonSQSClient.sendMessage(sendMessageRequest)
       Right(job.id)
