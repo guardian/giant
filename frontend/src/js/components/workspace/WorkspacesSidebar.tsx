@@ -13,6 +13,7 @@ import { GiantDispatch } from '../../types/redux/GiantDispatch';
 import { GiantState } from '../../types/redux/GiantState';
 import { RouteComponentProps } from 'react-router-dom';
 import { WorkspaceMetadata } from '../../types/Workspaces';
+import {getMaybeCaptureFromUrlQueryParamValue} from "../Uploads/CaptureFromUrl";
 
 type Props = ReturnType<typeof mapStateToProps>
     & ReturnType<typeof mapDispatchToProps>
@@ -44,7 +45,7 @@ class WorkspacesSidebarUnconnected extends React.Component<Props, State> {
             const urlHasWorkspaceId = !!this.props.match.params.id;
             // We want to redirect to workspace stored in localStorage if the workspace stored in there exists
             // and if the url we accessing does not already contain a workspace id
-            if (selectedWorkspaceId && selectedWorkspaceExists && !urlHasWorkspaceId) {
+            if (selectedWorkspaceId && selectedWorkspaceExists && !urlHasWorkspaceId && !getMaybeCaptureFromUrlQueryParamValue()) {
                 this.props.history.push(`/workspaces/${selectedWorkspaceId}`)
             }
             if (selectedWorkspaceId && !selectedWorkspaceExists) {
@@ -79,6 +80,7 @@ class WorkspacesSidebarUnconnected extends React.Component<Props, State> {
 
     renderSidebarItems = (workspaces: WorkspaceMetadata[]) => workspaces.map(w =>
         <WorkspacesSidebarItem
+            key={w.id}
             selectedWorkspaceId={this.props.match.params.id}
             linkedToWorkspaceId={w.id}
             linkedToWorkspaceName={w.name}

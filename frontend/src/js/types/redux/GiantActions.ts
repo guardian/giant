@@ -58,7 +58,7 @@ export enum AppActionType {
     APP_SHOW_ERROR = 'APP_SHOW_ERROR',
 }
 
-interface ErrorAction {
+export interface ErrorAction {
     type: AppActionType.APP_SHOW_ERROR,
     message: string,
     error: Error
