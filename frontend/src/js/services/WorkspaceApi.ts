@@ -1,5 +1,6 @@
 import authFetch from '../util/auth/authFetch';
-import { WorkspaceMetadata } from '../types/Workspaces';
+import {RemoteIngest, Workspace, WorkspaceEntry, WorkspaceMetadata} from '../types/Workspaces';
+import {isTreeNode, TreeEntry} from "../types/Tree";
 
 export function createWorkspace(name: string, isPublic: boolean, tagColor: string) {
     return authFetch('/api/workspaces', {
@@ -51,8 +52,50 @@ export function getWorkspacesMetadata(): Promise<WorkspaceMetadata[]> {
     return authFetch('/api/workspaces').then(res => res.json());
 }
 
-export function getWorkspace(id: string) {
-    return authFetch(`/api/workspaces/${id}`).then(res => res.json());
+export function getWorkspace(id: string): Promise<Workspace> {
+    return Promise.all([
+      authFetch(`/api/workspaces/${id}`).then(res => res.json()),
+      authFetch(`/api/workspaces/${id}/remoteJobs`).then(res => res.json())
+    ]).then(([workspace, remoteJobs]: [Workspace, RemoteIngest[]]) => {
+
+        const inProgressRemoteJobs = remoteJobs.reduce((acc, job) => ({
+            ...acc,
+            [job.parentFolderId]: [
+              ...(acc[job.parentFolderId] || []),
+                {
+                    id: job.id,
+                    name: `${job.title} (Capturing: ${job.url})`,
+                    data: {
+                        uri: "uri",
+                        maybeParentId: job.parentFolderId,
+                        addedOn: new Date(job.createdAt).getTime(),
+                        mimeType: "unknown",
+                        addedBy: {username: job.userEmail, displayName:job.userEmail}, //TODO probably want to fetch user info here
+                        processingStage: job.status === "Failed" ? {type: "failed"} : {
+                            type: "processing", tasksRemaining: 1, note: job.status
+                        }
+                    },
+                    isExpandable: false
+                }
+            ]
+        }), {} as Record<string, TreeEntry<WorkspaceEntry>[]>);
+
+        const mixinInProgressRemoteJobs = <TE extends TreeEntry<WorkspaceEntry>>(entry: TE): TE => {
+            if (isTreeNode(entry)) {
+                const children = entry.children.map(mixinInProgressRemoteJobs);
+                return {
+                    ...entry,
+                    children: inProgressRemoteJobs[entry.id] ? [...children, ...inProgressRemoteJobs[entry.id]] : children
+                };
+            }
+            return entry;
+        };
+
+        return {
+            ...workspace,
+            rootNode: mixinInProgressRemoteJobs(workspace.rootNode)
+        }
+    });
 }
 
 export function moveItem(workspaceId: string, itemId: string, newWorkspaceId?: string, newParentId?: string) {
