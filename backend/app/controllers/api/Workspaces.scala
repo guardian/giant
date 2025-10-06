@@ -302,8 +302,8 @@ class Workspaces(
         status = "started",
         userEmail = req.user.username
       )
-      id <- remoteIngestManifest.insertRemoteIngest(remoteIngest)
       _ <- RemoteIngest.sendRemoteIngestJob(remoteIngest, mediaDownloadConfig, sqsClient, remoteIngestStorage).toAttempt(msg => SQSSendMessageFailure(msg))
+      id <- remoteIngestManifest.insertRemoteIngest(remoteIngest)
     } yield {
       Created(Json.obj("id" -> id))
     }
