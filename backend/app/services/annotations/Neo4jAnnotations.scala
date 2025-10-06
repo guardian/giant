@@ -128,20 +128,59 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
         val hasFailures = r.get("hasFailures").asBoolean()
 
         WorkspaceEntry.fromNeo4jValue(node, nodeCreator, maybeParentNodeId, numberOfTodos, note, hasFailures)
-      }
+      }.toList
 
-      def buildNode(currentEntry: TreeEntry[WorkspaceEntry], nodes: List[TreeEntry[WorkspaceEntry]]): TreeEntry[WorkspaceEntry] = {
+      def buildNode(currentEntry: TreeEntry[WorkspaceEntry]): TreeEntry[WorkspaceEntry] = {
         currentEntry match {
           case leaf: TreeLeaf[WorkspaceEntry] => leaf
           case node: TreeNode[WorkspaceEntry] => {
-            val children = nodes.filter(n => n.data.maybeParentId.contains(currentEntry.id)).map(c => buildNode(c, nodes))
-            node.copy(children = children)
+            val children = nodes.filter(n => n.data.maybeParentId.contains(currentEntry.id)).map(buildNode)
+            node.copy(
+              children = children,
+              data = node.data match {
+                case wNode: WorkspaceNode => wNode.copy(
+                  descendantsLeafCount = children.map {
+                    case TreeNode(_, _, childNode: WorkspaceNode, _) => childNode.descendantsLeafCount
+                    case _: TreeLeaf[WorkspaceEntry] => 1
+                    case _ => 0
+                  }.sum,
+                  descendantsNodeCount = children.map {
+                    case TreeNode(_, _, childNode: WorkspaceNode, _) => 1 + childNode.descendantsNodeCount
+                    case _: TreeLeaf[WorkspaceEntry] => 0
+                    case _ => 0
+                  }.sum,
+                  descendantsProcessingTaskCount = children.map {
+                    case TreeNode(_, _, childNode: WorkspaceNode, _) => childNode.descendantsProcessingTaskCount
+                    case leaf: TreeLeaf[WorkspaceEntry] => leaf.data match {
+                      case wl: WorkspaceLeaf => wl.processingStage match {
+                        case ProcessingStage.Processing(tasksRemaining, _) => tasksRemaining
+                        case _ => 0
+                      }
+                      case _ => 0
+                    }
+                    case _ => 0
+                  }.sum,
+                  descendantsFailedCount = children.map {
+                    case TreeNode(_, _, childNode: WorkspaceNode, _) => childNode.descendantsFailedCount
+                    case leaf: TreeLeaf[WorkspaceEntry] => leaf.data match {
+                      case wl: WorkspaceLeaf => wl.processingStage match {
+                        case ProcessingStage.Failed => 1
+                        case _ => 0
+                      }
+                      case _ => 0
+                    }
+                    case _ => 0
+                  }.sum
+                )
+                case _ => node.data
+              },
+            )
           }
         }
       }
 
       val root = nodes.find(_.data.maybeParentId.isEmpty).get
-      buildNode(root, nodes.toList)
+      buildNode(root)
     }
   }
 
