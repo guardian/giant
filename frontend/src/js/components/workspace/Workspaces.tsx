@@ -29,7 +29,7 @@ import DocumentIcon from 'react-icons/lib/ti/document';
 import {Icon, Loader, Menu, Popup} from 'semantic-ui-react';
 import WorkspaceSummary from './WorkspaceSummary';
 import {ColumnsConfig, isTreeLeaf, isTreeNode, TreeEntry, TreeLeaf} from '../../types/Tree';
-import {isWorkspaceLeaf, Workspace, WorkspaceEntry} from '../../types/Workspaces';
+import {isWorkspaceLeaf, isWorkspaceNode, Workspace, WorkspaceEntry} from '../../types/Workspaces';
 import { GiantState } from '../../types/redux/GiantState';
 import { GiantDispatch } from '../../types/redux/GiantDispatch';
 import DetectClickOutside from '../UtilComponents/DetectClickOutside';
@@ -119,7 +119,9 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
                     return <DocumentIcon className="file-browser__icon" />;
             }
         }
-
+        else if(isWorkspaceNode(entry.data) && entry.data.descendantsProcessingTaskCount > 0) {
+          return <Loader active inline size="tiny" className="file-browser__icon" />;
+        }
     };
 
   renderReprocessIcon = (entry: TreeEntry<WorkspaceEntry>) => {
@@ -173,6 +175,15 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
           </React.Fragment>
       )
     }
+    else if (isWorkspaceNode(entry.data)){
+      return <>
+        {entry.data.descendantsProcessingTaskCount > 0 && <em>
+          {entry.data.descendantsProcessingTaskCount} task{entry.data.descendantsProcessingTaskCount > 1 && "s"} remaining{" "}
+        </em>}
+        {entry.data.descendantsProcessingTaskCount > 0 && entry.data.descendantsFailedCount > 0 && " & "}
+        {entry.data.descendantsFailedCount > 0 && <em>{entry.data.descendantsFailedCount} failed</em>}
+      </>
+    }
     return (<></>)
   }
 
@@ -196,6 +207,12 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
                 return <React.Fragment>
                     {this.renderIcon(entry)}
                     <ItemName canEdit={canEdit} id={entry.id} name={entry.name} onFinishRename={curryRename}/>
+                    {isWorkspaceNode(entry.data) && <span style={{marginLeft: "5px", fontSize: "smaller", color: "#8b8b8b"}}>
+                      ({entry.data.descendantsNodeCount === 0 && entry.data.descendantsLeafCount === 0
+                        ? 'empty'
+                        : `${entry.data.descendantsNodeCount} folders & ${entry.data.descendantsLeafCount} files`
+                      })
+                    </span>}
                 </React.Fragment>;
             },
             sort: (a: TreeEntry<WorkspaceEntry>, b: TreeEntry<WorkspaceEntry>) => {
@@ -263,7 +280,7 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
             name: 'Processing Stage',
             align: 'center' as const,
             style: {
-                width: '220px',
+                width: '300px',
             },
             render: (entry: TreeEntry<WorkspaceEntry>) => (
                 this.renderStatus(entry)
@@ -440,7 +457,7 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
     onDeleteModalOpen = (isOpen: boolean) => {
         if (isOpen)
             this.setState({deleteModalContext: {entry: this.state.deleteModalContext.entry, isOpen, status: "unconfirmed"}});
-        else 
+        else
             this.setState({deleteModalContext: {entry: null, isOpen, status: "unconfirmed"}});
     }
 
@@ -466,11 +483,11 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
         }
     }
 
-    onDeleteItem = (workspaceId: string, entry: TreeEntry<WorkspaceEntry> | null) => () => {        
+    onDeleteItem = (workspaceId: string, entry: TreeEntry<WorkspaceEntry> | null) => () => {
         if (entry && isWorkspaceLeaf(entry.data)) {
             const deleteContext = this.state.deleteModalContext;
             this.setState({deleteModalContext: {...deleteContext, status: "doing"}});
-            this.props.deleteResourceFromWorkspace(workspaceId, entry.data.uri, this.onDeleteCompleteHandler);            
+            this.props.deleteResourceFromWorkspace(workspaceId, entry.data.uri, this.onDeleteCompleteHandler);
             this.props.resetFocusedAndSelectedEntries();
         }
     }
@@ -580,7 +597,7 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
             { key: "rename", content: "Rename", icon: "pen square" },
             { key: "remove", content: "Remove from workspace", icon: "trash" },
         ];
-        
+
         if (entry.data.addedBy.username === currentUser.username && isWorkspaceLeaf(entry.data)) {
             items.push({ key: "deleteOrRemove", content: "Delete file", icon: "trash" });
         }
@@ -762,13 +779,13 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
                     )
                     : null
                 }
-                <DeleteModal 
-                    deleteItemHandler={this.onDeleteItem(this.props.match.params.id, this.state.deleteModalContext.entry)} 
-                    isOpen={this.state.deleteModalContext.isOpen} 
+                <DeleteModal
+                    deleteItemHandler={this.onDeleteItem(this.props.match.params.id, this.state.deleteModalContext.entry)}
+                    isOpen={this.state.deleteModalContext.isOpen}
                     setModalOpen={this.onDeleteModalOpen}
                     deleteStatus={this.state.deleteModalContext.status}
                     entry={this.state.deleteModalContext.entry}
-                />  
+                />
                 <RemoveFromWorkspaceModal
                     removeHandler={this.onRemoveFromWorkspace(this.props.match.params.id, this.state.removeFromWorkspaceModalContext.entry)}
                     isOpen={this.state.removeFromWorkspaceModalContext.isOpen}

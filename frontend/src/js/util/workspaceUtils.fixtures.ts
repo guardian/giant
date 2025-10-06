@@ -1,4 +1,12 @@
-import { Workspace } from '../types/Workspaces';
+import {Workspace, WorkspaceNode} from '../types/Workspaces';
+
+const standardWorkspaceNodeData: WorkspaceNode = {
+    "addedBy": {"username": "joe", "displayName": "joe"},
+    descendantsNodeCount: 0,
+    descendantsLeafCount: 0,
+    descendantsProcessingTaskCount: 0,
+    descendantsFailedCount: 0
+}
 
 export const workspaceWithZeroProcessing: Workspace = {
     "id": "e174151c-c577-4abd-b52e-8d673f286a43",
@@ -63,7 +71,7 @@ export const workspaceWithZeroProcessing: Workspace = {
                                     }
                                 ],
                                 "data": {
-                                    "addedBy": {"username": "joe", "displayName": "joe"},
+                                    ...standardWorkspaceNodeData,
                                     "addedOn": 1570040730137
                                 },
                             },
@@ -121,7 +129,7 @@ export const workspaceWithZeroProcessing: Workspace = {
                             }
                         ],
                         "data": {
-                            "addedBy": {"username": "joe", "displayName": "joe"},
+                            ...standardWorkspaceNodeData,
                             "addedOn": 1570040729406
                         },
                     },
@@ -147,7 +155,7 @@ export const workspaceWithZeroProcessing: Workspace = {
                             "uri": "r4Yw9JKtZWhaGBIO_Z7zM9h4ave6RDQt7s5j1dKmyFZL2eiWtefSAxDl7M2uX9WHf8GpivuEwDWfK8nj5LW6-A",
                             "addedBy": {"username": "joe", "displayName": "joe"},
                             "mimeType": "application/pdf",
-                           "addedOn": 1570040729080,
+                            "addedOn": 1570040729080,
                             "processingStage": { type: 'processed' }
                         },
                     },
@@ -166,14 +174,12 @@ export const workspaceWithZeroProcessing: Workspace = {
                     }
                 ],
                 "data": {
-                    "addedBy": {"username": "joe", "displayName": "joe"},
+                    ...standardWorkspaceNodeData,
                     "addedOn": 1570040728798
                 },
             }
         ],
-        "data": {
-            "addedBy": {"username": "joe", "displayName": "joe"}
-        },
+        "data": standardWorkspaceNodeData,
     }
 };
 
@@ -240,7 +246,7 @@ export const workspaceWithOneProcessing: Workspace = {
                                     }
                                 ],
                                 "data": {
-                                    "addedBy": {"username": "joe", "displayName": "joe"},
+                                    ...standardWorkspaceNodeData,
                                     "addedOn": 1570040730137
                                 },
                             },
@@ -298,7 +304,7 @@ export const workspaceWithOneProcessing: Workspace = {
                             }
                         ],
                         "data": {
-                            "addedBy": {"username": "joe", "displayName": "joe"},
+                            ...standardWorkspaceNodeData,
                             "addedOn": 1570040729406
                         },
                     },
@@ -343,14 +349,12 @@ export const workspaceWithOneProcessing: Workspace = {
                     }
                 ],
                 "data": {
-                    "addedBy": {"username": "joe", "displayName": "joe"},
+                    ...standardWorkspaceNodeData,
                     "addedOn": 1570040728798
                 },
             }
         ],
-        "data": {
-            "addedBy": {"username": "joe", "displayName": "joe"}
-        },
+        "data": standardWorkspaceNodeData,
     }
 };
 
@@ -413,7 +417,7 @@ export const workspaceWithTwoProcessing: Workspace = {
                             }
                         ],
                         "data": {
-                            "addedBy": {"username": "joe", "displayName": "joe"},
+                            ...standardWorkspaceNodeData,
                             "addedOn": 1570040730137
                         },
                     },
@@ -424,7 +428,7 @@ export const workspaceWithTwoProcessing: Workspace = {
                         "data": {
                             "size": 692081,
                             "uri": "zbwf5DMlKbDyRKWr4AwOitVFM5u0slMY4F8eyKVKxKz8p8wdNEJ0Wuwd6ucl_zdk-5yQHLygmnFoI4SynmDvCQ",
-                            "addedBy": {"username": "joe", "displayName": "joe"},
+                            ...standardWorkspaceNodeData,
                             "mimeType": "application/pdf",
                             "addedOn": 1570040729993,
                             "processingStage": { type: 'processed' }
@@ -471,7 +475,7 @@ export const workspaceWithTwoProcessing: Workspace = {
                     }
                 ],
                 "data": {
-                    "addedBy": {"username": "joe", "displayName": "joe"},
+                    ...standardWorkspaceNodeData,
                     "addedOn": 1570040729406
                 },
             },
@@ -516,7 +520,7 @@ export const workspaceWithTwoProcessing: Workspace = {
             }
         ],
         "data": {
-            "addedBy": {"username": "joe", "displayName": "joe"},
+            ...standardWorkspaceNodeData,
             "addedOn": 1570040728798
         },
     }
@@ -544,12 +548,7 @@ export const workspaceWithOneProcessingBottomHeavyTree: Workspace = {
     "rootNode": {
         "id": "56d6b05a-bf94-4aac-91a8-eebe542a0eb0",
         "name": "blah",
-        "data": {
-            "addedBy": {
-                "username": "joe",
-                "displayName": "joe"
-            }
-        },
+        "data": standardWorkspaceNodeData,
         "children": [
             {
                 "id": "8ade596a-8153-4247-b25f-6e5bcf8f5132",
@@ -581,7 +580,7 @@ export const workspaceWithOneProcessingBottomHeavyTree: Workspace = {
                 "id": "8ade596a-8153-4247-b25f-6e5bcf8f5132",
                 "name": "Screenshot 2019-04-09 at 16.52.13.png",
                 "data": {
-                    "addedBy": {"username": "joe", "displayName": "joe"},
+                    ...standardWorkspaceNodeData,
                     "addedOn": 1570040728798
                 },
                 "children": [
@@ -660,13 +659,13 @@ export const workspaceWithOneProcessingBottomHeavyTree: Workspace = {
                                     }
                                 ],
                                 "data": {
-                                    "addedBy": {"username": "joe", "displayName": "joe"},
+                                    ...standardWorkspaceNodeData,
                                     "addedOn": 1570040730137
                                 },
                             }
                         ],
                         "data": {
-                            "addedBy": {"username": "joe", "displayName": "joe"},
+                            ...standardWorkspaceNodeData,
                             "addedOn": 1570040729406
                         },
                     },
@@ -698,12 +697,7 @@ export const workspaceWithZeroProcessingBottomHeavyTree: Workspace = {
     "rootNode": {
         "id": "56d6b05a-bf94-4aac-91a8-eebe542a0eb0",
         "name": "blah",
-        "data": {
-            "addedBy": {
-                "username": "joe",
-                "displayName": "joe"
-            }
-        },
+        "data": standardWorkspaceNodeData,
         "children": [
             {
                 "id": "8ade596a-8153-4247-b25f-6e5bcf8f5132",
@@ -735,7 +729,7 @@ export const workspaceWithZeroProcessingBottomHeavyTree: Workspace = {
                 "id": "8ade596a-8153-4247-b25f-6e5bcf8f5132",
                 "name": "Screenshot 2019-04-09 at 16.52.13.png",
                 "data": {
-                    "addedBy": {"username": "joe", "displayName": "joe"},
+                    ...standardWorkspaceNodeData,
                     "addedOn": 1570040728798
                 },
                 "children": [
@@ -814,13 +808,13 @@ export const workspaceWithZeroProcessingBottomHeavyTree: Workspace = {
                                     }
                                 ],
                                 "data": {
-                                    "addedBy": {"username": "joe", "displayName": "joe"},
+                                    ...standardWorkspaceNodeData,
                                     "addedOn": 1570040730137
                                 },
                             }
                         ],
                         "data": {
-                            "addedBy": {"username": "joe", "displayName": "joe"},
+                            ...standardWorkspaceNodeData,
                             "addedOn": 1570040729406
                         },
                     },
@@ -852,12 +846,7 @@ export const workspaceFlatWithZeroProcessing: Workspace = {
     "rootNode": {
         "id": "56d6b05a-bf94-4aac-91a8-eebe542a0eb0",
         "name": "blah",
-        "data": {
-            "addedBy": {
-                "username": "joe",
-                "displayName": "joe"
-            }
-        },
+        "data": standardWorkspaceNodeData,
         "children": [
             {
                 "id": "8ade596a-8153-4247-b25f-6e5bcf8f5132",
@@ -924,12 +913,7 @@ export const workspaceFlatWithOneProcessing: Workspace = {
     "rootNode": {
         "id": "56d6b05a-bf94-4aac-91a8-eebe542a0eb0",
         "name": "blah",
-        "data": {
-            "addedBy": {
-                "username": "joe",
-                "displayName": "joe"
-            }
-        },
+        "data": standardWorkspaceNodeData,
         "children": [
             {
                 "id": "8ade596a-8153-4247-b25f-6e5bcf8f5132",
