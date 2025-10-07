@@ -1,13 +1,13 @@
 import MdGlobeIcon from "react-icons/lib/md/public";
 
 import React, {FormEvent, useEffect, useMemo, useState} from "react";
-import {Workspace, WorkspaceEntry, WorkspaceMetadata} from "../../types/Workspaces";
+import {isWorkspaceNode, Workspace, WorkspaceEntry, WorkspaceMetadata} from "../../types/Workspaces";
 import Modal from "../UtilComponents/Modal";
 import Select from "react-select";
 import TreeBrowser from "../UtilComponents/TreeBrowser";
 import {connect} from "react-redux";
 import {GiantState} from "../../types/redux/GiantState";
-import {isTreeLeaf, isTreeNode, TreeEntry, TreeNode} from "../../types/Tree";
+import {isTreeNode, TreeEntry, TreeNode} from "../../types/Tree";
 import {GiantDispatch} from "../../types/redux/GiantDispatch";
 import {bindActionCreators} from "redux";
 import {getWorkspace} from "../../actions/workspaces/getWorkspace";
@@ -19,6 +19,7 @@ import {setFocusedEntry} from "../../actions/workspaces/setFocusedEntry";
 import {captureFromUrl} from "../../services/WorkspaceApi";
 import {AppActionType, ErrorAction} from "../../types/redux/GiantActions";
 import {useHistory} from "react-router-dom";
+import {FileAndFolderCounts} from "../UtilComponents/TreeBrowser/FileAndFolderCounts";
 
 export const getMaybeCaptureFromUrlQueryParamValue = () =>
   new URLSearchParams(window.location.search).get("capture_from_url");
@@ -201,11 +202,8 @@ export const CaptureFromUrl = connect(
                       name: 'Name',
                       align: 'left',
                       render: (entry) =>
-                        isTreeNode(entry)
-                          ? <>{entry.name || '--'} <span
-                            style={{marginLeft: "5px", fontSize: "smaller", color: "#666"}}>
-                            ({entry.children.filter(isTreeLeaf).length} files & {entry.children.filter(isTreeNode).length} folders)
-                          </span></>
+                        isWorkspaceNode(entry.data)
+                          ? <>{entry.name || '--'} <FileAndFolderCounts {...entry.data} /></>
                           : <></>, // don't render leaves since they can't be selected
                       sort: (a, b) => a.name.localeCompare(b.name),
                       style: {},
