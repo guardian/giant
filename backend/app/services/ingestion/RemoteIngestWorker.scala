@@ -52,10 +52,10 @@ class RemoteIngestWorker(
               else Left(RemoteIngestFailure(s"Remote ingest job ${parsedJob.id} did not complete successfully. \n$parsedJob"))
             )
             job <- remoteIngestStore.getRemoteIngestJob(parsedJob.id)
-            workspaceMetadata <- annotations.getWorkspaceMetadata(job.userEmail, job.workspaceId)
+            workspaceMetadata <- annotations.getWorkspaceMetadata(job.addedBy.username, job.workspaceId)
             _ <- remoteIngestStore.updateRemoteIngestJobStatus(parsedJob.id, "INGESTING")
             ingestion <- Collections.createIngestionIfNotExists(Uri(job.collection), job.ingestion, manifest, index, pages, s3Config)
-            parentFolder <- annotations.addOrGetFolder(job.userEmail, job.workspaceId, job.parentFolderId, job.title)
+            parentFolder <- annotations.addOrGetFolder(job.addedBy.username, job.workspaceId, job.parentFolderId, job.title)
             ingestFileResult <- IngestStorePolling.fetchData(job.ingestionKey, remoteIngestStorage, scratchSpace){(path, fingerprint) =>
               val collectionUri = Uri(job.collection)
               Await.result(
@@ -69,7 +69,7 @@ class RemoteIngestWorker(
                     workspaceParentNodeId = parentFolder,
                     workspaceName = workspaceMetadata.name
                   )),
-                  username = job.userEmail,
+                  username = job.addedBy.username,
                   temporaryFilePath = path,
                   originalPath = Paths.get(parsedJob.metadata.map(meta => s"${meta.title}.${meta.extension}").getOrElse(job.id)),
                   lastModifiedTime = None,

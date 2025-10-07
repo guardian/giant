@@ -5,20 +5,20 @@ import commands.DeleteResource
 import model.Uri
 import model.annotations.{Workspace, WorkspaceEntry, WorkspaceLeaf}
 import model.frontend.{TreeEntry, TreeLeaf, TreeNode}
-import model.ingestion.RemoteIngest
+import model.ingestion.{MediaDownloadJob, RemoteIngest}
 import net.logstash.logback.marker.LogstashMarker
 import net.logstash.logback.marker.Markers.append
-import org.joda.time.{DateTime, Duration}
+import org.joda.time.DateTime
 import play.api.libs.json._
 import play.api.mvc.Action
-import services.{Config, IngestStorage, MediaDownloadConfig, ObjectStorage}
-import services.manifest.Manifest
-import services.observability.PostgresClient
 import services.annotations.Annotations
 import services.annotations.Annotations.AffectedResource
 import services.index.Index
 import services.ingestion.RemoteIngestStore
+import services.manifest.Manifest
+import services.observability.PostgresClient
 import services.users.UserManagement
+import services.{IngestStorage, MediaDownloadConfig, ObjectStorage}
 import utils.Logging
 import utils.attempt._
 import utils.auth.{User, UserIdentityRequest}
@@ -290,20 +290,19 @@ class Workspaces(
       itemId = UUID.randomUUID().toString
       _ = logAction(req.user, workspaceId, s"Add remote url to workspace. Node ID: $itemId. Data: $data")
       defaultCollectionUriForUser <- users.getDefaultCollectionUriForUser(req.user.username)
-      remoteIngest = RemoteIngest(
+      createdAt = DateTime.now
+      ingestionKey = RemoteIngest.ingestionKey(createdAt, itemId)
+      _ <- MediaDownloadJob.sendRemoteIngestJob(itemId, ingestionKey, data.url, mediaDownloadConfig, sqsClient, remoteIngestStorage).toAttempt(msg => SQSSendMessageFailure(msg))
+      id <- remoteIngestManifest.insertRemoteIngest(
         id = itemId,
         workspaceId = workspaceId,
         collection = defaultCollectionUriForUser,
-        ingestion = itemId, // re-use the itemId as ingestion ID for now
         title = data.title,
         url = data.url,
         parentFolderId = data.parentFolderId,
-        createdAt = DateTime.now,
-        status = "started",
-        userEmail = req.user.username
+        createdAt = createdAt,
+        username = req.user.username
       )
-      _ <- RemoteIngest.sendRemoteIngestJob(remoteIngest, mediaDownloadConfig, sqsClient, remoteIngestStorage).toAttempt(msg => SQSSendMessageFailure(msg))
-      id <- remoteIngestManifest.insertRemoteIngest(remoteIngest)
     } yield {
       Created(Json.obj("id" -> id))
     }
