@@ -9,7 +9,12 @@ export interface BaseWorkspaceEntry {
     maybeParentId?: string
 }
 
-export interface WorkspaceNode extends BaseWorkspaceEntry {}
+export interface WorkspaceNode extends BaseWorkspaceEntry {
+    descendantsLeafCount:number;
+    descendantsNodeCount:number;
+    descendantsProcessingTaskCount:number;
+    descendantsFailedCount:number;
+}
 
 export interface WorkspaceLeaf extends BaseWorkspaceEntry {
     processingStage: ProcessingStage,
@@ -23,6 +28,10 @@ export type WorkspaceEntry = WorkspaceNode | WorkspaceLeaf
 
 export function isWorkspaceLeaf(workspaceEntry: WorkspaceEntry): workspaceEntry is WorkspaceLeaf {
     return (workspaceEntry as WorkspaceLeaf).uri !== undefined;
+}
+
+export function isWorkspaceNode(workspaceEntry: WorkspaceEntry): workspaceEntry is WorkspaceNode {
+    return !isWorkspaceLeaf(workspaceEntry);
 }
 
 export type WorkspaceMetadata = {
