@@ -1,27 +1,26 @@
 package model.ingestion
 
-import com.amazonaws.services.sqs.AmazonSQS
-import com.amazonaws.services.sqs.model.SendMessageRequest
+import model.frontend.user.PartialUser
 import org.joda.time.DateTime
 import play.api.libs.json.Json
-import services.{IngestStorage, MediaDownloadConfig}
 import services.observability.JodaReadWrites
 import utils.Logging
 
 case class RemoteIngest(
-                         id: String,
-                         title: String,
-                         status: String,
-                         workspaceId: String,
-                         parentFolderId: String,
-                         collection: String,
-                         ingestion: String,
-                         createdAt: DateTime,
-                         url: String,
-                         userEmail: String,
-                         blobUri: Option[String] = None) {
+  id: String,
+  title: String,
+  status: String,
+  workspaceId: String,
+  parentFolderId: String,
+  collection: String,
+  ingestion: String,
+  createdAt: DateTime,
+  url: String,
+  addedBy: PartialUser,
+  blobUri: Option[String] = None
+) {
 
-  val ingestionKey: Key = (createdAt.getMillis, java.util.UUID.fromString(id))
+  val ingestionKey: Key = RemoteIngest.ingestionKey(createdAt, id)
   // val timeoutAt = createdAt.plus(Duration.standardHours(4)) TODO implement timeouts
 }
 
@@ -30,23 +29,5 @@ object RemoteIngest extends Logging {
   implicit val dateReads = JodaReadWrites.dateReads
   implicit val remoteIngestFormat = Json.format[RemoteIngest]
 
-
-  def sendRemoteIngestJob(job: RemoteIngest, config: MediaDownloadConfig, amazonSQSClient: AmazonSQS, ingestStorage: IngestStorage): Either[String, String] = {
-    logger.info(s"Sending job with id ${job.id}, queue: ${config.taskQueueUrl}")
-    val signedUploadUrl = ingestStorage.getUploadSignedUrl(job.ingestionKey).getOrElse(throw new Exception(s"Failed to get signed upload URL for job ${job.id}"))
-    val mediaDownloadJob = MediaDownloadJob(job.id, job.url, MediaDownloadJob.CLIENT_IDENTIFIER, config.outputQueueUrl, signedUploadUrl)
-    val jobJson = Json.stringify(Json.toJson(mediaDownloadJob))
-    val sendMessageRequest = new SendMessageRequest()
-      .withQueueUrl(config.taskQueueUrl)
-      .withMessageBody(jobJson)
-    try {
-      amazonSQSClient.sendMessage(sendMessageRequest)
-      Right(job.id)
-    } catch {
-      case e: Exception =>
-        val msg = s"Failed to send job with id ${job.id} to SQS"
-        logger.error(s"$msg: ${e.getMessage}", e)
-        Left(msg)
-    }
-  }
+  def ingestionKey(createdAt: DateTime, id: String): Key = (createdAt.getMillis, java.util.UUID.fromString(id))
 }

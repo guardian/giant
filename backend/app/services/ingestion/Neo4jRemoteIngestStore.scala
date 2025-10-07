@@ -1,6 +1,8 @@
 package services.ingestion
 
 import model.ingestion.RemoteIngest
+import model.user.DBUser
+import org.joda.time.DateTime
 import org.neo4j.driver.v1.Driver
 import org.neo4j.driver.v1.Values.parameters
 import services.Neo4jQueryLoggingConfig
@@ -29,9 +31,19 @@ class Neo4jRemoteIngestStore(driver: Driver, executionContext: ExecutionContext,
     Right(())
   }
 
-  override def insertRemoteIngest(ingest: RemoteIngest): Attempt[String] = attemptTransaction { tx =>
+  override def insertRemoteIngest(
+    id: String,
+    title: String,
+    workspaceId: String,
+    parentFolderId: String,
+    collection: String,
+    createdAt: DateTime,
+    url: String,
+    username:String
+  ): Attempt[String] = attemptTransaction { tx =>
     val query =
       """
+        |MATCH (user: User {username: {username}})
         |CREATE (ri:RemoteIngest {
         |  id: $id,
         |  title: $title,
@@ -42,22 +54,22 @@ class Neo4jRemoteIngestStore(driver: Driver, executionContext: ExecutionContext,
         |  ingestion: $ingestion,
         |  createdAt: $createdAt,
         |  url: $url,
-        |  userEmail: $userEmail
         |})
+        |CREATE (ri)<-[:CREATED]-(user)
         |RETURN ri.id AS id
     """.stripMargin
 
     val params = parameters(
-      "id", ingest.id,
-      "title", ingest.title,
-      "status", ingest.status,
-      "workspaceId", ingest.workspaceId,
-      "parentFolderId", ingest.parentFolderId,
-      "collection", ingest.collection,
-      "ingestion", ingest.ingestion,
-      "createdAt", ingest.createdAt.getMillis,
-      "url", ingest.url,
-      "userEmail", ingest.userEmail
+      "id", id,
+      "title", title,
+      "status", "started",
+      "workspaceId", workspaceId,
+      "parentFolderId", parentFolderId,
+      "collection", collection,
+      "ingestion", id, // re-use the job id as ingestion ID for now
+      "createdAt", createdAt.getMillis,
+      "url", url,
+      "username", username
     )
 
     tx.run(query, params).map(res => res.single().get("id").asString())
@@ -75,7 +87,7 @@ class Neo4jRemoteIngestStore(driver: Driver, executionContext: ExecutionContext,
       record.get("ingestion").asString(),
       new org.joda.time.DateTime(record.get("created_at").asLong(), org.joda.time.DateTimeZone.UTC),
       record.get("url").asString(),
-      record.get("user_email").asString(),
+      DBUser.fromNeo4jValue(record.get("added_by")).toPartial,
       blobUri
     )
   }
@@ -84,6 +96,7 @@ class Neo4jRemoteIngestStore(driver: Driver, executionContext: ExecutionContext,
     val query =
       """
         |MATCH (ri:RemoteIngest {id: $id})
+        |MATCH (addedBy :User)-[:CREATED]->(ri)
         |RETURN ri.id AS id,
         |       ri.title AS title,
         |       ri.status AS status,
@@ -93,7 +106,7 @@ class Neo4jRemoteIngestStore(driver: Driver, executionContext: ExecutionContext,
         |       ri.ingestion AS ingestion,
         |       ri.createdAt AS created_at,
         |       ri.url AS url,
-        |       ri.userEmail AS user_email,
+        |       ri.addedBy AS added_by,
         |       ri.blobUri AS blob_uri
       """.stripMargin
 
@@ -104,11 +117,12 @@ class Neo4jRemoteIngestStore(driver: Driver, executionContext: ExecutionContext,
   }
 
   override def getRemoteIngestJobs(status: Option[String]): Attempt[List[RemoteIngest]] = attemptTransaction { tx =>
-    val (query, params) = status match {
+  val (query, params) = status match {
       case Some(s) =>
         ("""
           |MATCH (ri:RemoteIngest)
           |WHERE ri.status = $status
+          |MATCH (addedBy :User)-[:CREATED]->(ri)
           |RETURN ri.id AS id,
           |       ri.title AS title,
           |       ri.status AS status,
@@ -118,11 +132,12 @@ class Neo4jRemoteIngestStore(driver: Driver, executionContext: ExecutionContext,
           |       ri.ingestion AS ingestion,
           |       ri.createdAt AS created_at,
           |       ri.url AS url,
-          |       ri.userEmail AS user_email
+          |       ri.addedBy AS added_by
         """.stripMargin, parameters("status", s))
       case None =>
         ("""
           |MATCH (ri:RemoteIngest)
+          |MATCH (addedBy :User)-[:CREATED]->(ri)
           |RETURN ri.id AS id,
           |       ri.title AS title,
           |       ri.status AS status,
@@ -132,7 +147,7 @@ class Neo4jRemoteIngestStore(driver: Driver, executionContext: ExecutionContext,
           |       ri.ingestion AS ingestion,
           |       ri.createdAt AS created_at,
           |       ri.url AS url,
-          |       ri.userEmail AS user_email
+          |       ri.addedBy AS added_by
         """.stripMargin, parameters())
     }
     tx.run(query, params).map { result =>
