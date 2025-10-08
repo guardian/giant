@@ -101,7 +101,7 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
         |MATCH (w:WorkspaceNode {uri: {uri}})-[:PART_OF]->(workspace:Workspace)
         |MATCH (creator :User)-[:CREATED]->(workspace)<-[:FOLLOWING]-(follower :User)
         |MATCH (owner :User)-[:OWNS]->(workspace)
-        |return  workspace, creator, collect(distinct follower) as followers
+        |return  workspace, creator, owner, collect(distinct follower) as followers
         |""".stripMargin,
       parameters(
         "uri", blobUri,
