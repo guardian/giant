@@ -133,6 +133,8 @@ class TestUserManagement(initialUsers: TestUserManagement.Storage) extends UserM
     updateField(username, r => r.copy(collections = r.collections :+ Collection(Uri(collection), collection, List.empty, None))).map(_ => ())
   }
 
+  override def getDefaultCollectionUriForUser(username: String): Attempt[String] = ???
+
   def getAllCollectionUrisAndUsernames(): Attempt[Map[String, Set[String]]] = Attempt.Right {
     users.foldLeft(Map.empty[String, Set[String]]) { case (acc, (username, TestUserRegistration(_, _, collections))) =>
       collections.foldLeft(acc) { (acc, collection) =>

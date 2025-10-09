@@ -5,20 +5,20 @@ import commands.DeleteResource
 import model.Uri
 import model.annotations.{Workspace, WorkspaceEntry, WorkspaceLeaf}
 import model.frontend.{TreeEntry, TreeLeaf, TreeNode}
-import model.ingestion.RemoteIngest
+import model.ingestion.{MediaDownloadJob, RemoteIngest}
 import net.logstash.logback.marker.LogstashMarker
 import net.logstash.logback.marker.Markers.append
-import org.joda.time.{DateTime, Duration}
+import org.joda.time.DateTime
 import play.api.libs.json._
 import play.api.mvc.Action
-import services.{Config, IngestStorage, MediaDownloadConfig, ObjectStorage}
-import services.manifest.Manifest
-import services.observability.PostgresClient
 import services.annotations.Annotations
 import services.annotations.Annotations.AffectedResource
 import services.index.Index
 import services.ingestion.RemoteIngestStore
+import services.manifest.Manifest
+import services.observability.PostgresClient
 import services.users.UserManagement
+import services.{IngestStorage, MediaDownloadConfig, ObjectStorage}
 import utils.Logging
 import utils.attempt._
 import utils.auth.{User, UserIdentityRequest}
@@ -55,7 +55,7 @@ object AddItemParameters {
   implicit val format = Json.format[AddItemParameters]
 }
 
-case class AddRemoteUrlData(url: String, title: String, parentFolderId: String, workspaceNodeId: String, collection: String, ingestion: String)
+case class AddRemoteUrlData(url: String, title: String, parentFolderId: String)
 object AddRemoteUrlData {
   implicit val format = Json.format[AddRemoteUrlData]
 }
@@ -85,7 +85,7 @@ class Workspaces(
                   previewStorage: ObjectStorage,
                   postgresClient: PostgresClient,
                   remoteIngestManifest: RemoteIngestStore,
-                  ingestStorage: IngestStorage,
+                  remoteIngestStorage: IngestStorage,
                   mediaDownloadConfig: MediaDownloadConfig,
                   sqsClient: AmazonSQS) extends AuthApiController with Logging {
 
@@ -289,20 +289,20 @@ class Workspaces(
       data <- req.body.validate[AddRemoteUrlData].toAttempt
       itemId = UUID.randomUUID().toString
       _ = logAction(req.user, workspaceId, s"Add remote url to workspace. Node ID: $itemId. Data: $data")
-      remoteIngest = RemoteIngest(
+      defaultCollectionUriForUser <- users.getDefaultCollectionUriForUser(req.user.username)
+      createdAt = DateTime.now
+      ingestionKey = RemoteIngest.ingestionKey(createdAt, itemId)
+      _ <- MediaDownloadJob.sendRemoteIngestJob(itemId, ingestionKey, data.url, mediaDownloadConfig, sqsClient, remoteIngestStorage).toAttempt(msg => SQSSendMessageFailure(msg))
+      id <- remoteIngestManifest.insertRemoteIngest(
         id = itemId,
         workspaceId = workspaceId,
-        collection = data.collection,
-        ingestion = data.ingestion,
+        collection = defaultCollectionUriForUser,
         title = data.title,
         url = data.url,
         parentFolderId = data.parentFolderId,
-        timeoutAt = DateTime.now.plus(Duration.standardHours(4)), // 4 hours
-        status = "started",
-        userEmail = req.user.username
+        createdAt = createdAt,
+        username = req.user.username
       )
-      id <- remoteIngestManifest.insertRemoteIngest(remoteIngest)
-      _ <- RemoteIngest.sendRemoteIngestJob(remoteIngest, mediaDownloadConfig, sqsClient, ingestStorage).toAttempt(msg => SQSSendMessageFailure(msg))
     } yield {
       Created(Json.obj("id" -> id))
     }

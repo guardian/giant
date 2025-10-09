@@ -175,7 +175,8 @@ case class BucketConfig(
   deadLetter: String,
   collections: String,
   preview: String,
-  transcription: String
+  transcription: String,
+  remoteIngestion: String
 ) {
   val all: List[String] = List(ingestion, deadLetter, collections, preview)
 }
