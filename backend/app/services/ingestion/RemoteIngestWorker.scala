@@ -6,7 +6,7 @@ import commands.IngestFile
 import controllers.api.Collections
 import ingestion.phase2.IngestStorePolling
 import model.Uri
-import model.ingestion.{MediaDownloadOutput, WorkspaceItemUploadContext}
+import model.ingestion.{MediaDownloadOutput, RemoteIngestStatus, WorkspaceItemUploadContext}
 import play.api.libs.json.Json
 import services.{IngestStorage, MediaDownloadConfig, S3Config, ScratchSpace}
 import services.annotations.Annotations
@@ -53,7 +53,7 @@ class RemoteIngestWorker(
             )
             job <- remoteIngestStore.getRemoteIngestJob(parsedJob.id)
             workspaceMetadata <- annotations.getWorkspaceMetadata(job.addedBy.username, job.workspaceId)
-            _ <- remoteIngestStore.updateRemoteIngestJobStatus(parsedJob.id, "INGESTING")
+            _ <- remoteIngestStore.updateRemoteIngestJobStatus(parsedJob.id, RemoteIngestStatus.Ingesting)
             ingestion <- Collections.createIngestionIfNotExists(Uri(job.collection), job.ingestion, manifest, index, pages, s3Config)
             parentFolder <- annotations.addOrGetFolder(job.addedBy.username, job.workspaceId, job.parentFolderId, job.title)
             ingestFileResult <- IngestStorePolling.fetchData(job.ingestionKey, remoteIngestStorage, scratchSpace){(path, fingerprint) =>
@@ -82,7 +82,7 @@ class RemoteIngestWorker(
                 15.minutes
               )
             }.toAttempt
-            _ <- remoteIngestStore.updateRemoteIngestJobStatus(parsedJob.id, "COMPLETED")
+            _ <- remoteIngestStore.updateRemoteIngestJobStatus(parsedJob.id, RemoteIngestStatus.Completed)
             _ <- remoteIngestStore.updateRemoteIngestJobBlobUri(parsedJob.id, ingestFileResult.blob.uri.value)
           } yield job).fold(
             failureDetail => {
@@ -91,7 +91,7 @@ class RemoteIngestWorker(
               // TODO: Do we care if this sending to dead letter queue fails?
               amazonSQSClient.sendMessage(config.outputDeadLetterQueueUrl, sqsMessage.getBody)
               maybeParsedJob.map(parsedJob =>
-                remoteIngestStore.updateRemoteIngestJobStatus(parsedJob.id, "FAILED")
+                remoteIngestStore.updateRemoteIngestJobStatus(parsedJob.id, RemoteIngestStatus.Failed)
               )
             },
             job => {

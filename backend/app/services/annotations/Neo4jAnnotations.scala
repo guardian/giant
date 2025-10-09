@@ -96,7 +96,7 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
     }
   }
 
-  override def getWorkspaceContents(currentUser: String, id: String): Attempt[TreeEntry[WorkspaceEntry]] = attemptTransaction { tx =>
+  override def getWorkspaceContents(currentUser: String, id: String, extraLeavesToMixIn: List[TreeLeaf[WorkspaceLeaf]] = List.empty): Attempt[TreeEntry[WorkspaceEntry]] = attemptTransaction { tx =>
     tx.run(
       """
         |MATCH (workspace: Workspace { id: {id} })
@@ -119,7 +119,7 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
     ).map { summary =>
       val rows = summary.list().asScala
 
-      val nodes = rows.map { r =>
+      val entries = rows.map { r =>
         val node = r.get("node")
         val nodeCreator = DBUser.fromNeo4jValue(r.get("nodeCreator")).toPartial
         val maybeParentNodeId = r.get("parentNode.id").optionally(_.asString())
@@ -128,13 +128,13 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
         val hasFailures = r.get("hasFailures").asBoolean()
 
         WorkspaceEntry.fromNeo4jValue(node, nodeCreator, maybeParentNodeId, numberOfTodos, note, hasFailures)
-      }.toList
+      }.toList ++ extraLeavesToMixIn
 
       def buildNode(currentEntry: TreeEntry[WorkspaceEntry]): TreeEntry[WorkspaceEntry] = {
         currentEntry match {
           case leaf: TreeLeaf[WorkspaceEntry] => leaf
           case node: TreeNode[WorkspaceEntry] => {
-            val children = nodes.filter(n => n.data.maybeParentId.contains(currentEntry.id)).map(buildNode)
+            val children = entries.filter(n => n.data.maybeParentId.contains(currentEntry.id)).map(buildNode)
             node.copy(
               children = children,
               data = node.data match {
@@ -179,7 +179,7 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
         }
       }
 
-      val root = nodes.find(_.data.maybeParentId.isEmpty).get
+      val root = entries.find(_.data.maybeParentId.isEmpty).get
       buildNode(root)
     }
   }

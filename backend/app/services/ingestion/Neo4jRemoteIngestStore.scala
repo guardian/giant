@@ -3,6 +3,9 @@ package services.ingestion
 import model.ingestion.RemoteIngest
 import model.user.DBUser
 import org.joda.time.DateTime
+import model.ingestion.RemoteIngestStatus.RemoteIngestStatus
+import model.ingestion.{RemoteIngest, RemoteIngestStatus}
+import org.joda.time.DateTime
 import org.neo4j.driver.v1.Driver
 import org.neo4j.driver.v1.Values.parameters
 import services.Neo4jQueryLoggingConfig
@@ -43,7 +46,7 @@ class Neo4jRemoteIngestStore(driver: Driver, executionContext: ExecutionContext,
   ): Attempt[String] = attemptTransaction { tx =>
     val query =
       """
-        |MATCH (user: User {username: {username}})
+        |MATCH (user: User { username: { username }})
         |CREATE (ri:RemoteIngest {
         |  id: $id,
         |  title: $title,
@@ -53,61 +56,64 @@ class Neo4jRemoteIngestStore(driver: Driver, executionContext: ExecutionContext,
         |  collection: $collection,
         |  ingestion: $ingestion,
         |  createdAt: $createdAt,
-        |  url: $url,
+        |  url: $url
         |})
         |CREATE (ri)<-[:CREATED]-(user)
         |RETURN ri.id AS id
     """.stripMargin
 
     val params = parameters(
+      "username", username,
       "id", id,
       "title", title,
-      "status", "started",
+      "status", RemoteIngestStatus.Queued.toString,
       "workspaceId", workspaceId,
       "parentFolderId", parentFolderId,
       "collection", collection,
       "ingestion", id, // re-use the job id as ingestion ID for now
       "createdAt", createdAt.getMillis,
       "url", url,
-      "username", username
     )
 
     tx.run(query, params).map(res => res.single().get("id").asString())
   }
 
+  private val returnFields = """
+    |RETURN ri.id AS id,
+    |       ri.title AS title,
+    |       ri.status AS status,
+    |       ri.workspaceId AS workspace_id,
+    |       ri.parentFolderId AS parent_folder_id,
+    |       ri.collection AS collection,
+    |       ri.ingestion AS ingestion,
+    |       ri.createdAt AS created_at,
+    |       ri.url AS url,
+    |       ri.blobUri AS blob_uri,
+    |       addedBy AS added_by
+  """.stripMargin
+
   private def recordToRemoteIngest(record: org.neo4j.driver.v1.Record): RemoteIngest = {
     val blobUri = if (record.containsKey("blob_uri")) Some(record.get("blob_uri").asString()) else None
     RemoteIngest(
-      record.get("id").asString(),
-      record.get("title").asString(),
-      record.get("status").asString(),
-      record.get("workspace_id").asString(),
-      record.get("parent_folder_id").asString(),
-      record.get("collection").asString(),
-      record.get("ingestion").asString(),
-      new org.joda.time.DateTime(record.get("created_at").asLong(), org.joda.time.DateTimeZone.UTC),
-      record.get("url").asString(),
-      DBUser.fromNeo4jValue(record.get("added_by")).toPartial,
-      blobUri
+      id = record.get("id").asString(),
+      title = record.get("title").asString(),
+      status = RemoteIngestStatus withName record.get("status").asString(),
+      workspaceId = record.get("workspace_id").asString(),
+      parentFolderId = record.get("parent_folder_id").asString(),
+      collection = record.get("collection").asString(),
+      ingestion = record.get("ingestion").asString(),
+      createdAt = new org.joda.time.DateTime(record.get("created_at").asLong(), org.joda.time.DateTimeZone.UTC),
+      url = record.get("url").asString(),
+      addedBy = DBUser.fromNeo4jValue(record.get("added_by")).toPartial,
+      blobUri = blobUri
     )
   }
-
   override def getRemoteIngestJob(id: String): Attempt[RemoteIngest] = attemptTransaction { tx =>
     val query =
-      """
+      s"""
         |MATCH (ri:RemoteIngest {id: $id})
         |MATCH (addedBy :User)-[:CREATED]->(ri)
-        |RETURN ri.id AS id,
-        |       ri.title AS title,
-        |       ri.status AS status,
-        |       ri.workspaceId AS workspace_id,
-        |       ri.parentFolderId AS parent_folder_id,
-        |       ri.collection AS collection,
-        |       ri.ingestion AS ingestion,
-        |       ri.createdAt AS created_at,
-        |       ri.url AS url,
-        |       ri.addedBy AS added_by,
-        |       ri.blobUri AS blob_uri
+        |$returnFields
       """.stripMargin
 
     val params = parameters("id", id)
@@ -116,53 +122,44 @@ class Neo4jRemoteIngestStore(driver: Driver, executionContext: ExecutionContext,
     }
   }
 
-  override def getRemoteIngestJobs(status: Option[String]): Attempt[List[RemoteIngest]] = attemptTransaction { tx =>
-  val (query, params) = status match {
-      case Some(s) =>
-        ("""
+  override def getRemoteIngestJobs(maybeWorkspaceId: Option[String], onlyStatuses: List[RemoteIngestStatus], maybeSinceUTCEpoch: Option[Long]): Attempt[List[RemoteIngest]] = attemptTransaction { tx =>
+    // important: don't remove the whitespace around the comparison operators in the where clauses, as they are used to split the string later
+    val filters = List(
+      maybeWorkspaceId.map("ri.workspaceId = $workspaceId" -> _),
+      if(onlyStatuses.isEmpty) None else Some("ri.status IN $statuses" -> onlyStatuses.map(_.toString).toArray),
+      maybeSinceUTCEpoch.map("ri.createdAt > $since" -> _)
+    ).flatten
+
+    val query = s"""
           |MATCH (ri:RemoteIngest)
-          |WHERE ri.status = $status
+          |${if (filters.isEmpty) "" else s"WHERE ${filters.toMap.keys.mkString(" AND ")}"}
           |MATCH (addedBy :User)-[:CREATED]->(ri)
-          |RETURN ri.id AS id,
-          |       ri.title AS title,
-          |       ri.status AS status,
-          |       ri.workspaceId AS workspace_id,
-          |       ri.parentFolderId AS parent_folder_id,
-          |       ri.collection AS collection,
-          |       ri.ingestion AS ingestion,
-          |       ri.createdAt AS created_at,
-          |       ri.url AS url,
-          |       ri.addedBy AS added_by
-        """.stripMargin, parameters("status", s))
-      case None =>
-        ("""
-          |MATCH (ri:RemoteIngest)
-          |MATCH (addedBy :User)-[:CREATED]->(ri)
-          |RETURN ri.id AS id,
-          |       ri.title AS title,
-          |       ri.status AS status,
-          |       ri.workspaceId AS workspace_id,
-          |       ri.parentFolderId AS parent_folder_id,
-          |       ri.collection AS collection,
-          |       ri.ingestion AS ingestion,
-          |       ri.createdAt AS created_at,
-          |       ri.url AS url,
-          |       ri.addedBy AS added_by
-        """.stripMargin, parameters())
-    }
+          |$returnFields
+        """.stripMargin
+
+    val params = parameters(
+      filters.flatMap { case (whereClause, value) => List(whereClause.split(" ").last.substring(1), value) }: _*
+    )
+
     tx.run(query, params).map { result =>
       result.list().asScala.map(recordToRemoteIngest).toList
     }
   }
 
-  override def updateRemoteIngestJobStatus(id: String, status: String): Attempt[Unit] = attemptTransaction { tx =>
+  override def getRelevantRemoteIngestJobs(workspaceId: String): Attempt[List[RemoteIngest]] = getRemoteIngestJobs(
+    maybeWorkspaceId = Some(workspaceId),
+    onlyStatuses = List(RemoteIngestStatus.Queued, RemoteIngestStatus.Ingesting, RemoteIngestStatus.Failed),
+    maybeSinceUTCEpoch = Some(DateTime.now.minusDays(14).getMillis)
+  )
+
+  override def updateRemoteIngestJobStatus(id: String, status: RemoteIngestStatus): Attempt[Unit] = attemptTransaction { tx =>
     val query =
       """
         |MATCH (ri:RemoteIngest {id: $id})
         |SET ri.status = $status
         |RETURN COUNT(ri) AS updatedCount
       """.stripMargin
-    val params = parameters("id", id, "status", status)
+    val params = parameters("id", id, "status", status.toString)
     tx.run(query, params).map { result =>
       val updatedCount = result.single().get("updatedCount").asInt()
       if (updatedCount == 0) {
