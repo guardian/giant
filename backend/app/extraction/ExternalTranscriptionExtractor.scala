@@ -21,20 +21,12 @@ case class SignedUrl(url: String, key: String)
 object SignedUrl {
   implicit val formats = Json.format[SignedUrl]
 }
-case class OutputBucketUrls(text: SignedUrl, srt: SignedUrl, json: SignedUrl)
-case class OutputBucketKeys(text: String, srt: String, json: String)
 case class CombinedOutputUrl(url: String, key: String)
 case class TranscriptionJob(id: String, originalFilename: String, inputSignedUrl: String, sentTimestamp: String,
-                            userEmail: String, transcriptDestinationService: String, outputBucketUrls: OutputBucketUrls,
+                            userEmail: String, transcriptDestinationService: String,
                             combinedOutputUrl: CombinedOutputUrl, languageCode: String, translate: Boolean,
-                            translationOutputBucketUrls: OutputBucketUrls, diarize: Boolean, engine: String)
-object OutputBucketUrls {
-  implicit val formats = Json.format[OutputBucketUrls]
-}
+                            diarize: Boolean, engine: String)
 
-object OutputBucketKeys {
-  implicit val formats = Json.format[OutputBucketKeys]
-}
 object TranscriptionJob {
   implicit val combinedOutputUrlFormat = Json.format[CombinedOutputUrl]
   implicit val formats = Json.format[TranscriptionJob]
@@ -69,9 +61,7 @@ case class TranscriptionOutputSuccess(
                                           isTranslation: Boolean,
                                           status: String = "SUCCESS",
                                           languageCode: String,
-                                          outputBucketKeys: OutputBucketKeys,
                                           combinedOutputKey: String,
-                                          translationOutputBucketKeys: Option[OutputBucketKeys]
                                         ) extends TranscriptionOutput
 
 case class TranscriptionOutputFailure(
@@ -138,33 +128,12 @@ class ExternalTranscriptionExtractor(index: Index, transcribeConfig: TranscribeC
   // set a low priority as transcription takes a long time, we don't want to block up the workers
   override def priority = 2
 
-  private def getOutputBucketUrls(blobUri: String): Either[Failure, OutputBucketUrls] = {
-    val srtKey = s"srt/$blobUri.srt"
-    val jsonKey = s"json/$blobUri.json"
-    val textKey = s"text/$blobUri.txt"
-
-    val bucketUrls = for {
-      srt <- outputStorage.getUploadSignedUrl(srtKey)
-      json <- outputStorage.getUploadSignedUrl(jsonKey)
-      text <- outputStorage.getUploadSignedUrl(textKey)
-    } yield {
-      OutputBucketUrls(
-        SignedUrl(text, textKey),
-        SignedUrl(srt, srtKey),
-        SignedUrl(json, jsonKey)
-      )
-    }
-
-    bucketUrls
-  }
 
   override def triggerExtraction(blob: Blob, params: ExtractionParams): Either[Failure, Unit] = {
     val combinedOutputKey = s"combined/${blob.uri.value}.json"
     val transcriptionJob =  for {
       downloadSignedUrl <- transcriptionStorage.getSignedUrl (blob.uri.toStoragePath)
-      transcriptsOutputSignedUrls <- getOutputBucketUrls(blob.uri.value)
       combinedOutputUrl <- outputStorage.getUploadSignedUrl(combinedOutputKey)
-      translationOutputSignedUrls <- getOutputBucketUrls(s"${blob.uri.value}-translation")
     } yield {
       TranscriptionJob(
         id = blob.uri.value,
@@ -173,11 +142,9 @@ class ExternalTranscriptionExtractor(index: Index, transcribeConfig: TranscribeC
         sentTimestamp = DateTime.now().toString,
         userEmail = "giant",
         transcriptDestinationService = "Giant",
-        outputBucketUrls = transcriptsOutputSignedUrls,
         combinedOutputUrl = CombinedOutputUrl(url = combinedOutputUrl,key = combinedOutputKey),
         languageCode = "auto",
         translate = true,
-        translationOutputBucketUrls = translationOutputSignedUrls,
         diarize = false,
         engine = "whisperx")
     }
