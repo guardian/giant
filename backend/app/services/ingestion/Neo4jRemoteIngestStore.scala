@@ -1,10 +1,9 @@
 package services.ingestion
 
-import model.ingestion.RemoteIngest
+import model.ingestion.{RemoteIngest, RemoteIngestStatus, RemoteIngestTask}
 import model.user.DBUser
 import org.joda.time.DateTime
 import model.ingestion.RemoteIngestStatus.RemoteIngestStatus
-import model.ingestion.{RemoteIngest, RemoteIngestStatus}
 import org.joda.time.DateTime
 import org.neo4j.driver.v1.Driver
 import org.neo4j.driver.v1.Values.parameters
@@ -13,7 +12,7 @@ import utils.attempt.{Attempt, Failure, NotFoundFailure}
 import utils.{Logging, Neo4jHelper}
 
 import scala.concurrent.ExecutionContext
-import scala.jdk.CollectionConverters.CollectionHasAsScala
+import scala.jdk.CollectionConverters.{CollectionHasAsScala, IterableHasAsJava}
 
 object Neo4jRemoteIngestStore {
   def setup(driver: Driver, executionContext: ExecutionContext, queryLoggingConfig: Neo4jQueryLoggingConfig): Either[Failure, Neo4jRemoteIngestStore] = {
@@ -42,7 +41,9 @@ class Neo4jRemoteIngestStore(driver: Driver, executionContext: ExecutionContext,
     collection: String,
     createdAt: DateTime,
     url: String,
-    username:String
+    username:String,
+    mediaDownloadId: String,
+    webpageSnapshotId: String
   ): Attempt[String] = attemptTransaction { tx =>
     val query =
       """
@@ -56,7 +57,9 @@ class Neo4jRemoteIngestStore(driver: Driver, executionContext: ExecutionContext,
         |  collection: $collection,
         |  ingestion: $ingestion,
         |  createdAt: $createdAt,
-        |  url: $url
+        |  url: $url,
+        |  mediaDownloadId: $mediaDownloadId,
+        |  webpageSnapshotId: $webpageSnapshotId
         |})
         |CREATE (ri)<-[:CREATED]-(user)
         |RETURN ri.id AS id
@@ -73,6 +76,8 @@ class Neo4jRemoteIngestStore(driver: Driver, executionContext: ExecutionContext,
       "ingestion", id, // re-use the job id as ingestion ID for now
       "createdAt", createdAt.getMillis,
       "url", url,
+      "mediaDownloadId", mediaDownloadId,
+      "webpageSnapshotId", webpageSnapshotId
     )
 
     tx.run(query, params).map(res => res.single().get("id").asString())
@@ -88,12 +93,22 @@ class Neo4jRemoteIngestStore(driver: Driver, executionContext: ExecutionContext,
     |       ri.ingestion AS ingestion,
     |       ri.createdAt AS created_at,
     |       ri.url AS url,
-    |       ri.blobUri AS blob_uri,
+    |       ri.mediaDownloadId AS media_download_id,
+    |       ri.webpageSnapshotId AS webpage_snapshot_id,
+    |       ri.mediaDownloadBlobUris AS media_download_blob_uris,
+    |       ri.webpageSnapshotBlobUris AS webpage_snapshot_blob_uris,
     |       addedBy AS added_by
   """.stripMargin
 
   private def recordToRemoteIngest(record: org.neo4j.driver.v1.Record): RemoteIngest = {
-    val blobUri = if (record.containsKey("blob_uri")) Some(record.get("blob_uri").asString()) else None
+    val mediaDownloadBlobUris =
+      if (record.containsKey("media_download_blob_uris") && !record.get("media_download_blob_uris").isNull)
+        record.get("media_download_blob_uris").asList[String](b => b.asString()).asScala.toList
+      else List()
+    val webpageSnapshotBlobUris =
+      if (record.containsKey("webpage_snapshot_blob_uris") && !record.get("webpage_snapshot_blob_uris").isNull)
+        record.get("webpage_snapshot_blob_uris").asList[String](b => b.asString()).asScala.toList
+      else List()
     RemoteIngest(
       id = record.get("id").asString(),
       title = record.get("title").asString(),
@@ -105,7 +120,14 @@ class Neo4jRemoteIngestStore(driver: Driver, executionContext: ExecutionContext,
       createdAt = new org.joda.time.DateTime(record.get("created_at").asLong(), org.joda.time.DateTimeZone.UTC),
       url = record.get("url").asString(),
       addedBy = DBUser.fromNeo4jValue(record.get("added_by")).toPartial,
-      blobUri = blobUri
+      mediaDownload = RemoteIngestTask(
+        id = record.get("media_download_id").asString(),
+        blobUris = mediaDownloadBlobUris
+      ),
+      webpageSnapshot = RemoteIngestTask(
+        id = record.get("webpage_snapshot_id").asString(),
+        blobUris = webpageSnapshotBlobUris
+      )
     )
   }
   override def getRemoteIngestJob(id: String): Attempt[RemoteIngest] = attemptTransaction { tx =>
@@ -117,6 +139,7 @@ class Neo4jRemoteIngestStore(driver: Driver, executionContext: ExecutionContext,
       """.stripMargin
 
     val params = parameters("id", id)
+
     tx.run(query, params).map {
       result => recordToRemoteIngest(result.single())
     }
@@ -168,14 +191,14 @@ class Neo4jRemoteIngestStore(driver: Driver, executionContext: ExecutionContext,
     }
   }
 
-  override def updateRemoteIngestJobBlobUri(id: String, blobUri: String): Attempt[Unit] = attemptTransaction { tx =>
+  override def updateRemoteIngestJobBlobUris(id: String, blobUris: List[String]): Attempt[Unit] = attemptTransaction { tx =>
     val query =
       """
         |MATCH (ri:RemoteIngest {id: $id})
-        |SET ri.blobUri = $blobUri
+        |SET ri.blobUris = $blobUris
         |RETURN COUNT(ri) AS updatedCount
       """.stripMargin
-    val params = parameters("id", id, "blobUri", blobUri)
+    val params = parameters("id", id, "blobUris", blobUris.asJava)
     tx.run(query, params).map { result =>
       val updatedCount = result.single().get("updatedCount").asInt()
       if (updatedCount == 0) {

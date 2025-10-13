@@ -5,36 +5,108 @@ import com.amazonaws.services.sqs.model.ReceiveMessageRequest
 import commands.IngestFile
 import controllers.api.Collections
 import ingestion.phase2.IngestStorePolling
-import model.Uri
-import model.ingestion.{MediaDownloadOutput, RemoteIngestStatus, WorkspaceItemUploadContext}
-import play.api.libs.json.Json
-import services.{IngestStorage, MediaDownloadConfig, S3Config, ScratchSpace}
+import model.{CreateIngestionResponse, Uri}
+import model.annotations.WorkspaceMetadata
+import model.ingestion.{FileContext, IngestionFile, RemoteIngest, RemoteIngestOutput, RemoteIngestStatus, WorkspaceItemUploadContext}
+import play.api.libs.json.{JsError, JsSuccess, Json}
+import services.{FingerprintServices, IngestStorage, RemoteIngestConfig, S3Config, ScratchSpace}
 import services.annotations.Annotations
 import services.index.Pages
 import services.manifest.Manifest
 import utils.Logging
-import utils.attempt.{Attempt, JsonParseFailure, RemoteIngestFailure}
+import utils.attempt.{Attempt, Failure, JsonParseFailure, RemoteIngestFailure}
 
-import java.nio.file.Paths
+import java.nio.file.{Files, Path, Paths}
 import java.util.UUID
 import scala.concurrent.duration.DurationInt
 import scala.concurrent.{Await, ExecutionContext}
 import scala.jdk.CollectionConverters.CollectionHasAsScala
 
+
+case class WebpageSnapshotFiles(screenshot: Path, screenshotFingerprint: Uri, html: Path, htmlFingerprint: Uri, baseFilename: String)
+
+case class WebpageSnapshot(html: String, screenshotBase64: String, title: String)
+object WebpageSnapshot {
+  implicit val webpageSnapshotFormat = Json.format[WebpageSnapshot]
+}
+
 class RemoteIngestWorker(
-  amazonSQSClient: AmazonSQS,
-  config: MediaDownloadConfig,
-  s3Config: S3Config,
-  annotations: Annotations,
-  remoteIngestStore: Neo4jRemoteIngestStore,
-  remoteIngestStorage: IngestStorage,
-  scratchSpace: ScratchSpace,
-  manifest: Manifest,
-  esEvents: services.events.Events,
-  index: services.index.Index,
-  pages: Pages,
-  ingestionServices: IngestionServices
+                          amazonSQSClient: AmazonSQS,
+                          config: RemoteIngestConfig,
+                          s3Config: S3Config,
+                          annotations: Annotations,
+                          remoteIngestStore: Neo4jRemoteIngestStore,
+                          remoteIngestStorage: IngestStorage,
+                          scratchSpace: ScratchSpace,
+                          manifest: Manifest,
+                          esEvents: services.events.Events,
+                          index: services.index.Index,
+                          pages: Pages,
+                          ingestionServices: IngestionServices
 )(implicit executionContext: ExecutionContext) extends Logging  {
+
+  private def ingestRemoteIngestOutput(
+                                        path: Path,
+                                        fingerprint: Uri,
+                                        job: RemoteIngest,
+                                        parsedJob: RemoteIngestOutput,
+                                        parentFolder: String,
+                                        workspaceMetadata: WorkspaceMetadata,
+                                        ingestion: CreateIngestionResponse,
+                                        fileName: String) = {
+    val collectionUri = Uri(job.collection)
+    Await.result(
+      new IngestFile(
+        collectionUri,
+        ingestionUri = Uri(ingestion.uri),
+        uploadId = job.id,
+        workspace = Some(WorkspaceItemUploadContext(
+          workspaceId = job.workspaceId,
+          workspaceNodeId = UUID.randomUUID().toString,
+          workspaceParentNodeId = parentFolder,
+          workspaceName = workspaceMetadata.name
+        )),
+        username = job.addedBy.username,
+        temporaryFilePath = path,
+        originalPath = Paths.get(fileName),
+        lastModifiedTime = None,
+        manifest = manifest,
+        esEvents = esEvents,
+        ingestionServices = ingestionServices,
+        annotations = annotations,
+        fingerPrint = Some(fingerprint.toString)
+      ).process().asFuture,
+      15.minutes
+    )
+  }
+
+  private def getWebpageSnapshotFiles(path: Path, id: String): Either[Failure, WebpageSnapshotFiles] = {
+    val fileContents = new String(java.nio.file.Files.readAllBytes(path))
+    val webpageSnapshotParseResult = Json.fromJson[WebpageSnapshot](Json.parse(fileContents))
+    webpageSnapshotParseResult match {
+      case JsSuccess(value, _) =>
+        val screenshotPath = scratchSpace.pathFor(s"$id-screenshot.jpeg")
+        val htmlPath = scratchSpace.pathFor(s"$id-page.html")
+        val screenshotBytes = java.util.Base64.getDecoder.decode(value.screenshotBase64)
+        Files.write(screenshotPath, screenshotBytes)
+        Files.write(htmlPath, value.html.getBytes)
+        // sanitise title/[^a-zA-Z0-9 \-\_]/g
+        val sanitisedFilename = value.title.replaceAll("[[^a-zA-Z0-9 \\-_]]", "")
+        val cutFilename = sanitisedFilename.substring(0, Math.min(50, sanitisedFilename.length))
+        val baseFilename = if (cutFilename.length < sanitisedFilename.length) s"${cutFilename}..." else cutFilename
+        Right(
+          WebpageSnapshotFiles(
+            screenshotPath,
+            Uri(FingerprintServices.createFingerprintFromFile(screenshotPath.toFile)),
+            htmlPath,
+            Uri(FingerprintServices.createFingerprintFromFile(htmlPath.toFile)),
+            baseFilename
+          ))
+      case JsError(errors) =>
+        logger.error(s"Failed to parse webpage snapshot output file at $path: $errors")
+        Left(RemoteIngestFailure(s"Failed to parse webpage snapshot output file at $path: $errors"))
+    }
+  }
 
   private def processFinishedJobs(): Unit = {
     try {
@@ -43,7 +115,7 @@ class RemoteIngestWorker(
       ).getMessages.asScala.foreach { sqsMessage =>
         logger.info(s"Processing finished job from SQS with id ${sqsMessage.getMessageId}")
 
-        val messageParseResult = Json.fromJson[MediaDownloadOutput](Json.parse(sqsMessage.getBody))
+        val messageParseResult = Json.fromJson[RemoteIngestOutput](Json.parse(sqsMessage.getBody))
 
         (for {
             parsedJob <- Attempt.fromEither(messageParseResult.asEither.left.map(JsonParseFailure))
@@ -56,34 +128,26 @@ class RemoteIngestWorker(
             _ <- remoteIngestStore.updateRemoteIngestJobStatus(parsedJob.id, RemoteIngestStatus.Ingesting)
             ingestion <- Collections.createIngestionIfNotExists(Uri(job.collection), job.ingestion, manifest, index, pages, s3Config)
             parentFolder <- annotations.addOrGetFolder(job.addedBy.username, job.workspaceId, job.parentFolderId, job.title)
-            ingestFileResult <- IngestStorePolling.fetchData(job.ingestionKey, remoteIngestStorage, scratchSpace){(path, fingerprint) =>
-              val collectionUri = Uri(job.collection)
-              Await.result(
-                new IngestFile(
-                  collectionUri,
-                  ingestionUri = Uri(ingestion.uri),
-                  uploadId = job.id,
-                  workspace = Some(WorkspaceItemUploadContext(
-                    workspaceId = job.workspaceId,
-                    workspaceNodeId = UUID.randomUUID().toString,
-                    workspaceParentNodeId = parentFolder,
-                    workspaceName = workspaceMetadata.name
-                  )),
-                  username = job.addedBy.username,
-                  temporaryFilePath = path,
-                  originalPath = Paths.get(parsedJob.metadata.map(meta => s"${meta.title}.${meta.extension}").getOrElse(job.id)),
-                  lastModifiedTime = None,
-                  manifest = manifest,
-                  esEvents = esEvents,
-                  ingestionServices = ingestionServices,
-                  annotations = annotations,
-                  fingerPrint = Some(fingerprint.toString)
-                ).process().asFuture,
-                15.minutes
-              )
+            ingestionKey = if (parsedJob.outputType == "WEBPAGE_SNAPSHOT") job.webpageSnapshotIngestionKey else job.mediaDownloadIngestionKey
+            _ <- IngestStorePolling.fetchData(ingestionKey, remoteIngestStorage, scratchSpace){(path, fingerprint) =>
+              if (parsedJob.outputType == "WEBPAGE_SNAPSHOT") {
+                  for {
+                    files <- getWebpageSnapshotFiles(path, job.id)
+                    htmlIngest <- ingestRemoteIngestOutput(files.html, files.htmlFingerprint, job, parsedJob, parentFolder, workspaceMetadata, ingestion, s"${files.baseFilename} text")
+                    screenshotIngest <- ingestRemoteIngestOutput(files.screenshot, files.screenshotFingerprint, job, parsedJob, parentFolder, workspaceMetadata, ingestion, s"${files.baseFilename} screeshot")
+                  } yield {
+                    Files.delete(files.html)
+                    Files.delete(files.screenshot)
+                    remoteIngestStore.updateRemoteIngestJobBlobUris(parsedJob.id, List(htmlIngest.blob.uri.value, screenshotIngest.blob.uri.value))
+                  }
+              } else {
+                val fileName = parsedJob.metadata.map(meta => s"${meta.title}.${meta.extension}").getOrElse(s"${job.url}")
+                ingestRemoteIngestOutput(path, fingerprint, job, parsedJob, parentFolder, workspaceMetadata, ingestion, fileName).map { ingestResult =>
+                  remoteIngestStore.updateRemoteIngestJobBlobUris(parsedJob.id, List(ingestResult.blob.uri.value))
+                }
+              }
             }.toAttempt
             _ <- remoteIngestStore.updateRemoteIngestJobStatus(parsedJob.id, RemoteIngestStatus.Completed)
-            _ <- remoteIngestStore.updateRemoteIngestJobBlobUri(parsedJob.id, ingestFileResult.blob.uri.value)
           } yield job).fold(
             failureDetail => {
               val maybeParsedJob =  messageParseResult.asOpt
@@ -99,7 +163,7 @@ class RemoteIngestWorker(
             },
             job => {
               logger.info(s"Successfully ingested remote file for job with id ${job.id} in workspace ${job.workspaceId}")
-              remoteIngestStorage.delete(job.ingestionKey)
+              remoteIngestStorage.delete(job.mediaDownloadIngestionKey)
             }
         ).onComplete { _ =>
           amazonSQSClient.deleteMessage(config.outputQueueUrl, sqsMessage.getReceiptHandle)
