@@ -80,7 +80,7 @@ object AwsDiscovery extends Logging {
         transcriptionOutputDeadLetterQueueUrl = readSSMParameter("transcribe/transcriptionOutputDeadLetterQueueUrl", stack, stage, ssmClient)
       ),
       remoteIngest = config.remoteIngest.copy(
-        taskTopicArn = readSSMParameter("remoteIngest/taskTopicUrl", stack, stage, ssmClient),
+        taskTopicArn = readSSMParameter("remoteIngest/taskTopicArn", stack, stage, ssmClient),
         outputDeadLetterQueueUrl = readSSMParameter("remoteIngest/outputDeadLetterQueueUrl", stack, stage, ssmClient),
         outputQueueUrl = readSSMParameter("remoteIngest/outputQueueUrl", stack, stage, ssmClient)
       ),
