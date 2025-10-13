@@ -1,25 +1,24 @@
 package controllers.api
 
-import com.amazonaws.services.sqs.AmazonSQS
+import com.amazonaws.services.sns.AmazonSNS
 import commands.DeleteResource
 import model.Uri
 import model.annotations.{ProcessingStage, Workspace, WorkspaceEntry, WorkspaceLeaf}
-import model.frontend.user.PartialUser
 import model.frontend.{TreeEntry, TreeLeaf, TreeNode}
-import model.ingestion.{MediaDownloadJob, RemoteIngest, RemoteIngestStatus}
+import model.ingestion.{ RemoteIngest, RemoteIngestStatus}
 import net.logstash.logback.marker.LogstashMarker
 import net.logstash.logback.marker.Markers.append
 import org.joda.time.DateTime
 import play.api.libs.json._
 import play.api.mvc.Action
+import services.{IngestStorage, RemoteIngestConfig, ObjectStorage}
+import services.manifest.Manifest
+import services.observability.PostgresClient
 import services.annotations.Annotations
 import services.annotations.Annotations.AffectedResource
 import services.index.Index
 import services.ingestion.RemoteIngestStore
-import services.manifest.Manifest
-import services.observability.PostgresClient
 import services.users.UserManagement
-import services.{IngestStorage, MediaDownloadConfig, ObjectStorage}
 import utils.Logging
 import utils.attempt._
 import utils.auth.{User, UserIdentityRequest}
@@ -77,18 +76,18 @@ object MoveCopyDestination {
 }
 
 class Workspaces(
-  override val controllerComponents: AuthControllerComponents,
-  annotation: Annotations,
-  index: Index,
-  manifest: Manifest,
-  users: UserManagement,
-  objectStorage: ObjectStorage,
-  previewStorage: ObjectStorage,
-  postgresClient: PostgresClient,
-  remoteIngestStore: RemoteIngestStore,
-  remoteIngestStorage: IngestStorage,
-  mediaDownloadConfig: MediaDownloadConfig,
-  sqsClient: AmazonSQS
+                  override val controllerComponents: AuthControllerComponents,
+                  annotation: Annotations,
+                  index: Index,
+                  manifest: Manifest,
+                  users: UserManagement,
+                  objectStorage: ObjectStorage,
+                  previewStorage: ObjectStorage,
+                  postgresClient: PostgresClient,
+                  remoteIngestStore: RemoteIngestStore,
+                  remoteIngestStorage: IngestStorage,
+                  remoteIngestConfig: RemoteIngestConfig,
+                  snsClient: AmazonSNS
 ) extends AuthApiController with Logging {
 
   def create = ApiAction.attempt(parse.json) { req =>
@@ -319,11 +318,11 @@ class Workspaces(
     for {
       data <- req.body.validate[AddRemoteUrlData].toAttempt
       itemId = UUID.randomUUID().toString
+      mediaDownloadId = UUID.randomUUID().toString
+      webpageSnapshotId = UUID.randomUUID().toString
       _ = logAction(req.user, workspaceId, s"Add remote url to workspace. Node ID: $itemId. Data: $data")
       defaultCollectionUriForUser <- users.getDefaultCollectionUriForUser(req.user.username)
       createdAt = DateTime.now
-      ingestionKey = RemoteIngest.ingestionKey(createdAt, itemId)
-      _ <- MediaDownloadJob.sendRemoteIngestJob(itemId, ingestionKey, data.url, mediaDownloadConfig, sqsClient, remoteIngestStorage).toAttempt(msg => SQSSendMessageFailure(msg))
       id <- remoteIngestStore.insertRemoteIngest(
         id = itemId,
         workspaceId = workspaceId,
@@ -332,8 +331,11 @@ class Workspaces(
         url = data.url,
         parentFolderId = data.parentFolderId,
         createdAt = createdAt,
-        username = req.user.username
+        username = req.user.username,
+        mediaDownloadId = mediaDownloadId,
+        webpageSnapshotId = webpageSnapshotId
       )
+      _ <- RemoteIngest.sendRemoteIngestJob(id, data.url, createdAt, mediaDownloadId, webpageSnapshotId, remoteIngestConfig, snsClient, remoteIngestStorage).toAttempt(msg => SQSSendMessageFailure(msg))
     } yield {
       Created(Json.obj("id" -> id))
     }

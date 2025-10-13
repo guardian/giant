@@ -2,6 +2,7 @@ import org.apache.pekko.actor.{ActorSystem, CoordinatedShutdown}
 import org.apache.pekko.actor.CoordinatedShutdown.Reason
 import cats.syntax.either._
 import com.amazonaws.client.builder.AwsClientBuilder
+import com.amazonaws.services.sns.AmazonSNSClientBuilder
 import com.amazonaws.services.sqs.{AmazonSQSClient, AmazonSQSClientBuilder}
 import com.gu.pandomainauth
 import com.gu.pandomainauth.PublicSettings
@@ -82,6 +83,11 @@ class AppComponents(context: Context, config: Config)
       AmazonSQSClientBuilder.standard().withEndpointConfiguration(new AwsClientBuilder.EndpointConfiguration(config.sqs.endpoint.get, config.sqs.region)).build()
     else
       AmazonSQSClientBuilder.standard().withRegion(config.sqs.region).build()
+
+    val snsClient = if (config.sqs.endpoint.isDefined)
+      AmazonSNSClientBuilder.standard().withEndpointConfiguration(new AwsClientBuilder.EndpointConfiguration(config.sqs.endpoint.get, config.sqs.region)).build()
+    else
+      AmazonSNSClientBuilder.standard().withRegion(config.sqs.region).build()
 
     val workerName = config.worker.name.getOrElse(InetAddress.getLocalHost.getHostName)
 
@@ -197,7 +203,7 @@ class AppComponents(context: Context, config: Config)
     val emailController = new Emails(authControllerComponents, manifest, esResources, annotations)
     val mimeTypesController = new MimeTypes(authControllerComponents, manifest)
     val previewController = new Previews(authControllerComponents, manifest, esResources, previewService, users, annotations, config.auth.timeouts.maxDownloadAuthAgePreview)
-    val workspacesController = new Workspaces(authControllerComponents, annotations, esResources, manifest, users, blobStorage, previewStorage, postgresClient, remoteIngestStore, remoteIngestStorage, config.mediaDownload, sqsClient)
+    val workspacesController = new Workspaces(authControllerComponents, annotations, esResources, manifest, users, blobStorage, previewStorage, postgresClient, remoteIngestStore, remoteIngestStorage, config.remoteIngest, snsClient)
     val commentsController = new Comments(authControllerComponents, manifest, esResources, annotations)
     val usersController = new Users(authControllerComponents, userProvider)
     val pagesController = new PagesController(authControllerComponents, manifest, esResources, pages2, annotations, previewStorage)
@@ -236,7 +242,7 @@ class AppComponents(context: Context, config: Config)
       externalWorkerScheduler.start()
       applicationLifecycle.addStopHook(() => externalWorkerScheduler.stop())
 
-      val remoteIngestWorker = new RemoteIngestWorker(sqsClient, config.mediaDownload, config.s3, annotations, remoteIngestStore, remoteIngestStorage, scratchSpace, manifest, esEvents, esResources, esPages, ingestionServices)
+      val remoteIngestWorker = new RemoteIngestWorker(sqsClient, config.remoteIngest, config.s3, annotations, remoteIngestStore, remoteIngestStorage, scratchSpace, manifest, esEvents, esResources, esPages, ingestionServices)
       val remoteIngestScheduler = new RemoteIngestScheduler(actorSystem, remoteIngestWorker, config.worker.interval)(workerExecutionContext)
       remoteIngestWorker.start()
       remoteIngestScheduler.start()

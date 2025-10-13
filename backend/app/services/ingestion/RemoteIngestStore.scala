@@ -16,12 +16,14 @@ trait RemoteIngestStore {
     collection: String,
     createdAt: DateTime,
     url: String,
-    username:String
+    username:String,
+    mediaDownloadId: String,
+    webpageSnapshotId: String
   ): Attempt[String]
   def getRemoteIngestJob(id: String): Attempt[RemoteIngest]
   def getRemoteIngestJobs(maybeWorkspaceId: Option[String], maybeOnlyStatuses: List[RemoteIngestStatus], maybeSinceUTCEpoch: Option[Long]): Attempt[List[RemoteIngest]]
   def getRelevantRemoteIngestJobs(workspaceId: String): Attempt[List[RemoteIngest]]
   def updateRemoteIngestJobStatus(id: String, status: RemoteIngestStatus): Attempt[Unit]
-  def updateRemoteIngestJobBlobUri(id: String, blobUri: String): Attempt[Unit]
+  def updateRemoteIngestJobBlobUris(id: String, blobUris: List[String]): Attempt[Unit]
 
 }

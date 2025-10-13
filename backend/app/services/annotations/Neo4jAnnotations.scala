@@ -384,11 +384,13 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
         "parentFolderId", parentFolderId,
         "folderName", folderName
       )
-    ).flatMap {
-      case r if r.keys().asScala.isEmpty =>
+    ).flatMap { case r =>
+      val records = r.list().asScala
+      if (records.isEmpty) {
         Attempt.Left(NotFoundFailure("Could not find folder"))
-      case r =>
-        Attempt.Right(r.list().asScala.head.get("folder").get("id").asString())
+      } else {
+        Attempt.Right(records.head.get("folder").get("id").asString())
+      }
     }
   }
 
