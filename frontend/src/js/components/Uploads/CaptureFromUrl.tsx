@@ -98,20 +98,27 @@ export const CaptureFromUrl = connect(
 
   const {push} = useHistory();
 
+  const parentEntry = focusedEntry || currentWorkspace?.rootNode;
+  const parentFolder = parentEntry && isTreeNode(parentEntry) ? parentEntry : null;
+
+  const isTargetFolderNameConflict = !!parentFolder?.children?.some(_ => _.name === saveAs);
+
+  const isFormIncomplete = !url || !currentWorkspace || !saveAs || !parentFolder
+
   const onSubmit = (e: FormEvent) => {
 
     e.preventDefault();
 
-    if (!url || !currentWorkspace || !saveAs) {
+    if (isFormIncomplete) {
       return console.error("Missing value", {
-        url, currentWorkspace, saveAs
+        url, currentWorkspace, saveAs, parentFolder
       });
     }
 
     captureFromUrl(currentWorkspace.id, {
       url,
       title: saveAs,
-      parentFolderId: focusedEntry?.id || currentWorkspace.rootNode.id,
+      parentFolderId: parentFolder.id,
     }).then(json => {
       console.log(json);
       push(`/workspaces/${currentWorkspace.id}`);
@@ -125,7 +132,7 @@ export const CaptureFromUrl = connect(
       });
     }).finally(() => {
       // ensure the target folder is expanded to show the new job
-      setNodeAsExpanded((focusedEntry && isTreeNode(focusedEntry) && focusedEntry) || currentWorkspace.rootNode);
+      setNodeAsExpanded(parentFolder);
       // refresh the workspace to show the new job
       refreshWorkspace(currentWorkspace.id);
     });
@@ -227,15 +234,23 @@ export const CaptureFromUrl = connect(
           <span className='form__label required-field'>New folder name</span>
           <em>Capturing a URL into Giant will capture as much as possible from the page,
             so a new folder is required to keep everything together.</em>
-          <input type='text' value={saveAs} onChange={e => setSaveAs(e.target.value)}/>
+          <input
+            type='text'
+            value={saveAs}
+            onChange={e => setSaveAs(e.target.value)}
+            style={{marginBottom: 0}}
+          />
+          {isTargetFolderNameConflict &&
+            <div className="error-bar__warning" style={{padding: "5px"}}>A file or folder with this name already exists in the selected folder.</div>
+          }
         </div>
 
         <div className='form__row'>
-          <button type='submit' className='btn' disabled={!currentWorkspace || !saveAs}>
+          <button type='submit' className='btn' disabled={isFormIncomplete}>
             Capture
           </button>
-          {currentWorkspace && saveAs && (<>
-            {" "} to <code>{`${displayRelativePath(currentWorkspace.rootNode, focusedEntry?.id || currentWorkspace.rootNode.id)}${saveAs}`}</code>
+          {currentWorkspace && parentFolder && saveAs && (<>
+            {" "} to <code>{`${displayRelativePath(currentWorkspace.rootNode, parentFolder.id)}${saveAs}`}</code>
           </>)}
         </div>
 
