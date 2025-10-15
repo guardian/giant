@@ -5,7 +5,6 @@ import java.net.URI
 import java.nio.file.attribute.FileTime
 import java.nio.file.{Files, Path, Paths}
 import java.time.Instant
-
 import model.Uri
 import play.api.libs.json.{Format, JsString, JsValue, Json}
 
@@ -31,16 +30,16 @@ object IngestionFile {
     )
   }
 
-  implicit val fileTimeFormat = new Format[FileTime] {
+  implicit val fileTimeFormat: Format[FileTime] = new Format[FileTime] {
     override def reads(json: JsValue) = json.validate[String].map(s => FileTime.from(Instant.parse(s)))
     override def writes(o: FileTime) = JsString(o.toInstant.toString)
   }
 
-  implicit val pathFormat = new Format[Path] {
+  implicit val pathFormat: Format[Path] = new Format[Path] {
     override def reads(json: JsValue) = json.validate[String].map(s => Paths.get(new URI(s)))
     override def writes(o: Path) = JsString(o.toAbsolutePath.toUri.toString)
   }
 
-  implicit val format = Json.format[IngestionFile]
+  implicit val format: Format[IngestionFile] = Json.format[IngestionFile]
 }
 

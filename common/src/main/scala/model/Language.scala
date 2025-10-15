@@ -29,18 +29,14 @@ sealed trait Language {
 }
 
 object Language {
-   implicit def writes = new Writes[Language] {
-    def writes(l: Language) = JsString(l.key)
-  }
+  implicit def writes: Writes[Language] = (l: Language) => JsString(l.key)
 
-  implicit  def reads = new Reads[Language] {
-    def reads(v: JsValue): JsResult[Language] = Reads.StringReads.reads(v).flatMap(k =>
-      Languages.getByKey(k) match {
-        case Some(l) => JsSuccess(l)
-        case None => JsError(s"Not a known language: $k")
-      }
-    )
-  }
+  implicit  def reads: Reads[Language] = (v: JsValue) => Reads.StringReads.reads(v).flatMap(k =>
+    Languages.getByKey(k) match {
+      case Some(l) => JsSuccess(l)
+      case None => JsError(s"Not a known language: $k")
+    }
+  )
 }
 
 object Arabic extends Language {
