@@ -1,12 +1,12 @@
 package model.manifest
 
 import org.neo4j.driver.v1.Value
-import play.api.libs.json.Json
+import play.api.libs.json.{Format, Json}
 
 case class MimeType(mimeType: String)
 
 object MimeType {
-  implicit val mimeTypeFormat = Json.format[MimeType]
+  implicit val mimeTypeFormat: Format[MimeType] = Json.format[MimeType]
 
   def fromNeo4jValue(mimeType: Value): MimeType = {
     MimeType(
@@ -19,5 +19,5 @@ case class MimeTypeCoverage(mimeType: MimeType, humanReadableMimeType: Option[St
                             total: Long, todo: Long, done: Long, failed: Long)
 
 object MimeTypeCoverage {
-  implicit val mimeCoverageTypeFormat = Json.format[MimeTypeCoverage]
+  implicit val mimeCoverageTypeFormat: Format[MimeTypeCoverage] = Json.format[MimeTypeCoverage]
 }

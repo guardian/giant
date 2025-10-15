@@ -35,7 +35,7 @@ class Neo4jUserManagement(neo4jDriver: Driver, executionContext: ExecutionContex
   extends Neo4jHelper(neo4jDriver, executionContext, queryLoggingConfig) with UserManagement {
   import Neo4jHelper._
 
-  implicit val ec = executionContext
+  implicit val ec: ExecutionContext = executionContext
 
   def setup(): Either[Failure, Unit] = transaction { tx =>
     tx.run("CREATE CONSTRAINT ON (user :User) ASSERT user.username IS UNIQUE")

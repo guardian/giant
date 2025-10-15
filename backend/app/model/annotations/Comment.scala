@@ -8,7 +8,7 @@ case class Comment(id: String, author: PartialUser, postedAt: Long, text: String
 
 
 object Comment {
-  implicit val format = Json.format[Comment]
+  implicit val format: Format[Comment] = Json.format[Comment]
 
   def fromNeo4jValue(definition: Value, user: PartialUser): Comment = {
     Comment(

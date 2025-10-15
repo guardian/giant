@@ -36,7 +36,7 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
   extends Neo4jHelper(driver, executionContext, queryLoggingConfig) with Manifest with Logging {
   import Neo4jHelper._
 
-  implicit val ec = executionContext
+  implicit val ec: ExecutionContext = executionContext
 
   override def setup(): Either[Failure, Unit] = transaction { tx =>
       tx.run("CREATE CONSTRAINT ON (resource: Resource)   ASSERT resource.uri   IS UNIQUE")

@@ -29,51 +29,51 @@ import java.util.UUID
 
 case class CreateWorkspaceData(name: String, isPublic: Boolean, tagColor: String)
 object CreateWorkspaceData {
-  implicit val format = Json.format[CreateWorkspaceData]
+  implicit val format: Format[CreateWorkspaceData] = Json.format[CreateWorkspaceData]
 }
 
 case class UpdateWorkspaceFollowers(followers: List[String])
 object UpdateWorkspaceFollowers {
-  implicit val format = Json.format[UpdateWorkspaceFollowers]
+  implicit val format: Format[UpdateWorkspaceFollowers] = Json.format[UpdateWorkspaceFollowers]
 }
 case class UpdateWorkspaceIsPublic(isPublic: Boolean)
 object UpdateWorkspaceIsPublic {
-  implicit val format = Json.format[UpdateWorkspaceIsPublic]
+  implicit val format: Format[UpdateWorkspaceIsPublic] = Json.format[UpdateWorkspaceIsPublic]
 }
 
 case class UpdateWorkspaceName(name: String)
 object UpdateWorkspaceName {
-  implicit val format = Json.format[UpdateWorkspaceName]
+  implicit val format: Format[UpdateWorkspaceName] = Json.format[UpdateWorkspaceName]
 }
 
 case class UpdateWorkspaceOwner(owner: String)
 object UpdateWorkspaceOwner {
-  implicit val format = Json.format[UpdateWorkspaceOwner]
+  implicit val format: Format[UpdateWorkspaceOwner] = Json.format[UpdateWorkspaceOwner]
 }
 
 case class AddItemParameters(uri: Option[String], size: Option[Long], mimeType: Option[String])
 object AddItemParameters {
-  implicit val format = Json.format[AddItemParameters]
+  implicit val format: Format[AddItemParameters] = Json.format[AddItemParameters]
 }
 
 case class AddRemoteUrlData(url: String, title: String, parentFolderId: String)
 object AddRemoteUrlData {
-  implicit val format = Json.format[AddRemoteUrlData]
+  implicit val format: Format[AddRemoteUrlData] = Json.format[AddRemoteUrlData]
 }
 
 case class AddItemData(name: String, parentId: String, `type`: String, icon: Option[String], parameters: AddItemParameters)
 object AddItemData {
-  implicit val format = Json.format[AddItemData]
+  implicit val format: Format[AddItemData] = Json.format[AddItemData]
 }
 
 case class RenameItemData(name: String)
 object RenameItemData {
-  implicit val format = Json.format[RenameItemData]
+  implicit val format: Format[RenameItemData] = Json.format[RenameItemData]
 }
 
 case class MoveCopyDestination(newParentId: Option[String], newWorkspaceId: Option[String])
 object MoveCopyDestination {
-  implicit val format = Json.format[MoveCopyDestination]
+  implicit val format: Format[MoveCopyDestination] = Json.format[MoveCopyDestination]
 }
 
 class Workspaces(

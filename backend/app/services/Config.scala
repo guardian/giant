@@ -3,7 +3,7 @@ package services
 import net.ceedubs.ficus.Ficus._
 import net.ceedubs.ficus.readers.ArbitraryTypeReader._
 import net.ceedubs.ficus.readers.EnumerationReader._
-import play.api.libs.json.Json
+import play.api.libs.json.{Format, Json}
 
 import scala.concurrent.duration.FiniteDuration
 
@@ -124,7 +124,7 @@ case class PostgresConfig(
 )
 
 object PostgresConfig {
-  implicit val format = Json.format[PostgresConfig]
+  implicit val format: Format[PostgresConfig] = Json.format[PostgresConfig]
 }
 
 case class ElasticsearchConfig(

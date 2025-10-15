@@ -27,7 +27,7 @@ import java.nio.charset.StandardCharsets
 case class FlagData(flagValue: String)
 
 object FlagData {
-  implicit val flagDataFormat = Json.format[FlagData]
+  implicit val flagDataFormat: Format[FlagData] = Json.format[FlagData]
 }
 
 class Resource(val controllerComponents: AuthControllerComponents, manifest: Manifest,

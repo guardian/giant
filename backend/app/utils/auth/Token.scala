@@ -1,6 +1,6 @@
 package utils.auth
 
-import play.api.libs.json.Json
+import play.api.libs.json.{Json, Reads}
 
 case class Token(user: User, issuedAt: Long, refreshedAt: Long, exp: Long, loginExpiry: Long, verificationExpiry: Long)
 
@@ -11,5 +11,5 @@ object Token {
   val LOGIN_EXPIRY_KEY = "loginExpiry"
   val VERIFICATION_EXPIRY_KEY = "verificationExpiry"
   val PERMISSIONS = "permissions"
-  implicit val tokenReads = Json.reads[Token]
+  implicit val tokenReads: Reads[Token] = Json.reads[Token]
 }

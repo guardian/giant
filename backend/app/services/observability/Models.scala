@@ -1,7 +1,7 @@
 package services.observability
 
 import extraction.Extractor
-import play.api.libs.json.{Format, Json}
+import play.api.libs.json.{Format, Json, Reads, Writes}
 import model.manifest.Blob
 import org.apache.commons.codec.digest.DigestUtils
 import org.joda.time.{DateTime, DateTimeZone}
@@ -18,8 +18,8 @@ import scala.util.{Failure, Try, Success => TrySuccess}
 
 object JodaReadWrites {
   private val datePattern = "yyyy-MM-dd'T'HH:mm:ss.SSSZ"
-  val dateWrites = jodaDateWrites(datePattern)
-  val dateReads = jodaDateReads(datePattern)
+  val dateWrites: Writes[DateTime] = jodaDateWrites(datePattern)
+  val dateReads: Reads[DateTime] = jodaDateReads(datePattern)
 }
 
 object IngestionEventType extends Enumeration {
@@ -60,7 +60,7 @@ case class IngestionError(message: String, stackTrace: Option[String] = None)
 case class IngestionErrorsWithEventType(eventType: IngestionEventType, errors: List[IngestionError])
 
 object IngestionError extends Logging {
-  implicit val format = Json.format[IngestionError]
+  implicit val format: Format[IngestionError] = Json.format[IngestionError]
 
   def parseIngestionErrors(errors: Array[String], eventTypes: Array[String]): List[IngestionErrorsWithEventType] = {
     errors.toList.zip(eventTypes.toList).flatMap{
@@ -79,7 +79,7 @@ object IngestionError extends Logging {
 }
 
 object IngestionErrorsWithEventType {
-  implicit val format = Json.format[IngestionErrorsWithEventType]
+  implicit val format: Format[IngestionErrorsWithEventType] = Json.format[IngestionErrorsWithEventType]
 }
 
 
@@ -94,7 +94,7 @@ case class EventDetails(
                   )
 
 object EventDetails {
-  implicit val detailsFormat = Json.format[EventDetails]
+  implicit val detailsFormat: Format[EventDetails] = Json.format[EventDetails]
 
   def errorDetails(message: String, stackTrace: Option[String] = None): Option[EventDetails] = Some(EventDetails(Some(List(IngestionError(message, stackTrace)))))
 
@@ -117,7 +117,7 @@ object EventDetails {
 case class EventMetadata(blobId: String, ingestId: String)
 
 object EventMetadata {
-  implicit val format = Json.format[EventMetadata]
+  implicit val format: Format[EventMetadata] = Json.format[EventMetadata]
 }
 
 case class IngestionEvent(
@@ -127,8 +127,8 @@ case class IngestionEvent(
                            details: Option[EventDetails] = None
                          )
 object IngestionEvent {
-  implicit val metaDataFormat = Json.format[EventMetadata]
-  implicit val ingestionEventFormat = Json.format[IngestionEvent]
+  implicit val metaDataFormat: Format[EventMetadata] = Json.format[EventMetadata]
+  implicit val ingestionEventFormat: Format[IngestionEvent] = Json.format[IngestionEvent]
 
   def workspaceUploadEvent(blobId: String, ingestUri: String, workspaceName: String, status: EventStatus): IngestionEvent = IngestionEvent(
     EventMetadata(blobId, ingestUri),
@@ -141,21 +141,21 @@ object IngestionEvent {
 case class BlobMetadata(ingestId: String, blobId: String, path: String, fileSize: Long)
 
 object BlobMetadata {
-  implicit val blobMetaDataFormat = Json.format[BlobMetadata]
+  implicit val blobMetaDataFormat: Format[BlobMetadata] = Json.format[BlobMetadata]
 }
 
 case class ExtractorStatusUpdate(eventTime: Option[DateTime], status: Option[EventStatus])
 object ExtractorStatusUpdate {
-  implicit val dateWrites = JodaReadWrites.dateWrites
-  implicit val dateReads = JodaReadWrites.dateReads
-  implicit val format = Json.format[ExtractorStatusUpdate]
+  implicit val dateWrites: Writes[DateTime] = JodaReadWrites.dateWrites
+  implicit val dateReads: Reads[DateTime] = JodaReadWrites.dateReads
+  implicit val format: Format[ExtractorStatusUpdate] = Json.format[ExtractorStatusUpdate]
 }
 
 case class IngestionEventStatus(eventTime: DateTime, eventType: IngestionEventType, eventStatus: EventStatus)
 object IngestionEventStatus {
-  implicit val dateWrites = JodaReadWrites.dateWrites
-  implicit val dateReads = JodaReadWrites.dateReads
-  implicit val format = Json.format[IngestionEventStatus]
+  implicit val dateWrites: Writes[DateTime] = JodaReadWrites.dateWrites
+  implicit val dateReads: Reads[DateTime] = JodaReadWrites.dateReads
+  implicit val format: Format[IngestionEventStatus] = Json.format[IngestionEventStatus]
 
   def parseEventStatus(eventTimes: Array[DateTime], eventTypes: Array[String], eventStatuses: Array[String]): List[IngestionEventStatus] = {
     val allEventStatuses =  eventTimes.lazyZip(eventTypes).lazyZip(eventStatuses).toList.map {
@@ -170,7 +170,7 @@ object IngestionEventStatus {
 
 case class ExtractorStatus(extractorType: ExtractorType, statusUpdates: List[ExtractorStatusUpdate])
 object ExtractorStatus {
-  implicit val format = Json.format[ExtractorStatus]
+  implicit val format: Format[ExtractorStatus] = Json.format[ExtractorStatus]
 
   def parseDbStatusEvents(extractors: Array[String], extractorEventTimes: Array[String], extractorStatuses: Array[String]): List[ExtractorStatus] = {
     val statusUpdatesParsed: Seq[List[ExtractorStatusUpdate]] = extractorEventTimes.zip(extractorStatuses).map {
@@ -201,9 +201,9 @@ case class BlobStatus(
                        mimeTypes: Option[String],
                        infiniteLoop: Boolean)
 object BlobStatus {
-  implicit val dateWrites = JodaReadWrites.dateWrites
-  implicit val dateReads = JodaReadWrites.dateReads
-  implicit val format = Json.format[BlobStatus]
+  implicit val dateWrites: Writes[DateTime] = JodaReadWrites.dateWrites
+  implicit val dateReads: Reads[DateTime] = JodaReadWrites.dateReads
+  implicit val format: Format[BlobStatus] = Json.format[BlobStatus]
 
   def parsePathsArray(paths: Array[String]): List[String] = {
     val nonNullPaths = paths.filter(p => p != null)

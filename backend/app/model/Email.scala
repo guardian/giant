@@ -57,7 +57,7 @@ object Sensitivity extends PlayEnum[Sensitivity] {
 case class Recipient (displayName: Option[String], email: String)
 
 object Recipient {
-  implicit val recipientFormat = Json.format[Recipient]
+  implicit val recipientFormat: Format[Recipient] = Json.format[Recipient]
 
   val unknown = Recipient(Some("Unknown Recipient"), "unknown@recipient.com")
 
@@ -94,7 +94,7 @@ case class Email(
 }
 
 object Email extends Logging {
-  implicit val format = Json.format[Email]
+  implicit val format: Format[Email] = Json.format[Email]
 
   def inlineAttachmentsIntoHtml[T](html: String, attachments: Iterator[T])(getContent: T => Option[(String, String, InputStream)]): String = {
     attachments.foldLeft(html) { (htmlText, a) =>

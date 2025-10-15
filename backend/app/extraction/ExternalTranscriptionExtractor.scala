@@ -5,7 +5,7 @@ import com.amazonaws.services.sqs.model.{MessageAttributeValue, SendMessageReque
 import model.{English, Language, Languages}
 import model.manifest.Blob
 import org.joda.time.DateTime
-import play.api.libs.json.{JsError, JsResult, JsValue, Json, Reads, Writes}
+import play.api.libs.json.{Format, JsError, JsResult, JsValue, Json, Reads, Writes}
 import services.index.Index
 import services.{ObjectStorage, TranscribeConfig}
 import utils._
@@ -19,7 +19,7 @@ import scala.jdk.CollectionConverters.MapHasAsJava
 // https://github.com/guardian/transcription-service/blob/main/packages/common/src/types.ts
 case class SignedUrl(url: String, key: String)
 object SignedUrl {
-  implicit val formats = Json.format[SignedUrl]
+  implicit val formats: Format[SignedUrl] = Json.format[SignedUrl]
 }
 case class CombinedOutputUrl(url: String, key: String)
 case class TranscriptionJob(id: String, originalFilename: String, inputSignedUrl: String, sentTimestamp: String,
@@ -28,8 +28,8 @@ case class TranscriptionJob(id: String, originalFilename: String, inputSignedUrl
                             diarize: Boolean, engine: String)
 
 object TranscriptionJob {
-  implicit val combinedOutputUrlFormat = Json.format[CombinedOutputUrl]
-  implicit val formats = Json.format[TranscriptionJob]
+  implicit val combinedOutputUrlFormat: Format[CombinedOutputUrl] = Json.format[CombinedOutputUrl]
+  implicit val formats: Format[TranscriptionJob] = Json.format[TranscriptionJob]
 }
 case class TranscriptionMetadata(detectedLanguageCode: Language)
 object TranscriptionMetadata {
@@ -37,13 +37,13 @@ object TranscriptionMetadata {
     Languages.getByIso6391Code(code).getOrElse(English)
   }
   implicit val languageWrites: Writes[Language] = Writes.of[String].contramap(_.iso6391Code)
-  implicit val formats = Json.format[TranscriptionMetadata]
+  implicit val formats: Format[TranscriptionMetadata] = Json.format[TranscriptionMetadata]
 }
 case class Transcripts(srt: String, text: String, json: String)
 case class TranscriptionResult(transcripts: Transcripts, transcriptTranslations: Option[Transcripts], metadata: TranscriptionMetadata)
 object TranscriptionResult {
-  implicit val transcriptsFormat = Json.format[Transcripts]
-  implicit val formats = Json.format[TranscriptionResult]
+  implicit val transcriptsFormat: Format[Transcripts] = Json.format[Transcripts]
+  implicit val formats: Format[TranscriptionResult] = Json.format[TranscriptionResult]
 }
 
 sealed trait TranscriptionOutput {
@@ -73,11 +73,11 @@ case class TranscriptionOutputFailure(
                                     ) extends TranscriptionOutput
 
 object TranscriptionOutputSuccess {
-  implicit val format = Json.format[TranscriptionOutputSuccess]
+  implicit val format: Format[TranscriptionOutputSuccess] = Json.format[TranscriptionOutputSuccess]
 }
 
 object TranscriptionOutputFailure {
-  implicit val format = Json.format[TranscriptionOutputFailure]
+  implicit val format: Format[TranscriptionOutputFailure] = Json.format[TranscriptionOutputFailure]
 }
 
 object TranscriptionOutput {

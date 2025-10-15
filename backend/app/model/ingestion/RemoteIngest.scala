@@ -2,7 +2,7 @@ package model.ingestion
 
 import model.frontend.user.PartialUser
 import org.joda.time.DateTime
-import play.api.libs.json.Json
+import play.api.libs.json.{Json, Reads, Writes}
 import services.observability.JodaReadWrites
 import services.{IngestStorage, MediaDownloadConfig}
 import utils.Logging
@@ -31,9 +31,9 @@ case class RemoteIngest(
 }
 
 object RemoteIngest extends Logging {
-  implicit val dateWrites = JodaReadWrites.dateWrites
-  implicit val dateReads = JodaReadWrites.dateReads
-  implicit val remoteIngestWrites = Json.writes[RemoteIngest]
+  implicit val dateWrites: Writes[DateTime] = JodaReadWrites.dateWrites
+  implicit val dateReads: Reads[DateTime] = JodaReadWrites.dateReads
+  implicit val remoteIngestWrites: Writes[RemoteIngest] = Json.writes[RemoteIngest]
 
   def ingestionKey(createdAt: DateTime, id: String): Key = (createdAt.getMillis, java.util.UUID.fromString(id))
 }
