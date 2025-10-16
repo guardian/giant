@@ -6,7 +6,7 @@ import org.testcontainers.utility.DockerImageName
 import test.AttemptValues
 
 trait Neo4jTestContainer extends AttemptValues {
-  implicit def patience = PatienceConfig(Span(30, Seconds), Span(250, Millis))
+  implicit def patience: PatienceConfig = PatienceConfig(Span(30, Seconds), Span(250, Millis))
 
   def getNeo4jContainer() = {
     val neo4jContainerDef = Neo4jContainer.Def(
