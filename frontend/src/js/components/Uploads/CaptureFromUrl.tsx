@@ -180,55 +180,48 @@ export const CaptureFromUrl = connect(
           />
         </div>
 
-        <div className='form__row'>
+        {currentWorkspace && currentWorkspace.rootNode.children.length > 0 && <div className='form__row'>
           <span className='form__label'>Folder</span>
-          {
-            currentWorkspace
-              ?
-              <div className='workspace__tree workspace__tree--fixed'>
-                <TreeBrowser
-                  showColumnHeaders={false}
-                  rootId={currentWorkspace.rootNode.id}
-                  tree={currentWorkspace.rootNode.children}
-                  onFocus={entry => isTreeNode(entry) && setFocusedEntry(entry)}
-                  clearFocus={() => setFocusedEntry(null)}
-                  selectedEntries={focusedEntry ? [focusedEntry] : []}
-                  focusedEntry={focusedEntry}
-                  onMoveItems={() => {
-                  }} // can't move things in this view
-                  onContextMenu={() => {
-                  }} // can't rename things in this view
-                  onSelectLeaf={() => {
-                  }} // leaves are not valid targets to add to, so are not selectable
-                  onExpandLeaf={() => {
-                  }} // entire tree is in memory up-front, so no need for an expand leaf callback
-                  onClickColumn={() => {
-                  }} // only one column, don't allow reversing the sorting
-                  columnsConfig={{
-                    columns: [{
-                      name: 'Name',
-                      align: 'left',
-                      render: (entry) =>
-                        isWorkspaceNode(entry.data)
-                          ? <>{entry.name || '--'} <FileAndFolderCounts {...entry.data} /></>
-                          : <></>, // don't render leaves since they can't be selected
-                      sort: (a, b) => a.name.localeCompare(b.name),
-                      style: {},
-                    }],
-                    sortDescending: false,
-                    sortColumn: 'Name',
-                  }}
-                  expandedEntries={expandedNodes}
-                  onExpandNode={setNodeAsExpanded}
-                  onCollapseNode={setNodeAsCollapsed}
-                />
-              </div>
-              :
-              <div className='workspace__tree workspace__tree--fixed'>
-                <p className='centered diminish'>Select a workspace...</p>
-              </div>
-          }
+          <div className='workspace__tree' style={{maxHeight: "calc(100vh - 590px)"}}>
+            <TreeBrowser
+              showColumnHeaders={false}
+              rootId={currentWorkspace.rootNode.id}
+              tree={currentWorkspace.rootNode.children}
+              onFocus={entry => isTreeNode(entry) && setFocusedEntry(entry)}
+              clearFocus={() => setFocusedEntry(null)}
+              selectedEntries={focusedEntry && isTreeNode(focusedEntry) ? [focusedEntry] : []}
+              focusedEntry={focusedEntry && isTreeNode(focusedEntry) ? focusedEntry : null}
+              onMoveItems={() => {
+              }} // can't move things in this view
+              onContextMenu={() => {
+              }} // can't rename things in this view
+              onSelectLeaf={() => {
+              }} // leaves are not valid targets to add to, so are not selectable
+              onExpandLeaf={() => {
+              }} // entire tree is in memory up-front, so no need for an expand leaf callback
+              onClickColumn={() => {
+              }} // only one column, don't allow reversing the sorting
+              columnsConfig={{
+                columns: [{
+                  name: 'Name',
+                  align: 'left',
+                  render: (entry) =>
+                    isWorkspaceNode(entry.data)
+                      ? <>{entry.name || '--'} <FileAndFolderCounts {...entry.data} /></>
+                      : <></>, // don't render leaves since they can't be selected
+                  sort: (a, b) => a.name.localeCompare(b.name),
+                  style: {},
+                }],
+                sortDescending: false,
+                sortColumn: 'Name',
+              }}
+              expandedEntries={expandedNodes}
+              onExpandNode={setNodeAsExpanded}
+              onCollapseNode={setNodeAsCollapsed}
+            />
+          </div>
         </div>
+        }
 
         <div className='form__row'>
           <span className='form__label required-field'>New folder name</span>
@@ -241,7 +234,8 @@ export const CaptureFromUrl = connect(
             style={{marginBottom: 0}}
           />
           {isTargetFolderNameConflict &&
-            <div className="error-bar__warning" style={{padding: "5px"}}>A file or folder with this name already exists in the selected folder.</div>
+            <div className="error-bar__warning" style={{padding: "5px"}}>A file or folder with this name already exists
+              in the selected folder.</div>
           }
         </div>
 
