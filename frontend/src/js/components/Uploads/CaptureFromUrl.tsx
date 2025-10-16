@@ -20,6 +20,7 @@ import {captureFromUrl} from "../../services/WorkspaceApi";
 import {AppActionType, ErrorAction} from "../../types/redux/GiantActions";
 import {useHistory} from "react-router-dom";
 import {FileAndFolderCounts} from "../UtilComponents/TreeBrowser/FileAndFolderCounts";
+import {EuiCallOut} from "@elastic/eui";
 
 export const getMaybeCaptureFromUrlQueryParamValue = () =>
   new URLSearchParams(window.location.search).get("capture_from_url");
@@ -145,12 +146,17 @@ export const CaptureFromUrl = connect(
         onClick={() => setIsOpen(true)}
       >
         <MdGlobeIcon className='file-upload__icon'/>
-        Capture from URL
+        Capture video from URL
       </button>
     }
     <Modal isOpen={isOpen} dismiss={() => setIsOpen(false)}>
       <form className='form' onSubmit={onSubmit}>
-        <h2 className='modal__title'>Capture from URL</h2>
+        <h2 className='modal__title'>Capture video from URL</h2>
+
+        <EuiCallOut title="BETA Phase" css={{marginBottom: "10px"}} size="s">
+          For now, this feature will attempt to capture video from a URL (e.g. a YouTube link) and ingest into Giant.<br/>
+          In the near future, it will also snapshot the page (both the html and as an image).
+        </EuiCallOut>
 
         <div className='form__row'>
           <span className='form__label required-field'>URL</span>
