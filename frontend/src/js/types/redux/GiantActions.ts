@@ -43,7 +43,7 @@ interface ReceiveWorkspacesMetadataAction {
 
 interface ReceiveWorkspaceAction {
     type: WorkspacesActionType.WORKSPACE_GET_RECEIVE,
-    workspace: Workspace
+    workspace: Workspace | null // null when clearing current workspace
 }
 
 export type WorkspacesAction =

@@ -52,6 +52,7 @@ import buildLink from '../../util/buildLink';
 import history from '../../util/history';
 import {takeOwnershipOfWorkspace} from "../../actions/workspaces/takeOwnershipOfWorkspace";
 import {FileAndFolderCounts} from "../UtilComponents/TreeBrowser/FileAndFolderCounts";
+import {EuiLoadingSpinner} from "@elastic/eui";
 
 
 type Props = ReturnType<typeof mapStateToProps>
@@ -346,7 +347,7 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
         const prevWorkspaceId = prevProps.match.params.id;
 
         if(workspaceId !== prevWorkspaceId) {
-            this.props.getWorkspace(workspaceId);
+            this.props.getWorkspace(workspaceId, { shouldClearFirst: true });
         }
     }
 
@@ -740,8 +741,14 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
     };
 
     render() {
+        if(!this.props.currentWorkspace && this.props.match.params.id){
+          return <div className='app__main-content'>
+            <EuiLoadingSpinner size="l" />
+          </div>;
+        }
+
         if (!this.props.currentWorkspace || !this.props.currentUser) {
-            return false;
+          return false;
         }
 
         return (
