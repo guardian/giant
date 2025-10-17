@@ -30,7 +30,7 @@ case class HighlightableText(
 )
 
 object HighlightableText {
-  implicit val highlightableTextFormat = Json.format[HighlightableText]
+  implicit val highlightableTextFormat: Format[HighlightableText] = Json.format[HighlightableText]
 
   def searchHighlightId(ix: Int, page: Option[Long], isFind: Boolean): String = {
     val pageIdPrefix = page.map { p => s"page-$p-" }.getOrElse("")

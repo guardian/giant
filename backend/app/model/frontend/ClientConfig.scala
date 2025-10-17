@@ -13,5 +13,5 @@ case class ClientConfig(label: Option[String],
                         buildInfo: Map[String, String] = BuildInfo.toMap.view.mapValues(_.toString).toMap)
 
 object ClientConfig {
-  implicit val format = Json.format[ClientConfig]
+  implicit val format: Format[ClientConfig] = Json.format[ClientConfig]
 }

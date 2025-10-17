@@ -20,17 +20,17 @@ case class DropdownChip(name: String, options: List[DropdownOption], template: S
 case class WorkspaceFolderChip(name: String, t: String, workspaceId: String, folderId: String)
 
 object WorkspaceFolderChip {
-  implicit val workspaceFolderChip = Json.format[WorkspaceFolderChip]
+  implicit val workspaceFolderChip: Format[WorkspaceFolderChip] = Json.format[WorkspaceFolderChip]
 }
 
 object Chip {
   private val plainChipFormat = Json.format[TextChip]
   private val dateChipFormat = Json.format[DateChip]
   private val exclusiveDateChipFormat = Json.format[ExclusiveDateChip]
-  private implicit val dropdownOptionFormat = Json.format[DropdownOption]
+  private implicit val dropdownOptionFormat: Format[DropdownOption] = Json.format[DropdownOption]
   private val dropdownChipFormat = Json.format[DropdownChip]
 
-  implicit val format = new Format[Chip] {
+  implicit val format: Format[Chip] = new Format[Chip] {
     override def reads(json: JsValue): JsResult[Chip] = {
       (json \ "type").get match {
         case JsString("text") => plainChipFormat.reads(json)

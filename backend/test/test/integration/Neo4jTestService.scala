@@ -20,7 +20,7 @@ class Neo4jTestService(neo4jUri: String)
     with AttemptValues
     with Logging {
 
-  implicit def patience = PatienceConfig(Span(30, Seconds), Span(250, Millis))
+  implicit def patience: PatienceConfig = PatienceConfig(Span(30, Seconds), Span(250, Millis))
 
   lazy val neo4jDriver: Driver = GraphDatabase.driver(neo4jUri, AuthTokens.none())
 

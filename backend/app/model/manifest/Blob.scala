@@ -7,7 +7,7 @@ import play.api.libs.json._
 case class Blob(uri: Uri, size: Long, mimeType: Set[MimeType])
 
 object Blob {
-  implicit val blobFormat = Json.format[Blob]
+  implicit val blobFormat: Format[Blob] = Json.format[Blob]
 
   def fromNeo4jValue(blob: Value, mimeTypes: Seq[Value]): Blob = {
     Blob(Uri(blob.get("uri").asString()),

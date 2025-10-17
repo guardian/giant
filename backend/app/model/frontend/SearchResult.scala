@@ -17,10 +17,10 @@ case class DocumentResultDetails(mimeTypes: Seq[String], fileUris: Seq[String], 
 case class EmailResultDetails(from: Recipient, subject: String, attachmentCount: Int) extends ResultDetails
 
 object ResultDetails {
-  val docFormat = Json.format[DocumentResultDetails]
-  val emailFormat = Json.format[EmailResultDetails]
+  val docFormat: OFormat[DocumentResultDetails] = Json.format[DocumentResultDetails]
+  val emailFormat: OFormat[EmailResultDetails] = Json.format[EmailResultDetails]
 
-  implicit val format = new Format[ResultDetails] {
+  implicit val format: Format[ResultDetails] = new Format[ResultDetails] {
     override def reads(json: JsValue): JsResult[ResultDetails] = {
       (json \ "_type").get match {
         case JsString("document") => docFormat.reads(json)
@@ -40,25 +40,25 @@ object ResultDetails {
 }
 
 object SearchResult {
-  implicit val format = Json.format[SearchResult]
+  implicit val format: Format[SearchResult] = Json.format[SearchResult]
 }
 
 case class SearchAggregationBucket(key: String, count: Long, buckets: Option[List[SearchAggregationBucket]] = None)
 
 object SearchAggregationBucket {
-  implicit val searchAggregationBucketFormat = Json.format[SearchAggregationBucket]
+  implicit val searchAggregationBucketFormat: Format[SearchAggregationBucket] = Json.format[SearchAggregationBucket]
 }
 
 case class SearchAggregation(key: String, buckets: List[SearchAggregationBucket])
 
 object SearchAggregation {
-  implicit val searchAggregationFormat = Json.format[SearchAggregation]
+  implicit val searchAggregationFormat: Format[SearchAggregation] = Json.format[SearchAggregation]
 }
 
 case class SearchResults(hits: Long, took: Long, page: Long, pageSize: Long, results: List[SearchResult], aggs: Set[SearchAggregation]) extends Paging[SearchResult]
 
 object SearchResults {
-  implicit val searchResultsFormat = Json.format[SearchResults]
+  implicit val searchResultsFormat: Format[SearchResults] = Json.format[SearchResults]
 
   val empty: SearchResults = SearchResults(
     hits = 0,

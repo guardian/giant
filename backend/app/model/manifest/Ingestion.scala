@@ -1,11 +1,11 @@
 package model.manifest
 
 import java.time.OffsetDateTime
-
 import model._
 import org.neo4j.driver.v1.Value
-import play.api.libs.json.Json
+import play.api.libs.json.{Format, Json}
 import utils.Time._
+
 import scala.jdk.CollectionConverters._
 
 case class Ingestion(display: String,
@@ -20,7 +20,7 @@ case class Ingestion(display: String,
                     )
 
 object Ingestion {
-  implicit val ingestionFormat = Json.format[Ingestion]
+  implicit val ingestionFormat: Format[Ingestion] = Json.format[Ingestion]
 
   def fromNeo4jValue(ingestion: Value): Ingestion = {
     Ingestion(

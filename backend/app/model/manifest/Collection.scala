@@ -9,7 +9,7 @@ import scala.jdk.CollectionConverters._
 case class Collection(uri: Uri, display: String, ingestions: List[Ingestion], createdBy: Option[String])
 
 object Collection {
-  implicit val collectionFormat = Json.format[Collection]
+  implicit val collectionFormat: Format[Collection] = Json.format[Collection]
 
   def mergeCollectionsAndIngestions(results: Seq[Record]): List[Collection] = {
     results.map(r => {

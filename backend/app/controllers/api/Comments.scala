@@ -18,7 +18,7 @@ import scala.concurrent.ExecutionContext
 
 case class PostCommentData(text: String, anchor: Option[CommentAnchor])
 object PostCommentData {
-  implicit val format = Json.format[PostCommentData]
+  implicit val format: Format[PostCommentData] = Json.format[PostCommentData]
 }
 
 class Comments(override val controllerComponents: AuthControllerComponents,

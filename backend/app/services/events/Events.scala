@@ -44,12 +44,12 @@ object EventType {
 
 case class Event(eventType: EventType, timestamp: Long, description: String, tags: Map[String, String])
 object Event {
-  implicit val eventResponseFormat = Json.format[Event]
+  implicit val eventResponseFormat: Format[Event] = Json.format[Event]
 }
 
 case class FindEventsResponse(results: List[Event], hits: Long, pageSize: Long, page: Long) extends Paging[Event]
 object FindEventsResponse {
-  implicit val findEventsResponseFormat = Json.format[FindEventsResponse]
+  implicit val findEventsResponseFormat: Format[FindEventsResponse] = Json.format[FindEventsResponse]
 }
 
 sealed trait EventFilter

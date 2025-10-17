@@ -1,11 +1,10 @@
 package model.frontend.email
 
 import java.time.OffsetDateTime
-
 import org.neo4j.driver.v1.Value
 import utils.attempt.Attempt
 import model._
-import play.api.libs.json.Json
+import play.api.libs.json.{Json, Writes}
 
 import scala.jdk.CollectionConverters._
 import scala.concurrent.ExecutionContext
@@ -13,7 +12,7 @@ import scala.concurrent.ExecutionContext
 case class EmailMetadata(subject: Option[String], fromAddress: Option[String], fromName: Option[String], sentAt: Option[ExtractedDateTime])
 
 object EmailMetadata {
-  implicit val writes = Json.writes[EmailMetadata]
+  implicit val writes: Writes[EmailMetadata] = Json.writes[EmailMetadata]
 }
 
 case class Email(uri: String, haveSource: Boolean, display: Option[String], metadata: Option[EmailMetadata] = None)
@@ -27,7 +26,7 @@ object Email {
     } yield Email(uri, maybeHaveSource.getOrElse(false), display)
   }
 
-  implicit val writes = Json.writes[Email]
+  implicit val writes: Writes[Email] = Json.writes[Email]
 }
 
 case class Neighbour(relation: String, uri: String)
@@ -40,7 +39,7 @@ object Neighbour {
     } yield Neighbour(relation, uri)
   }
 
-  implicit val writes = Json.writes[Neighbour]
+  implicit val writes: Writes[Neighbour] = Json.writes[Neighbour]
 }
 
 case class EmailNeighbours(email: Email, neighbours: Set[Neighbour]) {
@@ -55,5 +54,5 @@ object EmailNeighbours {
     } yield EmailNeighbours(email, neighbours.toSet)
   }
 
-  implicit val writes = Json.writes[EmailNeighbours]
+  implicit val writes: Writes[EmailNeighbours] = Json.writes[EmailNeighbours]
 }

@@ -19,7 +19,7 @@ class GenesisTest extends AnyFreeSpec with Matchers with Results with AttemptVal
 
   private val controllerComponents = Helpers.stubControllerComponents()
 
-  implicit override val patienceConfig = PatienceConfig(scaled(Span(2, Seconds)), scaled(Span(15, Millis)))
+  implicit override val patienceConfig: PatienceConfig = PatienceConfig(scaled(Span(2, Seconds)), scaled(Span(15, Millis)))
 
   "Genesis controller" - {
     "with an empty database" - {

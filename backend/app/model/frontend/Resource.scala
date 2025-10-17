@@ -13,7 +13,7 @@ import scala.jdk.CollectionConverters._
 case class RelatedResource(uri: String, `type`: String, display: Option[String], isExpandable: Boolean)
 
 object RelatedResource {
-  implicit val relatedResourceFormat = Json.format[RelatedResource]
+  implicit val relatedResourceFormat: Format[RelatedResource] = Json.format[RelatedResource]
 
   def fromNeo4jValue(v: Value) = RelatedResource(
     v.get("uri").asString(),
@@ -44,7 +44,7 @@ object Resource {
     case _ => basic
   }
 
-  implicit val format = new Format[Resource] {
+  implicit val format: Format[Resource] = new Format[Resource] {
     override def writes(resource: Resource): JsValue = resource match {
       case r: BasicResource => BasicResource.format.writes(r)
       case r: EmailResource => emailResourceFormat.writes(r)

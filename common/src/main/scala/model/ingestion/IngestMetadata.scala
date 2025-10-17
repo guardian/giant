@@ -1,9 +1,8 @@
 package model.ingestion
 
 import java.nio.file.{Path, Paths}
-
 import model.{Language, Uri}
-import play.api.libs.json.Json
+import play.api.libs.json.{Format, Json}
 import utils.attempt.{ClientFailure, Failure}
 
 import scala.annotation.tailrec
@@ -11,7 +10,7 @@ import scala.annotation.tailrec
 case class IngestMetadata(ingestion: String, file: IngestionFile, languages: List[Language])
 
 object IngestMetadata {
-  implicit val formats = Json.format[IngestMetadata]
+  implicit val formats: Format[IngestMetadata] = Json.format[IngestMetadata]
   
   def expandParents(ingestionUri: String, parentUri: Uri): Either[Failure, List[Uri]] = {
     val ingestionParts = ingestionUri.split("/").toList

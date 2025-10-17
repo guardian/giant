@@ -1,9 +1,9 @@
 package model
 
-import play.api.libs.json.Json
+import play.api.libs.json.{Json, Format}
 
 case class CreateCollectionRequest(name: String)
 
 object CreateCollectionRequest {
-  implicit val createCollectionDataFormat = Json.format[CreateCollectionRequest]
+  implicit val createCollectionDataFormat: Format[CreateCollectionRequest] = Json.format[CreateCollectionRequest]
 }

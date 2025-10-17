@@ -30,7 +30,7 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
 
   import Neo4jHelper._
 
-  implicit val ec = executionContext
+  implicit val ec: ExecutionContext = executionContext
 
   override def setup(): Either[Failure, Unit] = {
     for {
