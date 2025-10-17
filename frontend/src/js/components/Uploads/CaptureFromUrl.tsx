@@ -136,6 +136,8 @@ export const CaptureFromUrl = connect(
       setNodeAsExpanded(parentFolder);
       // refresh the workspace to show the new job
       refreshWorkspace(currentWorkspace.id);
+      // clear fields ready for next use
+      setUrl(""); setSaveAs("");
     });
   }
 
