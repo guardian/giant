@@ -111,7 +111,7 @@ class Neo4jRemoteIngestStore(driver: Driver, executionContext: ExecutionContext,
   override def getRemoteIngestJob(id: String): Attempt[RemoteIngest] = attemptTransaction { tx =>
     val query =
       s"""
-        |MATCH (ri:RemoteIngest {id: $id})
+        |MATCH (ri:RemoteIngest {id: ${"$id"}})
         |MATCH (addedBy :User)-[:CREATED]->(ri)
         |$returnFields
       """.stripMargin
