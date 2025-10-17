@@ -16,6 +16,7 @@ import MdEdit from "react-icons/lib/md/edit";
 import MdDelete from "react-icons/lib/md/delete";
 import TakeOwnershipOfWorkspaceModal from "./TakeOwnershipOfWorkspaceModal";
 import {takeOwnershipOfWorkspace} from "../../actions/workspaces/takeOwnershipOfWorkspace";
+import {CaptureFromUrl} from "../Uploads/CaptureFromUrl";
 
 type Props = {
     workspace: Workspace,
@@ -79,6 +80,7 @@ export default function WorkspaceSummary({
           focusedWorkspaceEntry={focusedEntry}
           expandedNodes={expandedNodes}
         />
+        <CaptureFromUrl maybePreSelectedWorkspace={workspace} withButton />
         <TakeOwnershipOfWorkspaceModal
                 workspace={workspace}
                 isAdmin={isAdmin}
