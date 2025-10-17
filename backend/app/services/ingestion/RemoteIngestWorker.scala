@@ -87,7 +87,10 @@ class RemoteIngestWorker(
           } yield job).fold(
             failureDetail => {
               val maybeParsedJob =  messageParseResult.asOpt
-              logger.error(s"Failed to ingest remote file for job with id ${maybeParsedJob.map(_.id).getOrElse(s"unknown (but had sqs id ${sqsMessage.getMessageId}")}: $failureDetail")
+              logger.error(
+                s"Failed to ingest remote file for job with id ${maybeParsedJob.map(_.id).getOrElse(s"unknown (but had sqs id ${sqsMessage.getMessageId}")}",
+                failureDetail.toThrowable
+              )
               // TODO: Do we care if this sending to dead letter queue fails?
               amazonSQSClient.sendMessage(config.outputDeadLetterQueueUrl, sqsMessage.getBody)
               maybeParsedJob.map(parsedJob =>
