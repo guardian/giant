@@ -118,37 +118,37 @@ class RemoteIngestWorker(
         val messageParseResult = Json.fromJson[RemoteIngestOutput](Json.parse(sqsMessage.getBody))
 
         (for {
-            parsedJob <- Attempt.fromEither(messageParseResult.asEither.left.map(JsonParseFailure))
-            _ <- Attempt.fromEither(
-              if(parsedJob.status == "SUCCESS") Right(())
-              else Left(RemoteIngestFailure(s"Remote ingest job ${parsedJob.id} did not complete successfully. \n$parsedJob"))
+          remoteIngestOutput <- Attempt.fromEither(messageParseResult.asEither.left.map(JsonParseFailure))
+          _ <- Attempt.fromEither(
+              if(remoteIngestOutput.status == "SUCCESS") Right(())
+              else Left(RemoteIngestFailure(s"Remote ingest job ${remoteIngestOutput.id} did not complete successfully. \n$remoteIngestOutput"))
             )
-            job <- remoteIngestStore.getRemoteIngestJob(parsedJob.id)
-            workspaceMetadata <- annotations.getWorkspaceMetadata(job.addedBy.username, job.workspaceId)
-            _ <- remoteIngestStore.updateRemoteIngestJobStatus(parsedJob.id, RemoteIngestStatus.Ingesting)
-            ingestion <- Collections.createIngestionIfNotExists(Uri(job.collection), job.ingestion, manifest, index, pages, s3Config)
-            parentFolder <- annotations.addOrGetFolder(job.addedBy.username, job.workspaceId, job.parentFolderId, job.title)
-            ingestionKey = if (parsedJob.outputType == "WEBPAGE_SNAPSHOT") job.webpageSnapshotIngestionKey else job.mediaDownloadIngestionKey
-            _ <- IngestStorePolling.fetchData(ingestionKey, remoteIngestStorage, scratchSpace){(path, fingerprint) =>
-              if (parsedJob.outputType == "WEBPAGE_SNAPSHOT") {
+          job <- remoteIngestStore.getRemoteIngestJob(remoteIngestOutput.id)
+          //            task <- Attempt.fromOption(job.tasks.get(parsedJob.taskId), Attempt.Left(RemoteIngestFailure(s"No task found for job id ${parsedJob.id}")))
+          workspaceMetadata <- annotations.getWorkspaceMetadata(job.addedBy.username, job.workspaceId)
+          _ <- remoteIngestStore.updateRemoteIngestJobStatus(remoteIngestOutput.id, remoteIngestOutput.taskId, RemoteIngestStatus.Ingesting)
+          ingestion <- Collections.createIngestionIfNotExists(Uri(job.collection), job.ingestion, manifest, index, pages, s3Config)
+          parentFolder <- annotations.addOrGetFolder(job.addedBy.username, job.workspaceId, job.parentFolderId, job.title)
+          _ <- IngestStorePolling.fetchData(job.taskKey(remoteIngestOutput.taskId), remoteIngestStorage, scratchSpace){ (path, fingerprint) =>
+              if (remoteIngestOutput.outputType == "WEBPAGE_SNAPSHOT") {
                   for {
                     files <- getWebpageSnapshotFiles(path, job.id)
-                    htmlIngest <- ingestRemoteIngestOutput(files.html, files.htmlFingerprint, job, parsedJob, parentFolder, workspaceMetadata, ingestion, s"${files.baseFilename} text")
-                    screenshotIngest <- ingestRemoteIngestOutput(files.screenshot, files.screenshotFingerprint, job, parsedJob, parentFolder, workspaceMetadata, ingestion, s"${files.baseFilename} screeshot")
+                    htmlIngest <- ingestRemoteIngestOutput(files.html, files.htmlFingerprint, job, remoteIngestOutput, parentFolder, workspaceMetadata, ingestion, s"${files.baseFilename} text")
+                    screenshotIngest <- ingestRemoteIngestOutput(files.screenshot, files.screenshotFingerprint, job, remoteIngestOutput, parentFolder, workspaceMetadata, ingestion, s"${files.baseFilename} screeshot")
                   } yield {
                     Files.delete(files.html)
                     Files.delete(files.screenshot)
-                    remoteIngestStore.updateRemoteIngestJobBlobUris(parsedJob.id, List(htmlIngest.blob.uri.value, screenshotIngest.blob.uri.value))
+                    remoteIngestStore.updateRemoteIngestJobBlobUris(remoteIngestOutput.id, remoteIngestOutput.taskId, List(htmlIngest.blob.uri.value, screenshotIngest.blob.uri.value))
                   }
               } else {
-                val fileName = parsedJob.metadata.map(meta => s"${meta.title}.${meta.extension}").getOrElse(s"${job.url}")
-                ingestRemoteIngestOutput(path, fingerprint, job, parsedJob, parentFolder, workspaceMetadata, ingestion, fileName).map { ingestResult =>
-                  remoteIngestStore.updateRemoteIngestJobBlobUris(parsedJob.id, List(ingestResult.blob.uri.value))
+                val fileName = remoteIngestOutput.metadata.map(meta => s"${meta.title}.${meta.extension}").getOrElse(s"${job.url}")
+                ingestRemoteIngestOutput(path, fingerprint, job, remoteIngestOutput, parentFolder, workspaceMetadata, ingestion, fileName).map { ingestResult =>
+                  remoteIngestStore.updateRemoteIngestJobBlobUris(remoteIngestOutput.id, remoteIngestOutput.taskId, List(ingestResult.blob.uri.value))
                 }
               }
             }.toAttempt
-            _ <- remoteIngestStore.updateRemoteIngestJobStatus(parsedJob.id, RemoteIngestStatus.Completed)
-          } yield job).fold(
+          _ <- remoteIngestStore.updateRemoteIngestJobStatus(remoteIngestOutput.id, remoteIngestOutput.taskId, RemoteIngestStatus.Completed)
+          } yield (job, remoteIngestOutput)).fold(
             failureDetail => {
               val maybeParsedJob =  messageParseResult.asOpt
               logger.error(
@@ -158,12 +158,12 @@ class RemoteIngestWorker(
               // TODO: Do we care if this sending to dead letter queue fails?
               amazonSQSClient.sendMessage(config.outputDeadLetterQueueUrl, sqsMessage.getBody)
               maybeParsedJob.map(parsedJob =>
-                remoteIngestStore.updateRemoteIngestJobStatus(parsedJob.id, RemoteIngestStatus.Failed)
+                  remoteIngestStore.updateRemoteIngestJobStatus(parsedJob.id, parsedJob.taskId, RemoteIngestStatus.Failed)
               )
             },
-            job => {
-              logger.info(s"Successfully ingested remote file for job with id ${job.id} in workspace ${job.workspaceId}")
-              remoteIngestStorage.delete(job.mediaDownloadIngestionKey)
+          jobAndOutput => {
+              logger.info(s"Successfully ingested remote file for job with id ${jobAndOutput._1.id} in workspace ${jobAndOutput._1.workspaceId}")
+              remoteIngestStorage.delete(jobAndOutput._1.taskKey(jobAndOutput._2.taskId))
             }
         ).onComplete { _ =>
           amazonSQSClient.deleteMessage(config.outputQueueUrl, sqsMessage.getReceiptHandle)

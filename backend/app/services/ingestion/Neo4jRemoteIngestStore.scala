@@ -4,15 +4,15 @@ import model.ingestion.{RemoteIngest, RemoteIngestStatus, RemoteIngestTask}
 import model.user.DBUser
 import org.joda.time.DateTime
 import model.ingestion.RemoteIngestStatus.RemoteIngestStatus
-import org.joda.time.DateTime
 import org.neo4j.driver.v1.Driver
 import org.neo4j.driver.v1.Values.parameters
 import services.Neo4jQueryLoggingConfig
 import utils.attempt.{Attempt, Failure, NotFoundFailure}
 import utils.{Logging, Neo4jHelper}
+import java.util.{Map => JavaMap}
 
 import scala.concurrent.ExecutionContext
-import scala.jdk.CollectionConverters.{CollectionHasAsScala, IterableHasAsJava}
+import scala.jdk.CollectionConverters.{CollectionHasAsScala, IterableHasAsJava, MapHasAsScala}
 
 object Neo4jRemoteIngestStore {
   def setup(driver: Driver, executionContext: ExecutionContext, queryLoggingConfig: Neo4jQueryLoggingConfig): Either[Failure, Neo4jRemoteIngestStore] = {
@@ -59,7 +59,19 @@ class Neo4jRemoteIngestStore(driver: Driver, executionContext: ExecutionContext,
         |  createdAt: $createdAt,
         |  url: $url,
         |  mediaDownloadId: $mediaDownloadId,
-        |  webpageSnapshotId: $webpageSnapshotId
+        |  webpageSnapshotId: $webpageSnapshotId,
+        |  tasks: {
+        |    $mediaDownloadId: {
+        |      id: $mediaDownloadId,
+        |      status: $status,
+        |      blobUris: []
+        |    },
+        |    $webpageSnapshotId: {
+        |      id: $webpageSnapshotId,
+        |      status: $status,
+        |      blobUris: []
+        |    }
+        |  }
         |})
         |CREATE (ri)<-[:CREATED]-(user)
         |RETURN ri.id AS id
@@ -93,26 +105,32 @@ class Neo4jRemoteIngestStore(driver: Driver, executionContext: ExecutionContext,
     |       ri.ingestion AS ingestion,
     |       ri.createdAt AS created_at,
     |       ri.url AS url,
-    |       ri.mediaDownloadId AS media_download_id,
-    |       ri.webpageSnapshotId AS webpage_snapshot_id,
-    |       ri.mediaDownloadBlobUris AS media_download_blob_uris,
-    |       ri.webpageSnapshotBlobUris AS webpage_snapshot_blob_uris,
-    |       addedBy AS added_by
+    |       ri.tasks AS tasks
   """.stripMargin
 
+  private def parseTasksMap(tasksMap: JavaMap[String, Object]): Map[String, RemoteIngestTask] = {
+    tasksMap.asScala.toMap.map { case (taskId, taskValue) =>
+      val taskMap = taskValue.asInstanceOf[JavaMap[String, Object]].asScala.toMap
+      val blobUris =
+        if (taskMap.contains("blobUris") && taskMap("blobUris") != null)
+          taskMap("blobUris").asInstanceOf[java.util.List[String]].asScala.toList
+        else List()
+      val status =
+        if (taskMap.contains("status") && taskMap("status") != null)
+          RemoteIngestStatus withName taskMap("status").asInstanceOf[String]
+        else RemoteIngestStatus.Queued
+      taskId -> RemoteIngestTask(
+        id = taskId,
+        status = status,
+        blobUris = blobUris
+      )
+    }
+  }
+
   private def recordToRemoteIngest(record: org.neo4j.driver.v1.Record): RemoteIngest = {
-    val mediaDownloadBlobUris =
-      if (record.containsKey("media_download_blob_uris") && !record.get("media_download_blob_uris").isNull)
-        record.get("media_download_blob_uris").asList[String](b => b.asString()).asScala.toList
-      else List()
-    val webpageSnapshotBlobUris =
-      if (record.containsKey("webpage_snapshot_blob_uris") && !record.get("webpage_snapshot_blob_uris").isNull)
-        record.get("webpage_snapshot_blob_uris").asList[String](b => b.asString()).asScala.toList
-      else List()
     RemoteIngest(
       id = record.get("id").asString(),
       title = record.get("title").asString(),
-      status = RemoteIngestStatus withName record.get("status").asString(),
       workspaceId = record.get("workspace_id").asString(),
       parentFolderId = record.get("parent_folder_id").asString(),
       collection = record.get("collection").asString(),
@@ -120,14 +138,7 @@ class Neo4jRemoteIngestStore(driver: Driver, executionContext: ExecutionContext,
       createdAt = new org.joda.time.DateTime(record.get("created_at").asLong(), org.joda.time.DateTimeZone.UTC),
       url = record.get("url").asString(),
       addedBy = DBUser.fromNeo4jValue(record.get("added_by")).toPartial,
-      mediaDownload = RemoteIngestTask(
-        id = record.get("media_download_id").asString(),
-        blobUris = mediaDownloadBlobUris
-      ),
-      webpageSnapshot = RemoteIngestTask(
-        id = record.get("webpage_snapshot_id").asString(),
-        blobUris = webpageSnapshotBlobUris
-      )
+      tasks = parseTasksMap(record.get("tasks").asMap())
     )
   }
   override def getRemoteIngestJob(id: String): Attempt[RemoteIngest] = attemptTransaction { tx =>
@@ -175,11 +186,11 @@ class Neo4jRemoteIngestStore(driver: Driver, executionContext: ExecutionContext,
     maybeSinceUTCEpoch = Some(DateTime.now.minusDays(14).getMillis)
   )
 
-  override def updateRemoteIngestJobStatus(id: String, status: RemoteIngestStatus): Attempt[Unit] = attemptTransaction { tx =>
+  override def updateRemoteIngestJobStatus(id: String, taskId: String, status: RemoteIngestStatus): Attempt[Unit] = attemptTransaction { tx =>
     val query =
       """
         |MATCH (ri:RemoteIngest {id: $id})
-        |SET ri.status = $status
+        |SET ri.tasks.$taskId.status = $status
         |RETURN COUNT(ri) AS updatedCount
       """.stripMargin
     val params = parameters("id", id, "status", status.toString)
@@ -191,14 +202,14 @@ class Neo4jRemoteIngestStore(driver: Driver, executionContext: ExecutionContext,
     }
   }
 
-  override def updateRemoteIngestJobBlobUris(id: String, blobUris: List[String]): Attempt[Unit] = attemptTransaction { tx =>
+  override def updateRemoteIngestJobBlobUris(id: String, taskId: String, blobUris: List[String]): Attempt[Unit] = attemptTransaction { tx =>
     val query =
       """
         |MATCH (ri:RemoteIngest {id: $id})
-        |SET ri.blobUris = $blobUris
+        |SET ri.tasks.$taskId.blobUris = $blobUris
         |RETURN COUNT(ri) AS updatedCount
       """.stripMargin
-    val params = parameters("id", id, "blobUris", blobUris.asJava)
+    val params = parameters("id", id, "taskId", taskId, "blobUris", blobUris.asJava)
     tx.run(query, params).map { result =>
       val updatedCount = result.single().get("updatedCount").asInt()
       if (updatedCount == 0) {
