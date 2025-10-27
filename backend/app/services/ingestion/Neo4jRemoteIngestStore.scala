@@ -29,10 +29,10 @@ class Neo4jRemoteIngestStore(driver: Driver, executionContext: ExecutionContext,
 
   override def setup(): Either[Failure, Unit] = transaction { tx =>
     tx.run("CREATE CONSTRAINT ON (remoteIngest: RemoteIngest)   ASSERT remoteIngest.id   IS UNIQUE")
+    tx.run("CREATE CONSTRAINT ON (task: RemoteIngestTask)   ASSERT task.id   IS UNIQUE")
     tx.run("CREATE INDEX ON :RemoteIngest(status)")
     Right(())
   }
-
   override def insertRemoteIngest(
     id: String,
     title: String,
@@ -45,9 +45,20 @@ class Neo4jRemoteIngestStore(driver: Driver, executionContext: ExecutionContext,
     mediaDownloadId: String,
     webpageSnapshotId: String
   ): Attempt[String] = attemptTransaction { tx =>
+
     val query =
       """
         |MATCH (user: User { username: { username }})
+        |CREATE (wst: RemoteIngestTask {
+        |  id: $webpageSnapshotId,
+        |  status: $status,
+        |  blobUris: []
+        |})
+        |CREATE (mdt: RemoteIngestTask {
+        |  id: $mediaDownloadId,
+        |  status: $status,
+        |  blobUris: []
+        | })
         |CREATE (ri:RemoteIngest {
         |  id: $id,
         |  title: $title,
@@ -59,23 +70,15 @@ class Neo4jRemoteIngestStore(driver: Driver, executionContext: ExecutionContext,
         |  createdAt: $createdAt,
         |  url: $url,
         |  mediaDownloadId: $mediaDownloadId,
-        |  webpageSnapshotId: $webpageSnapshotId,
-        |  tasks: {
-        |    $mediaDownloadId: {
-        |      id: $mediaDownloadId,
-        |      status: $status,
-        |      blobUris: []
-        |    },
-        |    $webpageSnapshotId: {
-        |      id: $webpageSnapshotId,
-        |      status: $status,
-        |      blobUris: []
-        |    }
-        |  }
+        |  webpageSnapshotId: $webpageSnapshotId
         |})
         |CREATE (ri)<-[:CREATED]-(user)
+        |CREATE (ri)-[:HAS_TASK]->(mdt)
+        |CREATE (ri)-[:HAS_TASK]->(wst)
         |RETURN ri.id AS id
     """.stripMargin
+
+    println(query, username)
 
     val params = parameters(
       "username", username,
@@ -105,7 +108,8 @@ class Neo4jRemoteIngestStore(driver: Driver, executionContext: ExecutionContext,
     |       ri.ingestion AS ingestion,
     |       ri.createdAt AS created_at,
     |       ri.url AS url,
-    |       ri.tasks AS tasks
+    |       addedBy as added_by,
+    |       COLLECT({id: task.id, status: task.status, blobUris: task.blobUris}) AS tasks
   """.stripMargin
 
   private def parseTasksMap(tasksMap: JavaMap[String, Object]): Map[String, RemoteIngestTask] = {
@@ -138,7 +142,15 @@ class Neo4jRemoteIngestStore(driver: Driver, executionContext: ExecutionContext,
       createdAt = new org.joda.time.DateTime(record.get("created_at").asLong(), org.joda.time.DateTimeZone.UTC),
       url = record.get("url").asString(),
       addedBy = DBUser.fromNeo4jValue(record.get("added_by")).toPartial,
-      tasks = parseTasksMap(record.get("tasks").asMap())
+      tasks = record.get("tasks").asList().asScala.map {taskValue =>
+        val taskMap = taskValue.asInstanceOf[JavaMap[String, Object]].asScala.toMap
+        val taskId = taskMap("id").asInstanceOf[String]
+        taskId -> RemoteIngestTask(
+          id = taskId,
+          status = RemoteIngestStatus withName taskMap("status").asInstanceOf[String],
+          blobUris = taskMap("blobUris").asInstanceOf[java.util.List[String]].asScala.toList
+        )
+      }.toMap
     )
   }
   override def getRemoteIngestJob(id: String): Attempt[RemoteIngest] = attemptTransaction { tx =>
@@ -146,6 +158,7 @@ class Neo4jRemoteIngestStore(driver: Driver, executionContext: ExecutionContext,
       s"""
         |MATCH (ri:RemoteIngest {id: ${"$id"}})
         |MATCH (addedBy :User)-[:CREATED]->(ri)
+        |MATCH (ri)-[:HAS_TASK]->(task: RemoteIngestTask)
         |$returnFields
       """.stripMargin
 
@@ -160,12 +173,13 @@ class Neo4jRemoteIngestStore(driver: Driver, executionContext: ExecutionContext,
     // important: don't remove the whitespace around the comparison operators in the where clauses, as they are used to split the string later
     val filters = List(
       maybeWorkspaceId.map("ri.workspaceId = $workspaceId" -> _),
-      if(onlyStatuses.isEmpty) None else Some("ri.status IN $statuses" -> onlyStatuses.map(_.toString).toArray),
+      if(onlyStatuses.isEmpty) None else Some("task.status IN $statuses" -> onlyStatuses.map(_.toString).toArray),
       maybeSinceUTCEpoch.map("ri.createdAt > $since" -> _)
     ).flatten
 
     val query = s"""
           |MATCH (ri:RemoteIngest)
+          |MATCH (ri)-[:HAS_TASK]->(task: RemoteIngestTask)
           |${if (filters.isEmpty) "" else s"WHERE ${filters.toMap.keys.mkString(" AND ")}"}
           |MATCH (addedBy :User)-[:CREATED]->(ri)
           |$returnFields
@@ -186,34 +200,34 @@ class Neo4jRemoteIngestStore(driver: Driver, executionContext: ExecutionContext,
     maybeSinceUTCEpoch = Some(DateTime.now.minusDays(14).getMillis)
   )
 
-  override def updateRemoteIngestJobStatus(id: String, taskId: String, status: RemoteIngestStatus): Attempt[Unit] = attemptTransaction { tx =>
+  override def updateRemoteIngestTaskStatus(taskId: String, status: RemoteIngestStatus): Attempt[Unit] = attemptTransaction { tx =>
     val query =
       """
-        |MATCH (ri:RemoteIngest {id: $id})
-        |SET ri.tasks.$taskId.status = $status
-        |RETURN COUNT(ri) AS updatedCount
+        |MATCH (rit:RemoteIngestTask {id: $taskId})
+        |SET rit.status = $status
+        |RETURN COUNT(rit) AS updatedCount
       """.stripMargin
-    val params = parameters("id", id, "status", status.toString)
+    val params = parameters("taskId", taskId, "status", status.toString)
     tx.run(query, params).map { result =>
       val updatedCount = result.single().get("updatedCount").asInt()
       if (updatedCount == 0) {
-        Attempt.Left(NotFoundFailure(s"No RemoteIngest job found with id $id to update status."))
+        Attempt.Left(NotFoundFailure(s"No RemoteIngestTask found with id $taskId to update status."))
       } else ()
     }
   }
 
-  override def updateRemoteIngestJobBlobUris(id: String, taskId: String, blobUris: List[String]): Attempt[Unit] = attemptTransaction { tx =>
+  override def updateRemoteIngestTaskBlobUris(taskId: String, blobUris: List[String]): Attempt[Unit] = attemptTransaction { tx =>
     val query =
       """
-        |MATCH (ri:RemoteIngest {id: $id})
-        |SET ri.tasks.$taskId.blobUris = $blobUris
-        |RETURN COUNT(ri) AS updatedCount
+        |MATCH (rit: RemoteIngestTask {id: $taskId})
+        |SET rit.blobUris = $blobUris
+        |RETURN COUNT(rit) AS updatedCount
       """.stripMargin
-    val params = parameters("id", id, "taskId", taskId, "blobUris", blobUris.asJava)
+    val params = parameters("taskId", taskId, "blobUris", blobUris.asJava)
     tx.run(query, params).map { result =>
       val updatedCount = result.single().get("updatedCount").asInt()
       if (updatedCount == 0) {
-        Attempt.Left(NotFoundFailure(s"No RemoteIngest job found with id $id to update blobUri."))
+        Attempt.Left(NotFoundFailure(s"No RemoteIngestTask found with id $taskId to update blobUri."))
       } else ()
     }
   }

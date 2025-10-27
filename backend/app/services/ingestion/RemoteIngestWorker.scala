@@ -23,7 +23,7 @@ import scala.concurrent.{Await, ExecutionContext}
 import scala.jdk.CollectionConverters.CollectionHasAsScala
 
 
-case class WebpageSnapshotFiles(screenshot: Path, screenshotFingerprint: Uri, html: Path, htmlFingerprint: Uri, baseFilename: String)
+case class WebpageSnapshotFiles(screenshot: Path, screenshotFingerprint: String, html: Path, htmlFingerprint: String, baseFilename: String)
 
 case class WebpageSnapshot(html: String, screenshotBase64: String, title: String)
 object WebpageSnapshot {
@@ -47,7 +47,7 @@ class RemoteIngestWorker(
 
   private def ingestRemoteIngestOutput(
                                         path: Path,
-                                        fingerprint: Uri,
+                                        fingerprint: String,
                                         job: RemoteIngest,
                                         parsedJob: RemoteIngestOutput,
                                         parentFolder: String,
@@ -74,7 +74,7 @@ class RemoteIngestWorker(
         esEvents = esEvents,
         ingestionServices = ingestionServices,
         annotations = annotations,
-        fingerPrint = Some(fingerprint.toString)
+        fingerPrint = Some(fingerprint)
       ).process().asFuture,
       15.minutes
     )
@@ -97,9 +97,9 @@ class RemoteIngestWorker(
         Right(
           WebpageSnapshotFiles(
             screenshotPath,
-            Uri(FingerprintServices.createFingerprintFromFile(screenshotPath.toFile)),
+            FingerprintServices.createFingerprintFromFile(screenshotPath.toFile),
             htmlPath,
-            Uri(FingerprintServices.createFingerprintFromFile(htmlPath.toFile)),
+            FingerprintServices.createFingerprintFromFile(htmlPath.toFile),
             baseFilename
           ))
       case JsError(errors) =>
@@ -124,9 +124,8 @@ class RemoteIngestWorker(
               else Left(RemoteIngestFailure(s"Remote ingest job ${remoteIngestOutput.id} did not complete successfully. \n$remoteIngestOutput"))
             )
           job <- remoteIngestStore.getRemoteIngestJob(remoteIngestOutput.id)
-          //            task <- Attempt.fromOption(job.tasks.get(parsedJob.taskId), Attempt.Left(RemoteIngestFailure(s"No task found for job id ${parsedJob.id}")))
           workspaceMetadata <- annotations.getWorkspaceMetadata(job.addedBy.username, job.workspaceId)
-          _ <- remoteIngestStore.updateRemoteIngestJobStatus(remoteIngestOutput.id, remoteIngestOutput.taskId, RemoteIngestStatus.Ingesting)
+          _ <- remoteIngestStore.updateRemoteIngestTaskStatus(remoteIngestOutput.taskId, RemoteIngestStatus.Ingesting)
           ingestion <- Collections.createIngestionIfNotExists(Uri(job.collection), job.ingestion, manifest, index, pages, s3Config)
           parentFolder <- annotations.addOrGetFolder(job.addedBy.username, job.workspaceId, job.parentFolderId, job.title)
           _ <- IngestStorePolling.fetchData(job.taskKey(remoteIngestOutput.taskId), remoteIngestStorage, scratchSpace){ (path, fingerprint) =>
@@ -134,20 +133,20 @@ class RemoteIngestWorker(
                   for {
                     files <- getWebpageSnapshotFiles(path, job.id)
                     htmlIngest <- ingestRemoteIngestOutput(files.html, files.htmlFingerprint, job, remoteIngestOutput, parentFolder, workspaceMetadata, ingestion, s"${files.baseFilename} text")
-                    screenshotIngest <- ingestRemoteIngestOutput(files.screenshot, files.screenshotFingerprint, job, remoteIngestOutput, parentFolder, workspaceMetadata, ingestion, s"${files.baseFilename} screeshot")
+                    screenshotIngest <- ingestRemoteIngestOutput(files.screenshot, files.screenshotFingerprint, job, remoteIngestOutput, parentFolder, workspaceMetadata, ingestion, s"${files.baseFilename} screenshot")
                   } yield {
                     Files.delete(files.html)
                     Files.delete(files.screenshot)
-                    remoteIngestStore.updateRemoteIngestJobBlobUris(remoteIngestOutput.id, remoteIngestOutput.taskId, List(htmlIngest.blob.uri.value, screenshotIngest.blob.uri.value))
+                    remoteIngestStore.updateRemoteIngestTaskBlobUris(remoteIngestOutput.taskId, List(htmlIngest.blob.uri.value, screenshotIngest.blob.uri.value))
                   }
               } else {
                 val fileName = remoteIngestOutput.metadata.map(meta => s"${meta.title}.${meta.extension}").getOrElse(s"${job.url}")
-                ingestRemoteIngestOutput(path, fingerprint, job, remoteIngestOutput, parentFolder, workspaceMetadata, ingestion, fileName).map { ingestResult =>
-                  remoteIngestStore.updateRemoteIngestJobBlobUris(remoteIngestOutput.id, remoteIngestOutput.taskId, List(ingestResult.blob.uri.value))
+                ingestRemoteIngestOutput(path, fingerprint.value, job, remoteIngestOutput, parentFolder, workspaceMetadata, ingestion, fileName).map { ingestResult =>
+                  remoteIngestStore.updateRemoteIngestTaskBlobUris(remoteIngestOutput.taskId, List(ingestResult.blob.uri.value))
                 }
               }
             }.toAttempt
-          _ <- remoteIngestStore.updateRemoteIngestJobStatus(remoteIngestOutput.id, remoteIngestOutput.taskId, RemoteIngestStatus.Completed)
+          _ <- remoteIngestStore.updateRemoteIngestTaskStatus(remoteIngestOutput.taskId, RemoteIngestStatus.Completed)
           } yield (job, remoteIngestOutput)).fold(
             failureDetail => {
               val maybeParsedJob =  messageParseResult.asOpt
@@ -158,7 +157,7 @@ class RemoteIngestWorker(
               // TODO: Do we care if this sending to dead letter queue fails?
               amazonSQSClient.sendMessage(config.outputDeadLetterQueueUrl, sqsMessage.getBody)
               maybeParsedJob.map(parsedJob =>
-                  remoteIngestStore.updateRemoteIngestJobStatus(parsedJob.id, parsedJob.taskId, RemoteIngestStatus.Failed)
+                  remoteIngestStore.updateRemoteIngestTaskStatus(parsedJob.taskId, RemoteIngestStatus.Failed)
               )
             },
           jobAndOutput => {

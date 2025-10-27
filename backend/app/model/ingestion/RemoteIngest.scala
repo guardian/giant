@@ -8,6 +8,9 @@ import play.api.libs.json.{Format, JsError, JsResult, JsString, JsSuccess, JsVal
 import services.observability.JodaReadWrites
 import services.{IngestStorage, RemoteIngestConfig}
 import utils.Logging
+import org.neo4j.driver.v1.Value
+
+import scala.jdk.CollectionConverters.CollectionHasAsScala
 
 object RemoteIngestStatus extends Enumeration {
   type RemoteIngestStatus = Value
@@ -28,6 +31,13 @@ object RemoteIngestStatus extends Enumeration {
 case class RemoteIngestTask(id: String, status: RemoteIngestStatus.RemoteIngestStatus, blobUris: List[String])
 object RemoteIngestTask {
   implicit val remoteIngestTaskFormat = Json.format[RemoteIngestTask]
+
+  def fromNeo4jValue(task: Value) : RemoteIngestTask = {
+    val id = task.get("id").asString()
+    val status = RemoteIngestStatus.withName(task.get("status").asString())
+    val blobUris = task.get("blobUris").asList().asScala.toList.map(_.asInstanceOf[String])
+    RemoteIngestTask(id, status, blobUris)
+  }
 }
 
 case class RemoteIngest(
