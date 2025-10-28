@@ -10,11 +10,12 @@ import services.{IngestStorage, RemoteIngestConfig}
 import utils.Logging
 import org.neo4j.driver.v1.Value
 
+import java.util.UUID
 import scala.jdk.CollectionConverters.CollectionHasAsScala
 
 object RemoteIngestStatus extends Enumeration {
   type RemoteIngestStatus = Value
-  val Queued, Ingesting, Completed, Failed  = Value
+  val Queued, Ingesting, Completed, Failed, TimedOut  = Value
 
   implicit val format: Format[RemoteIngestStatus] = new Format[RemoteIngestStatus] {
     def writes(status: RemoteIngestStatus): JsValue = JsString(status.toString)
@@ -53,9 +54,11 @@ case class RemoteIngest(
   tasks: Map[String, RemoteIngestTask]
 ) {
 
-  def taskKey(taskId: String) = RemoteIngest.ingestionKey(createdAt, taskId)
+  def taskKey(taskId: String): (Long, UUID) = RemoteIngest.ingestionKey(createdAt, taskId)
 
-  val finishedStatuses = Set(RemoteIngestStatus.Completed, RemoteIngestStatus.Failed)
+  private val finishedStatuses = Set(RemoteIngestStatus.Completed, RemoteIngestStatus.Failed, RemoteIngestStatus.TimedOut)
+
+  def timedOut: Boolean = new DateTime().minusHours(2).isAfter(createdAt)
 
   def combinedStatus: RemoteIngestStatus.RemoteIngestStatus = {
     // if all tasks are complete
@@ -67,6 +70,8 @@ case class RemoteIngest(
       } else {
         RemoteIngestStatus.Failed
       }
+    } else if (timedOut) {
+      RemoteIngestStatus.TimedOut
     } else if (tasks.values.exists(_.status == RemoteIngestStatus.Ingesting)) {
       RemoteIngestStatus.Ingesting
     } else {

@@ -160,6 +160,7 @@ class Workspaces(
           addedBy = job.addedBy,
           processingStage = job.combinedStatus match {
             case RemoteIngestStatus.Failed => ProcessingStage.Failed
+            case RemoteIngestStatus.TimedOut => ProcessingStage.Failed
             case _ => ProcessingStage.Processing(
               tasksRemaining = job.tasksRemaining,
               note = Some(job.combinedStatus.toString)

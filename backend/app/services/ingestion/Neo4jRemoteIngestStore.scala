@@ -196,7 +196,7 @@ class Neo4jRemoteIngestStore(driver: Driver, executionContext: ExecutionContext,
 
   override def getRelevantRemoteIngestJobs(workspaceId: String): Attempt[List[RemoteIngest]] = getRemoteIngestJobs(
     maybeWorkspaceId = Some(workspaceId),
-    onlyStatuses = List(RemoteIngestStatus.Queued, RemoteIngestStatus.Ingesting, RemoteIngestStatus.Failed),
+    onlyStatuses = List(RemoteIngestStatus.Queued, RemoteIngestStatus.Ingesting, RemoteIngestStatus.Failed, RemoteIngestStatus.TimedOut),
     maybeSinceUTCEpoch = Some(DateTime.now.minusDays(14).getMillis)
   )
 
