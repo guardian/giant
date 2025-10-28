@@ -158,13 +158,11 @@ class Workspaces(
           maybeParentId = Some(job.parentFolderId),
           addedOn = Some(job.createdAt.getMillis),
           addedBy = job.addedBy,
-          // TODO Fix me - deal with multiple tasks
-          processingStage = job.tasks.head._2.status match {
+          processingStage = job.combinedStatus match {
             case RemoteIngestStatus.Failed => ProcessingStage.Failed
             case _ => ProcessingStage.Processing(
-              tasksRemaining = 1,
-              // TODO Fix me - deal with multiple tasks
-              note = Some(job.tasks.head._2.status.toString)
+              tasksRemaining = job.tasksRemaining,
+              note = Some(job.combinedStatus.toString)
             )
           },
           size = None

@@ -54,6 +54,29 @@ case class RemoteIngest(
 ) {
 
   def taskKey(taskId: String) = RemoteIngest.ingestionKey(createdAt, taskId)
+
+  val finishedStatuses = Set(RemoteIngestStatus.Completed, RemoteIngestStatus.Failed)
+
+  def combinedStatus: RemoteIngestStatus.RemoteIngestStatus = {
+    // if all tasks are complete
+    if (tasks.values.forall(t => finishedStatuses.contains(t.status))) {
+      // if at least one task has completed successfully, assume that other tasks that failed aren't of interest
+      // (e.g. media download task for a page without a video)
+      if (tasks.values.exists(_.status == RemoteIngestStatus.Completed)) {
+        RemoteIngestStatus.Completed
+      } else {
+        RemoteIngestStatus.Failed
+      }
+    } else if (tasks.values.exists(_.status == RemoteIngestStatus.Ingesting)) {
+      RemoteIngestStatus.Ingesting
+    } else {
+      RemoteIngestStatus.Queued
+    }
+  }
+
+  def tasksRemaining: Int = {
+    tasks.values.count(t => !finishedStatuses.contains(t.status) )
+  }
   
 }
 
