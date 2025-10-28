@@ -132,8 +132,8 @@ class RemoteIngestWorker(
               if (remoteIngestOutput.outputType == "WEBPAGE_SNAPSHOT") {
                   for {
                     files <- getWebpageSnapshotFiles(path, job.id)
-                    htmlIngest <- ingestRemoteIngestOutput(files.html, files.htmlFingerprint, job, remoteIngestOutput, parentFolder, workspaceMetadata, ingestion, s"${files.baseFilename} text")
-                    screenshotIngest <- ingestRemoteIngestOutput(files.screenshot, files.screenshotFingerprint, job, remoteIngestOutput, parentFolder, workspaceMetadata, ingestion, s"${files.baseFilename} screenshot")
+                    htmlIngest <- ingestRemoteIngestOutput(files.html, files.htmlFingerprint, job, remoteIngestOutput, parentFolder, workspaceMetadata, ingestion, s"[text] ${files.baseFilename}")
+                    screenshotIngest <- ingestRemoteIngestOutput(files.screenshot, files.screenshotFingerprint, job, remoteIngestOutput, parentFolder, workspaceMetadata, ingestion, s"[screenshot] ${files.baseFilename}")
                   } yield {
                     Files.delete(files.html)
                     Files.delete(files.screenshot)
