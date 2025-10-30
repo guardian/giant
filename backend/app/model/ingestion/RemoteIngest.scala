@@ -4,12 +4,13 @@ import model.frontend.user.PartialUser
 import com.amazonaws.services.sns.AmazonSNS
 import com.amazonaws.services.sns.model.PublishRequest
 import org.joda.time.DateTime
-import play.api.libs.json.{Format, JsError, JsResult, JsString, JsSuccess, JsValue, Json, Reads, Writes}
+import play.api.libs.json.{Format, JsError, JsResult, JsString, JsSuccess, JsValue, Json, OFormat, Reads, Writes}
 import services.observability.JodaReadWrites
 import services.{IngestStorage, RemoteIngestConfig}
 import utils.Logging
 import org.neo4j.driver.v1.Value
 
+import java.nio.file.Path
 import java.util.UUID
 import scala.jdk.CollectionConverters.CollectionHasAsScala
 
@@ -31,13 +32,22 @@ object RemoteIngestStatus extends Enumeration {
 
 case class RemoteIngestTask(id: String, status: RemoteIngestStatus.RemoteIngestStatus, blobUris: List[String])
 object RemoteIngestTask {
-  implicit val remoteIngestTaskFormat = Json.format[RemoteIngestTask]
+  implicit val remoteIngestTaskFormat: OFormat[RemoteIngestTask] = Json.format[RemoteIngestTask]
 
   def fromNeo4jValue(task: Value) : RemoteIngestTask = {
     val id = task.get("id").asString()
     val status = RemoteIngestStatus.withName(task.get("status").asString())
     val blobUris = task.get("blobUris").asList().asScala.toList.map(_.asInstanceOf[String])
     RemoteIngestTask(id, status, blobUris)
+  }
+
+
+  // See WebpageSnapshot type in transcription-service - this type needs to be kept in sync with that type
+  case class WebpageSnapshotFiles(screenshot: Path, screenshotFingerprint: String, html: Path, htmlFingerprint: String, baseFilename: String)
+
+  case class WebpageSnapshot(html: String, screenshotBase64: String, title: String)
+  object WebpageSnapshot {
+    implicit val webpageSnapshotFormat: OFormat[WebpageSnapshot] = Json.format[WebpageSnapshot]
   }
 }
 

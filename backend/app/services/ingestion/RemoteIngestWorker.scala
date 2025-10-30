@@ -7,8 +7,9 @@ import controllers.api.Collections
 import ingestion.phase2.IngestStorePolling
 import model.{CreateIngestionResponse, Uri}
 import model.annotations.WorkspaceMetadata
-import model.ingestion.{FileContext, IngestionFile, RemoteIngest, RemoteIngestOutput, RemoteIngestStatus, WorkspaceItemUploadContext}
-import play.api.libs.json.{JsError, JsSuccess, Json}
+import model.ingestion.RemoteIngestTask.{WebpageSnapshot, WebpageSnapshotFiles}
+import model.ingestion.{RemoteIngest, RemoteIngestOutput, RemoteIngestStatus, WorkspaceItemUploadContext}
+import play.api.libs.json.{JsError, JsSuccess, Json, OFormat}
 import services.{FingerprintServices, IngestStorage, RemoteIngestConfig, S3Config, ScratchSpace}
 import services.annotations.Annotations
 import services.index.Pages
@@ -21,14 +22,6 @@ import java.util.UUID
 import scala.concurrent.duration.DurationInt
 import scala.concurrent.{Await, ExecutionContext}
 import scala.jdk.CollectionConverters.CollectionHasAsScala
-
-
-case class WebpageSnapshotFiles(screenshot: Path, screenshotFingerprint: String, html: Path, htmlFingerprint: String, baseFilename: String)
-
-case class WebpageSnapshot(html: String, screenshotBase64: String, title: String)
-object WebpageSnapshot {
-  implicit val webpageSnapshotFormat = Json.format[WebpageSnapshot]
-}
 
 class RemoteIngestWorker(
                           amazonSQSClient: AmazonSQS,
