@@ -149,7 +149,7 @@ class Workspaces(
     for {
       metadata <- annotation.getWorkspaceMetadata(req.user.username, workspaceId)
       relevantRemoteJobs <- remoteIngestStore.getRelevantRemoteIngestJobs(workspaceId)
-      extraLeavesToMixIn = relevantRemoteJobs.map(job => TreeLeaf(
+      extraLeavesToMixIn = relevantRemoteJobs.filter(job => job.combinedStatus != RemoteIngestStatus.Completed).map(job => TreeLeaf(
         id = job.id,
         name = s"${job.title} (Capturing: ${job.url})",
         data = WorkspaceLeaf(

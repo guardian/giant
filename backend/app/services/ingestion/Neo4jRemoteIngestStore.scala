@@ -78,8 +78,6 @@ class Neo4jRemoteIngestStore(driver: Driver, executionContext: ExecutionContext,
         |RETURN ri.id AS id
     """.stripMargin
 
-    println(query, username)
-
     val params = parameters(
       "username", username,
       "id", id,
@@ -169,17 +167,15 @@ class Neo4jRemoteIngestStore(driver: Driver, executionContext: ExecutionContext,
     }
   }
 
-  override def getRemoteIngestJobs(maybeWorkspaceId: Option[String], onlyStatuses: List[RemoteIngestStatus], maybeSinceUTCEpoch: Option[Long]): Attempt[List[RemoteIngest]] = attemptTransaction { tx =>
+  override def getRemoteIngestJobs(maybeWorkspaceId: Option[String], maybeSinceUTCEpoch: Option[Long]): Attempt[List[RemoteIngest]] = attemptTransaction { tx =>
     // important: don't remove the whitespace around the comparison operators in the where clauses, as they are used to split the string later
     val filters = List(
       maybeWorkspaceId.map("ri.workspaceId = $workspaceId" -> _),
-      if(onlyStatuses.isEmpty) None else Some("task.status IN $statuses" -> onlyStatuses.map(_.toString).toArray),
       maybeSinceUTCEpoch.map("ri.createdAt > $since" -> _)
     ).flatten
 
     val query = s"""
-          |MATCH (ri:RemoteIngest)
-          |MATCH (ri)-[:HAS_TASK]->(task: RemoteIngestTask)
+          |MATCH (ri:RemoteIngest)-[:HAS_TASK]->(task: RemoteIngestTask)
           |${if (filters.isEmpty) "" else s"WHERE ${filters.toMap.keys.mkString(" AND ")}"}
           |MATCH (addedBy :User)-[:CREATED]->(ri)
           |$returnFields
@@ -196,7 +192,6 @@ class Neo4jRemoteIngestStore(driver: Driver, executionContext: ExecutionContext,
 
   override def getRelevantRemoteIngestJobs(workspaceId: String): Attempt[List[RemoteIngest]] = getRemoteIngestJobs(
     maybeWorkspaceId = Some(workspaceId),
-    onlyStatuses = List(RemoteIngestStatus.Queued, RemoteIngestStatus.Ingesting, RemoteIngestStatus.Failed, RemoteIngestStatus.TimedOut),
     maybeSinceUTCEpoch = Some(DateTime.now.minusDays(14).getMillis)
   )
 
