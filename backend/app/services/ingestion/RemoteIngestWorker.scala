@@ -149,9 +149,15 @@ class RemoteIngestWorker(
               )
               // TODO: Do we care if this sending to dead letter queue fails?
               amazonSQSClient.sendMessage(config.outputDeadLetterQueueUrl, sqsMessage.getBody)
-              maybeParsedJob.map(parsedJob =>
+              maybeParsedJob.map { parsedJob =>
+                // INVALID_URL is returned by the media download service when there are no videos on the page -this is not
+                // a failure we need to expose to the user 
+                if (parsedJob.status == "INVALID_URL") {
+                  remoteIngestStore.updateRemoteIngestTaskStatus(parsedJob.taskId, RemoteIngestStatus.Completed)
+                } else {
                   remoteIngestStore.updateRemoteIngestTaskStatus(parsedJob.taskId, RemoteIngestStatus.Failed)
-              )
+                }
+              }
             },
           jobAndOutput => {
               logger.info(s"Successfully ingested remote file for job with id ${jobAndOutput._1.id} in workspace ${jobAndOutput._1.workspaceId}")
