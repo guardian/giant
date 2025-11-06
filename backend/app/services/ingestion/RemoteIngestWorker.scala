@@ -101,6 +101,12 @@ class RemoteIngestWorker(
     }
   }
 
+  private def shortenUrl(url: String): String = {
+    val noProtocol = url.replaceAll("^https?://", "")
+    val maxLength = 50
+    if (noProtocol.length <= maxLength) noProtocol else noProtocol.substring(0, maxLength - 3) + "..."
+  }
+
   private def processFinishedJobs(): Unit = {
     try {
       amazonSQSClient.receiveMessage(
@@ -120,7 +126,7 @@ class RemoteIngestWorker(
           workspaceMetadata <- annotations.getWorkspaceMetadata(job.addedBy.username, job.workspaceId)
           _ <- remoteIngestStore.updateRemoteIngestTaskStatus(remoteIngestOutput.taskId, RemoteIngestStatus.Ingesting)
           ingestion <- Collections.createIngestionIfNotExists(Uri(job.collection), job.ingestion, manifest, index, pages, s3Config)
-          parentFolder <- annotations.addOrGetFolder(job.addedBy.username, job.workspaceId, job.parentFolderId, job.title)
+          parentFolder <- annotations.addOrGetFolder(job.addedBy.username, job.workspaceId, job.parentFolderId, s"${job.title} (${shortenUrl(job.url)})")
           _ <- IngestStorePolling.fetchData(job.taskKey(remoteIngestOutput.taskId), remoteIngestStorage, scratchSpace){ (path, fingerprint) =>
               if (remoteIngestOutput.outputType == "WEBPAGE_SNAPSHOT") {
                   for {
