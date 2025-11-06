@@ -26,6 +26,7 @@ class ScratchSpace(rootFolder: Path) extends Logging {
   }
 
   def pathFor(key: Key) = rootFolder.resolve(s"${key._1}-${key._2}.data")
+  def pathFor(key: String) = rootFolder.resolve(key)
 
   def createWorkingDir(name: String): Path = {
     ensureRootFolderExists()

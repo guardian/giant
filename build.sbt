@@ -146,6 +146,7 @@ lazy val backend = (project in file("backend"))
       "com.amazonaws" % "aws-java-sdk-cloudwatch" % awsVersion,
       "com.amazonaws" % "aws-java-sdk-cloudwatchmetrics" % awsVersion,
       "com.amazonaws" % "aws-java-sdk-sqs" % awsVersion,
+      "com.amazonaws" % "aws-java-sdk-sns" % awsVersion,
       "com.beachape" %% "enumeratum-play" % "1.8.0",
       "com.iheart" %% "ficus" % "1.5.2",
       "org.jsoup" % "jsoup" % "1.14.2",
