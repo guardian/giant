@@ -148,16 +148,16 @@ export const CaptureFromUrl = connect(
         onClick={() => setIsOpen(true)}
       >
         <MdGlobeIcon className='file-upload__icon'/>
-        Capture video from URL
+        Capture from URL
       </button>
     }
     <Modal isOpen={isOpen} dismiss={() => setIsOpen(false)}>
       <form className='form' onSubmit={onSubmit}>
-        <h2 className='modal__title'>Capture video from URL</h2>
+        <h2 className='modal__title'>Capture from URL</h2>
 
-        <EuiCallOut title="BETA Phase" css={{marginBottom: "10px"}} size="s">
-          For now, this feature will attempt to capture video from a URL (e.g. a YouTube link) and ingest into Giant.<br/>
-          In the near future, it will also snapshot the page (both the html and as an image).
+        <EuiCallOut title="New feature!" css={{marginBottom: "10px"}} size="s">
+          For now, this feature will attempt to capture video, text and a screenshot from a URL (e.g. youtube/insta url).<br/>
+          Please share any feedback with the team - digital.investigations@theguardian.com
         </EuiCallOut>
 
         <div className='form__row'>
