@@ -145,7 +145,7 @@ class ExternalTranscriptionExtractor(index: Index, transcribeConfig: TranscribeC
         combinedOutputUrl = CombinedOutputUrl(url = combinedOutputUrl,key = combinedOutputKey),
         languageCode = "auto",
         translate = true,
-        diarize = false,
+        diarize = true,
         engine = "whisperx")
     }
 
