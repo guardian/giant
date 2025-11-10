@@ -1,4 +1,4 @@
-import {TreeEntry, TreeNode} from '../../types/Tree';
+import { TreeNode } from '../../types/Tree';
 import { WorkspacesAction, WorkspacesActionType } from '../../types/redux/GiantActions';
 import { WorkspaceEntry } from '../../types/Workspaces';
 
