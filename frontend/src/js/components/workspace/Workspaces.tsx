@@ -51,11 +51,12 @@ import { getMyPermissions } from '../../actions/users/getMyPermissions';
 import buildLink from '../../util/buildLink';
 import history from '../../util/history';
 import {takeOwnershipOfWorkspace} from "../../actions/workspaces/takeOwnershipOfWorkspace";
+import {setNodesAsExpanded} from "../../actions/workspaces/setNodesAsExpanded";
 
 
 type Props = ReturnType<typeof mapStateToProps>
     & ReturnType<typeof mapDispatchToProps>
-    & RouteComponentProps<{id: string}>;
+    & RouteComponentProps<{id: string, workspaceLocation:string}>;
 
 
 type State = {
@@ -352,6 +353,23 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
         if(workspaceId !== prevWorkspaceId) {
             this.props.getWorkspace(workspaceId);
         }
+
+        const workspaceLocation = this.props.match.params.workspaceLocation;
+        if(this.props.expandedNodes.length === 0 && this.props.currentWorkspace && workspaceLocation) {
+          const entryTreeEntries = this.getEntryTreeNodes(workspaceLocation, this.props.currentWorkspace.rootNode) || [];
+          const entryTreeNodes= entryTreeEntries.filter(isTreeNode);
+
+          if (entryTreeNodes.length > 0) {
+            this.props.setNodesAsExpanded(entryTreeNodes);
+          }
+
+          if (entryTreeEntries.length > 0){
+            const maybeLeaf = entryTreeEntries[entryTreeEntries.length -1]
+            if (isTreeLeaf((maybeLeaf))){
+              this.props.setFocusedEntry(maybeLeaf);
+            }
+          }
+        }
     }
 
     componentWillUnmount() {
@@ -441,6 +459,10 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
 
     setSelectedEntry = (entry: TreeEntry<WorkspaceEntry>) => {
         this.props.setFocusedAndSelectedEntry(entry);
+        this.props.history.push({
+          pathname: `/workspaces/${this.props.match.params.id}/${entry.id}`,
+        });
+
         this.setState({previousShiftClickSelectedEntries: []});
     };
 
@@ -577,7 +599,7 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
     }
 
     getEntryPath (entryId: string, workspaceRootNode: TreeEntry<WorkspaceEntry>): string {
-        const pathArray = this.getEntryTreeNodes(entryId, workspaceRootNode)
+       const pathArray = this.getEntryTreeNodes(entryId, workspaceRootNode)
         if (pathArray) {
             const path = pathArray.map(p => p.name).join("/")
             console.log(path)
@@ -834,6 +856,7 @@ function mapDispatchToProps(dispatch: GiantDispatch) {
         setFocusedEntry: bindActionCreators(setFocusedEntry, dispatch),
         setEntryBeingRenamed: bindActionCreators(setEntryBeingRenamed, dispatch),
         setNodeAsExpanded: bindActionCreators(setNodeAsExpanded, dispatch),
+        setNodesAsExpanded: bindActionCreators(setNodesAsExpanded, dispatch),
         setNodeAsCollapsed: bindActionCreators(setNodeAsCollapsed, dispatch),
         renameWorkspace: bindActionCreators(renameWorkspace, dispatch),
         takeOwnershipOfWorkspace: bindActionCreators(takeOwnershipOfWorkspace, dispatch),
