@@ -621,7 +621,7 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
       val counters = result.summary().counters()
 
       if (counters.relationshipsCreated() != 1 || counters.relationshipsDeleted() != 1) {
-        Left(IllegalStateFailure(s"Unexpected number of creates/deletes in markAsComplete. Created: ${counters.relationshipsCreated()}. Deleted: ${counters.relationshipsDeleted()}"))
+        Left(IllegalStateFailure(s"Unexpected number of creates/deletes in external markAsComplete. Created: ${counters.relationshipsCreated()}. Deleted: ${counters.relationshipsDeleted()}"))
       } else {
         Right(())
       }
@@ -673,7 +673,10 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
 
     val counters = result.summary().counters()
 
-    if(counters.relationshipsCreated() != 1 || counters.relationshipsDeleted() != 1) {
+    if (counters.relationshipsCreated != 1 && counters.relationshipsDeleted() == 1) {
+      logger.warn(s"Deleted TODO but didn't create a PROCESSED relationship in markAsComplete for blob ${blob.uri.value} / extractor ${extractor.name}. This may be because it was already marked as PROCESSED.")
+      Right(())
+    } else if(counters.relationshipsCreated() != 1 || counters.relationshipsDeleted() != 1) {
       Left(IllegalStateFailure(s"Unexpected number of creates/deletes in markAsComplete. Created: ${counters.relationshipsCreated()}. Deleted: ${counters.relationshipsDeleted()}"))
     } else {
       Right(())
@@ -728,7 +731,7 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
     val counters = result.summary().counters()
 
     if (counters.relationshipsCreated() != 1 || counters.relationshipsDeleted() != 1) {
-      Left(IllegalStateFailure(s"Unexpected number of creates/deletes in markAsComplete. Created: ${counters.relationshipsCreated()}. Deleted: ${counters.relationshipsDeleted()}"))
+      Left(IllegalStateFailure(s"Unexpected number of creates/deletes in external markAsComplete. Created: ${counters.relationshipsCreated()}. Deleted: ${counters.relationshipsDeleted()}"))
     } else {
       Right(())
     }
