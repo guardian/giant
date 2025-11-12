@@ -357,14 +357,15 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
         const workspaceLocation = this.props.match.params.workspaceLocation;
         if(this.props.expandedNodes.length === 0 && this.props.currentWorkspace && workspaceLocation) {
           const entryTreeEntries = this.getEntryTreeNodes(workspaceLocation, this.props.currentWorkspace.rootNode) || [];
-          const entryTreeNodes= entryTreeEntries.filter(isTreeNode);
+          const entriesWithoutRoot = entryTreeEntries.filter((entry)=>this.props.currentWorkspace && entry.id !== this.props.currentWorkspace.rootNode.id)
+          const entryTreeNodes= entriesWithoutRoot.filter(isTreeNode);
 
           if (entryTreeNodes.length > 0) {
             this.props.setNodesAsExpanded(entryTreeNodes);
           }
 
-          if (entryTreeEntries.length > 0){
-            const lastEntry = entryTreeEntries[entryTreeEntries.length - 1]
+          if (entriesWithoutRoot.length > 0){
+            const lastEntry = entriesWithoutRoot[entriesWithoutRoot.length - 1]
             this.props.setFocusedEntry(lastEntry);
           }
         }
