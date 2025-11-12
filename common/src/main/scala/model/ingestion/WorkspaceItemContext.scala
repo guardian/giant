@@ -1,6 +1,6 @@
 package model.ingestion
 
-import play.api.libs.json.Json
+import play.api.libs.json.{Format, Json}
 
 // Passed via TODOs in neo4j
 /**
@@ -12,7 +12,7 @@ import play.api.libs.json.Json
 case class WorkspaceItemContext(workspaceId: String, workspaceNodeId: String, blobAddedToWorkspace: String)
 
 object WorkspaceItemContext {
-  implicit val format = Json.format[WorkspaceItemContext]
+  implicit val format: Format[WorkspaceItemContext] = Json.format[WorkspaceItemContext]
   def fromUpload(blobUri: String, workspace: WorkspaceItemUploadContext): WorkspaceItemContext = {
     WorkspaceItemContext(workspace.workspaceId, workspace.workspaceNodeId, blobUri)
   }

@@ -46,6 +46,7 @@ import GiantEuiApp from './eui-components/GiantEuiApp';
 import { PageViewerOrFallback } from './components/PageViewerOrFallback';
 import MyUploads from "./components/IngestionEvents/MyUploads";
 import AllIngestionEvents from "./components/IngestionEvents/AllIngestionEvents";
+import {CaptureFromUrl} from "./components/Uploads/CaptureFromUrl";
 
 class App extends React.Component {
     static propTypes = {
@@ -92,6 +93,9 @@ class App extends React.Component {
                     <Route path='/settings/uploads' component={WeeklyUploadsFeed} />
                     <Route path='/workspaces/:id'  component={Workspaces} />
                     <Route path='/workspaces/:id/:workspaceLocation'  component={Workspaces} />
+                    <Route path='/workspaces/:id' component={Workspaces} />
+                    <Route exact path='/workspaces' component={CaptureFromUrl} />
+
                     <Route path = '/settings/my-uploads' component={MyUploads} />
                     <Route path = '/settings/all-ingestion-events' component={AllIngestionEvents} />
 

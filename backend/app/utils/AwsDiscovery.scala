@@ -79,10 +79,10 @@ object AwsDiscovery extends Logging {
         transcriptionServiceQueueUrl = readSSMParameter("transcribe/transcriptionServiceQueueUrl", stack, stage, ssmClient),
         transcriptionOutputDeadLetterQueueUrl = readSSMParameter("transcribe/transcriptionOutputDeadLetterQueueUrl", stack, stage, ssmClient)
       ),
-      mediaDownload = config.mediaDownload.copy(
-        taskQueueUrl = readSSMParameter("mediaDownload/taskQueueUrl", stack, stage, ssmClient),
-        outputDeadLetterQueueUrl = readSSMParameter("mediaDownload/outputDeadLetterQueueUrl", stack, stage, ssmClient),
-        outputQueueUrl = readSSMParameter("mediaDownload/outputQueueUrl", stack, stage, ssmClient)
+      remoteIngest = config.remoteIngest.copy(
+        taskTopicArn = readSSMParameter("remoteIngest/taskTopicArn", stack, stage, ssmClient),
+        outputDeadLetterQueueUrl = readSSMParameter("remoteIngest/outputDeadLetterQueueUrl", stack, stage, ssmClient),
+        outputQueueUrl = readSSMParameter("remoteIngest/outputQueueUrl", stack, stage, ssmClient)
       ),
       sqs = config.sqs.copy(endpoint = None),
       underlying = config.underlying
@@ -172,7 +172,8 @@ object AwsDiscovery extends Logging {
       deadLetter = s"$stack-${before.deadLetter}-$lowerCaseStage",
       collections = s"$stack-${before.collections}-$lowerCaseStage",
       preview = s"$stack-${before.preview}-$lowerCaseStage",
-      transcription = s"$stack-${before.transcription}-$lowerCaseStage"
+      transcription = s"$stack-${before.transcription}-$lowerCaseStage",
+      remoteIngestion = s"$stack-${before.remoteIngestion}-$lowerCaseStage",
     )
 
     logger.info(s"AWS discovery buckets: [${after.all.mkString(",")}]")

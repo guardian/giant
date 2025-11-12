@@ -30,7 +30,7 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
 
   import Neo4jHelper._
 
-  implicit val ec = executionContext
+  implicit val ec: ExecutionContext = executionContext
 
   override def setup(): Either[Failure, Unit] = {
     for {
@@ -96,7 +96,7 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
     }
   }
 
-  override def getWorkspaceContents(currentUser: String, id: String): Attempt[TreeEntry[WorkspaceEntry]] = attemptTransaction { tx =>
+  override def getWorkspaceContents(currentUser: String, id: String, extraLeavesToMixIn: List[TreeLeaf[WorkspaceLeaf]] = List.empty): Attempt[TreeEntry[WorkspaceEntry]] = attemptTransaction { tx =>
     tx.run(
       """
         |MATCH (workspace: Workspace { id: {id} })
@@ -119,7 +119,7 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
     ).map { summary =>
       val rows = summary.list().asScala
 
-      val nodes = rows.map { r =>
+      val entries = rows.map { r =>
         val node = r.get("node")
         val nodeCreator = DBUser.fromNeo4jValue(r.get("nodeCreator")).toPartial
         val maybeParentNodeId = r.get("parentNode.id").optionally(_.asString())
@@ -128,13 +128,13 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
         val hasFailures = r.get("hasFailures").asBoolean()
 
         WorkspaceEntry.fromNeo4jValue(node, nodeCreator, maybeParentNodeId, numberOfTodos, note, hasFailures)
-      }.toList
+      }.toList ++ extraLeavesToMixIn
 
       def buildNode(currentEntry: TreeEntry[WorkspaceEntry]): TreeEntry[WorkspaceEntry] = {
         currentEntry match {
           case leaf: TreeLeaf[WorkspaceEntry] => leaf
           case node: TreeNode[WorkspaceEntry] => {
-            val children = nodes.filter(n => n.data.maybeParentId.contains(currentEntry.id)).map(buildNode)
+            val children = entries.filter(n => n.data.maybeParentId.contains(currentEntry.id)).map(buildNode)
             node.copy(
               children = children,
               data = node.data match {
@@ -179,7 +179,7 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
         }
       }
 
-      val root = nodes.find(_.data.maybeParentId.isEmpty).get
+      val root = entries.find(_.data.maybeParentId.isEmpty).get
       buildNode(root)
     }
   }
@@ -334,7 +334,7 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
     }
   }
 
-  override def addFolder(currentUser: String, workspaceId: String, parentFolderId: String, folderName: String): Attempt[String] = attemptTransaction {  tx =>
+  private def addFolder(tx: AttemptWrappedTransaction, currentUser: String, workspaceId: String, parentFolderId: String, folderName: String): Attempt[String] = {
     tx.run(
       """
         |MATCH (p :WorkspaceNode {id: {parentFolderId}})-[:PART_OF]->(w: Workspace {id: {workspaceId}})
@@ -363,6 +363,41 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
         Attempt.Left(NotFoundFailure("Could not find node to create folder at"))
       case r =>
         Attempt.Right(r.single().get("f").get("id").asString())
+    }
+    }
+
+  override def addFolder(currentUser: String, workspaceId: String, parentFolderId: String, folderName: String): Attempt[String] = attemptTransaction {  tx =>
+    addFolder(tx, currentUser, workspaceId, parentFolderId, folderName)
+  }
+
+  // Checks for a folder with the given name under the given parent folder, returning its ID if found.
+  // If there are multiple folders with the same name, return the first
+  private def getFolder(tx: AttemptWrappedTransaction, workspaceId: String, parentFolderId: String, folderName: String): Attempt[String] = {
+    tx.run(
+      """
+      | MATCH  (parentFolder :WorkspaceNode {id: {parentFolderId}})-[:PART_OF]->(w: Workspace {id: {workspaceId}})
+      | MATCH  (folder :WorkspaceNode {name: {folderName}, type: 'folder'})-[:PARENT]->(parentFolder)
+      | RETURN folder
+      """.stripMargin,
+      parameters(
+        "workspaceId", workspaceId,
+        "parentFolderId", parentFolderId,
+        "folderName", folderName
+      )
+    ).flatMap { case r =>
+      val records = r.list().asScala
+      if (records.isEmpty) {
+        Attempt.Left(NotFoundFailure("Could not find folder"))
+      } else {
+        Attempt.Right(records.head.get("folder").get("id").asString())
+      }
+    }
+  }
+
+  override def addOrGetFolder(currentUser: String, workspaceId: String, parentFolderId: String, folderName: String): Attempt[String] = attemptTransaction {  tx =>
+    getFolder(tx, workspaceId, parentFolderId, folderName).recoverWith {
+      case _: NotFoundFailure =>
+        addFolder(tx, currentUser, workspaceId, parentFolderId, folderName)
     }
   }
 

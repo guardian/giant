@@ -24,7 +24,7 @@ trait IngestStorage {
   def delete(key: Key): Either[Failure, Unit]
   def sendToDeadLetterBucket(key: Key): Either[Failure, Unit]
   def retryDeadLetters(): Either[Failure, Unit]
-  def getUploadSignedUrl(key: String): Either[Failure, String]
+  def getUploadSignedUrl(key: Key): Either[Failure, String]
 }
 
 class S3IngestStorage private(client: S3Client, ingestBucket: String, deadLetterBucket: String) extends IngestStorage with Logging {
@@ -36,11 +36,11 @@ class S3IngestStorage private(client: S3Client, ingestBucket: String, deadLetter
     timestamp -> uuid
   }
 
-  def getUploadSignedUrl(key: String): Either[Failure, String] = {
+  def getUploadSignedUrl(key: Key): Either[Failure, String] = {
 
     val thisTimeTomorrow = new DateTime().plusDays(1)
 
-    Either.catchNonFatal(client.aws.generatePresignedUrl(ingestBucket, key, thisTimeTomorrow.toDate, HttpMethod.PUT).toString).leftMap(UnknownFailure.apply)
+    Either.catchNonFatal(client.aws.generatePresignedUrl(ingestBucket, dataKey(key), thisTimeTomorrow.toDate, HttpMethod.PUT).toString).leftMap(UnknownFailure.apply)
   }
 
   override def list = {

@@ -2,7 +2,7 @@ name := "giant"
 description := "Tool for journalists to search, analyse and categorise unstructured data, often during an investigation"
 version := "0.1.0"
 
-ThisBuild / scalaVersion := "2.13.9"
+ThisBuild / scalaVersion := "2.13.11"
 
 import com.gu.riffraff.artifact.BuildInfo
 import play.sbt.PlayImport.PlayKeys._
@@ -146,6 +146,7 @@ lazy val backend = (project in file("backend"))
       "com.amazonaws" % "aws-java-sdk-cloudwatch" % awsVersion,
       "com.amazonaws" % "aws-java-sdk-cloudwatchmetrics" % awsVersion,
       "com.amazonaws" % "aws-java-sdk-sqs" % awsVersion,
+      "com.amazonaws" % "aws-java-sdk-sns" % awsVersion,
       "com.beachape" %% "enumeratum-play" % "1.8.0",
       "com.iheart" %% "ficus" % "1.5.2",
       "org.jsoup" % "jsoup" % "1.14.2",

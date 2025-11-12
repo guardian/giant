@@ -1,17 +1,17 @@
 package controllers.api
 
-import com.amazonaws.services.sqs.AmazonSQS
+import com.amazonaws.services.sns.AmazonSNS
 import commands.DeleteResource
 import model.Uri
-import model.annotations.{Workspace, WorkspaceEntry, WorkspaceLeaf}
+import model.annotations.{ProcessingStage, Workspace, WorkspaceEntry, WorkspaceLeaf}
 import model.frontend.{TreeEntry, TreeLeaf, TreeNode}
-import model.ingestion.RemoteIngest
+import model.ingestion.{ RemoteIngest, RemoteIngestStatus}
 import net.logstash.logback.marker.LogstashMarker
 import net.logstash.logback.marker.Markers.append
-import org.joda.time.{DateTime, Duration}
+import org.joda.time.DateTime
 import play.api.libs.json._
 import play.api.mvc.Action
-import services.{Config, IngestStorage, MediaDownloadConfig, ObjectStorage}
+import services.{IngestStorage, RemoteIngestConfig, ObjectStorage}
 import services.manifest.Manifest
 import services.observability.PostgresClient
 import services.annotations.Annotations
@@ -28,51 +28,51 @@ import java.util.UUID
 
 case class CreateWorkspaceData(name: String, isPublic: Boolean, tagColor: String)
 object CreateWorkspaceData {
-  implicit val format = Json.format[CreateWorkspaceData]
+  implicit val format: Format[CreateWorkspaceData] = Json.format[CreateWorkspaceData]
 }
 
 case class UpdateWorkspaceFollowers(followers: List[String])
 object UpdateWorkspaceFollowers {
-  implicit val format = Json.format[UpdateWorkspaceFollowers]
+  implicit val format: Format[UpdateWorkspaceFollowers] = Json.format[UpdateWorkspaceFollowers]
 }
 case class UpdateWorkspaceIsPublic(isPublic: Boolean)
 object UpdateWorkspaceIsPublic {
-  implicit val format = Json.format[UpdateWorkspaceIsPublic]
+  implicit val format: Format[UpdateWorkspaceIsPublic] = Json.format[UpdateWorkspaceIsPublic]
 }
 
 case class UpdateWorkspaceName(name: String)
 object UpdateWorkspaceName {
-  implicit val format = Json.format[UpdateWorkspaceName]
+  implicit val format: Format[UpdateWorkspaceName] = Json.format[UpdateWorkspaceName]
 }
 
 case class UpdateWorkspaceOwner(owner: String)
 object UpdateWorkspaceOwner {
-  implicit val format = Json.format[UpdateWorkspaceOwner]
+  implicit val format: Format[UpdateWorkspaceOwner] = Json.format[UpdateWorkspaceOwner]
 }
 
 case class AddItemParameters(uri: Option[String], size: Option[Long], mimeType: Option[String])
 object AddItemParameters {
-  implicit val format = Json.format[AddItemParameters]
+  implicit val format: Format[AddItemParameters] = Json.format[AddItemParameters]
 }
 
-case class AddRemoteUrlData(url: String, title: String, parentFolderId: String, workspaceNodeId: String, collection: String, ingestion: String)
+case class AddRemoteUrlData(url: String, title: String, parentFolderId: String)
 object AddRemoteUrlData {
-  implicit val format = Json.format[AddRemoteUrlData]
+  implicit val format: Format[AddRemoteUrlData] = Json.format[AddRemoteUrlData]
 }
 
 case class AddItemData(name: String, parentId: String, `type`: String, icon: Option[String], parameters: AddItemParameters)
 object AddItemData {
-  implicit val format = Json.format[AddItemData]
+  implicit val format: Format[AddItemData] = Json.format[AddItemData]
 }
 
 case class RenameItemData(name: String)
 object RenameItemData {
-  implicit val format = Json.format[RenameItemData]
+  implicit val format: Format[RenameItemData] = Json.format[RenameItemData]
 }
 
 case class MoveCopyDestination(newParentId: Option[String], newWorkspaceId: Option[String])
 object MoveCopyDestination {
-  implicit val format = Json.format[MoveCopyDestination]
+  implicit val format: Format[MoveCopyDestination] = Json.format[MoveCopyDestination]
 }
 
 class Workspaces(
@@ -84,10 +84,11 @@ class Workspaces(
                   objectStorage: ObjectStorage,
                   previewStorage: ObjectStorage,
                   postgresClient: PostgresClient,
-                  remoteIngestManifest: RemoteIngestStore,
-                  ingestStorage: IngestStorage,
-                  mediaDownloadConfig: MediaDownloadConfig,
-                  sqsClient: AmazonSQS) extends AuthApiController with Logging {
+                  remoteIngestStore: RemoteIngestStore,
+                  remoteIngestStorage: IngestStorage,
+                  remoteIngestConfig: RemoteIngestConfig,
+                  snsClient: AmazonSNS
+) extends AuthApiController with Logging {
 
   def create = ApiAction.attempt(parse.json) { req =>
     for {
@@ -147,7 +148,29 @@ class Workspaces(
   def get(workspaceId: String) = ApiAction.attempt { req: UserIdentityRequest[_] =>
     for {
       metadata <- annotation.getWorkspaceMetadata(req.user.username, workspaceId)
-      contents <- annotation.getWorkspaceContents(req.user.username, workspaceId)
+      relevantRemoteJobs <- remoteIngestStore.getRelevantRemoteIngestJobs(workspaceId)
+      extraLeavesToMixIn = relevantRemoteJobs.filter(job => job.combinedStatus != RemoteIngestStatus.Completed).map(job => TreeLeaf(
+        id = job.id,
+        name = s"${job.title} (Capturing: ${job.url})",
+        data = WorkspaceLeaf(
+          uri = job.id, // TODO maybe improve this
+          mimeType = "Capturing URL",
+          maybeParentId = Some(job.parentFolderId),
+          addedOn = Some(job.createdAt.getMillis),
+          addedBy = job.addedBy,
+          processingStage = job.combinedStatus match {
+            case RemoteIngestStatus.Failed => ProcessingStage.Failed
+            case RemoteIngestStatus.TimedOut => ProcessingStage.Failed
+            case _ => ProcessingStage.Processing(
+              tasksRemaining = job.tasksRemaining,
+              note = Some(job.combinedStatus.toString)
+            )
+          },
+          size = None
+        ),
+        isExpandable = false
+      ))
+      contents <- annotation.getWorkspaceContents(req.user.username, workspaceId, extraLeavesToMixIn)
     } yield {
       Ok(Json.toJson(Workspace.fromMetadataAndRootNode(metadata, contents)))
     }
@@ -284,25 +307,36 @@ class Workspaces(
     }
   }
 
+  def getRelevantRemoteJobs(workspaceId: String) = ApiAction.attempt { req =>
+    for {
+      jobs <- remoteIngestStore.getRelevantRemoteIngestJobs(workspaceId)
+    } yield {
+      Ok(Json.toJson(jobs))
+    }
+  }
+
   def addRemoteUrlToWorkspace(workspaceId: String): Action[JsValue] = ApiAction.attempt(parse.json) { req =>
     for {
       data <- req.body.validate[AddRemoteUrlData].toAttempt
       itemId = UUID.randomUUID().toString
+      mediaDownloadId = UUID.randomUUID().toString
+      webpageSnapshotId = UUID.randomUUID().toString
       _ = logAction(req.user, workspaceId, s"Add remote url to workspace. Node ID: $itemId. Data: $data")
-      remoteIngest = RemoteIngest(
+      defaultCollectionUriForUser <- users.getDefaultCollectionUriForUser(req.user.username)
+      createdAt = DateTime.now
+      id <- remoteIngestStore.insertRemoteIngest(
         id = itemId,
         workspaceId = workspaceId,
-        collection = data.collection,
-        ingestion = data.ingestion,
+        collection = defaultCollectionUriForUser,
         title = data.title,
         url = data.url,
         parentFolderId = data.parentFolderId,
-        timeoutAt = DateTime.now.plus(Duration.standardHours(4)), // 4 hours
-        status = "started",
-        userEmail = req.user.username
+        createdAt = createdAt,
+        username = req.user.username,
+        mediaDownloadId = mediaDownloadId,
+        webpageSnapshotId = webpageSnapshotId
       )
-      id <- remoteIngestManifest.insertRemoteIngest(remoteIngest)
-      _ <- RemoteIngest.sendRemoteIngestJob(remoteIngest, mediaDownloadConfig, sqsClient, ingestStorage).toAttempt(msg => SQSSendMessageFailure(msg))
+      _ <- RemoteIngest.sendRemoteIngestJob(id, data.url, createdAt, mediaDownloadId, webpageSnapshotId, remoteIngestConfig, snsClient, remoteIngestStorage).toAttempt(msg => SQSSendMessageFailure(msg))
     } yield {
       Created(Json.obj("id" -> id))
     }

@@ -85,7 +85,7 @@ export default class Header extends React.Component {
     renderLabel() {
             if (this.props.config.readOnly) {
                 return <span className='main-header__label'>
-                    Giant is in read only mode for maintenance, actions like uploads are disabled
+                    Giant is temporarily in read-only mode for maintenance. Actions such as uploads are disabled. 
                 </span>
             } else if (this.props.config.label) {
                 return <span className='main-header__label'>

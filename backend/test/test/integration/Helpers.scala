@@ -1,5 +1,6 @@
 package test.integration
 
+import com.amazonaws.services.sns.AmazonSNSClientBuilder
 import com.amazonaws.services.sqs.AmazonSQSClientBuilder
 import org.apache.pekko.util.Timeout
 import commands.IngestFileResult
@@ -22,7 +23,7 @@ import services.annotations.Neo4jAnnotations
 import services.ingestion.{IngestionServices, Neo4jRemoteIngestStore}
 import services.manifest.Neo4jManifest
 import services.users.{Neo4jUserManagement, UserManagement}
-import services.{BucketConfig, MediaDownloadConfig, Neo4jQueryLoggingConfig, NoOpMetricsService, S3Config, TestTypeDetector}
+import services.{BucketConfig, Neo4jQueryLoggingConfig, NoOpMetricsService, RemoteIngestConfig, S3Config, TestTypeDetector}
 import test.integration.Helpers.BlobAndNodeId
 import test.{TestAuthActionBuilder, TestIngestStorage, TestObjectStorage, TestPostgresClient, TestPreviewService, TestUserManagement}
 import utils.Logging
@@ -235,7 +236,7 @@ object Helpers extends Matchers with Logging with OptionValues with Inside {
 
     val queryLoggingConfig = new Neo4jQueryLoggingConfig(1.second, logAllQueries = false)
     val manifest = Neo4jManifest.setupManifest(neo4jDriver, ec, queryLoggingConfig).toOption.get
-    val remoteIngestManifest = Neo4jRemoteIngestStore.setupManifest(neo4jDriver, ec, queryLoggingConfig).toOption.get
+    val remoteIngestStore = Neo4jRemoteIngestStore.setup(neo4jDriver, ec, queryLoggingConfig).toOption.get
     val annotations = Neo4jAnnotations.setupAnnotations(neo4jDriver, ec, queryLoggingConfig).toOption.get
 
     val typeDetector = new TestTypeDetector("application/pdf")
@@ -244,9 +245,9 @@ object Helpers extends Matchers with Logging with OptionValues with Inside {
 
     elasticsearch.resetIndices()
 
-    val s3Config = S3Config("fake", BucketConfig("fake", "fake", "fake", "fake", "fake"), None, None, None, None)
-    val mediaDownloadConfig = MediaDownloadConfig("", "", "")
-    val sqsClient = AmazonSQSClientBuilder.defaultClient()
+    val s3Config = S3Config("fake", BucketConfig("fake", "fake", "fake", "fake", "fake", "fake"), None, None, None, None)
+    val mediaDownloadConfig = RemoteIngestConfig("", "", "")
+    val snsClient = AmazonSNSClientBuilder.defaultClient()
     val downloadExpiryPeriod = 1.minute
 
     val userManagement = Neo4jUserManagement(neo4jDriver, ec, queryLoggingConfig, manifest, elasticsearch.elasticResources, elasticsearch.elasticPages, annotations)
@@ -260,7 +261,7 @@ object Helpers extends Matchers with Logging with OptionValues with Inside {
       val collectionsController = new Collections(controllerComponents, manifest, userManagement, elasticsearch.elasticResources, s3Config, elasticsearch.elasticEvents, elasticsearch.elasticPages, ingestionServices, annotations)
       val resourceController = new Resource(controllerComponents, manifest, elasticsearch.elasticResources, elasticsearch.elasticPages,  annotations, null)
       val filtersController = new Filters(controllerComponents, manifest, annotations)
-      val workspaceController = new Workspaces(controllerComponents, annotations, elasticsearch.elasticResources, manifest, userManagement, new TestObjectStorage(), new TestObjectStorage(), new TestPostgresClient(), remoteIngestManifest, new TestIngestStorage(), mediaDownloadConfig, sqsClient)
+      val workspaceController = new Workspaces(controllerComponents, annotations, elasticsearch.elasticResources, manifest, userManagement, new TestObjectStorage(), new TestObjectStorage(), new TestPostgresClient(), remoteIngestStore, new TestIngestStorage(), mediaDownloadConfig, snsClient)
       val metricsService = new NoOpMetricsService()
       val searchController = new Search(controllerComponents, userManagement, elasticsearch.elasticResources, annotations, metricsService)
       val documentsController = new Documents(controllerComponents, manifest, elasticsearch.elasticResources, null, userManagement, annotations, downloadExpiryPeriod)

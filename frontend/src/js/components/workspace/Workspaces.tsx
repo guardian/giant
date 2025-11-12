@@ -52,6 +52,8 @@ import buildLink from '../../util/buildLink';
 import history from '../../util/history';
 import {takeOwnershipOfWorkspace} from "../../actions/workspaces/takeOwnershipOfWorkspace";
 import {setNodesAsExpanded} from "../../actions/workspaces/setNodesAsExpanded";
+import {FileAndFolderCounts} from "../UtilComponents/TreeBrowser/FileAndFolderCounts";
+import {EuiLoadingSpinner} from "@elastic/eui";
 
 
 type Props = ReturnType<typeof mapStateToProps>
@@ -179,10 +181,10 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
     else if (isWorkspaceNode(entry.data)){
       return <>
         {entry.data.descendantsProcessingTaskCount > 0 && <em>
-          {entry.data.descendantsProcessingTaskCount} task{entry.data.descendantsProcessingTaskCount > 1 && "s"} remaining{" "}
+          {entry.data.descendantsProcessingTaskCount.toLocaleString()} task{entry.data.descendantsProcessingTaskCount > 1 && "s"} remaining{" "}
         </em>}
         {entry.data.descendantsProcessingTaskCount > 0 && entry.data.descendantsFailedCount > 0 && <>&nbsp;&amp;&nbsp;</>}
-        {entry.data.descendantsFailedCount > 0 && <em>{entry.data.descendantsFailedCount} failed</em>}
+        {entry.data.descendantsFailedCount > 0 && <em>{entry.data.descendantsFailedCount.toLocaleString()} failed</em>}
       </>
     }
     return (<></>)
@@ -208,12 +210,7 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
                 return <React.Fragment>
                     {this.renderIcon(entry)}
                     <ItemName canEdit={canEdit} id={entry.id} name={entry.name} onFinishRename={curryRename}/>
-                    {isWorkspaceNode(entry.data) && <span style={{marginLeft: "5px", fontSize: "smaller", color: "#8b8b8b"}}>
-                      ({entry.data.descendantsNodeCount === 0 && entry.data.descendantsLeafCount === 0
-                        ? 'empty'
-                        : `${entry.data.descendantsNodeCount} folders & ${entry.data.descendantsLeafCount} files`
-                      })
-                    </span>}
+                    {isWorkspaceNode(entry.data) && <FileAndFolderCounts {...entry.data} />}
                 </React.Fragment>;
             },
             sort: (a: TreeEntry<WorkspaceEntry>, b: TreeEntry<WorkspaceEntry>) => {
@@ -351,7 +348,7 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
         const prevWorkspaceId = prevProps.match.params.id;
 
         if(workspaceId !== prevWorkspaceId) {
-            this.props.getWorkspace(workspaceId);
+            this.props.getWorkspace(workspaceId, { shouldClearFirst: true });
         }
 
         const workspaceLocation = this.props.match.params.workspaceLocation;
@@ -765,8 +762,14 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
     };
 
     render() {
+        if(!this.props.currentWorkspace && this.props.match.params.id){
+          return <div className='app__main-content'>
+            <EuiLoadingSpinner size="l" />
+          </div>;
+        }
+
         if (!this.props.currentWorkspace || !this.props.currentUser) {
-            return false;
+          return false;
         }
 
         return (

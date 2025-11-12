@@ -79,7 +79,7 @@ case class WorkspaceLeaf(
 
 
 object WorkspaceEntry {
-  implicit val format = new Format[WorkspaceEntry] {
+  implicit val format: Format[WorkspaceEntry] = new Format[WorkspaceEntry] {
     override def writes(entry: WorkspaceEntry): JsValue = entry match {
       case e: WorkspaceNode => nodeFormat.writes(e)
       case e: WorkspaceLeaf => leafFormat.writes(e)
@@ -183,7 +183,7 @@ case class Workspace(id: String,
                      rootNode: TreeEntry[WorkspaceEntry])
 
 object Workspace {
-  implicit val write = Json.writes[Workspace]
+  implicit val write: Writes[Workspace] = Json.writes[Workspace]
   implicit val read: Reads[Workspace] = Json.reads[Workspace]
 
   def fromMetadataAndRootNode(metadata: WorkspaceMetadata, rootNode: TreeEntry[WorkspaceEntry]) =

@@ -1,6 +1,6 @@
 package utils.auth
 
-import play.api.libs.json.{JsObject, JsString, Json}
+import play.api.libs.json.{Format, JsObject, JsString, Json}
 import net.logstash.logback.marker.LogstashMarker
 import net.logstash.logback.marker.Markers.appendRaw
 
@@ -13,5 +13,5 @@ case class User(username: String, displayName: String) {
 }
 
 object User {
-  implicit val userFormat = Json.format[User]
+  implicit val userFormat: Format[User] = Json.format[User]
 }

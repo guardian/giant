@@ -23,7 +23,7 @@ class ElasticsearchTestService(val url: String)(implicit ec: ExecutionContext)
     with Matchers
     with Logging  {
 
-  implicit def patience = PatienceConfig(Span(30, Seconds), Span(250, Millis))
+  implicit def patience: PatienceConfig = PatienceConfig(Span(30, Seconds), Span(250, Millis))
 
   val elasticClient: ElasticClient = ElasticsearchClient(List(url), disableSniffing = true).successValue
 

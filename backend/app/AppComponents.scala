@@ -2,6 +2,7 @@ import org.apache.pekko.actor.{ActorSystem, CoordinatedShutdown}
 import org.apache.pekko.actor.CoordinatedShutdown.Reason
 import cats.syntax.either._
 import com.amazonaws.client.builder.AwsClientBuilder
+import com.amazonaws.services.sns.AmazonSNSClientBuilder
 import com.amazonaws.services.sqs.{AmazonSQSClient, AmazonSQSClientBuilder}
 import com.gu.pandomainauth
 import com.gu.pandomainauth.PublicSettings
@@ -83,6 +84,11 @@ class AppComponents(context: Context, config: Config)
     else
       AmazonSQSClientBuilder.standard().withRegion(config.sqs.region).build()
 
+    val snsClient = if (config.sqs.endpoint.isDefined)
+      AmazonSNSClientBuilder.standard().withEndpointConfiguration(new AwsClientBuilder.EndpointConfiguration(config.sqs.endpoint.get, config.sqs.region)).build()
+    else
+      AmazonSNSClientBuilder.standard().withRegion(config.sqs.region).build()
+
     val workerName = config.worker.name.getOrElse(InetAddress.getLocalHost.getHostName)
 
     val scratchSpace = new ScratchSpace(Paths.get(config.ingestion.scratchPath))
@@ -92,6 +98,7 @@ class AppComponents(context: Context, config: Config)
     val ingestStorage = S3IngestStorage(s3Client, config.s3.buckets.ingestion, config.s3.buckets.deadLetter).valueOr(failure => throw new Exception(failure.msg))
     val blobStorage = S3ObjectStorage(s3Client, config.s3.buckets.collections).valueOr(failure => throw new Exception(failure.msg))
     val transcriptStorage = S3ObjectStorage(s3Client, config.s3.buckets.transcription).valueOr(failure => throw new Exception(failure.msg))
+    val remoteIngestStorage = S3IngestStorage(s3Client, config.s3.buckets.remoteIngestion, config.s3.buckets.deadLetter).valueOr(failure => throw new Exception(failure.msg))
 
     val postgresClient = config.postgres match {
       case Some(postgresConfig) =>  new PostgresClientImpl(postgresConfig)
@@ -108,7 +115,7 @@ class AppComponents(context: Context, config: Config)
 
     val neo4jDriver = GraphDatabase.driver(config.neo4j.url, AuthTokens.basic(config.neo4j.user, config.neo4j.password))
     val manifest = Neo4jManifest.setupManifest(neo4jDriver, neo4jExecutionContext, config.neo4j.queryLogging).valueOr(failure => throw new Exception(failure.msg))
-    val remoteIngestManifest = Neo4jRemoteIngestStore.setupManifest(neo4jDriver, neo4jExecutionContext, config.neo4j.queryLogging).valueOr(failure => throw new Exception(failure.msg))
+    val remoteIngestStore = Neo4jRemoteIngestStore.setup(neo4jDriver, neo4jExecutionContext, config.neo4j.queryLogging).valueOr(failure => throw new Exception(failure.msg))
     val annotations = Neo4jAnnotations.setupAnnotations(neo4jDriver, neo4jExecutionContext, config.neo4j.queryLogging).valueOr(failure => throw new Exception(failure.msg))
     val users = Neo4jUserManagement(neo4jDriver, neo4jExecutionContext, config.neo4j.queryLogging, manifest, esResources, esPages, annotations)
     val metricsService = config.aws.map(new CloudwatchMetricsService(_)).getOrElse(new NoOpMetricsService())
@@ -196,7 +203,7 @@ class AppComponents(context: Context, config: Config)
     val emailController = new Emails(authControllerComponents, manifest, esResources, annotations)
     val mimeTypesController = new MimeTypes(authControllerComponents, manifest)
     val previewController = new Previews(authControllerComponents, manifest, esResources, previewService, users, annotations, config.auth.timeouts.maxDownloadAuthAgePreview)
-    val workspacesController = new Workspaces(authControllerComponents, annotations, esResources, manifest, users, blobStorage, previewStorage, postgresClient, remoteIngestManifest, ingestStorage, config.mediaDownload, sqsClient)
+    val workspacesController = new Workspaces(authControllerComponents, annotations, esResources, manifest, users, blobStorage, previewStorage, postgresClient, remoteIngestStore, remoteIngestStorage, config.remoteIngest, snsClient)
     val commentsController = new Comments(authControllerComponents, manifest, esResources, annotations)
     val usersController = new Users(authControllerComponents, userProvider)
     val pagesController = new PagesController(authControllerComponents, manifest, esResources, pages2, annotations, previewStorage)
@@ -235,7 +242,7 @@ class AppComponents(context: Context, config: Config)
       externalWorkerScheduler.start()
       applicationLifecycle.addStopHook(() => externalWorkerScheduler.stop())
 
-      val remoteIngestWorker = new RemoteIngestWorker(sqsClient, config.mediaDownload)
+      val remoteIngestWorker = new RemoteIngestWorker(sqsClient, config.remoteIngest, config.s3, annotations, remoteIngestStore, remoteIngestStorage, scratchSpace, manifest, esEvents, esResources, esPages, ingestionServices)
       val remoteIngestScheduler = new RemoteIngestScheduler(actorSystem, remoteIngestWorker, config.worker.interval)(workerExecutionContext)
       remoteIngestWorker.start()
       remoteIngestScheduler.start()

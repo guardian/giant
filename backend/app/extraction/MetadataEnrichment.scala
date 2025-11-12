@@ -1,8 +1,7 @@
 package extraction
 
 import java.text.SimpleDateFormat
-
-import play.api.libs.json.Json
+import play.api.libs.json.{Format, Json}
 import services.index.IndexFields
 
 import scala.util.Try
@@ -28,7 +27,7 @@ case class EnrichedMetadata(title: Option[String],
 }
 
 object EnrichedMetadata {
-  implicit val format = Json.format[EnrichedMetadata]
+  implicit val format: Format[EnrichedMetadata] = Json.format[EnrichedMetadata]
 }
 
 object MetadataEnrichment {

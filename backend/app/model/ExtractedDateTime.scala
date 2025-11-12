@@ -2,8 +2,7 @@ package model
 
 import java.time.format.DateTimeFormatter
 import java.time.{LocalDateTime, OffsetDateTime, ZoneOffset}
-
-import play.api.libs.json.Json
+import play.api.libs.json.{Json, Writes}
 
 import scala.util.Try
 
@@ -24,6 +23,6 @@ object ExtractedDateTime {
     }.toOption
   }
 
-  implicit val writes = Json.writes[ExtractedDateTime]
+  implicit val writes: Writes[ExtractedDateTime] = Json.writes[ExtractedDateTime]
 }
 

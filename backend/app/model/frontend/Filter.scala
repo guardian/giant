@@ -12,11 +12,11 @@ object FilterNames {
 case class FilterOption(value: String, display: String, explanation: Option[String] = None, suboptions: Option[List[FilterOption]] = None)
 
 object FilterOption {
-  implicit val filterOptionFormat = Json.format[FilterOption]
+  implicit val filterOptionFormat: Format[FilterOption] = Json.format[FilterOption]
 }
 
 case class Filter(key: String, display: String, hideable: Boolean, options: List[FilterOption])
 
 object Filter {
-  implicit val filterFormat = Json.format[Filter]
+  implicit val filterFormat: Format[Filter] = Json.format[Filter]
 }

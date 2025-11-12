@@ -2,7 +2,7 @@ package services.annotations
 
 import model.Uri
 import model.annotations._
-import model.frontend.TreeEntry
+import model.frontend.{TreeEntry, TreeLeaf}
 import services.annotations.Annotations.{AffectedResource, CopyDestination, DeleteItemResult, MoveItemResult}
 import utils.attempt.{Attempt, Failure}
 import org.neo4j.driver.v1.Value
@@ -14,7 +14,7 @@ trait Annotations {
   //def (currentUser: String, workspaceId: String): Attempt[Boolean]
   def getAllWorkspacesMetadata(currentUser: String): Attempt[List[WorkspaceMetadata]]
   def getWorkspaceMetadata(currentUser: String, id: String): Attempt[WorkspaceMetadata]
-  def getWorkspaceContents(currentUser: String, id: String): Attempt[TreeEntry[WorkspaceEntry]]
+  def getWorkspaceContents(currentUser: String, id: String, extraLeavesToMixIn: List[TreeLeaf[WorkspaceLeaf]] = List.empty): Attempt[TreeEntry[WorkspaceEntry]]
   def insertWorkspace(username: String, id: String, name: String, isPublic: Boolean, tagColor: String): Attempt[Unit]
   def updateWorkspaceName(currentUser: String, id: String, name: String): Attempt[Unit]
   def updateWorkspaceOwner(currentUser: String, id: String, owner: String): Attempt[Unit]
@@ -22,6 +22,7 @@ trait Annotations {
   def updateWorkspaceFollowers(currentUser: String, id: String, followers: List[String]): Attempt[Unit]
   def deleteWorkspace(currentUser: String, workspace: String): Attempt[Unit]
   def addFolder(currentUser: String, workspaceId: String, parentFolderId: String, folderName: String): Attempt[String]
+  def addOrGetFolder(currentUser: String, workspaceId: String, parentFolderId: String, folderName: String): Attempt[String]
   def addResourceToWorkspaceFolder(currentUser: String, fileName: String, uri: Uri, size: Option[Long], mimeType: Option[String], icon: String, workspaceId: String, folderId: String, nodeId: String): Attempt[String]
   def renameWorkspaceItem(currentUser: String, workspaceId: String, itemId: String, name: String): Attempt[Unit]
   def moveWorkspaceItem(currentUser: String, workspaceId: String, itemId: String, newWorkspaceId: Option[String], newParentId: Option[String]): Attempt[MoveItemResult]

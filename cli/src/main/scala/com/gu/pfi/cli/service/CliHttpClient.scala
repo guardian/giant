@@ -41,11 +41,11 @@ class CliHttpClient(client: OkHttpClient, credsStore: CliCredentialsStore, baseU
   }
 
   def post(path: String, body: String, mimeType: MediaType = jsonMimeType): Attempt[Response] = {
-    run(path, "POST", Some(RequestBody.create(mimeType, body)))
+    run(path, "POST", Some(RequestBody.create(body, mimeType)))
   }
 
   def put(path: String, body: String, mimeType: MediaType = jsonMimeType): Attempt[Response] = {
-    run(path, "PUT", Some(RequestBody.create(mimeType, body)))
+    run(path, "PUT", Some(RequestBody.create(body, mimeType)))
   }
 
   def delete(path: String): Attempt[Response] = {

@@ -19,5 +19,5 @@ case class Document(uri: Uri,
                     fileSize: Long) extends IndexedResource
 
 object Document {
-  implicit val documentFormat = Json.format[Document]
+  implicit val documentFormat: Format[Document] = Json.format[Document]
 }

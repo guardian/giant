@@ -138,6 +138,9 @@ object FailureToResultMapper extends Logging {
       case SQSSendMessageFailure(msg) =>
         logger.error(msg)
         Results.InternalServerError(msg)
+      case RemoteIngestFailure(msg) =>
+        logger.error(msg)
+        Results.InternalServerError(msg)
     }
   }
 }

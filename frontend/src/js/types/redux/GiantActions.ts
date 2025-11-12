@@ -49,7 +49,7 @@ interface ReceiveWorkspacesMetadataAction {
 
 interface ReceiveWorkspaceAction {
     type: WorkspacesActionType.WORKSPACE_GET_RECEIVE,
-    workspace: Workspace
+    workspace: Workspace | null // null when clearing current workspace
 }
 
 export type WorkspacesAction =
@@ -65,7 +65,7 @@ export enum AppActionType {
     APP_SHOW_ERROR = 'APP_SHOW_ERROR',
 }
 
-interface ErrorAction {
+export interface ErrorAction {
     type: AppActionType.APP_SHOW_ERROR,
     message: string,
     error: Error

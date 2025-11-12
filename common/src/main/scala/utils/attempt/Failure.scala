@@ -15,14 +15,12 @@ sealed trait Failure {
 }
 
 object Failure {
-  implicit val combiner = new Semigroup[Failure] {
-    override def combine(xFailure: Failure, yFailure: Failure): Failure = {
-      (xFailure, yFailure) match {
-        case (MultipleFailures(xs), MultipleFailures(ys)) => MultipleFailures(xs ::: ys)
-        case (MultipleFailures(xs), y) => MultipleFailures(xs :+ y)
-        case (x, MultipleFailures(ys)) => MultipleFailures(x :: ys)
-        case (x, y) => MultipleFailures(List(x, y))
-      }
+  implicit val combiner: Semigroup[Failure] = (xFailure: Failure, yFailure: Failure) => {
+    (xFailure, yFailure) match {
+      case (MultipleFailures(xs), MultipleFailures(ys)) => MultipleFailures(xs ::: ys)
+      case (MultipleFailures(xs), y) => MultipleFailures(xs :+ y)
+      case (x, MultipleFailures(ys)) => MultipleFailures(x :: ys)
+      case (x, y) => MultipleFailures(List(x, y))
     }
   }
 }
@@ -138,3 +136,5 @@ case class DocumentUpdateFailure(throwable: Throwable) extends FailureWithThrowa
 case class ExternalTranscriptionOutputFailure(msg: String) extends Failure
 
 case class SQSSendMessageFailure(msg: String) extends Failure
+
+case class RemoteIngestFailure(msg: String) extends Failure

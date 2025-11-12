@@ -3,15 +3,22 @@ package model.ingestion
 import play.api.libs.json.{Format, Json}
 
 
-case class MediaDownloadJob(id: String, url: String, client: String = MediaDownloadJob.CLIENT_IDENTIFIER, outputQueueUrl: String, s3OutputSignedUrl: String)
-object MediaDownloadJob {
-  implicit val mediaDownloadJobFormat: Format[MediaDownloadJob] = Json.format[MediaDownloadJob]
+case class RemoteIngestJob(id: String,
+                           url: String,
+                           client: String = RemoteIngestJob.CLIENT_IDENTIFIER,
+                           outputQueueUrl: String,
+                           mediaDownloadId: String,
+                           webpageSnapshotId: String,
+                           webpageSnapshotOutputSignedUrl: String,
+                           mediaDownloadOutputSignedUrl: String)
+object RemoteIngestJob {
+  implicit val mediaDownloadJobFormat: Format[RemoteIngestJob] = Json.format[RemoteIngestJob]
   val CLIENT_IDENTIFIER = "EXTERNAL"
 }
 
 case class MediaDownloadOutputMetadata(title: String, extension: String, mediaPath: String, duration: Int)
-case class MediaDownloadOutput(id: String, status: String, metadata: Option[MediaDownloadOutputMetadata])
-object MediaDownloadOutput {
+case class RemoteIngestOutput(id: String, taskId: String, status: String, outputType: String, metadata: Option[MediaDownloadOutputMetadata])
+object RemoteIngestOutput {
   implicit val mediaDownloadOutputMetadataFormat: Format[MediaDownloadOutputMetadata] = Json.format[MediaDownloadOutputMetadata]
-  implicit val mediaDownloadOutputFormat: Format[MediaDownloadOutput] = Json.format[MediaDownloadOutput]
+  implicit val mediaDownloadOutputFormat: Format[RemoteIngestOutput] = Json.format[RemoteIngestOutput]
 }

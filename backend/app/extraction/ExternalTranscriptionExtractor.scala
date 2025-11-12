@@ -5,7 +5,7 @@ import com.amazonaws.services.sqs.model.{MessageAttributeValue, SendMessageReque
 import model.{English, Language, Languages}
 import model.manifest.Blob
 import org.joda.time.DateTime
-import play.api.libs.json.{JsError, JsResult, JsValue, Json, Reads, Writes}
+import play.api.libs.json.{Format, JsError, JsResult, JsValue, Json, Reads, Writes}
 import services.index.Index
 import services.{ObjectStorage, TranscribeConfig}
 import utils._
@@ -19,25 +19,17 @@ import scala.jdk.CollectionConverters.MapHasAsJava
 // https://github.com/guardian/transcription-service/blob/main/packages/common/src/types.ts
 case class SignedUrl(url: String, key: String)
 object SignedUrl {
-  implicit val formats = Json.format[SignedUrl]
+  implicit val formats: Format[SignedUrl] = Json.format[SignedUrl]
 }
-case class OutputBucketUrls(text: SignedUrl, srt: SignedUrl, json: SignedUrl)
-case class OutputBucketKeys(text: String, srt: String, json: String)
 case class CombinedOutputUrl(url: String, key: String)
 case class TranscriptionJob(id: String, originalFilename: String, inputSignedUrl: String, sentTimestamp: String,
-                            userEmail: String, transcriptDestinationService: String, outputBucketUrls: OutputBucketUrls,
+                            userEmail: String, transcriptDestinationService: String,
                             combinedOutputUrl: CombinedOutputUrl, languageCode: String, translate: Boolean,
-                            translationOutputBucketUrls: OutputBucketUrls, diarize: Boolean, engine: String)
-object OutputBucketUrls {
-  implicit val formats = Json.format[OutputBucketUrls]
-}
+                            diarize: Boolean, engine: String)
 
-object OutputBucketKeys {
-  implicit val formats = Json.format[OutputBucketKeys]
-}
 object TranscriptionJob {
-  implicit val combinedOutputUrlFormat = Json.format[CombinedOutputUrl]
-  implicit val formats = Json.format[TranscriptionJob]
+  implicit val combinedOutputUrlFormat: Format[CombinedOutputUrl] = Json.format[CombinedOutputUrl]
+  implicit val formats: Format[TranscriptionJob] = Json.format[TranscriptionJob]
 }
 case class TranscriptionMetadata(detectedLanguageCode: Language)
 object TranscriptionMetadata {
@@ -45,13 +37,13 @@ object TranscriptionMetadata {
     Languages.getByIso6391Code(code).getOrElse(English)
   }
   implicit val languageWrites: Writes[Language] = Writes.of[String].contramap(_.iso6391Code)
-  implicit val formats = Json.format[TranscriptionMetadata]
+  implicit val formats: Format[TranscriptionMetadata] = Json.format[TranscriptionMetadata]
 }
 case class Transcripts(srt: String, text: String, json: String)
 case class TranscriptionResult(transcripts: Transcripts, transcriptTranslations: Option[Transcripts], metadata: TranscriptionMetadata)
 object TranscriptionResult {
-  implicit val transcriptsFormat = Json.format[Transcripts]
-  implicit val formats = Json.format[TranscriptionResult]
+  implicit val transcriptsFormat: Format[Transcripts] = Json.format[Transcripts]
+  implicit val formats: Format[TranscriptionResult] = Json.format[TranscriptionResult]
 }
 
 sealed trait TranscriptionOutput {
@@ -69,9 +61,7 @@ case class TranscriptionOutputSuccess(
                                           isTranslation: Boolean,
                                           status: String = "SUCCESS",
                                           languageCode: String,
-                                          outputBucketKeys: OutputBucketKeys,
                                           combinedOutputKey: String,
-                                          translationOutputBucketKeys: Option[OutputBucketKeys]
                                         ) extends TranscriptionOutput
 
 case class TranscriptionOutputFailure(
@@ -83,11 +73,11 @@ case class TranscriptionOutputFailure(
                                     ) extends TranscriptionOutput
 
 object TranscriptionOutputSuccess {
-  implicit val format = Json.format[TranscriptionOutputSuccess]
+  implicit val format: Format[TranscriptionOutputSuccess] = Json.format[TranscriptionOutputSuccess]
 }
 
 object TranscriptionOutputFailure {
-  implicit val format = Json.format[TranscriptionOutputFailure]
+  implicit val format: Format[TranscriptionOutputFailure] = Json.format[TranscriptionOutputFailure]
 }
 
 object TranscriptionOutput {
@@ -138,33 +128,12 @@ class ExternalTranscriptionExtractor(index: Index, transcribeConfig: TranscribeC
   // set a low priority as transcription takes a long time, we don't want to block up the workers
   override def priority = 2
 
-  private def getOutputBucketUrls(blobUri: String): Either[Failure, OutputBucketUrls] = {
-    val srtKey = s"srt/$blobUri.srt"
-    val jsonKey = s"json/$blobUri.json"
-    val textKey = s"text/$blobUri.txt"
-
-    val bucketUrls = for {
-      srt <- outputStorage.getUploadSignedUrl(srtKey)
-      json <- outputStorage.getUploadSignedUrl(jsonKey)
-      text <- outputStorage.getUploadSignedUrl(textKey)
-    } yield {
-      OutputBucketUrls(
-        SignedUrl(text, textKey),
-        SignedUrl(srt, srtKey),
-        SignedUrl(json, jsonKey)
-      )
-    }
-
-    bucketUrls
-  }
 
   override def triggerExtraction(blob: Blob, params: ExtractionParams): Either[Failure, Unit] = {
     val combinedOutputKey = s"combined/${blob.uri.value}.json"
     val transcriptionJob =  for {
       downloadSignedUrl <- transcriptionStorage.getSignedUrl (blob.uri.toStoragePath)
-      transcriptsOutputSignedUrls <- getOutputBucketUrls(blob.uri.value)
       combinedOutputUrl <- outputStorage.getUploadSignedUrl(combinedOutputKey)
-      translationOutputSignedUrls <- getOutputBucketUrls(s"${blob.uri.value}-translation")
     } yield {
       TranscriptionJob(
         id = blob.uri.value,
@@ -173,12 +142,10 @@ class ExternalTranscriptionExtractor(index: Index, transcribeConfig: TranscribeC
         sentTimestamp = DateTime.now().toString,
         userEmail = "giant",
         transcriptDestinationService = "Giant",
-        outputBucketUrls = transcriptsOutputSignedUrls,
         combinedOutputUrl = CombinedOutputUrl(url = combinedOutputUrl,key = combinedOutputKey),
         languageCode = "auto",
         translate = true,
-        translationOutputBucketUrls = translationOutputSignedUrls,
-        diarize = false,
+        diarize = true,
         engine = "whisperx")
     }
 

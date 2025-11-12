@@ -3,7 +3,7 @@ package services
 import net.ceedubs.ficus.Ficus._
 import net.ceedubs.ficus.readers.ArbitraryTypeReader._
 import net.ceedubs.ficus.readers.EnumerationReader._
-import play.api.libs.json.Json
+import play.api.libs.json.{Format, Json}
 
 import scala.concurrent.duration.FiniteDuration
 
@@ -88,10 +88,10 @@ case class TranscribeConfig(
                              transcriptionOutputDeadLetterQueueUrl: String
 )
 
-case class MediaDownloadConfig(
-                                taskQueueUrl: String,
-                                outputDeadLetterQueueUrl: String,
-                                outputQueueUrl: String
+case class RemoteIngestConfig(
+                               taskTopicArn: String,
+                               outputDeadLetterQueueUrl: String,
+                               outputQueueUrl: String
                               )
 
 case class WorkerConfig(
@@ -124,7 +124,7 @@ case class PostgresConfig(
 )
 
 object PostgresConfig {
-  implicit val format = Json.format[PostgresConfig]
+  implicit val format: Format[PostgresConfig] = Json.format[PostgresConfig]
 }
 
 case class ElasticsearchConfig(
@@ -175,7 +175,8 @@ case class BucketConfig(
   deadLetter: String,
   collections: String,
   preview: String,
-  transcription: String
+  transcription: String,
+  remoteIngestion: String
 ) {
   val all: List[String] = List(ingestion, deadLetter, collections, preview)
 }
@@ -203,7 +204,7 @@ case class Config(
                    aws: Option[AWSDiscoveryConfig],
                    ocr: OcrConfig,
                    transcribe: TranscribeConfig,
-                   mediaDownload: MediaDownloadConfig,
+                   remoteIngest: RemoteIngestConfig,
                    sqs: SQSConfig
 )
 
@@ -222,7 +223,7 @@ object Config {
     raw.as[Option[AWSDiscoveryConfig]]("aws"),
     raw.as[OcrConfig]("ocr"),
     raw.as[TranscribeConfig]("transcribe"),
-    raw.as[MediaDownloadConfig]("mediaDownload"),
+    raw.as[RemoteIngestConfig]("remoteIngest"),
     raw.as[SQSConfig]("sqs")
   )
 
