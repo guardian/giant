@@ -364,10 +364,8 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
           }
 
           if (entryTreeEntries.length > 0){
-            const maybeLeaf = entryTreeEntries[entryTreeEntries.length -1]
-            if (isTreeLeaf((maybeLeaf))){
-              this.props.setFocusedEntry(maybeLeaf);
-            }
+            const lastEntry = entryTreeEntries[entryTreeEntries.length - 1]
+            this.props.setFocusedEntry(lastEntry);
           }
         }
     }
