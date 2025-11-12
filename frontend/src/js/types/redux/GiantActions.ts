@@ -13,12 +13,18 @@ export enum WorkspacesActionType {
     SET_FOCUSED_ENTRY = 'SET_FOCUSED_ENTRY',
     SET_ENTRY_BEING_RENAMED = 'SET_ENTRY_BEING_RENAMED',
     SET_NODE_AS_EXPANDED = 'SET_NODE_AS_EXPANDED',
+    SET_NODES_AS_EXPANDED = 'SET_NODES_AS_EXPANDED',
     SET_NODE_AS_COLLAPSED = 'SET_NODE_AS_COLLAPSED',
 }
 
 interface TreeNodeAction {
     type: WorkspacesActionType.SET_NODE_AS_EXPANDED | WorkspacesActionType.SET_NODE_AS_COLLAPSED,
     node: TreeNode<WorkspaceEntry>,
+}
+
+interface TreeNodesAction {
+    type: WorkspacesActionType.SET_NODES_AS_EXPANDED,
+    entries: TreeNode<WorkspaceEntry>[]
 }
 
 interface SelectedEntriesAction {
@@ -48,6 +54,7 @@ interface ReceiveWorkspaceAction {
 
 export type WorkspacesAction =
     | TreeNodeAction
+    | TreeNodesAction
     | SelectedEntriesAction
     | FocusedEntryAction
     | EntryBeingRenamedAction

@@ -91,6 +91,8 @@ class App extends React.Component {
                     <Route path='/settings/features' component={FeatureSwitches} />
                     <Route path='/settings/about' component={About} />
                     <Route path='/settings/uploads' component={WeeklyUploadsFeed} />
+                    <Route path='/workspaces/:id'  component={Workspaces} />
+                    <Route path='/workspaces/:id/:workspaceLocation'  component={Workspaces} />
                     <Route path='/workspaces/:id' component={Workspaces} />
                     <Route exact path='/workspaces' component={CaptureFromUrl} />
 

@@ -51,13 +51,14 @@ import { getMyPermissions } from '../../actions/users/getMyPermissions';
 import buildLink from '../../util/buildLink';
 import history from '../../util/history';
 import {takeOwnershipOfWorkspace} from "../../actions/workspaces/takeOwnershipOfWorkspace";
+import {setNodesAsExpanded} from "../../actions/workspaces/setNodesAsExpanded";
 import {FileAndFolderCounts} from "../UtilComponents/TreeBrowser/FileAndFolderCounts";
 import {EuiLoadingSpinner} from "@elastic/eui";
 
 
 type Props = ReturnType<typeof mapStateToProps>
     & ReturnType<typeof mapDispatchToProps>
-    & RouteComponentProps<{id: string}>;
+    & RouteComponentProps<{id: string, workspaceLocation:string}>;
 
 
 type State = {
@@ -349,6 +350,22 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
         if(workspaceId !== prevWorkspaceId) {
             this.props.getWorkspace(workspaceId, { shouldClearFirst: true });
         }
+
+        const workspaceLocation = this.props.match.params.workspaceLocation;
+        if(this.props.expandedNodes.length === 0 && this.props.currentWorkspace && workspaceLocation) {
+          const entryTreeEntries = this.getEntryTreeNodes(workspaceLocation, this.props.currentWorkspace.rootNode) || [];
+          const entriesWithoutRoot = entryTreeEntries.filter((entry)=>this.props.currentWorkspace && entry.id !== this.props.currentWorkspace.rootNode.id)
+          const entryTreeNodes= entriesWithoutRoot.filter(isTreeNode);
+
+          if (entryTreeNodes.length > 0) {
+            this.props.setNodesAsExpanded(entryTreeNodes);
+          }
+
+          if (entriesWithoutRoot.length > 0){
+            const lastEntry = entriesWithoutRoot[entriesWithoutRoot.length - 1]
+            this.props.setFocusedEntry(lastEntry);
+          }
+        }
     }
 
     componentWillUnmount() {
@@ -438,6 +455,10 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
 
     setSelectedEntry = (entry: TreeEntry<WorkspaceEntry>) => {
         this.props.setFocusedAndSelectedEntry(entry);
+        this.props.history.push({
+          pathname: `/workspaces/${this.props.match.params.id}/${entry.id}`,
+        });
+
         this.setState({previousShiftClickSelectedEntries: []});
     };
 
@@ -574,7 +595,7 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
     }
 
     getEntryPath (entryId: string, workspaceRootNode: TreeEntry<WorkspaceEntry>): string {
-        const pathArray = this.getEntryTreeNodes(entryId, workspaceRootNode)
+       const pathArray = this.getEntryTreeNodes(entryId, workspaceRootNode)
         if (pathArray) {
             const path = pathArray.map(p => p.name).join("/")
             console.log(path)
@@ -837,6 +858,7 @@ function mapDispatchToProps(dispatch: GiantDispatch) {
         setFocusedEntry: bindActionCreators(setFocusedEntry, dispatch),
         setEntryBeingRenamed: bindActionCreators(setEntryBeingRenamed, dispatch),
         setNodeAsExpanded: bindActionCreators(setNodeAsExpanded, dispatch),
+        setNodesAsExpanded: bindActionCreators(setNodesAsExpanded, dispatch),
         setNodeAsCollapsed: bindActionCreators(setNodeAsCollapsed, dispatch),
         renameWorkspace: bindActionCreators(renameWorkspace, dispatch),
         takeOwnershipOfWorkspace: bindActionCreators(takeOwnershipOfWorkspace, dispatch),
