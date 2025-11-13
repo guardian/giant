@@ -429,7 +429,7 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
          |
          |MATCH (currentUser:User {username: {currentUser}})
          |
-         |CREATE (file: WorkspaceNode {id: {fileId}, name: {fileName}, type: 'file', icon: {icon}, uri: {blobUri}, addedOn: {addedOn}$sizePart$mimeTypePart})
+         |MERGE (file: WorkspaceNode {id: {fileId}, name: {fileName}, type: 'file', icon: {icon}, uri: {blobUri}, addedOn: {addedOn}$sizePart$mimeTypePart})
          |
          |CREATE (file)<-[:CREATED]-(currentUser)
          |CREATE (file)-[:PARENT]->(parentNode)
