@@ -199,6 +199,7 @@ class AppComponents(context: Context, config: Config)
     val blobsController = new Blobs(authControllerComponents, manifest, esResources, blobStorage, previewStorage, postgresClient)
     val filtersController = new Filters(authControllerComponents, manifest, annotations)
     val searchController = new Search(authControllerComponents, users, esResources, annotations, metricsService)
+    val videoVerifierController = new VideoVerifier(authControllerComponents)
     val documentsController = new Documents(authControllerComponents, manifest, esResources, blobStorage, users, annotations, config.auth.timeouts.maxDownloadAuthAge)
     val resourceController = new Resource(authControllerComponents, manifest, esResources, esPages, annotations, previewStorage)
     val emailController = new Emails(authControllerComponents, manifest, esResources, annotations)
@@ -274,6 +275,7 @@ class AppComponents(context: Context, config: Config)
       workspacesController,
       previewController,
       usersController,
+      videoVerifierController,
       authController,
       appController,
       genesisController,
