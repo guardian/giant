@@ -248,7 +248,7 @@ object HitReaders {
 
   private def readRecipient(fields: FieldMap): Recipient = Recipient(
     fields.optMultiLanguageField(metadata.recipients.name),
-    fields.field(metadata.recipients.address)
+    fields.optField(metadata.recipients.address).getOrElse("unknown")
   )
 
   private def readMetadata(fields: FieldMap): Map[String, Seq[String]] = {
