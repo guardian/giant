@@ -405,6 +405,8 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
     val sizePart = if (size.isDefined) ", size: {size}" else ""
     val mimeTypePart = if(mimeType.isDefined) ", mimeType: {mimeType}" else ""
 
+    logger.info(s"Adding resource with id $nodeId to workspace $workspaceId with parent $folderId")
+
     val params = List(
       "parentFolderId", folderId,
       "workspaceId", workspaceId,
