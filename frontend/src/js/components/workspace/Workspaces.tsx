@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {ClipboardEventHandler} from 'react';
 import * as R from 'ramda';
 import Modal from '../UtilComponents/Modal';
 import CreateFolderModal from './CreateFolderModal';
@@ -531,6 +531,7 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
             return;
         }
         e.preventDefault();
+
         this.props.setFocusedAndSelectedEntry(entry);
         this.setState({
             contextMenu: {
@@ -678,6 +679,14 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
         </DetectClickOutside>;
     }
 
+    onCopy: ClipboardEventHandler<HTMLDivElement> = (e) => {
+      e.clipboardData.setData(
+        'text/plain',
+        this.props.selectedEntries?.map(entry => entry.name).join('\n')
+      );
+      e.preventDefault();
+    }
+
     renderFolderTree = (workspace: Workspace) => {
         const onSelectLeaf = (entry: TreeLeaf<WorkspaceEntry>) => {
             // TODO: it would be nice to not have to do this check
@@ -694,7 +703,7 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
         const selectedCount = this.props.selectedEntries.length;
 
         return (
-            <div className='workspace__tree'>
+            <div className='workspace__tree' onCopy={this.onCopy}>
                 <div className='workspace__tree-header'>
                     <div className='workspace__tree-actions'>
                         <button className='btn btn--primary workspace__button' disabled={selectedCount > 1} onClick={() => this.createFolder()}>New Folder</button>
