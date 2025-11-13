@@ -423,7 +423,7 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
          |
          |MATCH (parentNode)-[:PART_OF]->(workspace: Workspace {id: {workspaceId}})<-[:FOLLOWING]-(user: User)
          |  WHERE user.username = {currentUser} OR workspace.isPublic
-         |WITH parentNode, workspace
+         |WITH DISTINCT parentNode, workspace
          |
          |MATCH (currentUser:User {username: {currentUser}})
          |
