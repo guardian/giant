@@ -34,6 +34,9 @@ export default function workspaces(
         case WorkspacesActionType.SET_NODE_AS_EXPANDED:
             return { ...state, expandedNodes: [...state.expandedNodes, action.node] };
 
+        case WorkspacesActionType.SET_NODES_AS_EXPANDED:
+          return { ...state, expandedNodes: [...state.expandedNodes, ...action.entries] };
+
         case WorkspacesActionType.SET_NODE_AS_COLLAPSED:
             // remove node from array
             return ({
