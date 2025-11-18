@@ -148,7 +148,7 @@ export const CaptureFromUrl = connect(
         onClick={() => setIsOpen(true)}
       >
         <MdGlobeIcon className='file-upload__icon'/>
-        Capture from URL
+        Capture from&nbsp;URL
       </button>
     }
     <Modal isOpen={isOpen} dismiss={() => setIsOpen(false)}>
