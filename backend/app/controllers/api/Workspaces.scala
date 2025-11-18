@@ -149,28 +149,7 @@ class Workspaces(
     for {
       metadata <- annotation.getWorkspaceMetadata(req.user.username, workspaceId)
       relevantRemoteJobs <- remoteIngestStore.getRelevantRemoteIngestJobs(workspaceId)
-      extraLeavesToMixIn = relevantRemoteJobs.filter(job => job.combinedStatus != RemoteIngestStatus.Completed).map(job => TreeLeaf(
-        id = job.id,
-        name = s"${job.title} (Capturing: ${job.url})",
-        data = WorkspaceLeaf(
-          uri = job.id, // TODO maybe improve this
-          mimeType = "Capturing URL",
-          maybeParentId = Some(job.parentFolderId),
-          addedOn = Some(job.createdAt.getMillis),
-          addedBy = job.addedBy,
-          processingStage = job.combinedStatus match {
-            case RemoteIngestStatus.Failed => ProcessingStage.Failed
-            case RemoteIngestStatus.TimedOut => ProcessingStage.Failed
-            case _ => ProcessingStage.Processing(
-              tasksRemaining = job.tasksRemaining,
-              note = Some(job.combinedStatus.toString)
-            )
-          },
-          size = None
-        ),
-        isExpandable = false
-      ))
-      contents <- annotation.getWorkspaceContents(req.user.username, workspaceId, extraLeavesToMixIn)
+      contents <- annotation.getWorkspaceContents(req.user.username, workspaceId, relevantRemoteJobs)
     } yield {
       Ok(Json.toJson(Workspace.fromMetadataAndRootNode(metadata, contents)))
     }

@@ -50,11 +50,13 @@ class Neo4jRemoteIngestStore(driver: Driver, executionContext: ExecutionContext,
       """
         |MATCH (user: User { username: { username }})
         |CREATE (wst: RemoteIngestTask {
+        |  type: 'WebpageSnapshot',
         |  id: $webpageSnapshotId,
         |  status: $status,
         |  blobUris: []
         |})
         |CREATE (mdt: RemoteIngestTask {
+        |  type: 'MediaDownload',
         |  id: $mediaDownloadId,
         |  status: $status,
         |  blobUris: []
@@ -107,29 +109,11 @@ class Neo4jRemoteIngestStore(driver: Driver, executionContext: ExecutionContext,
     |       ri.createdAt AS created_at,
     |       ri.url AS url,
     |       addedBy as added_by,
-    |       COLLECT({id: task.id, status: task.status, blobUris: task.blobUris}) AS tasks
+    |       COLLECT({id: task.id, status: task.status, blobUris: task.blobUris, type: task.type}) AS tasks
   """.stripMargin
 
-  private def parseTasksMap(tasksMap: JavaMap[String, Object]): Map[String, RemoteIngestTask] = {
-    tasksMap.asScala.toMap.map { case (taskId, taskValue) =>
-      val taskMap = taskValue.asInstanceOf[JavaMap[String, Object]].asScala.toMap
-      val blobUris =
-        if (taskMap.contains("blobUris") && taskMap("blobUris") != null)
-          taskMap("blobUris").asInstanceOf[java.util.List[String]].asScala.toList
-        else List()
-      val status =
-        if (taskMap.contains("status") && taskMap("status") != null)
-          RemoteIngestStatus withName taskMap("status").asInstanceOf[String]
-        else RemoteIngestStatus.Queued
-      taskId -> RemoteIngestTask(
-        id = taskId,
-        status = status,
-        blobUris = blobUris
-      )
-    }
-  }
-
   private def recordToRemoteIngest(record: org.neo4j.driver.v1.Record): RemoteIngest = {
+    val createdAt = new org.joda.time.DateTime(record.get("created_at").asLong(), org.joda.time.DateTimeZone.UTC)
     RemoteIngest(
       id = record.get("id").asString(),
       title = record.get("title").asString(),
@@ -137,18 +121,12 @@ class Neo4jRemoteIngestStore(driver: Driver, executionContext: ExecutionContext,
       parentFolderId = record.get("parent_folder_id").asString(),
       collection = record.get("collection").asString(),
       ingestion = record.get("ingestion").asString(),
-      createdAt = new org.joda.time.DateTime(record.get("created_at").asLong(), org.joda.time.DateTimeZone.UTC),
+      createdAt = createdAt,
       url = record.get("url").asString(),
       addedBy = DBUser.fromNeo4jValue(record.get("added_by")).toPartial,
-      tasks = record.get("tasks").asList().asScala.map {taskValue =>
-        val taskMap = taskValue.asInstanceOf[JavaMap[String, Object]].asScala.toMap
-        val taskId = taskMap("id").asInstanceOf[String]
-        taskId -> RemoteIngestTask(
-          id = taskId,
-          status = RemoteIngestStatus withName taskMap("status").asInstanceOf[String],
-          blobUris = taskMap("blobUris").asInstanceOf[java.util.List[String]].asScala.toList
-        )
-      }.toMap
+      tasks = record.get("tasks").asList().asScala.map(RemoteIngestTask(
+        new DateTime().minusHours(2).isAfter(createdAt)
+      )).toMap
     )
   }
   override def getRemoteIngestJob(id: String): Attempt[RemoteIngest] = attemptTransaction { tx =>
@@ -167,11 +145,12 @@ class Neo4jRemoteIngestStore(driver: Driver, executionContext: ExecutionContext,
     }
   }
 
-  override def getRemoteIngestJobs(maybeWorkspaceId: Option[String], maybeSinceUTCEpoch: Option[Long]): Attempt[List[RemoteIngest]] = attemptTransaction { tx =>
+  override def getRemoteIngestJobs(maybeWorkspaceId: Option[String], maybeSinceUTCEpoch: Option[Long], maybeContainsTaskWithStatusIn: Option[List[RemoteIngestStatus]]): Attempt[List[RemoteIngest]] = attemptTransaction { tx =>
     // important: don't remove the whitespace around the comparison operators in the where clauses, as they are used to split the string later
     val filters = List(
       maybeWorkspaceId.map("ri.workspaceId = $workspaceId" -> _),
-      maybeSinceUTCEpoch.map("ri.createdAt > $since" -> _)
+      maybeSinceUTCEpoch.map("ri.createdAt > $since" -> _),
+      maybeContainsTaskWithStatusIn.map("task.status IN $taskStatuses" -> _.map(_.toString).toArray )
     ).flatten
 
     val query = s"""
@@ -192,7 +171,13 @@ class Neo4jRemoteIngestStore(driver: Driver, executionContext: ExecutionContext,
 
   override def getRelevantRemoteIngestJobs(workspaceId: String): Attempt[List[RemoteIngest]] = getRemoteIngestJobs(
     maybeWorkspaceId = Some(workspaceId),
-    maybeSinceUTCEpoch = Some(DateTime.now.minusDays(14).getMillis)
+    maybeSinceUTCEpoch = Some(DateTime.now.minusDays(14).getMillis),
+    maybeContainsTaskWithStatusIn = Some(List(
+      RemoteIngestStatus.Queued,
+      RemoteIngestStatus.Ingesting,
+      RemoteIngestStatus.TimedOut,
+      RemoteIngestStatus.Failed,
+    ))
   )
 
   override def updateRemoteIngestTaskStatus(taskId: String, status: RemoteIngestStatus): Attempt[Unit] = attemptTransaction { tx =>

@@ -6,6 +6,7 @@ import java.util.UUID
 import model.{RichValue, Uri}
 import model.annotations._
 import model.frontend.{TreeEntry, TreeLeaf, TreeNode}
+import model.ingestion.RemoteIngest
 import model.user.DBUser
 import org.neo4j.driver.v1.{Driver, Record, Value}
 import org.neo4j.driver.v1.Values.parameters
@@ -96,7 +97,7 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
     }
   }
 
-  override def getWorkspaceContents(currentUser: String, id: String, extraLeavesToMixIn: List[TreeLeaf[WorkspaceLeaf]] = List.empty): Attempt[TreeEntry[WorkspaceEntry]] = attemptTransaction { tx =>
+  override def getWorkspaceContents(currentUser: String, id: String, remoteIngestsToMixin: List[RemoteIngest] = List.empty): Attempt[TreeEntry[WorkspaceEntry]] = attemptTransaction { tx =>
     tx.run(
       """
         |MATCH (workspace: Workspace { id: {id} })
@@ -119,7 +120,7 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
     ).map { summary =>
       val rows = summary.list().asScala
 
-      val entries = rows.map { r =>
+      val realEntries = rows.map { r =>
         val node = r.get("node")
         val nodeCreator = DBUser.fromNeo4jValue(r.get("nodeCreator")).toPartial
         val maybeParentNodeId = r.get("parentNode.id").optionally(_.asString())
@@ -128,7 +129,18 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
         val hasFailures = r.get("hasFailures").asBoolean()
 
         WorkspaceEntry.fromNeo4jValue(node, nodeCreator, maybeParentNodeId, numberOfTodos, note, hasFailures)
-      }.toList ++ extraLeavesToMixIn
+      }.toList
+
+      val synthesisedEntries = remoteIngestsToMixin.flatMap(_.asSyntheticEntries(
+        (parentFolderId: String, name: String) => {
+          realEntries.find { entry =>
+            entry.data.maybeParentId.contains(parentFolderId) &&
+              entry.name.equalsIgnoreCase(name)
+          }.map(_.id)
+        }
+      ))
+
+      val entries = realEntries ++ synthesisedEntries
 
       def buildNode(currentEntry: TreeEntry[WorkspaceEntry]): TreeEntry[WorkspaceEntry] = {
         currentEntry match {
