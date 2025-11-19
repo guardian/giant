@@ -63,6 +63,7 @@ type Props = ReturnType<typeof mapStateToProps>
 
 type State = {
     createFolderModalOpen: boolean,
+    haveAppliedWorkspaceLocationParam: boolean,
     hoverOverReprocessIconEntry: null | TreeEntry<WorkspaceEntry>;
     contextMenu: {
         isOpen: boolean,
@@ -300,6 +301,7 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
 
     state: State = {
         createFolderModalOpen: false,
+        haveAppliedWorkspaceLocationParam: false,
         hoverOverReprocessIconEntry: null,
         contextMenu: {
             isOpen: false,
@@ -352,7 +354,7 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
         }
 
         const workspaceLocation = this.props.match.params.workspaceLocation;
-        if(this.props.expandedNodes.length === 0 && this.props.currentWorkspace && workspaceLocation) {
+        if(workspaceLocation && !this.state.haveAppliedWorkspaceLocationParam && this.props.currentWorkspace) {
           const entryTreeEntries = this.getEntryTreeNodes(workspaceLocation, this.props.currentWorkspace.rootNode) || [];
           const entriesWithoutRoot = entryTreeEntries.filter((entry)=>this.props.currentWorkspace && entry.id !== this.props.currentWorkspace.rootNode.id)
           const entryTreeNodes= entriesWithoutRoot.filter(isTreeNode);
@@ -365,6 +367,7 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
             const lastEntry = entriesWithoutRoot[entriesWithoutRoot.length - 1]
             this.props.setFocusedEntry(lastEntry);
           }
+          this.setState({haveAppliedWorkspaceLocationParam: true})
         }
     }
 
