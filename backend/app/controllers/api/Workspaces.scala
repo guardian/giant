@@ -253,7 +253,7 @@ class Workspaces(
       case TreeLeaf(_, name, data, _) =>
         // a TreeLeaf won't have any children, so just insert the item at the destination location, and return it's new ID
         data match {
-          case WorkspaceLeaf(_, _, _, _, uri, mimeType, size) =>
+          case WorkspaceLeaf(_, _, _, _, _, uri, mimeType, size) =>
             val addItemData = AddItemData(name, destinationParentId, "file", Some("document"), AddItemParameters(Some(uri), size, Some(mimeType)))
             insertItem(user, workspaceId, newId, addItemData).map(i => List(i))
           case _ => Attempt.Left(WorkspaceCopyFailure("Unexpected data type of TreeLeaf"))

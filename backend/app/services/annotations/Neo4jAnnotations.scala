@@ -107,8 +107,10 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
         |
         |OPTIONAL MATCH (node)-[:PARENT]->(parentNode :WorkspaceNode)
         |
+        |OPTIONAL MATCH (node)-[:FROM]->(remoteIngest: RemoteIngest)
+        |
         |OPTIONAL MATCH (:Resource {uri: node.uri})<-[todo:TODO|:PROCESSING_EXTERNALLY]-(:Extractor)
-        |RETURN node, nodeCreator, parentNode.id,
+        |RETURN node, nodeCreator, parentNode.id, remoteIngest.url,
         |	count(todo) AS numberOfTodos,
         |	collect(todo)[0].note as note,
         |	exists((:Resource {uri: node.uri})<-[:EXTRACTION_FAILURE]-(:Extractor)) AS hasFailures
@@ -124,11 +126,12 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
         val node = r.get("node")
         val nodeCreator = DBUser.fromNeo4jValue(r.get("nodeCreator")).toPartial
         val maybeParentNodeId = r.get("parentNode.id").optionally(_.asString())
+        val maybeCapturedFromURL = r.get("remoteIngest.url").optionally(_.asString())
         val numberOfTodos = r.get("numberOfTodos").asInt()
         val note = r.get("note").optionally(_.asString())
         val hasFailures = r.get("hasFailures").asBoolean()
 
-        WorkspaceEntry.fromNeo4jValue(node, nodeCreator, maybeParentNodeId, numberOfTodos, note, hasFailures)
+        WorkspaceEntry.fromNeo4jValue(node, nodeCreator, maybeParentNodeId, maybeCapturedFromURL, numberOfTodos, note, hasFailures)
       }.toList
 
       val synthesisedEntries = remoteIngestsToMixin.flatMap(_.asSyntheticEntries(

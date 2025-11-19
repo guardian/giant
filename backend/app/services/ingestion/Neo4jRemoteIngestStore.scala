@@ -169,6 +169,22 @@ class Neo4jRemoteIngestStore(driver: Driver, executionContext: ExecutionContext,
     }
   }
 
+  def linkRemoteIngestToWorkspaceNode(remoteIngestId: String, workspaceNodeId: String): Attempt[Unit] = attemptTransaction { tx =>
+    val query =
+      """
+         |MATCH (node:WorkspaceNode {id: $workspaceNodeId})
+         |MATCH (ri:RemoteIngest {id: $remoteIngestId})
+         |MERGE (node)-[:FROM]->(ri)
+      """.stripMargin
+
+    val params = parameters(
+      "workspaceNodeId", workspaceNodeId,
+      "remoteIngestId", remoteIngestId
+    )
+
+    tx.run(query, params).map(_ => ())
+  }
+
   override def getRelevantRemoteIngestJobs(workspaceId: String): Attempt[List[RemoteIngest]] = getRemoteIngestJobs(
     maybeWorkspaceId = Some(workspaceId),
     maybeSinceUTCEpoch = Some(DateTime.now.minusDays(14).getMillis),

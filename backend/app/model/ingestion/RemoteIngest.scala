@@ -97,6 +97,7 @@ case class RemoteIngest(
         uri = taskId,
         mimeType = "Capture from URL",
         maybeParentId = maybeExistingFolderId.orElse(Some(jobId)),
+        maybeCapturedFromURL = Some(url),
         addedOn = addedOn,
         addedBy = addedBy,
         processingStage = task.status match {
@@ -116,11 +117,12 @@ case class RemoteIngest(
     taskLeaves ++ (maybeExistingFolderId match {
       case None if taskLeaves.nonEmpty => List(TreeNode( // synthesise a folder
         id = jobId,
-        name = s"$title (Capturing: $url)",
+        name = title,
         data = WorkspaceNode(
           addedBy,
           addedOn,
           maybeParentId = Some(parentFolderId),
+          maybeCapturedFromURL = Some(url),
           // these counts should get corrected in `getWorkspaceContents`
           descendantsLeafCount = 0,
           descendantsNodeCount = 0,
