@@ -86,13 +86,17 @@ case class RemoteIngest(
 
     val maybeExistingFolderId = findExistingFolderId(parentFolderId, title)
 
-    val taskLeaves = tasks.values.map{task => TreeLeaf[WorkspaceLeaf](
-      id = task.id,
+    val jobId = s"RemoteIngest/$id"
+
+    val taskLeaves = tasks.values.map{task =>
+      val taskId = s"RemoteIngestTask/${task.id}"
+      TreeLeaf[WorkspaceLeaf](
+      id = taskId,
       name = task.title,
       data = WorkspaceLeaf(
-        uri = task.id,
-        mimeType = "Capturing from URL",
-        maybeParentId = maybeExistingFolderId.orElse(Some(id)),
+        uri = taskId,
+        mimeType = "Capture from URL",
+        maybeParentId = maybeExistingFolderId.orElse(Some(jobId)),
         addedOn = addedOn,
         addedBy = addedBy,
         processingStage = task.status match {
@@ -111,7 +115,7 @@ case class RemoteIngest(
 
     taskLeaves ++ (maybeExistingFolderId match {
       case None if taskLeaves.nonEmpty => List(TreeNode( // synthesise a folder
-        id = id, // job id
+        id = jobId,
         name = s"$title (Capturing: $url)",
         data = WorkspaceNode(
           addedBy,

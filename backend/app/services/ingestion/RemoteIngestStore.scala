@@ -24,6 +24,7 @@ trait RemoteIngestStore {
   def getRemoteIngestJobs(maybeWorkspaceId: Option[String], maybeSinceUTCEpoch: Option[Long], maybeContainsTaskWithStatusIn: Option[List[RemoteIngestStatus]]): Attempt[List[RemoteIngest]]
   def getRelevantRemoteIngestJobs(workspaceId: String): Attempt[List[RemoteIngest]]
   def updateRemoteIngestTaskStatus(taskId: String, status: RemoteIngestStatus): Attempt[Unit]
+  def archiveRemoteIngestTask(taskId: String): Attempt[Unit]
   def updateRemoteIngestTaskBlobUris(taskId: String, blobUris: List[String]): Attempt[Unit]
 
 }

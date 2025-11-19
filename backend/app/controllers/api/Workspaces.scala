@@ -294,6 +294,14 @@ class Workspaces(
     }
   }
 
+  def archiveRemoteIngestTask(workspaceId: String, taskId: String) = ApiAction.attempt {
+    for {
+      _ <- remoteIngestStore.archiveRemoteIngestTask(taskId)
+    } yield {
+      NoContent
+    }
+  }
+
   def addRemoteUrlToWorkspace(workspaceId: String): Action[JsValue] = ApiAction.attempt(parse.json) { req =>
     for {
       data <- req.body.validate[AddRemoteUrlData].toAttempt

@@ -588,22 +588,33 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
     renderContextMenu(entry: TreeEntry<WorkspaceEntry>, positionX: number, positionY: number, currentUser: PartialUser, workspace: Workspace) {
         const copyFilenameContent = "Copy file name"
         const copyFilePathContent = "Copy file path"
+
+        const isRemoteIngest = entry.id.startsWith("RemoteIngest")
+
         const items = [
             {key : "copyFilename", content: copyFilenameContent, icon: "copy"},
             {key : "copyFilePath", content: copyFilePathContent, icon: "copy"},
-            // or 'pencil alternate'
-            { key: "rename", content: "Rename", icon: "pen square" },
-            { key: "remove", content: "Remove from workspace", icon: "trash" },
         ];
 
-        if (entry.data.addedBy.username === currentUser.username && isWorkspaceLeaf(entry.data)) {
+        if(!isRemoteIngest){
+          items.push(
+            { key: "rename", content: "Rename", icon: "pen square" }, // or 'pencil alternate'
+            { key: "remove", content: "Remove from workspace", icon: "trash" }
+          )
+        }
+
+        if (entry.data.addedBy.username === currentUser.username && isWorkspaceLeaf(entry.data) && !isRemoteIngest) {
             items.push({ key: "deleteOrRemove", content: "Delete file", icon: "trash" });
         }
 
-        if (isWorkspaceLeaf(entry.data)){
-            items.push({ key: "reprocess", content: "Reprocess source file", icon: "redo" });
-        } else {
-           items.push({ key: "search", content: "Search in folder", icon: "search" })
+        if(isRemoteIngest && isWorkspaceLeaf(entry.data) && entry.data.processingStage.type === "failed") {
+            items.push({ key: "deleteOrRemove", content: `Dismiss failed '${entry.data.mimeType}'`, icon: "trash" });
+        }
+
+        if (isWorkspaceNode(entry.data) && !isRemoteIngest) {
+            items.push({ key: "search", content: "Search in folder", icon: "search" })
+        } else if (isWorkspaceLeaf(entry.data)){
+          items.push({ key: "reprocess", content: "Reprocess source file", icon: "redo" });
         }
 
         return <DetectClickOutside onClickOutside={this.closeContextMenu}>
@@ -639,7 +650,7 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
                         }
                     }
 
-                    if (menuItemProps.content === "Delete file") {
+                    if (menuItemProps.content === "Delete file" || menuItemProps.content?.toString().startsWith("Dismiss failed")) {
                         this.setState({
                             deleteModalContext: {
                                 isOpen: true,

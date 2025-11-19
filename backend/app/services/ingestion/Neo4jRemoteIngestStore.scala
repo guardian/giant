@@ -180,14 +180,14 @@ class Neo4jRemoteIngestStore(driver: Driver, executionContext: ExecutionContext,
     ))
   )
 
-  override def updateRemoteIngestTaskStatus(taskId: String, status: RemoteIngestStatus): Attempt[Unit] = attemptTransaction { tx =>
+  private def updateRemoteIngestTaskStatus(taskId: String, status: String): Attempt[Unit] = attemptTransaction { tx =>
     val query =
       """
         |MATCH (rit:RemoteIngestTask {id: $taskId})
         |SET rit.status = $status
         |RETURN COUNT(rit) AS updatedCount
       """.stripMargin
-    val params = parameters("taskId", taskId, "status", status.toString)
+    val params = parameters("taskId", taskId, "status", status)
     tx.run(query, params).map { result =>
       val updatedCount = result.single().get("updatedCount").asInt()
       if (updatedCount == 0) {
@@ -195,6 +195,12 @@ class Neo4jRemoteIngestStore(driver: Driver, executionContext: ExecutionContext,
       } else ()
     }
   }
+
+  override def updateRemoteIngestTaskStatus(taskId: String, status: RemoteIngestStatus): Attempt[Unit] =
+    updateRemoteIngestTaskStatus(taskId, status.toString)
+
+  override def archiveRemoteIngestTask(taskId: String): Attempt[Unit] =
+    updateRemoteIngestTaskStatus(taskId, "ARCHIVED")
 
   override def updateRemoteIngestTaskBlobUris(taskId: String, blobUris: List[String]): Attempt[Unit] = attemptTransaction { tx =>
     val query =
