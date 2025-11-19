@@ -127,6 +127,12 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
     };
 
   renderReprocessIcon = (entry: TreeEntry<WorkspaceEntry>) => {
+
+    // TODO hopefully support re-processing remote ingests in future
+    if(entry.id.startsWith("RemoteIngestTask/")){
+      return null;
+    }
+
     const reprocessAction = (entry: TreeEntry<WorkspaceEntry>) => {
       if (isWorkspaceLeaf(entry.data)) {
         const workspaceId = this.props.match.params.id;
@@ -613,7 +619,7 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
 
         if (isWorkspaceNode(entry.data) && !isRemoteIngest) {
             items.push({ key: "search", content: "Search in folder", icon: "search" })
-        } else if (isWorkspaceLeaf(entry.data)){
+        } else if (isWorkspaceLeaf(entry.data) && !isRemoteIngest) { // TODO hopefully support re-processing remote ingests in future
           items.push({ key: "reprocess", content: "Reprocess source file", icon: "redo" });
         }
 
