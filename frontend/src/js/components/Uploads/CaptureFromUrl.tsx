@@ -189,7 +189,16 @@ export const CaptureFromUrl = connect(
         </div>
 
         {currentWorkspace && currentWorkspace.rootNode.children.length > 0 && <div className='form__row'>
-          <span className='form__label'>Folder</span>
+          <span className='form__label'>Folder
+            {focusedEntry &&
+              <button onClick={() => setFocusedEntry(null)}
+                      className="btn-link"
+                      style={{float: "right", fontWeight: "normal", fontStyle: "italic"}}
+              >
+                clear selection
+              </button>
+            }
+          </span>
           <div className='workspace__tree' style={{maxHeight: "calc(100vh - 590px)"}}>
             <TreeBrowser
               showColumnHeaders={false}
