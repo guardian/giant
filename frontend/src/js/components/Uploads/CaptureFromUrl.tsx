@@ -7,7 +7,7 @@ import Select from "react-select";
 import TreeBrowser from "../UtilComponents/TreeBrowser";
 import {connect} from "react-redux";
 import {GiantState} from "../../types/redux/GiantState";
-import {isTreeNode, TreeEntry, TreeNode} from "../../types/Tree";
+import {isTreeLeaf, isTreeNode, TreeEntry, TreeLeaf, TreeNode} from "../../types/Tree";
 import {GiantDispatch} from "../../types/redux/GiantDispatch";
 import {bindActionCreators} from "redux";
 import {getWorkspace} from "../../actions/workspaces/getWorkspace";
@@ -78,6 +78,25 @@ export const CaptureFromUrl = connect(
   const [isOpen, setIsOpen] = useState(false);
   useEffect(() => {
     getWorkspacesMetadata()
+
+    const navigateToFindParentOfLeaf = (leaf: TreeLeaf<WorkspaceEntry>, node: TreeNode<WorkspaceEntry>): TreeNode<WorkspaceEntry> | null => {
+      if(node.children.includes(leaf)){
+        return node;
+      }
+      for(const child of node.children){
+        if(isTreeNode(child)){
+          const maybeFound = navigateToFindParentOfLeaf(leaf, child);
+          if(maybeFound){
+            return maybeFound;
+          }
+        }
+      }
+      return null;
+    };
+
+    if(focusedEntry && isTreeLeaf(focusedEntry) && currentWorkspace){
+      setFocusedEntry(navigateToFindParentOfLeaf(focusedEntry, currentWorkspace.rootNode)!);
+    }
   }, [isOpen]);
 
   const maybeCaptureFromUrlViaQueryParamValue = useMemo(
@@ -99,8 +118,8 @@ export const CaptureFromUrl = connect(
 
   const {push} = useHistory();
 
-  const parentEntry = focusedEntry || currentWorkspace?.rootNode;
-  const parentFolder = parentEntry && isTreeNode(parentEntry) ? parentEntry : null;
+  const selectedEntry = focusedEntry || currentWorkspace?.rootNode;
+  const parentFolder = selectedEntry && isTreeNode(selectedEntry) ? selectedEntry : null;
 
   const isTargetFolderNameConflict = !!parentFolder?.children?.some(_ => _.name === saveAs);
 
