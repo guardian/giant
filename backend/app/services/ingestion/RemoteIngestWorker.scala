@@ -39,14 +39,14 @@ class RemoteIngestWorker(
 )(implicit executionContext: ExecutionContext) extends Logging  {
 
   private def ingestRemoteIngestOutput(
-                                        path: Path,
-                                        fingerprint: String,
-                                        job: RemoteIngest,
-                                        parsedJob: RemoteIngestOutput,
-                                        parentFolder: String,
-                                        workspaceMetadata: WorkspaceMetadata,
-                                        ingestion: CreateIngestionResponse,
-                                        fileName: String) = {
+    path: Path,
+    fingerprint: String,
+    job: RemoteIngest,
+    parsedJob: RemoteIngestOutput,
+    folderId: String,
+    workspaceMetadata: WorkspaceMetadata,
+    ingestion: CreateIngestionResponse,
+    fileName: String) = {
     val collectionUri = Uri(job.collection)
     Await.result(
       new IngestFile(
@@ -56,7 +56,7 @@ class RemoteIngestWorker(
         workspace = Some(WorkspaceItemUploadContext(
           workspaceId = job.workspaceId,
           workspaceNodeId = UUID.randomUUID().toString,
-          workspaceParentNodeId = parentFolder,
+          workspaceParentNodeId = folderId,
           workspaceName = workspaceMetadata.name
         )),
         username = job.addedBy.username,
@@ -126,13 +126,16 @@ class RemoteIngestWorker(
           workspaceMetadata <- annotations.getWorkspaceMetadata(job.addedBy.username, job.workspaceId)
           _ <- remoteIngestStore.updateRemoteIngestTaskStatus(remoteIngestOutput.taskId, RemoteIngestStatus.Ingesting)
           ingestion <- Collections.createIngestionIfNotExists(Uri(job.collection), job.ingestion, manifest, index, pages, s3Config)
-          parentFolder <- annotations.addOrGetFolder(job.addedBy.username, job.workspaceId, job.parentFolderId, s"${job.title} (${shortenUrl(job.url)})")
+          folderId <- annotations.addOrGetFolder(job.addedBy.username, job.workspaceId, job.parentFolderId, job.title)
+          _ <- remoteIngestStore.linkRemoteIngestToWorkspaceNode(job.id, folderId)
           _ <- IngestStorePolling.fetchData(job.taskKey(remoteIngestOutput.taskId), remoteIngestStorage, scratchSpace){ (path, fingerprint) =>
               if (remoteIngestOutput.outputType == "WEBPAGE_SNAPSHOT") {
                   for {
                     files <- getWebpageSnapshotFiles(path, job.id)
-                    htmlIngest <- ingestRemoteIngestOutput(files.html, files.htmlFingerprint, job, remoteIngestOutput, parentFolder, workspaceMetadata, ingestion, s"[text] ${files.baseFilename}")
-                    screenshotIngest <- ingestRemoteIngestOutput(files.screenshot, files.screenshotFingerprint, job, remoteIngestOutput, parentFolder, workspaceMetadata, ingestion, s"[screenshot] ${files.baseFilename}")
+                    htmlIngest <- ingestRemoteIngestOutput(files.html, files.htmlFingerprint, job, remoteIngestOutput, folderId, workspaceMetadata, ingestion, s"[text] ${files.baseFilename}")
+                    _ = htmlIngest.workspaceNodeId.map(remoteIngestStore.linkRemoteIngestToWorkspaceNode(job.id, _))
+                    screenshotIngest <- ingestRemoteIngestOutput(files.screenshot, files.screenshotFingerprint, job, remoteIngestOutput, folderId, workspaceMetadata, ingestion, s"[screenshot] ${files.baseFilename}")
+                    _ = screenshotIngest.workspaceNodeId.map(remoteIngestStore.linkRemoteIngestToWorkspaceNode(job.id, _))
                   } yield {
                     Files.delete(files.html)
                     Files.delete(files.screenshot)
@@ -140,7 +143,8 @@ class RemoteIngestWorker(
                   }
               } else {
                 val fileName = remoteIngestOutput.metadata.map(meta => s"${meta.title}.${meta.extension}").getOrElse(s"${job.url}")
-                ingestRemoteIngestOutput(path, fingerprint.value, job, remoteIngestOutput, parentFolder, workspaceMetadata, ingestion, fileName).map { ingestResult =>
+                ingestRemoteIngestOutput(path, fingerprint.value, job, remoteIngestOutput, folderId, workspaceMetadata, ingestion, fileName).map { ingestResult =>
+                  ingestResult.workspaceNodeId.map(remoteIngestStore.linkRemoteIngestToWorkspaceNode(job.id, _))
                   remoteIngestStore.updateRemoteIngestTaskBlobUris(remoteIngestOutput.taskId, List(ingestResult.blob.uri.value))
                 }
               }
@@ -157,7 +161,7 @@ class RemoteIngestWorker(
               amazonSQSClient.sendMessage(config.outputDeadLetterQueueUrl, sqsMessage.getBody)
               maybeParsedJob.map { parsedJob =>
                 // INVALID_URL is returned by the media download service when there are no videos on the page -this is not
-                // a failure we need to expose to the user 
+                // a failure we need to expose to the user
                 if (parsedJob.status == "INVALID_URL") {
                   remoteIngestStore.updateRemoteIngestTaskStatus(parsedJob.taskId, RemoteIngestStatus.Completed)
                 } else {

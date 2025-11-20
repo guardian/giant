@@ -3,16 +3,17 @@ package model.ingestion
 import model.frontend.user.PartialUser
 import com.amazonaws.services.sns.AmazonSNS
 import com.amazonaws.services.sns.model.PublishRequest
+import model.annotations.{ProcessingStage, WorkspaceEntry, WorkspaceLeaf, WorkspaceNode}
+import model.frontend.{TreeEntry, TreeLeaf, TreeNode}
 import org.joda.time.DateTime
 import play.api.libs.json.{Format, JsError, JsResult, JsString, JsSuccess, JsValue, Json, OFormat, Reads, Writes}
 import services.observability.JodaReadWrites
 import services.{IngestStorage, RemoteIngestConfig}
 import utils.Logging
-import org.neo4j.driver.v1.Value
 
 import java.nio.file.Path
-import java.util.UUID
-import scala.jdk.CollectionConverters.CollectionHasAsScala
+import java.util.{UUID, Map => JavaMap}
+import scala.jdk.CollectionConverters.{CollectionHasAsScala, MapHasAsScala}
 
 object RemoteIngestStatus extends Enumeration {
   type RemoteIngestStatus = Value
@@ -30,17 +31,9 @@ object RemoteIngestStatus extends Enumeration {
   }
 }
 
-case class RemoteIngestTask(id: String, status: RemoteIngestStatus.RemoteIngestStatus, blobUris: List[String])
+case class RemoteIngestTask(id: String, status: RemoteIngestStatus.RemoteIngestStatus, blobUris: List[String], title: String){}
 object RemoteIngestTask {
   implicit val remoteIngestTaskFormat: OFormat[RemoteIngestTask] = Json.format[RemoteIngestTask]
-
-  def fromNeo4jValue(task: Value) : RemoteIngestTask = {
-    val id = task.get("id").asString()
-    val status = RemoteIngestStatus.withName(task.get("status").asString())
-    val blobUris = task.get("blobUris").asList().asScala.toList.map(_.asInstanceOf[String])
-    RemoteIngestTask(id, status, blobUris)
-  }
-
 
   // See WebpageSnapshot type in transcription-service - this type needs to be kept in sync with that type
   case class WebpageSnapshotFiles(screenshot: Path, screenshotFingerprint: String, html: Path, htmlFingerprint: String, baseFilename: String)
@@ -48,6 +41,21 @@ object RemoteIngestTask {
   case class WebpageSnapshot(html: String, screenshotBase64: String, title: String)
   object WebpageSnapshot {
     implicit val webpageSnapshotFormat: OFormat[WebpageSnapshot] = Json.format[WebpageSnapshot]
+  }
+
+  def apply(isTimedOut: Boolean)(neo4jValue: AnyRef): (String, RemoteIngestTask) = {
+    val taskMap = neo4jValue.asInstanceOf[JavaMap[String, Object]].asScala.toMap
+    val taskId = taskMap("id").asInstanceOf[String]
+    taskId -> RemoteIngestTask(
+      id = taskId,
+      status = if (isTimedOut) RemoteIngestStatus.TimedOut else RemoteIngestStatus withName taskMap("status").asInstanceOf[String],
+      blobUris = taskMap("blobUris").asInstanceOf[java.util.List[String]].asScala.toList,
+      title = taskMap.get("type").filter(_ != null).map(_.asInstanceOf[String]).getOrElse(taskId) match {
+        case "WebpageSnapshot" => "Snapshotting the webpage..."
+        case "MediaDownload" => "Downloading video (if any)..."
+        case other => other
+      }
+    )
   }
 }
 
@@ -68,31 +76,66 @@ case class RemoteIngest(
 
   private val finishedStatuses = Set(RemoteIngestStatus.Completed, RemoteIngestStatus.Failed, RemoteIngestStatus.TimedOut)
 
-  def timedOut: Boolean = new DateTime().minusHours(2).isAfter(createdAt)
-
-  def combinedStatus: RemoteIngestStatus.RemoteIngestStatus = {
-    // if all tasks are complete
-    if (tasks.values.forall(t => finishedStatuses.contains(t.status))) {
-      // if at least one task has completed successfully, assume that other tasks that failed aren't of interest
-      // (e.g. media download task for a page without a video)
-      if (tasks.values.exists(_.status == RemoteIngestStatus.Completed)) {
-        RemoteIngestStatus.Completed
-      } else {
-        RemoteIngestStatus.Failed
-      }
-    } else if (timedOut) {
-      RemoteIngestStatus.TimedOut
-    } else if (tasks.values.exists(_.status == RemoteIngestStatus.Ingesting)) {
-      RemoteIngestStatus.Ingesting
-    } else {
-      RemoteIngestStatus.Queued
-    }
-  }
-
   def tasksRemaining: Int = {
     tasks.values.count(t => !finishedStatuses.contains(t.status) )
   }
-  
+
+  def asSyntheticEntries(findExistingFolderId: (String, String) => Option[String]): List[TreeEntry[WorkspaceEntry]] = {
+
+    val addedOn = Some(createdAt.getMillis)
+
+    val maybeExistingFolderId = findExistingFolderId(parentFolderId, title)
+
+    val jobId = s"RemoteIngest/$id"
+
+    val taskLeaves = tasks.values.map{task =>
+      val taskId = s"RemoteIngestTask/${task.id}"
+      TreeLeaf[WorkspaceLeaf](
+      id = taskId,
+      name = task.title,
+      data = WorkspaceLeaf(
+        uri = taskId,
+        mimeType = "Capture from URL",
+        maybeParentId = maybeExistingFolderId.orElse(Some(jobId)),
+        maybeCapturedFromURL = Some(url),
+        addedOn = addedOn,
+        addedBy = addedBy,
+        processingStage = task.status match {
+          case RemoteIngestStatus.Failed | RemoteIngestStatus.TimedOut => ProcessingStage.Failed
+          case RemoteIngestStatus.Queued | RemoteIngestStatus.Ingesting => ProcessingStage.Processing(
+            tasksRemaining = 1,
+            note = Some(task.status.toString)
+          )
+          // completed tasks are filtered out in the getRelevantRemoteIngestJobs query, so the following shouldn't happen
+          case RemoteIngestStatus.Completed => ProcessingStage.Processed
+        },
+        size = None
+      ),
+      isExpandable = false
+    )}.toList
+
+    taskLeaves ++ (maybeExistingFolderId match {
+      case None if taskLeaves.nonEmpty => List(TreeNode( // synthesise a folder
+        id = jobId,
+        name = title,
+        data = WorkspaceNode(
+          addedBy,
+          addedOn,
+          maybeParentId = Some(parentFolderId),
+          maybeCapturedFromURL = Some(url),
+          // these counts should get corrected in `getWorkspaceContents`
+          descendantsLeafCount = 0,
+          descendantsNodeCount = 0,
+          descendantsProcessingTaskCount = 0,
+          descendantsFailedCount = 0
+        ),
+        // confusingly we return an empty list here - the folder structure is built later
+        // (note that the leaves reference this node in their maybeParentId)
+        children = List()
+      ))
+      case _ => List()
+    })
+  }
 }
 
 object RemoteIngest extends Logging {

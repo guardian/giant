@@ -72,6 +72,7 @@ PUT           /api/workspaces/:workspaceId/nodes/:itemId/parent             cont
 POST          /api/workspaces/:workspaceId/nodes/:itemId/copy               controllers.api.Workspaces.copyItem(workspaceId: String, itemId: String)
 DELETE        /api/workspaces/:workspaceId/nodes/:itemId                    controllers.api.Workspaces.removeItem(workspaceId: String, itemId: String)
 POST          /api/workspaces/:workspaceId/nodes/delete/:blobUri            controllers.api.Workspaces.deleteBlob(workspaceId: String, blobUri: String)
+POST          /api/workspaces/:workspaceId/nodes/delete/RemoteIngestTask/:taskId     controllers.api.Workspaces.archiveRemoteIngestTask(workspaceId: String, taskId: String)
 DELETE        /api/workspaces/:workspaceId                                  controllers.api.Workspaces.deleteWorkspace(workspaceId: String)
 
 HEAD          /api/preview/download/:uri                                    controllers.api.Previews.getPreviewMetadata(uri: model.Uri)

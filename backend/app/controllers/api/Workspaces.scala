@@ -149,28 +149,7 @@ class Workspaces(
     for {
       metadata <- annotation.getWorkspaceMetadata(req.user.username, workspaceId)
       relevantRemoteJobs <- remoteIngestStore.getRelevantRemoteIngestJobs(workspaceId)
-      extraLeavesToMixIn = relevantRemoteJobs.filter(job => job.combinedStatus != RemoteIngestStatus.Completed).map(job => TreeLeaf(
-        id = job.id,
-        name = s"${job.title} (Capturing: ${job.url})",
-        data = WorkspaceLeaf(
-          uri = job.id, // TODO maybe improve this
-          mimeType = "Capturing URL",
-          maybeParentId = Some(job.parentFolderId),
-          addedOn = Some(job.createdAt.getMillis),
-          addedBy = job.addedBy,
-          processingStage = job.combinedStatus match {
-            case RemoteIngestStatus.Failed => ProcessingStage.Failed
-            case RemoteIngestStatus.TimedOut => ProcessingStage.Failed
-            case _ => ProcessingStage.Processing(
-              tasksRemaining = job.tasksRemaining,
-              note = Some(job.combinedStatus.toString)
-            )
-          },
-          size = None
-        ),
-        isExpandable = false
-      ))
-      contents <- annotation.getWorkspaceContents(req.user.username, workspaceId, extraLeavesToMixIn)
+      contents <- annotation.getWorkspaceContents(req.user.username, workspaceId, relevantRemoteJobs)
     } yield {
       Ok(Json.toJson(Workspace.fromMetadataAndRootNode(metadata, contents)))
     }
@@ -274,7 +253,7 @@ class Workspaces(
       case TreeLeaf(_, name, data, _) =>
         // a TreeLeaf won't have any children, so just insert the item at the destination location, and return it's new ID
         data match {
-          case WorkspaceLeaf(_, _, _, _, uri, mimeType, size) =>
+          case WorkspaceLeaf(_, _, _, _, _, uri, mimeType, size) =>
             val addItemData = AddItemData(name, destinationParentId, "file", Some("document"), AddItemParameters(Some(uri), size, Some(mimeType)))
             insertItem(user, workspaceId, newId, addItemData).map(i => List(i))
           case _ => Attempt.Left(WorkspaceCopyFailure("Unexpected data type of TreeLeaf"))
@@ -312,6 +291,14 @@ class Workspaces(
       jobs <- remoteIngestStore.getRelevantRemoteIngestJobs(workspaceId)
     } yield {
       Ok(Json.toJson(jobs))
+    }
+  }
+
+  def archiveRemoteIngestTask(workspaceId: String, taskId: String) = ApiAction.attempt {
+    for {
+      _ <- remoteIngestStore.archiveRemoteIngestTask(taskId)
+    } yield {
+      NoContent
     }
   }
 

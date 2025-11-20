@@ -51,12 +51,15 @@ sealed trait WorkspaceEntry {
   def addedBy: PartialUser
   def addedOn: Option[Long]
   def maybeParentId: Option[String]
+  def maybeCapturedFromURL: Option[String]
 }
 
 case class WorkspaceNode(
   addedBy: PartialUser,
   addedOn: Option[Long],
   maybeParentId: Option[String],
+  maybeCapturedFromURL: Option[String] = None,
+
 
   descendantsLeafCount: Long,
   descendantsNodeCount: Long,
@@ -68,6 +71,7 @@ case class WorkspaceLeaf(
   addedBy: PartialUser,
   addedOn: Option[Long],
   maybeParentId: Option[String],
+  maybeCapturedFromURL: Option[String] = None,
 
   processingStage: ProcessingStage,
   uri: String,
@@ -98,6 +102,7 @@ object WorkspaceEntry {
     v: Value,
     createdBy: PartialUser,
     maybeParentId: Option[String],
+    maybeCapturedFromURL: Option[String],
     numberOfTodos: Int,
     note: Option[String],
     hasFailures: Boolean
@@ -118,6 +123,7 @@ object WorkspaceEntry {
           addedBy = createdBy,
           addedOn = v.get("addedOn").optionally(_.asLong()),
           maybeParentId = maybeParentId,
+          maybeCapturedFromURL = maybeCapturedFromURL,
           descendantsLeafCount = 0,
           descendantsNodeCount = 0,
           descendantsProcessingTaskCount = 0,
@@ -135,6 +141,7 @@ object WorkspaceEntry {
           addedBy = createdBy,
           addedOn = v.get("addedOn").optionally(_.asLong()),
           maybeParentId = maybeParentId,
+          maybeCapturedFromURL = maybeCapturedFromURL,
           processingStage = processingStage,
           uri = v.get("uri").asString(),
           mimeType = v.get("mimeType").asString(),
