@@ -629,7 +629,7 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
         }
 
         if(isRemoteIngest && isWorkspaceLeaf(entry.data) && entry.data.processingStage.type === "failed") {
-            items.push({ key: "deleteOrRemove", content: `Dismiss failed '${entry.data.mimeType}'`, icon: "trash" });
+            items.push({ key: "dismissFailed", content: `Dismiss failed '${entry.data.mimeType}'`, icon: "trash" });
         }
 
         if(entry.data.maybeCapturedFromURL){
