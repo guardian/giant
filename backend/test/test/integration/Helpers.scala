@@ -1,6 +1,6 @@
 package test.integration
 
-import com.amazonaws.services.sns.AmazonSNSClientBuilder
+import software.amazon.awssdk.services.sns.SnsClient
 import com.amazonaws.services.sqs.AmazonSQSClientBuilder
 import org.apache.pekko.util.Timeout
 import commands.IngestFileResult
@@ -247,7 +247,7 @@ object Helpers extends Matchers with Logging with OptionValues with Inside {
 
     val s3Config = S3Config("fake", BucketConfig("fake", "fake", "fake", "fake", "fake", "fake"), None, None, None, None)
     val mediaDownloadConfig = RemoteIngestConfig("", "", "")
-    val snsClient = AmazonSNSClientBuilder.defaultClient()
+    val snsClient = SnsClient.builder().build()
     val downloadExpiryPeriod = 1.minute
 
     val userManagement = Neo4jUserManagement(neo4jDriver, ec, queryLoggingConfig, manifest, elasticsearch.elasticResources, elasticsearch.elasticPages, annotations)
