@@ -6,6 +6,7 @@ import java.util.UUID
 import model.{RichValue, Uri}
 import model.annotations._
 import model.frontend.{TreeEntry, TreeLeaf, TreeNode}
+import model.ingestion.RemoteIngest
 import model.user.DBUser
 import org.neo4j.driver.v1.{Driver, Record, Value}
 import org.neo4j.driver.v1.Values.parameters
@@ -96,7 +97,7 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
     }
   }
 
-  override def getWorkspaceContents(currentUser: String, id: String, extraLeavesToMixIn: List[TreeLeaf[WorkspaceLeaf]] = List.empty): Attempt[TreeEntry[WorkspaceEntry]] = attemptTransaction { tx =>
+  override def getWorkspaceContents(currentUser: String, id: String, remoteIngestsToMixin: List[RemoteIngest] = List.empty): Attempt[TreeEntry[WorkspaceEntry]] = attemptTransaction { tx =>
     tx.run(
       """
         |MATCH (workspace: Workspace { id: {id} })
@@ -106,8 +107,10 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
         |
         |OPTIONAL MATCH (node)-[:PARENT]->(parentNode :WorkspaceNode)
         |
+        |OPTIONAL MATCH (node)-[:FROM]->(remoteIngest: RemoteIngest)
+        |
         |OPTIONAL MATCH (:Resource {uri: node.uri})<-[todo:TODO|:PROCESSING_EXTERNALLY]-(:Extractor)
-        |RETURN node, nodeCreator, parentNode.id,
+        |RETURN node, nodeCreator, parentNode.id, remoteIngest.url,
         |	count(todo) AS numberOfTodos,
         |	collect(todo)[0].note as note,
         |	exists((:Resource {uri: node.uri})<-[:EXTRACTION_FAILURE]-(:Extractor)) AS hasFailures
@@ -119,16 +122,28 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
     ).map { summary =>
       val rows = summary.list().asScala
 
-      val entries = rows.map { r =>
+      val realEntries = rows.map { r =>
         val node = r.get("node")
         val nodeCreator = DBUser.fromNeo4jValue(r.get("nodeCreator")).toPartial
         val maybeParentNodeId = r.get("parentNode.id").optionally(_.asString())
+        val maybeCapturedFromURL = r.get("remoteIngest.url").optionally(_.asString())
         val numberOfTodos = r.get("numberOfTodos").asInt()
         val note = r.get("note").optionally(_.asString())
         val hasFailures = r.get("hasFailures").asBoolean()
 
-        WorkspaceEntry.fromNeo4jValue(node, nodeCreator, maybeParentNodeId, numberOfTodos, note, hasFailures)
-      }.toList ++ extraLeavesToMixIn
+        WorkspaceEntry.fromNeo4jValue(node, nodeCreator, maybeParentNodeId, maybeCapturedFromURL, numberOfTodos, note, hasFailures)
+      }.toList
+
+      val synthesisedEntries = remoteIngestsToMixin.flatMap(_.asSyntheticEntries(
+        (parentFolderId: String, name: String) => {
+          realEntries.find { entry =>
+            entry.data.maybeParentId.contains(parentFolderId) &&
+              entry.name.equalsIgnoreCase(name)
+          }.map(_.id)
+        }
+      ))
+
+      val entries = realEntries ++ synthesisedEntries
 
       def buildNode(currentEntry: TreeEntry[WorkspaceEntry]): TreeEntry[WorkspaceEntry] = {
         currentEntry match {
