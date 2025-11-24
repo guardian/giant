@@ -1,8 +1,8 @@
 package model.ingestion
 
 import model.frontend.user.PartialUser
-import com.amazonaws.services.sns.AmazonSNS
-import com.amazonaws.services.sns.model.PublishRequest
+import software.amazon.awssdk.services.sns.SnsClient
+import software.amazon.awssdk.services.sns.model.PublishRequest
 import org.joda.time.DateTime
 import play.api.libs.json.{Format, JsError, JsResult, JsString, JsSuccess, JsValue, Json, OFormat, Reads, Writes}
 import services.observability.JodaReadWrites
@@ -10,6 +10,7 @@ import services.{IngestStorage, RemoteIngestConfig}
 import utils.Logging
 import org.neo4j.driver.v1.Value
 
+import java.net.URI
 import java.nio.file.Path
 import java.util.UUID
 import scala.jdk.CollectionConverters.CollectionHasAsScala
@@ -102,17 +103,18 @@ object RemoteIngest extends Logging {
 
   def ingestionKey(createdAt: DateTime, id: String) = (createdAt.getMillis, java.util.UUID.fromString(id))
 
-  def sendRemoteIngestJob(id: String, url: String, createdAt: DateTime, mediaDownloadId: String, webpageSnapshotId: String, config: RemoteIngestConfig, amazonSNSClient: AmazonSNS, ingestStorage: IngestStorage): Either[String, String] = {
+  def sendRemoteIngestJob(id: String, url: String, createdAt: DateTime, mediaDownloadId: String, webpageSnapshotId: String, config: RemoteIngestConfig, snsClient: SnsClient, ingestStorage: IngestStorage): Either[String, String] = {
     logger.info(s"Sending job with id ${id}, topic: ${config.taskTopicArn}")
     val webpageSnapshotUrl = ingestStorage.getUploadSignedUrl(ingestionKey(createdAt, webpageSnapshotId)).getOrElse(throw new Exception(s"Failed to get webpage snapshot signed upload URL for job ${id}"))
     val mediaDownloadUrl = ingestStorage.getUploadSignedUrl(ingestionKey(createdAt, mediaDownloadId)).getOrElse(throw new Exception(s"Failed to get media download signed upload URL for job ${id}"))
     val remoteIngestJob = RemoteIngestJob(id, url, RemoteIngestJob.CLIENT_IDENTIFIER, config.outputQueueUrl, mediaDownloadId, webpageSnapshotId, webpageSnapshotUrl, mediaDownloadUrl)
     val jobJson = Json.stringify(Json.toJson(remoteIngestJob))
-    val publishRequest = new PublishRequest()
-      .withTopicArn(config.taskTopicArn)
-      .withMessage(jobJson)
+    val publishRequest = PublishRequest.builder()
+      .topicArn(config.taskTopicArn)
+      .message(jobJson)
+      .build()
     try {
-      amazonSNSClient.publish(publishRequest)
+      snsClient.publish(publishRequest)
       Right(id)
     } catch {
       case e: Exception =>
