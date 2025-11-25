@@ -10,7 +10,6 @@ import services.{IngestStorage, RemoteIngestConfig}
 import utils.Logging
 import org.neo4j.driver.v1.Value
 
-import java.net.URI
 import java.nio.file.Path
 import java.util.UUID
 import scala.jdk.CollectionConverters.CollectionHasAsScala
