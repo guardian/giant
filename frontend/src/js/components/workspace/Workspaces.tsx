@@ -54,6 +54,8 @@ import {takeOwnershipOfWorkspace} from "../../actions/workspaces/takeOwnershipOf
 import {setNodesAsExpanded} from "../../actions/workspaces/setNodesAsExpanded";
 import {FileAndFolderCounts} from "../UtilComponents/TreeBrowser/FileAndFolderCounts";
 import {EuiLoadingSpinner} from "@elastic/eui";
+import MdGlobeIcon from "react-icons/lib/md/public";
+import ReactTooltip from "react-tooltip";
 
 
 type Props = ReturnType<typeof mapStateToProps>
@@ -129,6 +131,12 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
     };
 
   renderReprocessIcon = (entry: TreeEntry<WorkspaceEntry>) => {
+
+    // TODO hopefully support re-processing remote ingests in future
+    if(entry.id.startsWith("RemoteIngestTask/")){
+      return null;
+    }
+
     const reprocessAction = (entry: TreeEntry<WorkspaceEntry>) => {
       if (isWorkspaceLeaf(entry.data)) {
         const workspaceId = this.props.match.params.id;
@@ -210,6 +218,18 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
 
                 return <React.Fragment>
                     {this.renderIcon(entry)}
+                    {entry.data.maybeCapturedFromURL && <>
+                        <span data-tip>
+                          <MdGlobeIcon className='file-upload__icon' style={{color: "grey", marginLeft: "5px"}}/>
+                        </span>
+                      <ReactTooltip place="left">
+                        <div style={{textAlign: "center"}}>
+                          <strong>Captured from URL</strong>
+                          <br />
+                          {entry.data.maybeCapturedFromURL}
+                        </div>
+                      </ReactTooltip>
+                    </>}
                     <ItemName canEdit={canEdit} id={entry.id} name={entry.name} onFinishRename={curryRename}/>
                     {isWorkspaceNode(entry.data) && <FileAndFolderCounts {...entry.data} />}
                 </React.Fragment>;
@@ -612,22 +632,38 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
     renderContextMenu(entry: TreeEntry<WorkspaceEntry>, positionX: number, positionY: number, currentUser: PartialUser, workspace: Workspace) {
         const copyFilenameContent = "Copy file name"
         const copyFilePathContent = "Copy file path"
+        const copyCaptureURLContent = "Copy URL this was captured from"
+
+        const isRemoteIngest = entry.id.startsWith("RemoteIngest")
+
         const items = [
             {key : "copyFilename", content: copyFilenameContent, icon: "copy"},
             {key : "copyFilePath", content: copyFilePathContent, icon: "copy"},
-            // or 'pencil alternate'
-            { key: "rename", content: "Rename", icon: "pen square" },
-            { key: "remove", content: "Remove from workspace", icon: "trash" },
         ];
 
-        if (entry.data.addedBy.username === currentUser.username && isWorkspaceLeaf(entry.data)) {
+        if(!isRemoteIngest){
+          items.push(
+            { key: "rename", content: "Rename", icon: "pen square" }, // or 'pencil alternate'
+            { key: "remove", content: "Remove from workspace", icon: "trash" }
+          )
+        }
+
+        if (entry.data.addedBy.username === currentUser.username && isWorkspaceLeaf(entry.data) && !isRemoteIngest) {
             items.push({ key: "deleteOrRemove", content: "Delete file", icon: "trash" });
         }
 
-        if (isWorkspaceLeaf(entry.data)){
-            items.push({ key: "reprocess", content: "Reprocess source file", icon: "redo" });
-        } else {
-           items.push({ key: "search", content: "Search in folder", icon: "search" })
+        if(isRemoteIngest && isWorkspaceLeaf(entry.data) && entry.data.processingStage.type === "failed") {
+            items.push({ key: "dismissFailed", content: `Dismiss failed '${entry.data.mimeType}'`, icon: "trash" });
+        }
+
+        if(entry.data.maybeCapturedFromURL){
+          items.push({ key: "copyCaptureURL", content: copyCaptureURLContent, icon: "linkify" });
+        }
+
+        if (isWorkspaceNode(entry.data) && !isRemoteIngest) {
+            items.push({ key: "search", content: "Search in folder", icon: "search" })
+        } else if (isWorkspaceLeaf(entry.data) && !isRemoteIngest) { // TODO hopefully support re-processing remote ingests in future
+          items.push({ key: "reprocess", content: "Reprocess source file", icon: "redo" });
         }
 
         return <DetectClickOutside onClickOutside={this.closeContextMenu}>
@@ -652,9 +688,19 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
                         });
                     }
 
-                    if (menuItemProps.content === copyFilenameContent || menuItemProps.content === copyFilePathContent) {
-                        const text = menuItemProps.content === copyFilenameContent ? entry.name : this.getEntryPath(entry.id, workspace.rootNode);
-                        navigator.clipboard.writeText(text);
+                    if ([copyFilenameContent, copyFilePathContent, copyCaptureURLContent].includes(menuItemProps.content as string)) {
+                        switch (menuItemProps.content) {
+                          case copyFilenameContent:
+                            navigator.clipboard.writeText(entry.name);
+                            break;
+                          case copyFilePathContent:
+                            navigator.clipboard.writeText(this.getEntryPath(entry.id, workspace.rootNode));
+                            break;
+                          case copyCaptureURLContent:
+                            navigator.clipboard.writeText(entry.data.maybeCapturedFromURL!);
+                            break;
+                        }
+
                         const menuItem = items.find((i: ContextMenuEntry) => i.content === menuItemProps.content)
                         if (menuItem) {
                             menuItem.content = 'Copied!'
@@ -663,7 +709,7 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
                         }
                     }
 
-                    if (menuItemProps.content === "Delete file") {
+                    if (menuItemProps.content === "Delete file" || menuItemProps.content?.toString().startsWith("Dismiss failed")) {
                         this.setState({
                             deleteModalContext: {
                                 isOpen: true,

@@ -7,7 +7,7 @@ import Select from "react-select";
 import TreeBrowser from "../UtilComponents/TreeBrowser";
 import {connect} from "react-redux";
 import {GiantState} from "../../types/redux/GiantState";
-import {isTreeNode, TreeEntry, TreeNode} from "../../types/Tree";
+import {isTreeLeaf, isTreeNode, TreeEntry, TreeLeaf, TreeNode} from "../../types/Tree";
 import {GiantDispatch} from "../../types/redux/GiantDispatch";
 import {bindActionCreators} from "redux";
 import {getWorkspace} from "../../actions/workspaces/getWorkspace";
@@ -80,6 +80,31 @@ export const CaptureFromUrl = connect(
     getWorkspacesMetadata()
   }, [isOpen]);
 
+  useEffect(() => {
+    if(!isOpen){
+      return;
+    }
+
+    const navigateToFindParentOfLeaf = (leaf: TreeLeaf<WorkspaceEntry>, node: TreeNode<WorkspaceEntry>): TreeNode<WorkspaceEntry> | null => {
+      if(node.children.includes(leaf)){
+        return node === currentWorkspace?.rootNode ? null : node;
+      }
+      for(const child of node.children){
+        if(isTreeNode(child)){
+          const maybeFound = navigateToFindParentOfLeaf(leaf, child);
+          if(maybeFound){
+            return maybeFound;
+          }
+        }
+      }
+      return null;
+    };
+
+    if(focusedEntry && isTreeLeaf(focusedEntry) && currentWorkspace){
+      setFocusedEntry(navigateToFindParentOfLeaf(focusedEntry, currentWorkspace.rootNode)!);
+    }
+  }, [isOpen, currentWorkspace, focusedEntry, setFocusedEntry]);
+
   const maybeCaptureFromUrlViaQueryParamValue = useMemo(
     getMaybeCaptureFromUrlQueryParamValue,
     []
@@ -99,8 +124,8 @@ export const CaptureFromUrl = connect(
 
   const {push} = useHistory();
 
-  const parentEntry = focusedEntry || currentWorkspace?.rootNode;
-  const parentFolder = parentEntry && isTreeNode(parentEntry) ? parentEntry : null;
+  const selectedEntry = focusedEntry || currentWorkspace?.rootNode;
+  const parentFolder = selectedEntry && isTreeNode(selectedEntry) ? selectedEntry : null;
 
   const isTargetFolderNameConflict = !!parentFolder?.children?.some(_ => _.name === saveAs);
 
@@ -148,7 +173,7 @@ export const CaptureFromUrl = connect(
         onClick={() => setIsOpen(true)}
       >
         <MdGlobeIcon className='file-upload__icon'/>
-        Capture from URL
+        Capture from&nbsp;URL
       </button>
     }
     <Modal isOpen={isOpen} dismiss={() => setIsOpen(false)}>
@@ -189,7 +214,16 @@ export const CaptureFromUrl = connect(
         </div>
 
         {currentWorkspace && currentWorkspace.rootNode.children.length > 0 && <div className='form__row'>
-          <span className='form__label'>Folder</span>
+          <span className='form__label'>Folder
+            {focusedEntry &&
+              <button onClick={() => setFocusedEntry(null)}
+                      className="btn-link"
+                      style={{float: "right", fontWeight: "normal", fontStyle: "italic"}}
+              >
+                clear selection
+              </button>
+            }
+          </span>
           <div className='workspace__tree' style={{maxHeight: "calc(100vh - 590px)"}}>
             <TreeBrowser
               showColumnHeaders={false}
