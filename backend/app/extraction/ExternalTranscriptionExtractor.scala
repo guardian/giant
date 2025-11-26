@@ -7,6 +7,7 @@ import model.manifest.Blob
 import org.joda.time.DateTime
 import play.api.libs.json.{Format, JsError, JsResult, JsValue, Json, Reads, Writes}
 import services.index.Index
+import services.manifest.WorkerManifest
 import services.{ObjectStorage, TranscribeConfig}
 import utils._
 import utils.attempt.Failure
@@ -25,7 +26,7 @@ case class CombinedOutputUrl(url: String, key: String)
 case class TranscriptionJob(id: String, originalFilename: String, inputSignedUrl: String, sentTimestamp: String,
                             userEmail: String, transcriptDestinationService: String,
                             combinedOutputUrl: CombinedOutputUrl, languageCode: String, translate: Boolean,
-                            diarize: Boolean, engine: String)
+                            diarize: Boolean, engine: String, ingestion: String)
 
 object TranscriptionJob {
   implicit val combinedOutputUrlFormat: Format[CombinedOutputUrl] = Json.format[CombinedOutputUrl]
@@ -98,7 +99,7 @@ object TranscriptionOutput {
 // The transcription types are matched with types in transcription service
 // https://github.com/guardian/transcription-service/blob/main/packages/common/src/types.ts
 
-class ExternalTranscriptionExtractor(index: Index, transcribeConfig: TranscribeConfig, transcriptionStorage: ObjectStorage, outputStorage: ObjectStorage, amazonSQSClient: AmazonSQS)(implicit executionContext: ExecutionContext) extends ExternalExtractor with Logging {
+class ExternalTranscriptionExtractor(index: Index, transcribeConfig: TranscribeConfig, transcriptionStorage: ObjectStorage, outputStorage: ObjectStorage, amazonSQSClient: AmazonSQS, manifest: WorkerManifest)(implicit executionContext: ExecutionContext) extends ExternalExtractor(manifest) with Logging {
   val mimeTypes: Set[String] = Set(
     "audio/wav",
     "audio/vnd.wave",
@@ -146,7 +147,8 @@ class ExternalTranscriptionExtractor(index: Index, transcribeConfig: TranscribeC
         languageCode = "auto",
         translate = true,
         diarize = true,
-        engine = "whisperx")
+        engine = "whisperx",
+        ingestion = params.ingestion)
     }
 
     transcriptionJob.flatMap {

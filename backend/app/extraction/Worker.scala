@@ -111,6 +111,10 @@ class Worker(
 
           completed
 
+        case Left(ExternalExtractorTooRecent(msg)) =>
+          logger.info(s"Skipping external extraction for '${blob.uri.value}' with extractor '${extractor.name}': ${msg}")
+          completed
+
         case Left(failure) =>
           markAsFailure(blob, extractor, failure)
           metricsService.updateMetric(Metrics.itemsFailed)

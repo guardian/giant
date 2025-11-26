@@ -1,6 +1,8 @@
 package extraction
 
 import model.manifest.Blob
+import services.manifest.WorkerManifest
+import utils.Logging
 import utils.attempt.Failure
 
 import java.io.InputStream
@@ -11,12 +13,17 @@ import java.io.InputStream
   * whilst waiting for a response from the third party service. Once the response comes in we need to store the data
   * and update the manifest to mark the extraction as complete
   */
-abstract class ExternalExtractor extends Extractor {
+abstract class ExternalExtractor(manifest: WorkerManifest) extends Extractor with Logging {
 
   override def external = true
 
   final override def extract(blob: Blob, inputStream: InputStream, params: ExtractionParams): Either[Failure, Unit] = {
-   triggerExtraction(blob, params)
+    manifest.isBlobRecentlyProcessingExternally(blob, this).flatMap {
+      case true =>
+        logger.info(s"Blob ${blob.uri} is already being processed by ${this.name} - skipping extraction")
+        Right(())
+      case false => triggerExtraction(blob, params)
+    }
   }
 
   def triggerExtraction(blob: Blob, params: ExtractionParams): Either[Failure, Unit]

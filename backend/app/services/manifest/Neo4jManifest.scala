@@ -591,6 +591,9 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
       logger.info(s"There is already a processed relation between blob ${uri} and extractor ${extractorName}. Doing nothing.")
       Right(())
     } else {
+      // TODO: Get the transcription service to sent back the ingestion id so that we only replace the PROCESSING_EXTERNALLY
+      // relation that is associated with the current ingestion with a PROCESSED relation
+      // (currently, we just replace all of them)
       val result = tx.run(
         s"""
            |MATCH (b :Blob:Resource {uri: {uri}})<-[processing:PROCESSING_EXTERNALLY]-(e: Extractor {name: {extractorName}})
@@ -620,8 +623,8 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
 
       val counters = result.summary().counters()
 
-      if (counters.relationshipsCreated() != 1 || counters.relationshipsDeleted() != 1) {
-        Left(IllegalStateFailure(s"Unexpected number of creates/deletes in markAsComplete. Created: ${counters.relationshipsCreated()}. Deleted: ${counters.relationshipsDeleted()}"))
+      if (counters.relationshipsCreated() == 0 || counters.relationshipsDeleted() == 0 || counters.relationshipsCreated() != counters.relationshipsDeleted()) {
+        Left(IllegalStateFailure(s"Unexpected number of creates/deletes in markExternalAsComplete. Created: ${counters.relationshipsCreated()}. Deleted: ${counters.relationshipsDeleted()}"))
       } else {
         Right(())
       }
@@ -680,8 +683,44 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
     }
   }
 
+  private val RECENT_MINUTES = 5
+  // checks if a blob has been sent to an external extractor within RECENT_MINUTES
+  override def isBlobRecentlyProcessingExternally(blob: Blob, extractor: Extractor): Either[Failure, Boolean] = transaction { tx =>
+    val result = tx.run(
+      """
+        |MATCH (b :Blob:Resource {uri: {uri}})<-[processing_externally:PROCESSING_EXTERNALLY]-(e: Extractor {name: {extractorName}})
+        |
+        |RETURN processing_externally
+        |""".stripMargin,
+      parameters(
+        "uri", blob.uri.value,
+        "extractorName", extractor.name
+      )
+    )
+
+    val records = result.list().asScala
+
+    println(records)
+
+    if (records.isEmpty) {
+      Right(false)
+    } else {
+      val nowMillis = DateTime.now().getMillis
+      val recentRelations = records.filter { record =>
+        val relation = record.get("processing_externally")
+        val startTimeOrNull = relation.get("startTime")
+        val startTime = if (!startTimeOrNull.isNull) Some(startTimeOrNull.asLong()) else None
+        val diffOpt = startTime.map(t => nowMillis - t)
+        println(diffOpt)
+        // any relation added in the last 5 minutes is considered 'recent'
+        diffOpt.exists(diff => diff < 1000 * 60 * RECENT_MINUTES)
+      }
+      Right(recentRelations.nonEmpty)
+    }
+  }
+
   override def markExternalAsProcessing(params: ExtractionParams, blob: Blob, extractor: Extractor): Either[Failure, Unit] = transaction { tx =>
-    logger.info(s"Marking ${blob.uri.value} / ${extractor.name} as complete")
+    logger.info(s"Marking ${blob.uri.value} / ${extractor.name} as processing")
 
     val maybeWorkspaceProperties = params.workspace.map { _ =>
       """
@@ -706,7 +745,8 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
          |MERGE (b)<-[processing_externally:PROCESSING_EXTERNALLY {
          |  ingestion: {ingestion},
          |  parentBlobs: {parentBlobs},
-         |  languages: {languages}
+         |  languages: {languages},
+         |  startTime: {startTime}
          |  ${maybeWorkspaceProperties}
          |}]-(e)
          |    ON CREATE SET processing_externally.attempts = 1,
@@ -721,14 +761,15 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
         "parentBlobs", params.parentBlobs.map(_.value).asJava,
         "workspaceId", params.workspace.map(_.workspaceId).orNull,
         "workspaceNodeId", params.workspace.map(_.workspaceNodeId).orNull,
-        "workspaceBlobUri", params.workspace.map(_.blobAddedToWorkspace).orNull
+        "workspaceBlobUri", params.workspace.map(_.blobAddedToWorkspace).orNull,
+        "startTime", DateTime.now().getMillis.asInstanceOf[java.lang.Long]
       )
     )
 
     val counters = result.summary().counters()
 
     if (counters.relationshipsCreated() != 1 || counters.relationshipsDeleted() != 1) {
-      Left(IllegalStateFailure(s"Unexpected number of creates/deletes in markAsComplete. Created: ${counters.relationshipsCreated()}. Deleted: ${counters.relationshipsDeleted()}"))
+      Left(IllegalStateFailure(s"Unexpected number of creates/deletes in markExternalAsProcessing. Created: ${counters.relationshipsCreated()}. Deleted: ${counters.relationshipsDeleted()}"))
     } else {
       Right(())
     }

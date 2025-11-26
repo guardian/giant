@@ -168,7 +168,7 @@ class AppComponents(context: Context, config: Config)
 
 
     val transcriptionExtractor = if (config.worker.useExternalExtractors) {
-      new ExternalTranscriptionExtractor(esResources, config.transcribe, blobStorage, transcriptStorage, sqsClient)
+      new ExternalTranscriptionExtractor(esResources, config.transcribe, blobStorage, transcriptStorage, sqsClient, manifest)
     } else {
       new TranscriptionExtractor(esResources, scratchSpace, config.transcribe)
     }

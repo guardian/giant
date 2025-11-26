@@ -32,6 +32,7 @@ trait WorkerManifest {
 
   def markAsComplete(params: ExtractionParams, blob: Blob, extractor: Extractor): Either[Failure, Unit]
   def markExternalAsProcessing(params: ExtractionParams, blob: Blob, extractor: Extractor): Either[Failure, Unit]
+  def isBlobRecentlyProcessingExternally(blob: Blob, extractor: Extractor): Either[Failure, Boolean]
 
   def markExternalAsComplete(uri: String, extractorName: String): Either[Failure, Unit]
 
