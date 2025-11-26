@@ -2,7 +2,8 @@ import org.apache.pekko.actor.{ActorSystem, CoordinatedShutdown}
 import org.apache.pekko.actor.CoordinatedShutdown.Reason
 import cats.syntax.either._
 import com.amazonaws.client.builder.AwsClientBuilder
-import com.amazonaws.services.sns.AmazonSNSClientBuilder
+import java.net.URI
+import software.amazon.awssdk.services.sns.SnsClient
 import com.amazonaws.services.sqs.{AmazonSQSClient, AmazonSQSClientBuilder}
 import com.gu.pandomainauth
 import com.gu.pandomainauth.PublicSettings
@@ -85,9 +86,9 @@ class AppComponents(context: Context, config: Config)
       AmazonSQSClientBuilder.standard().withRegion(config.sqs.region).build()
 
     val snsClient = if (config.sqs.endpoint.isDefined)
-      AmazonSNSClientBuilder.standard().withEndpointConfiguration(new AwsClientBuilder.EndpointConfiguration(config.sqs.endpoint.get, config.sqs.region)).build()
+      SnsClient.builder().endpointOverride(URI.create(config.sqs.endpoint.get)).region(config.sqs.regionV2).build()
     else
-      AmazonSNSClientBuilder.standard().withRegion(config.sqs.region).build()
+      SnsClient.builder().region(config.sqs.regionV2).build()
 
     val workerName = config.worker.name.getOrElse(InetAddress.getLocalHost.getHostName)
 

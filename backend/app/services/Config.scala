@@ -4,6 +4,7 @@ import net.ceedubs.ficus.Ficus._
 import net.ceedubs.ficus.readers.ArbitraryTypeReader._
 import net.ceedubs.ficus.readers.EnumerationReader._
 import play.api.libs.json.{Format, Json}
+import software.amazon.awssdk.regions.Region
 
 import scala.concurrent.duration.FiniteDuration
 
@@ -168,7 +169,9 @@ case class S3Config(
 case class SQSConfig(
                     region: String,
                     endpoint: Option[String]
-                    )
+                    ) {
+  val regionV2: Region = Region.of(region)
+}
 
 case class BucketConfig(
   ingestion: String,

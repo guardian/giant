@@ -20,6 +20,7 @@ val compilerFlags = Seq(
 )
 
 val awsVersion = "1.12.643"
+val awsSdkVersion2 = "2.39.0"
 val log4jVersion = "2.20.0"
 val slf4jVersion = "2.0.7"
 // To match what the main app gets from scalatestplus-play transitively
@@ -146,7 +147,7 @@ lazy val backend = (project in file("backend"))
       "com.amazonaws" % "aws-java-sdk-cloudwatch" % awsVersion,
       "com.amazonaws" % "aws-java-sdk-cloudwatchmetrics" % awsVersion,
       "com.amazonaws" % "aws-java-sdk-sqs" % awsVersion,
-      "com.amazonaws" % "aws-java-sdk-sns" % awsVersion,
+      "software.amazon.awssdk" % "sns" % awsSdkVersion2,
       "com.beachape" %% "enumeratum-play" % "1.8.0",
       "com.iheart" %% "ficus" % "1.5.2",
       "org.jsoup" % "jsoup" % "1.14.2",

@@ -1,6 +1,6 @@
 package controllers.api
 
-import com.amazonaws.services.sns.AmazonSNS
+import software.amazon.awssdk.services.sns.SnsClient
 import commands.DeleteResource
 import model.Uri
 import model.annotations.{ProcessingStage, Workspace, WorkspaceEntry, WorkspaceLeaf}
@@ -87,7 +87,7 @@ class Workspaces(
                   remoteIngestStore: RemoteIngestStore,
                   remoteIngestStorage: IngestStorage,
                   remoteIngestConfig: RemoteIngestConfig,
-                  snsClient: AmazonSNS
+                  snsClient: SnsClient
 ) extends AuthApiController with Logging {
 
   def create = ApiAction.attempt(parse.json) { req =>
