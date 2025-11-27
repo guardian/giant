@@ -591,6 +591,9 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
       logger.info(s"There is already a processed relation between blob ${uri} and extractor ${extractorName}. Doing nothing.")
       Right(())
     } else {
+      // TODO: Get the transcription service to sent back the ingestion id so that we only replace the PROCESSING_EXTERNALLY
+      // relation that is associated with the current ingestion with a PROCESSED relation
+      // (currently, we just replace all of them)
       val result = tx.run(
         s"""
            |MATCH (b :Blob:Resource {uri: {uri}})<-[processing:PROCESSING_EXTERNALLY]-(e: Extractor {name: {extractorName}})
@@ -620,8 +623,8 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
 
       val counters = result.summary().counters()
 
-      if (counters.relationshipsCreated() != 1 || counters.relationshipsDeleted() != 1) {
-        Left(IllegalStateFailure(s"Unexpected number of creates/deletes in markAsComplete. Created: ${counters.relationshipsCreated()}. Deleted: ${counters.relationshipsDeleted()}"))
+      if (counters.relationshipsCreated() == 0 || counters.relationshipsDeleted() == 0 || counters.relationshipsCreated() != counters.relationshipsDeleted()) {
+        Left(IllegalStateFailure(s"Unexpected number of creates/deletes in markExternalAsComplete. Created: ${counters.relationshipsCreated()}. Deleted: ${counters.relationshipsDeleted()}"))
       } else {
         Right(())
       }
@@ -681,7 +684,7 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
   }
 
   override def markExternalAsProcessing(params: ExtractionParams, blob: Blob, extractor: Extractor): Either[Failure, Unit] = transaction { tx =>
-    logger.info(s"Marking ${blob.uri.value} / ${extractor.name} as complete")
+    logger.info(s"Marking ${blob.uri.value} / ${extractor.name} as processing")
 
     val maybeWorkspaceProperties = params.workspace.map { _ =>
       """
@@ -706,7 +709,8 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
          |MERGE (b)<-[processing_externally:PROCESSING_EXTERNALLY {
          |  ingestion: {ingestion},
          |  parentBlobs: {parentBlobs},
-         |  languages: {languages}
+         |  languages: {languages},
+         |  startTime: {startTime}
          |  ${maybeWorkspaceProperties}
          |}]-(e)
          |    ON CREATE SET processing_externally.attempts = 1,
@@ -721,14 +725,15 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
         "parentBlobs", params.parentBlobs.map(_.value).asJava,
         "workspaceId", params.workspace.map(_.workspaceId).orNull,
         "workspaceNodeId", params.workspace.map(_.workspaceNodeId).orNull,
-        "workspaceBlobUri", params.workspace.map(_.blobAddedToWorkspace).orNull
+        "workspaceBlobUri", params.workspace.map(_.blobAddedToWorkspace).orNull,
+        "startTime", DateTime.now().getMillis.asInstanceOf[java.lang.Long]
       )
     )
 
     val counters = result.summary().counters()
 
     if (counters.relationshipsCreated() != 1 || counters.relationshipsDeleted() != 1) {
-      Left(IllegalStateFailure(s"Unexpected number of creates/deletes in markAsComplete. Created: ${counters.relationshipsCreated()}. Deleted: ${counters.relationshipsDeleted()}"))
+      Left(IllegalStateFailure(s"Unexpected number of creates/deletes in markExternalAsProcessing. Created: ${counters.relationshipsCreated()}. Deleted: ${counters.relationshipsDeleted()}"))
     } else {
       Right(())
     }
