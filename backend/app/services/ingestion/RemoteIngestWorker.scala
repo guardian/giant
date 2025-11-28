@@ -1,7 +1,7 @@
 package services.ingestion
 
-import com.amazonaws.services.sqs.AmazonSQS
-import com.amazonaws.services.sqs.model.ReceiveMessageRequest
+import software.amazon.awssdk.services.sqs.SqsClient
+import software.amazon.awssdk.services.sqs.model.{SendMessageRequest, ReceiveMessageRequest, DeleteMessageRequest}
 import commands.IngestFile
 import controllers.api.Collections
 import ingestion.phase2.IngestStorePolling
@@ -24,7 +24,7 @@ import scala.concurrent.{Await, ExecutionContext}
 import scala.jdk.CollectionConverters.CollectionHasAsScala
 
 class RemoteIngestWorker(
-                          amazonSQSClient: AmazonSQS,
+                          sqsClient: SqsClient,
                           config: RemoteIngestConfig,
                           s3Config: S3Config,
                           annotations: Annotations,
@@ -109,12 +109,15 @@ class RemoteIngestWorker(
 
   private def processFinishedJobs(): Unit = {
     try {
-      amazonSQSClient.receiveMessage(
-        new ReceiveMessageRequest(config.outputQueueUrl).withMaxNumberOfMessages(10)
-      ).getMessages.asScala.foreach { sqsMessage =>
-        logger.info(s"Processing finished job from SQS with id ${sqsMessage.getMessageId}")
+      sqsClient.receiveMessage(
+        ReceiveMessageRequest.builder()
+          .queueUrl(config.outputQueueUrl)
+          .maxNumberOfMessages(10)
+          .build()
+      ).messages().asScala.foreach { sqsMessage =>
+        logger.info(s"Processing finished job from SQS with id ${sqsMessage.messageId()}")
 
-        val messageParseResult = Json.fromJson[RemoteIngestOutput](Json.parse(sqsMessage.getBody))
+        val messageParseResult = Json.fromJson[RemoteIngestOutput](Json.parse(sqsMessage.body()))
 
         (for {
           remoteIngestOutput <- Attempt.fromEither(messageParseResult.asEither.left.map(JsonParseFailure))
@@ -154,11 +157,11 @@ class RemoteIngestWorker(
             failureDetail => {
               val maybeParsedJob =  messageParseResult.asOpt
               logger.error(
-                s"Failed to ingest remote file for job with id ${maybeParsedJob.map(_.id).getOrElse(s"unknown (but had sqs id ${sqsMessage.getMessageId}")}",
+                s"Failed to ingest remote file for job with id ${maybeParsedJob.map(_.id).getOrElse(s"unknown (but had sqs id ${sqsMessage.messageId()}")}",
                 failureDetail.toThrowable
               )
               // TODO: Do we care if this sending to dead letter queue fails?
-              amazonSQSClient.sendMessage(config.outputDeadLetterQueueUrl, sqsMessage.getBody)
+              sqsClient.sendMessage(SendMessageRequest.builder().queueUrl(config.outputDeadLetterQueueUrl).messageBody(sqsMessage.body()).build())
               maybeParsedJob.map { parsedJob =>
                 // INVALID_URL is returned by the media download service when there are no videos on the page -this is not
                 // a failure we need to expose to the user
@@ -174,7 +177,10 @@ class RemoteIngestWorker(
               remoteIngestStorage.delete(jobAndOutput._1.taskKey(jobAndOutput._2.taskId))
             }
         ).onComplete { _ =>
-          amazonSQSClient.deleteMessage(config.outputQueueUrl, sqsMessage.getReceiptHandle)
+          sqsClient.deleteMessage(DeleteMessageRequest.builder()
+            .queueUrl(config.outputQueueUrl)
+            .receiptHandle(sqsMessage.receiptHandle())
+            .build())
         }
       }
     } catch  {
