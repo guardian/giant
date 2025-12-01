@@ -47,6 +47,7 @@ import { PageViewerOrFallback } from './components/PageViewerOrFallback';
 import MyUploads from "./components/IngestionEvents/MyUploads";
 import AllIngestionEvents from "./components/IngestionEvents/AllIngestionEvents";
 import {CaptureFromUrl} from "./components/Uploads/CaptureFromUrl";
+import {VideoVerifier} from "./components/VideoVerifier";
 
 class App extends React.Component {
     static propTypes = {
@@ -71,6 +72,7 @@ class App extends React.Component {
                 <Route path='/search' component={SearchSidebar} />
                 <Route path={['/viewer-old/:uri', '/viewer/:uri']} component={ViewerSidebar} />
                 <Route path='/settings' component={SettingsSidebar} />
+                <Route path='/video-verifier' component={VideoVerifier} />
                 <Route path='/workspaces/:id?' component={WorkspacesSidebar} />
 
                 <div className='app__content'>

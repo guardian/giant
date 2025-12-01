@@ -97,6 +97,8 @@ PUT           /api/users/:username/register                                 cont
 
 GET           /api/currentUser/permissions                                  controllers.api.Users.getMyPermissions()
 
+POST          /api/video-verifier/fetch                                     controllers.api.VideoVerifier.fetchVideosToVerify()
+
 + NOCSRF
 POST          /api/auth/token                                               controllers.api.Authentication.token()
 DELETE        /api/auth/token                                               controllers.api.Authentication.invalidateExistingTokens()
