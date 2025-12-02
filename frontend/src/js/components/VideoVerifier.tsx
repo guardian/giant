@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { KeyboardEventHandler, useCallback, useEffect, useState } from "react";
 import {
   EuiButton,
   EuiRange,
@@ -156,39 +156,34 @@ export const VideoVerifier = () => {
     }
   };
 
-  useEffect(() => {
-    const keyHandler = ({ key }: KeyboardEvent) => {
-      if (isSubmitting || !currentInputItem) {
-        return;
-      }
-      switch (key) {
-        case "z":
-          return storeVerificationResult("irrelevant");
-        case "n":
-          return storeVerificationResult("Not sure?");
-        case "ArrowUp":
-          const maybePreviousInputItem = input.find(
-            (_, index, arr) => arr[index + 1] === currentInputItem,
-          );
-          return (
-            maybePreviousInputItem &&
-            setCurrentInputItem(maybePreviousInputItem)
-          );
-        case "ArrowDown":
-          return storeVerificationResult();
-        case "ArrowLeft":
-          return setCurrentSentiment(
-            (prev) => Math.max(-2, prev - 1) as Sentiment,
-          );
-        case "ArrowRight":
-          return setCurrentSentiment(
-            (prev) => Math.min(2, prev + 1) as Sentiment,
-          );
-      }
-    };
-    document.addEventListener("keyup", keyHandler);
-    return () => document.removeEventListener("keyup", keyHandler);
-  }, [currentInputItem, isSubmitting, input, storeVerificationResult]);
+  const keyHandler: KeyboardEventHandler<HTMLDivElement> = ({ key }) => {
+    if (isSubmitting || !currentInputItem) {
+      return;
+    }
+    switch (key) {
+      case "z":
+        return storeVerificationResult("irrelevant");
+      case "n":
+        return storeVerificationResult("Not sure?");
+      case "ArrowUp":
+        const maybePreviousInputItem = input.find(
+          (_, index, arr) => arr[index + 1] === currentInputItem,
+        );
+        return (
+          maybePreviousInputItem && setCurrentInputItem(maybePreviousInputItem)
+        );
+      case "ArrowDown":
+        return storeVerificationResult();
+      case "ArrowLeft":
+        return setCurrentSentiment(
+          (prev) => Math.max(-2, prev - 1) as Sentiment,
+        );
+      case "ArrowRight":
+        return setCurrentSentiment(
+          (prev) => Math.min(2, prev + 1) as Sentiment,
+        );
+    }
+  };
 
   useEffect(() => {
     currentInputItem &&
@@ -262,6 +257,8 @@ export const VideoVerifier = () => {
         justifyContent: "space-between",
       }}
       onPaste={(e) => handlePasteFromSpreadsheet(e.clipboardData)}
+      tabIndex={0} // to make key handler work
+      onKeyUp={keyHandler}
     >
       <div style={{ width: "67vw" }}>
         <p>Enter video URLs below (one per line):</p>
@@ -341,7 +338,7 @@ export const VideoVerifier = () => {
         </div>
       </div>
       <div style={{ width: "33vw", textAlign: "center" }}>
-        {input.length > 0 && !maybeCurrentPreSignedUrl && (
+        {input.length > Object.keys(preSignedUrls).length && (
           <div>
             <EuiLoadingSpinner /> LOADING TEMPORARY URLs{" "}
           </div>
@@ -467,6 +464,9 @@ export const VideoVerifier = () => {
                     value={notes}
                     placeholder="add any notes here... (optional)"
                     onChange={(e) => setNotes(e.target.value)}
+                    onKeyUp={(e) => {
+                      e.stopPropagation(); // ensures the keyboard shortcuts don't trigger while typing notes
+                    }}
                   />
                 </div>
                 <div style={{ marginBottom: "10px" }}>
