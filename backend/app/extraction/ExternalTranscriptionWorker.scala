@@ -1,8 +1,8 @@
 package extraction
 
 import cats.syntax.either._
-import com.amazonaws.services.sqs.AmazonSQS
-import com.amazonaws.services.sqs.model.{DeleteMessageRequest, Message, ReceiveMessageRequest, SendMessageRequest}
+import software.amazon.awssdk.services.sqs.SqsClient
+import software.amazon.awssdk.services.sqs.model.{Message, DeleteMessageRequest, ReceiveMessageRequest, SendMessageRequest}
 import model.{English, Languages, Uri}
 import play.api.libs.json.{JsError, JsSuccess, Json}
 import services.index.Index
@@ -20,7 +20,7 @@ import scala.util.{Try, Using}
 
 case class TranscriptionMessageAttribute(receiveCount: Int, messageGroupId: String)
 
-class ExternalTranscriptionWorker(manifest: WorkerManifest, amazonSQSClient: AmazonSQS, transcribeConfig: TranscribeConfig, blobStorage: ObjectStorage, index: Index)(implicit executionContext: ExecutionContext)  extends Logging{
+class ExternalTranscriptionWorker(manifest: WorkerManifest, sqsClient: SqsClient, transcribeConfig: TranscribeConfig, blobStorage: ObjectStorage, index: Index)(implicit executionContext: ExecutionContext)  extends Logging{
 
   val EXTRACTOR_NAME = "ExternalTranscriptionExtractor"
   val MAX_RECEIVE_COUNT = 3
@@ -28,11 +28,12 @@ class ExternalTranscriptionWorker(manifest: WorkerManifest, amazonSQSClient: Ama
   def pollForResults(): Int  = {
     logger.info(s"Fetching messages from external transcription output queue ${transcribeConfig.transcriptionOutputQueueUrl}")
 
-    val messages = amazonSQSClient.receiveMessage(
-      new ReceiveMessageRequest(transcribeConfig.transcriptionOutputQueueUrl)
-        .withMaxNumberOfMessages(10)
-        .withAttributeNames("MessageGroupId", "ApproximateReceiveCount")
-    ).getMessages
+    val messages = sqsClient.receiveMessage(ReceiveMessageRequest.builder()
+        .queueUrl(transcribeConfig.transcriptionOutputQueueUrl)
+        .maxNumberOfMessages(10)
+        .messageAttributeNames("MessageGroupId", "ApproximateReceiveCount")
+        .build())
+      .messages()
 
     if (messages.size() > 0)
       logger.info(s"retrieved ${messages.size()} messages from queue Transcription Output Queue")
@@ -42,7 +43,7 @@ class ExternalTranscriptionWorker(manifest: WorkerManifest, amazonSQSClient: Ama
         case Right(messageAttributes) =>
           handleMessage(message, messageAttributes, completed)
         case Left(error) =>
-          logger.error(s"Could not get message attributes from transcription output message hence can not update extractor. Message id: ${message.getMessageId}", error)
+          logger.error(s"Could not get message attributes from transcription output message hence can not update extractor. Message id: ${message.messageId()}", error)
           completed
       }
     }
@@ -60,8 +61,11 @@ class ExternalTranscriptionWorker(manifest: WorkerManifest, amazonSQSClient: Ama
       _ <- addDocumentTranscription(transcriptionOutput, transcripts)
       _ <- markExternalExtractorAsComplete(transcriptionOutput.id, EXTRACTOR_NAME)
     } yield {
-      amazonSQSClient.deleteMessage(
-        new DeleteMessageRequest(transcribeConfig.transcriptionOutputQueueUrl, message.getReceiptHandle)
+      sqsClient.deleteMessage(
+        DeleteMessageRequest.builder()
+          .queueUrl(transcribeConfig.transcriptionOutputQueueUrl)
+          .receiptHandle(message.receiptHandle())
+          .build()
       )
       logger.debug(s"deleted message for ${transcriptionOutput.id}")
     }
@@ -108,7 +112,7 @@ class ExternalTranscriptionWorker(manifest: WorkerManifest, amazonSQSClient: Ama
 
   private def getMessageAttribute(message: Message) = {
     Try {
-      val attributes = message.getAttributes
+      val attributes = message.attributes()
       val receiveCount = attributes.get("ApproximateReceiveCount").toInt
       val messageGroupId = attributes.get("MessageGroupId")
       TranscriptionMessageAttribute(receiveCount, messageGroupId)
@@ -139,7 +143,7 @@ class ExternalTranscriptionWorker(manifest: WorkerManifest, amazonSQSClient: Ama
   }
 
   private def parseMessage(message: Message): Either[Failure, TranscriptionOutputSuccess] = {
-    val json = Json.parse(message.getBody)
+    val json = Json.parse(message.body())
 
     Json.fromJson[TranscriptionOutput](json) match {
       case JsSuccess(output: TranscriptionOutputSuccess, _) =>
@@ -149,7 +153,7 @@ class ExternalTranscriptionWorker(manifest: WorkerManifest, amazonSQSClient: Ama
         Left(ExternalTranscriptionOutputFailure.apply(s"External transcription service failed to transcribe the file ${output.originalFilename}"))
 
       case JsError(errors) =>
-        logger.error(s"Failed to parse transcription output message: ${message.getBody}, errors: ${errors.mkString(", ")}")
+        logger.error(s"Failed to parse transcription output message: ${message.body()}, errors: ${errors.mkString(", ")}")
         Left(JsonParseFailure(errors))
     }
   }
@@ -164,15 +168,19 @@ class ExternalTranscriptionWorker(manifest: WorkerManifest, amazonSQSClient: Ama
 
   private def handleExternalTranscriptionOutputFailure(message: Message, id: String, failureMessage: String) = {
     Try {
-      val sendMessageCommand = new SendMessageRequest()
-        .withQueueUrl(transcribeConfig.transcriptionOutputDeadLetterQueueUrl)
-        .withMessageBody(message.getBody)
-        .withMessageGroupId(id)
-      amazonSQSClient.sendMessage(sendMessageCommand)
+      val sendMessageCommand = SendMessageRequest.builder()
+        .queueUrl(transcribeConfig.transcriptionOutputDeadLetterQueueUrl)
+        .messageBody(message.body())
+        .messageGroupId(id)
+        .build()
+      sqsClient.sendMessage(sendMessageCommand)
       logger.info(s"moved message $id to output dead letter queue")
 
-      amazonSQSClient.deleteMessage(
-        new DeleteMessageRequest(transcribeConfig.transcriptionOutputQueueUrl, message.getReceiptHandle)
+      sqsClient.deleteMessage(
+        DeleteMessageRequest.builder()
+          .queueUrl(transcribeConfig.transcriptionOutputQueueUrl)
+          .receiptHandle(message.receiptHandle())
+          .build()
       )
       logger.debug(s"deleted message $id")
 
