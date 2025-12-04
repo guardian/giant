@@ -25,7 +25,7 @@ case class CombinedOutputUrl(url: String, key: String)
 case class TranscriptionJob(id: String, originalFilename: String, inputSignedUrl: String, sentTimestamp: String,
                             userEmail: String, transcriptDestinationService: String,
                             combinedOutputUrl: CombinedOutputUrl, languageCode: String, translate: Boolean,
-                            diarize: Boolean, engine: String)
+                            diarize: Boolean, engine: String, ingestion: String)
 
 object TranscriptionJob {
   implicit val combinedOutputUrlFormat: Format[CombinedOutputUrl] = Json.format[CombinedOutputUrl]
@@ -146,7 +146,8 @@ class ExternalTranscriptionExtractor(index: Index, transcribeConfig: TranscribeC
         languageCode = "auto",
         translate = true,
         diarize = true,
-        engine = "whisperx")
+        engine = "whisperx",
+        ingestion = params.ingestion)
     }
 
     transcriptionJob.flatMap {
