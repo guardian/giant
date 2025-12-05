@@ -1,0 +1,149 @@
+.transcript-viewer {
+    height: 100%;
+    display: flex;
+    gap: $baseSpacing * 2;
+
+    @media (max-width: 768px) {
+        flex-direction: column;
+    }
+}
+
+.transcript-viewer__left {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 0;
+}
+
+.transcript-viewer__right {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 0; // Critical for flex child height constraint
+}
+
+.transcript-viewer__media-container {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.transcript-viewer__video {
+    width: 100%;
+    max-height: 80vh;
+}
+
+.transcript-viewer__audio {
+    width: 100%;
+}
+
+.transcript-viewer__transcript-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background-color: white;
+    border: 1px solid $borderColour;
+    border-radius: $borderRadius;
+    overflow: hidden;
+    min-height: 0; // Critical for flex child height constraint
+}
+
+.transcript-viewer__header {
+    padding: $baseSpacing * 1.5;
+    border-bottom: 1px solid $borderColour;
+    background-color: $secondaryLight;
+    flex-shrink: 0;
+
+    h2 {
+        margin: 0 0 $baseSpacing 0;
+        font-size: 1.2rem;
+    }
+}
+
+.transcript-viewer__language-selector {
+    display: flex;
+    align-items: center;
+    gap: $baseSpacing;
+}
+
+.transcript-viewer__language-label {
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: $primaryDark;
+}
+
+.transcript-viewer__language-dropdown {
+    min-width: 150px;
+}
+
+.transcript-viewer__segments {
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+}
+
+.transcript-viewer__segment {
+    padding: $baseSpacing * 1.5;
+    border-bottom: 1px solid $borderColour;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    display: flex;
+    align-items: flex-start;
+    gap: $baseSpacing * 1.5;
+    flex-shrink: 0; // Prevent segments from shrinking
+
+    &:hover {
+        background-color: $secondaryLight;
+    }
+
+    &--active {
+        background-color: $secondaryLight;
+        border-left: 4px solid $primary;
+        padding-left: calc(#{$baseSpacing * 1.5} - 4px);
+
+        .transcript-viewer__timestamp {
+            color: $primary;
+            font-weight: 600;
+        }
+
+        .transcript-viewer__text {
+            color: $primaryDark;
+            font-weight: 500;
+        }
+    }
+}
+
+.transcript-viewer__timestamp {
+    font-size: 0.85rem;
+    color: $primary;
+    white-space: nowrap;
+    padding-top: 2px;
+}
+
+.transcript-viewer__text {
+    font-size: 0.95rem;
+    color: $primaryDark;
+    margin: 0;
+    flex: 1;
+    line-height: 1.5;
+}
+
+.transcript-viewer__no-segments {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: $baseSpacing * 4;
+    color: $primary;
+
+    p {
+        margin-bottom: $baseSpacing;
+    }
+}
+
