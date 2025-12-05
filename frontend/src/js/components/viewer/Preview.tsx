@@ -1,9 +1,10 @@
-import React from 'react';
+import React, {useEffect, useState} from 'react';
 import ErrorIcon from 'react-icons/lib/md/error';
 
 import { EmbeddedPdfViewer } from './EmbeddedPdfViewer';
 import { getPreviewType, getPreviewImage, fetchPreviewLink } from '../../services/PreviewApi';
 import { ProgressAnimation } from '../UtilComponents/ProgressAnimation';
+import {Resource} from "../../types/Resource";
 
 interface PreviewErrorProps {
     message: string;
@@ -29,31 +30,28 @@ function PreviewError({ message }: PreviewErrorProps): React.ReactElement {
 }
 
 interface PreviewProps {
-    fingerprint: string;
+    resource: Resource;
 }
 
-interface PreviewState {
-    currentFingerprint: string | null;
-    doc: any; // Could be string or object depending on the preview type
-    mimeType: string | null;
-    error: string | null;
-}
+export function Preview({ resource }: PreviewProps): React.ReactElement {
+    const [currentFingerprint, setCurrentFingerprint] = useState<string | null>(null);
+    const [doc, setDoc] = useState<any>(null);
+    const [mimeType, setMimeType] = useState<string | null>(null);
+    const [error, setError] = useState<string | null>(null);
 
-export class Preview extends React.Component<PreviewProps, PreviewState> {
-    baseState: PreviewState = {
-        currentFingerprint: null,
-        doc: null,
-        mimeType: null,
-        error: null
-    };
+    const onMediaError = (mimeType: string): void =>
+        setError(`Cannot preview unsupported format ${mimeType}`);
 
-    state: PreviewState = this.baseState;
 
-    componentDidUpdateOrMount(): void {
-        const { fingerprint } = this.props;
+    useEffect(() => {
+        const fingerprint = resource.uri;
 
-        if (fingerprint !== this.state.currentFingerprint) {
-            this.setState(Object.assign({}, this.baseState, { currentFingerprint: fingerprint }));
+        if (fingerprint !== currentFingerprint) {
+            // Reset state
+            setCurrentFingerprint(fingerprint);
+            setDoc(null);
+            setMimeType(null);
+            setError(null);
 
             getPreviewType(fingerprint).then((mimeType: string | null) => {
                 switch(mimeType) {
@@ -61,59 +59,47 @@ export class Preview extends React.Component<PreviewProps, PreviewState> {
                     case 'image/gif':
                     case 'image/png':
                         return getPreviewImage(fingerprint).then((doc: any) => {
-                            if (this.state.currentFingerprint === fingerprint) {
-                                this.setState({ doc, mimeType });
+                            if (fingerprint === resource.uri) {
+                                setDoc(doc);
+                                setMimeType(mimeType);
                             }
                         });
 
                     default:
                         return fetchPreviewLink(fingerprint).then((doc: any) => {
-                            if (this.state.currentFingerprint === fingerprint) {
-                                this.setState({ doc, mimeType });
+                            if (fingerprint === resource.uri) {
+                                setDoc(doc);
+                                setMimeType(mimeType);
                             }
                         });
                 }
             }).catch((e: any) => {
-                this.setState({ error: String(e) });
+                setError(String(e));
             });
         }
+    }, [resource.uri, currentFingerprint]);
+
+    if(error) {
+        return <PreviewError message={error} />;
     }
 
-    componentDidMount(): void {
-        this.componentDidUpdateOrMount();
-    }
-
-    componentDidUpdate(): void {
-        this.componentDidUpdateOrMount();
-    }
-
-    onMediaError = (): void => {
-        this.setState({ error: `Cannot preview unsupported format ${this.state.mimeType}`});
-    }
-
-    render(): React.ReactElement {
-        if(this.state.error) {
-            return <PreviewError message={this.state.error} />;
+    if(doc) {
+        if(mimeType && mimeType.startsWith('image/')) {
+            return <img className='viewer__preview-img' alt='Preview' {...doc} />;
         }
 
-        if(this.state.doc) {
-            if(this.state.mimeType && this.state.mimeType.startsWith('image/')) {
-                return <img className='viewer__preview-img' alt='Preview' {...this.state.doc} />;
-            }
-
-            if(this.state.mimeType === 'application/pdf') {
-                return <EmbeddedPdfViewer doc={this.state.doc} />;
-            }
-
-            if(this.state.mimeType && this.state.mimeType.startsWith('video/')) {
-                return <video className="viewer__preview-video" src={this.state.doc} controls onError={this.onMediaError} />;
-            }
-
-            if(this.state.mimeType && this.state.mimeType.startsWith('audio/')) {
-                return <audio className="viewer__preview-audio" src={this.state.doc} controls onError={this.onMediaError} />;
-            }
+        if(mimeType === 'application/pdf') {
+            return <EmbeddedPdfViewer doc={doc} />;
         }
 
-        return <LoadingPreview />;
+        if(mimeType && mimeType.startsWith('video/')) {
+            return <video className="viewer__preview-video" src={doc} controls onError={() => onMediaError(mimeType)} />;
+        }
+
+        if(mimeType && mimeType.startsWith('audio/')) {
+            return <audio className="viewer__preview-audio" src={doc} controls onError={() => onMediaError(mimeType)} />;
+        }
     }
+
+    return <LoadingPreview />;
 }
