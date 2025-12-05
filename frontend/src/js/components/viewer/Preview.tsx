@@ -5,6 +5,7 @@ import { EmbeddedPdfViewer } from './EmbeddedPdfViewer';
 import { getPreviewType, getPreviewImage, fetchPreviewLink } from '../../services/PreviewApi';
 import { ProgressAnimation } from '../UtilComponents/ProgressAnimation';
 import {Resource} from "../../types/Resource";
+import {TranscriptViewer} from "./TranscriptViewer/TranscriptViewer";
 
 interface PreviewErrorProps {
     message: string;
@@ -38,6 +39,8 @@ export function Preview({ resource }: PreviewProps): React.ReactElement {
     const [doc, setDoc] = useState<any>(null);
     const [mimeType, setMimeType] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
+
+    const transcriptsAvailable = resource.vttTranscript && Object.keys(resource.vttTranscript).length > 0
 
     const onMediaError = (mimeType: string): void =>
         setError(`Cannot preview unsupported format ${mimeType}`);
@@ -93,10 +96,17 @@ export function Preview({ resource }: PreviewProps): React.ReactElement {
         }
 
         if(mimeType && mimeType.startsWith('video/')) {
+            if (transcriptsAvailable && resource.vttTranscript) {
+                return <TranscriptViewer transcripts={resource.vttTranscript} mediaUrl={doc} mediaType={'video'} />
+            }
             return <video className="viewer__preview-video" src={doc} controls onError={() => onMediaError(mimeType)} />;
         }
 
         if(mimeType && mimeType.startsWith('audio/')) {
+            if (transcriptsAvailable && resource.vttTranscript) {
+                console.log("let's go")
+                return <TranscriptViewer transcripts={resource.vttTranscript} mediaUrl={doc} mediaType={'audio'} />
+            }
             return <audio className="viewer__preview-audio" src={doc} controls onError={() => onMediaError(mimeType)} />;
         }
     }

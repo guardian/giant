@@ -1,34 +1,36 @@
 import React, { useRef, useState, useEffect } from 'react';
+import { Message, Dropdown } from 'semantic-ui-react';
 import {formatTime, parseSRT, TranscriptSegment} from "./srt";
+import {HighlightableText} from "../../../types/Resource";
 
 type TranscriptViewerProps = {
-    srt: string;
+    transcripts: {
+        [lang: string]: HighlightableText
+    };
     mediaUrl: string | null;
-    filename: string;
     mediaType: 'audio' | 'video';
 };
 
 export const TranscriptViewer: React.FC<TranscriptViewerProps> = ({
-                                                                      srt,
-                                                                      mediaUrl,
-                                                                      filename,
+                                                                      transcripts,
+    mediaUrl,
     mediaType
-                                                                  }) => {
+}) => {
     const mediaRef = useRef<HTMLVideoElement>(null);
     const [currentTime, setCurrentTime] = useState(0);
-    const [activeSegmentIndex, setActiveSegmentIndex] = useState<number | null>(
-        null,
-    );
+    const [activeSegmentIndex, setActiveSegmentIndex] = useState<number | null>(null);
     const [segments, setSegments] = useState<TranscriptSegment[]>([]);
+    const [language, setLanguage] = useState<string | null>(Object.keys(transcripts)[0] || null);
     const activeSegmentRef = useRef<HTMLDivElement>(null);
     const transcriptContainerRef = useRef<HTMLDivElement>(null);
 
+
     useEffect(() => {
-        if (srt) {
-            const parsed = parseSRT(srt);
+        if (transcripts && language) {
+            const parsed = parseSRT(transcripts[language].contents);
             setSegments(parsed);
         }
-    }, [srt]);
+    }, [transcripts, language]);
 
     useEffect(() => {
         const handleTimeUpdate = () => {
@@ -80,106 +82,94 @@ export const TranscriptViewer: React.FC<TranscriptViewerProps> = ({
     };
 
     return (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Media Player - Order 1 on mobile, 1 on desktop */}
-            <div className="order-1">
+        <div className="transcript-viewer">
+            <div className="transcript-viewer__left">
                 {mediaUrl ? (
-                    <div className="bg-black rounded-lg overflow-hidden">
-                        {mediaType === 'audio'? (
-                            <div className="p-8 flex flex-col items-center justify-center min-h-[300px]">
-                                <div className="text-white text-center mb-4">
-                                    <svg
-                                        className="w-24 h-24 mx-auto mb-4 opacity-50"
-                                        fill="currentColor"
-                                        viewBox="0 0 20 20"
-                                    >
-                                        <path d="M18 3a1 1 0 00-1.196-.98l-10 2A1 1 0 006 5v9.114A4.369 4.369 0 005 14c-1.657 0-3 .895-3 2s1.343 2 3 2 3-.895 3-2V7.82l8-1.6v5.894A4.37 4.37 0 0015 12c-1.657 0-3 .895-3 2s1.343 2 3 2 3-.895 3-2V3z" />
-                                    </svg>
-                                    <p className="text-lg font-medium">{filename}</p>
-                                </div>
-                                <audio
-                                    ref={mediaRef as React.RefObject<HTMLAudioElement>}
-                                    controls
-                                    className="w-full"
-                                    src={mediaUrl}
-                                >
-                                    Your browser does not support the audio element.
-                                </audio>
-                            </div>
+                    <div className="transcript-viewer__media-container">
+                        {mediaType === 'audio' ? (
+                            <audio
+                                ref={mediaRef as React.RefObject<HTMLAudioElement>}
+                                controls
+                                className="transcript-viewer__audio"
+                                src={mediaUrl}
+                            >
+                                Your browser does not support the audio element.
+                            </audio>
                         ) : (
-                            <video ref={mediaRef} controls className="w-full" src={mediaUrl}>
+                            <video
+                                ref={mediaRef}
+                                controls
+                                className="transcript-viewer__video"
+                                src={mediaUrl}
+                            >
                                 Your browser does not support the video element.
                             </video>
                         )}
                     </div>
                 ) : (
-                    <div className="bg-gray-100 rounded-lg p-8 text-center min-h-[300px] flex items-center justify-center">
-                        <div>
-                            <p className="text-gray-600 mb-2">Media not available</p>
-                            <p className="text-sm text-gray-500">
-                                The source media file is not available for playback
-                            </p>
-                        </div>
-                    </div>
+                    <Message info>
+                        <Message.Header>Media not available</Message.Header>
+                        <p>The source media file is not available for playback</p>
+                    </Message>
                 )}
             </div>
 
-            {/* Interactive Transcript - Order 2 on mobile, 2 on desktop */}
-            <div className="order-2">
-                <h3 className="font-semibold text-gray-900 mb-3">
-                    Interactive Transcript
-                </h3>
-                <div
-                    ref={transcriptContainerRef}
-                    className="bg-white border border-gray-200 rounded-lg max-h-[600px] overflow-y-auto"
-                >
-                    {segments.length > 0 ? (
-                        <div className="divide-y divide-gray-100">
-                            {segments.map((segment, index) => (
+            <div className="transcript-viewer__right">
+                <div className="transcript-viewer__transcript-container">
+                    <div className="transcript-viewer__header">
+                        <h2>Transcript</h2>
+                        {Object.keys(transcripts).length > 1 && (
+                            <div className="transcript-viewer__language-selector">
+                                <label className="transcript-viewer__language-label">
+                                    Transcript language:
+                                </label>
+                                <Dropdown
+                                    selection
+                                    value={language || ''}
+                                    options={Object.keys(transcripts).map(lang => ({
+                                        key: lang,
+                                        text: lang,
+                                        value: lang
+                                    }))}
+                                    onChange={(_, data) => setLanguage(data.value as string)}
+                                    className="transcript-viewer__language-dropdown"
+                                />
+                            </div>
+                        )}
+                    </div>
+
+                    <div
+                        ref={transcriptContainerRef}
+                        className="transcript-viewer__segments"
+                    >
+                        {segments.length > 0 ? (
+                            segments.map((segment, index) => (
                                 <div
                                     key={segment.index}
                                     ref={activeSegmentIndex === index ? activeSegmentRef : null}
-                                    className={`p-3 cursor-pointer transition-colors ${
+                                    className={`transcript-viewer__segment ${
                                         activeSegmentIndex === index
-                                            ? 'bg-blue-50 border-l-4 border-blue-500'
-                                            : 'hover:bg-gray-50'
+                                            ? 'transcript-viewer__segment--active'
+                                            : ''
                                     }`}
                                     onClick={() => handleSegmentClick(segment)}
                                 >
-                                    <div className="flex items-start gap-3">
-										<span
-                                            className={`text-xs font-mono mt-0.5 ${
-                                                activeSegmentIndex === index
-                                                    ? 'text-blue-600 font-semibold'
-                                                    : 'text-gray-500'
-                                            }`}
-                                        >
-											{formatTime(segment.startTime)}
-										</span>
-                                        <p
-                                            className={`text-sm flex-1 ${
-                                                activeSegmentIndex === index
-                                                    ? 'text-gray-900 font-medium'
-                                                    : 'text-gray-700'
-                                            }`}
-                                        >
-                                            {segment.text}
-                                        </p>
-                                    </div>
+                                    <span className="transcript-viewer__timestamp">
+                                        {formatTime(segment.startTime)}
+                                    </span>
+                                    <p className="transcript-viewer__text">
+                                        {segment.text}
+                                    </p>
                                 </div>
-                            ))}
-                        </div>
-                    ) : (
-                        <div className="p-8 text-center text-gray-500">
-                            <p>No timestamped transcript available</p>
-                            <p className="text-sm mt-2">
-                                The transcript text is available in the section to the left
-                            </p>
-                        </div>
-                    )}
+                            ))
+                        ) : (
+                            <div className="transcript-viewer__no-segments">
+                                <p>No transcript available</p>
+                            </div>
+                        )}
+                    </div>
                 </div>
             </div>
-
         </div>
     );
 };
