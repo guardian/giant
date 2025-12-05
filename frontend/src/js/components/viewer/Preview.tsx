@@ -1,12 +1,15 @@
 import React from 'react';
-import PropTypes from 'prop-types';
 import ErrorIcon from 'react-icons/lib/md/error';
 
 import { EmbeddedPdfViewer } from './EmbeddedPdfViewer';
 import { getPreviewType, getPreviewImage, fetchPreviewLink } from '../../services/PreviewApi';
 import { ProgressAnimation } from '../UtilComponents/ProgressAnimation';
 
-function LoadingPreview() {
+interface PreviewErrorProps {
+    message: string;
+}
+
+function LoadingPreview(): React.ReactElement {
     return <div className='preview__dialog'>
         <div>Loading Preview</div>
         <div className='preview__dialog__loading'>
@@ -18,78 +21,83 @@ function LoadingPreview() {
     </div>;
 }
 
-function PreviewError({ message }) {
+function PreviewError({ message }: PreviewErrorProps): React.ReactElement {
     return <div className='preview__dialog preview__dialog--error'>
         <ErrorIcon className='error-bar__icon' />
         <span>{message}</span>
     </div>;
 }
 
-PreviewError.propTypes = { message: PropTypes.string.isRequired };
+interface PreviewProps {
+    fingerprint: string;
+}
 
-export class Preview extends React.Component {
-    static propTypes = {
-        fingerprint: PropTypes.string.isRequired
-    }
+interface PreviewState {
+    currentFingerprint: string | null;
+    doc: any; // Could be string or object depending on the preview type
+    mimeType: string | null;
+    error: string | null;
+}
 
-    baseState = {
+export class Preview extends React.Component<PreviewProps, PreviewState> {
+    baseState: PreviewState = {
         currentFingerprint: null,
         doc: null,
         mimeType: null,
         error: null
-    }
+    };
 
-    state = this.baseState
+    state: PreviewState = this.baseState;
 
-    componentDidUpdateOrMount() {
+    componentDidUpdateOrMount(): void {
         const { fingerprint } = this.props;
 
         if (fingerprint !== this.state.currentFingerprint) {
             this.setState(Object.assign({}, this.baseState, { currentFingerprint: fingerprint }));
 
-            getPreviewType(fingerprint).then(mimeType => {
+            getPreviewType(fingerprint).then((mimeType: string | null) => {
                 switch(mimeType) {
                     case 'image/jpeg':
                     case 'image/gif':
                     case 'image/png':
-                        return getPreviewImage(fingerprint).then(doc => {
+                        return getPreviewImage(fingerprint).then((doc: any) => {
                             if (this.state.currentFingerprint === fingerprint) {
                                 this.setState({ doc, mimeType });
                             }
                         });
 
                     default:
-                        return fetchPreviewLink(fingerprint).then(doc => {
+                        return fetchPreviewLink(fingerprint).then((doc: any) => {
                             if (this.state.currentFingerprint === fingerprint) {
                                 this.setState({ doc, mimeType });
                             }
                         });
                 }
-            }).catch(e => {
+            }).catch((e: any) => {
                 this.setState({ error: String(e) });
             });
         }
     }
 
-    componentDidMount() {
+    componentDidMount(): void {
         this.componentDidUpdateOrMount();
     }
 
-    componentDidUpdate() {
+    componentDidUpdate(): void {
         this.componentDidUpdateOrMount();
     }
 
-    onMediaError = () => {
+    onMediaError = (): void => {
         this.setState({ error: `Cannot preview unsupported format ${this.state.mimeType}`});
     }
 
-    render() {
+    render(): React.ReactElement {
         if(this.state.error) {
             return <PreviewError message={this.state.error} />;
         }
 
         if(this.state.doc) {
-            if(this.state.mimeType.startsWith('image/')) {
+            if(this.state.mimeType && this.state.mimeType.startsWith('image/')) {
                 return <img className='viewer__preview-img' alt='Preview' {...this.state.doc} />;
             }
 
@@ -97,11 +105,11 @@ export class Preview extends React.Component {
                 return <EmbeddedPdfViewer doc={this.state.doc} />;
             }
 
-            if(this.state.mimeType.startsWith('video/')) {
+            if(this.state.mimeType && this.state.mimeType.startsWith('video/')) {
                 return <video className="viewer__preview-video" src={this.state.doc} controls onError={this.onMediaError} />;
             }
 
-            if(this.state.mimeType.startsWith('audio/')) {
+            if(this.state.mimeType && this.state.mimeType.startsWith('audio/')) {
                 return <audio className="viewer__preview-audio" src={this.state.doc} controls onError={this.onMediaError} />;
             }
         }
