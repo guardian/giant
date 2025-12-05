@@ -4,7 +4,7 @@ import cats.syntax.either._
 import com.amazonaws.client.builder.AwsClientBuilder
 import java.net.URI
 import software.amazon.awssdk.services.sns.SnsClient
-import software.amazon.awssdk.services.sqs.SqsClient
+import com.amazonaws.services.sqs.{AmazonSQSClient, AmazonSQSClientBuilder}
 import com.gu.pandomainauth
 import com.gu.pandomainauth.PublicSettings
 import controllers.AssetsComponents
@@ -81,9 +81,9 @@ class AppComponents(context: Context, config: Config)
     val s3Client = new S3Client(config.s3)(s3ExecutionContext)
 
     val sqsClient = if (config.sqs.endpoint.isDefined)
-      SqsClient.builder().endpointOverride(URI.create(config.sqs.endpoint.get)).region(config.sqs.regionV2).build()
+      AmazonSQSClientBuilder.standard().withEndpointConfiguration(new AwsClientBuilder.EndpointConfiguration(config.sqs.endpoint.get, config.sqs.region)).build()
     else
-      SqsClient.builder().region(config.sqs.regionV2).build()
+      AmazonSQSClientBuilder.standard().withRegion(config.sqs.region).build()
 
     val snsClient = if (config.sqs.endpoint.isDefined)
       SnsClient.builder().endpointOverride(URI.create(config.sqs.endpoint.get)).region(config.sqs.regionV2).build()
