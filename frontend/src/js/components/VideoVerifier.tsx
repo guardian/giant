@@ -98,13 +98,13 @@ export const VideoVerifier = () => {
       }`;
       console.debug(body);
       fetch(
-        "https://docs.google.com/forms/u/0/d/e/1FAIpQLSebuFuxBPAkZvlZDTVbsLjUFyQ8RdQ5qrUIPFfAFJLuepSQRw/formResponse",
+        "https://docs.google.com/forms/d/e/1FAIpQLSebuFuxBPAkZvlZDTVbsLjUFyQ8RdQ5qrUIPFfAFJLuepSQRw/formResponse",
         {
           headers: {
             "content-type": "application/x-www-form-urlencoded",
           },
           referrer:
-            "https://docs.google.com/forms/d/e/1FAIpQLSebuFuxBPAkZvlZDTVbsLjUFyQ8RdQ5qrUIPFfAFJLuepSQRw/viewform?fbzx=7603041497167154633",
+            "https://docs.google.com/forms/d/e/1FAIpQLSebuFuxBPAkZvlZDTVbsLjUFyQ8RdQ5qrUIPFfAFJLuepSQRw/viewform",
           body,
           method: "POST",
           mode: "no-cors",
@@ -227,8 +227,8 @@ export const VideoVerifier = () => {
       return;
     }
     const rows = text.split("\n").map((row) => row.split("\t"));
-    if (rows.length === 0 || rows[0].length < 4) {
-      alert("Pasted data does not have the expected number of columns (4)");
+    if (rows.length === 0 || rows[0].length < 7) {
+      alert("Pasted data does not have the expected number of columns (7)");
       return;
     }
     if (clear()) {
