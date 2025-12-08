@@ -1,4 +1,10 @@
-import { KeyboardEventHandler, useCallback, useEffect, useState } from "react";
+import {
+  KeyboardEventHandler,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import {
   EuiButton,
   EuiRange,
@@ -9,6 +15,8 @@ import {
   EuiProgress,
   EuiFieldText,
   EuiSwitch,
+  EuiLink,
+  EuiFlexGroup,
 } from "@elastic/eui";
 import authFetch from "../util/auth/authFetch";
 
@@ -17,12 +25,16 @@ interface InputItem {
   key: string;
   ageRangeMin: number;
   ageRangeMax: number;
+  medianAge: number;
+  meanAge: number;
+  timestamp: number;
 }
 
 type Sentiment = -2 | -1 | 0 | 1 | 2;
 type Result =
   | "irrelevant"
   | "Not sure?"
+  | "No faces"
   | ({ sentiment: Sentiment } & (
       | { ageCorrect: true }
       | {
@@ -70,18 +82,19 @@ export const VideoVerifier = () => {
       }
       setIsSubmitting(true);
       const { bucket, key } = currentInputItem;
+      const isActuallyNoFaces = resultOverride === "No faces";
       const body = `entry.1819610777=${encodeURI(
         bucket,
       )}&entry.1199622271=${encodeURI(key)}&emailAddress=${encodeURI(
         userEmail ?? "DEV@guardian.co.uk",
       )}&entry.1251221752=${currentSentiment}&entry.224851928=${
         isNoteworthy ? "Yes" : "No"
-      }&entry.84974372=${encodeURI(notes)}&entry.1815692875=${
+      }&entry.84974372=${encodeURI(isActuallyNoFaces ? `NO FACES - ${notes}` : notes)}&entry.1815692875=${
         resultOverride === "irrelevant"
           ? "No, irrelevant"
           : resultOverride === "Not sure?"
             ? encodeURI("Not sure?")
-            : `Yes&entry.1924877913=${currentAgeMin}&entry.611549584=${currentAgeMax}`
+            : `Yes&entry.1924877913=${isActuallyNoFaces ? NaN : currentAgeMin}&entry.611549584=${isActuallyNoFaces ? NaN : currentAgeMax}`
       }`;
       console.debug(body);
       fetch(
@@ -219,12 +232,25 @@ export const VideoVerifier = () => {
       return;
     }
     if (clear()) {
-      const newInput = rows.map(([bucket, key, ageRangeMin, ageRangeMax]) => ({
-        bucket,
-        key,
-        ageRangeMin: parseInt(ageRangeMin),
-        ageRangeMax: parseInt(ageRangeMax),
-      }));
+      const newInput = rows.map(
+        ([
+          bucket,
+          key,
+          ageRangeMin,
+          ageRangeMax,
+          medianAge,
+          maxAge,
+          timestamp,
+        ]) => ({
+          bucket,
+          key,
+          ageRangeMin: parseInt(ageRangeMin),
+          ageRangeMax: parseInt(ageRangeMax),
+          medianAge: parseInt(medianAge),
+          meanAge: parseInt(maxAge),
+          timestamp: parseFloat(timestamp),
+        }),
+      );
       setInput(newInput);
     }
   };
@@ -246,6 +272,8 @@ export const VideoVerifier = () => {
         .then(setPreSignedUrls);
     }
   }, [input]);
+
+  const videoPlayerRef = useRef<HTMLVideoElement>(null);
 
   return (
     <div
@@ -270,7 +298,7 @@ export const VideoVerifier = () => {
             marginBottom: "10px",
           }}
         >
-          <EuiBasicTable
+          <EuiBasicTable<InputItem>
             items={input}
             tableLayout="auto"
             css={{
@@ -300,11 +328,17 @@ export const VideoVerifier = () => {
               {
                 field: "bucket",
                 name: "Bucket",
+                style: {
+                  fontSize: "50%",
+                },
               },
               {
                 field: "key",
                 name: "Key",
                 width: "min-content",
+                style: {
+                  fontSize: "50%",
+                },
               },
               {
                 field: "ageRangeMin",
@@ -314,6 +348,34 @@ export const VideoVerifier = () => {
               {
                 field: "ageRangeMax",
                 name: "Age Range Max",
+              },
+              {
+                field: "medianAge",
+                name: "Median Age",
+                align: "center",
+              },
+              {
+                field: "meanAge",
+                name: "Mean Age",
+                align: "center",
+              },
+              {
+                field: "timestamp",
+                name: "Timestamp",
+                align: "right",
+                render: (timestamp: number, item) => (
+                  <EuiLink
+                    onClick={() => {
+                      setTimeout(() => {
+                        if (videoPlayerRef.current) {
+                          videoPlayerRef.current.currentTime = timestamp;
+                        }
+                      }, 250); // allows the video to be swapped out via react state/render
+                    }}
+                  >
+                    {timestamp.toFixed(0)}s
+                  </EuiLink>
+                ),
               },
             ]}
             rowHeader="test"
@@ -366,11 +428,12 @@ export const VideoVerifier = () => {
             </label>
             <div>
               <video
+                ref={videoPlayerRef}
                 autoPlay
                 controls
                 muted
                 loop
-                style={{ maxWidth: "100%", height: "calc(100vh - 365px)" }}
+                style={{ maxWidth: "100%", height: "calc(100vh - 380px)" }}
                 onPlay={(e) => {
                   // @ts-ignore
                   e.target.playbackRate = playbackRate;
@@ -384,7 +447,7 @@ export const VideoVerifier = () => {
               </div>
             ) : (
               <>
-                <div style={{ marginBottom: "10px" }}>
+                <div style={{ marginBottom: "25px" }}>
                   <EuiText>(⬅️) Sentiment w.r.t. skincare (➡️)</EuiText>
                   <EuiRange
                     value={currentSentiment.toString()}
@@ -432,11 +495,15 @@ export const VideoVerifier = () => {
                       },
                     ]}
                     fullWidth
-                    style={{ marginBottom: "10px" }}
                   />
                 </div>
                 <div style={{ marginBottom: "10px" }}>
-                  <EuiText>Age</EuiText>
+                  <EuiText>
+                    Age{" "}
+                    <span style={{ fontSize: "70%" }}>
+                      (of active/actual people in the video)
+                    </span>
+                  </EuiText>
                   {currentRange && (
                     <EuiDualRange
                       min={0}
@@ -476,27 +543,37 @@ export const VideoVerifier = () => {
                     onChange={(e) => setIsNoteworthy(e.target.checked)}
                   />
                 </div>
-                <div>
+                <EuiFlexGroup gutterSize="s">
                   <EuiButton
                     color="danger"
                     onClick={() => storeVerificationResult("irrelevant")}
+                    textProps={{ style: { whiteSpace: "normal" } }}
                   >
-                    IRRELEVANT (🆉)
-                  </EuiButton>{" "}
+                    (🆉) IRRELEVANT
+                  </EuiButton>
                   <EuiButton
                     color="accent"
                     onClick={() => storeVerificationResult("Not sure?")}
+                    textProps={{ style: { whiteSpace: "normal" } }}
                   >
-                    NOT SURE? (🅽)
-                  </EuiButton>{" "}
+                    (🅽) NOT&nbsp;SURE?
+                  </EuiButton>
+                  <EuiButton
+                    color="ghost"
+                    onClick={() => storeVerificationResult("No faces")}
+                    textProps={{ style: { whiteSpace: "normal" } }}
+                  >
+                    NO ACTIVE FACES
+                  </EuiButton>
                   <EuiButton
                     color={isAgeRangeCorrect ? "success" : "warning"}
                     onClick={() => storeVerificationResult()}
+                    textProps={{ style: { whiteSpace: "normal" } }}
                   >
-                    AGE {!isAgeRangeCorrect && <strong>NOW</strong>}
-                    {isAgeRangeCorrect ? "CORRECT" : "CORRECTED"} (⬇️)
+                    (⬇️) AGE&nbsp;{!isAgeRangeCorrect && <strong>NOW </strong>}
+                    {isAgeRangeCorrect ? "CORRECT" : "CORRECTED"}
                   </EuiButton>
-                </div>
+                </EuiFlexGroup>
               </>
             )}
           </>
