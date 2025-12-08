@@ -33,15 +33,16 @@ export const TranscriptViewer: React.FC<TranscriptViewerProps> = ({
     }, [transcripts, language]);
 
     useEffect(() => {
+        const currentMediaRef = mediaRef.current;
         const handleTimeUpdate = () => {
-            if (mediaRef.current) {
-                setCurrentTime(mediaRef.current.currentTime);
+            if (currentMediaRef) {
+                setCurrentTime(currentMediaRef.currentTime);
             }
         };
-        mediaRef.current?.addEventListener('timeupdate', handleTimeUpdate);
+        currentMediaRef?.addEventListener('timeupdate', handleTimeUpdate);
 
         return () =>
-            mediaRef.current?.removeEventListener('timeupdate', handleTimeUpdate);
+            currentMediaRef?.removeEventListener('timeupdate', handleTimeUpdate);
     }, [mediaUrl]);
 
     useEffect(() => {
