@@ -1,7 +1,7 @@
 package extraction
 
-import com.amazonaws.services.sqs.AmazonSQS
-import com.amazonaws.services.sqs.model.{MessageAttributeValue, SendMessageRequest}
+import software.amazon.awssdk.services.sqs.SqsClient
+import software.amazon.awssdk.services.sqs.model.{MessageAttributeValue, SendMessageRequest}
 import model.{English, Language, Languages}
 import model.manifest.Blob
 import org.joda.time.DateTime
@@ -98,7 +98,7 @@ object TranscriptionOutput {
 // The transcription types are matched with types in transcription service
 // https://github.com/guardian/transcription-service/blob/main/packages/common/src/types.ts
 
-class ExternalTranscriptionExtractor(index: Index, transcribeConfig: TranscribeConfig, transcriptionStorage: ObjectStorage, outputStorage: ObjectStorage, amazonSQSClient: AmazonSQS)(implicit executionContext: ExecutionContext) extends ExternalExtractor with Logging {
+class ExternalTranscriptionExtractor(index: Index, transcribeConfig: TranscribeConfig, transcriptionStorage: ObjectStorage, outputStorage: ObjectStorage, sqsClient: SqsClient)(implicit executionContext: ExecutionContext) extends ExternalExtractor with Logging {
   val mimeTypes: Set[String] = Set(
     "audio/wav",
     "audio/vnd.wave",
@@ -155,14 +155,15 @@ class ExternalTranscriptionExtractor(index: Index, transcribeConfig: TranscribeC
         try {
           logger.info(s"sending message to Transcription Service Queue")
 
-          val sendMessageCommand = new SendMessageRequest()
-            .withQueueUrl(transcribeConfig.transcriptionServiceQueueUrl)
-            .withMessageBody(Json.stringify(Json.toJson(job)))
-            .withMessageGroupId(UUID.randomUUID().toString)
-            .withMessageAttributes(
-              Map("BlobId" -> new MessageAttributeValue().withDataType("String").withStringValue(blob.uri.value)).asJava
-            )
-          Right(amazonSQSClient.sendMessage(sendMessageCommand))
+          val messageRequest = SendMessageRequest.builder()
+            .queueUrl(transcribeConfig.transcriptionServiceQueueUrl)
+            .messageBody(Json.stringify(Json.toJson(job)))
+            .messageGroupId(UUID.randomUUID().toString)
+            .messageAttributes(Map("BlobId" -> MessageAttributeValue.builder()
+              .dataType("String")
+              .stringValue(blob.uri.value).build()).asJava)
+            .build()
+          Right(sqsClient.sendMessage(messageRequest))
         } catch {
           case e: Failure => Left(e)
         }

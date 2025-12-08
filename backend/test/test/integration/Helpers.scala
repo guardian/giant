@@ -1,7 +1,6 @@
 package test.integration
 
 import software.amazon.awssdk.services.sns.SnsClient
-import com.amazonaws.services.sqs.AmazonSQSClientBuilder
 import org.apache.pekko.util.Timeout
 import commands.IngestFileResult
 import controllers.api._
