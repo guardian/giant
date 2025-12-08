@@ -42,6 +42,9 @@ type Result =
         }
     ));
 
+const GOOGLE_FORM_URL =
+  "https://docs.google.com/forms/d/e/1FAIpQLSebuFuxBPAkZvlZDTVbsLjUFyQ8RdQ5qrUIPFfAFJLuepSQRw";
+
 export const VideoVerifier = () => {
   const [playbackRate, setPlaybackRate] = useState(4.0);
   const [input, setInput] = useState<InputItem[]>([]);
@@ -97,20 +100,16 @@ export const VideoVerifier = () => {
             : `Yes&entry.1924877913=${isActuallyNoFaces ? NaN : currentAgeMin}&entry.611549584=${isActuallyNoFaces ? NaN : currentAgeMax}`
       }`;
       console.debug(body);
-      fetch(
-        "https://docs.google.com/forms/u/0/d/e/1FAIpQLSebuFuxBPAkZvlZDTVbsLjUFyQ8RdQ5qrUIPFfAFJLuepSQRw/formResponse",
-        {
-          headers: {
-            "content-type": "application/x-www-form-urlencoded",
-          },
-          referrer:
-            "https://docs.google.com/forms/d/e/1FAIpQLSebuFuxBPAkZvlZDTVbsLjUFyQ8RdQ5qrUIPFfAFJLuepSQRw/viewform?fbzx=7603041497167154633",
-          body,
-          method: "POST",
-          mode: "no-cors",
-          credentials: "include",
+      fetch(`${GOOGLE_FORM_URL}/formResponse`, {
+        headers: {
+          "content-type": "application/x-www-form-urlencoded",
         },
-      )
+        referrer: `${GOOGLE_FORM_URL}/viewform`,
+        body,
+        method: "POST",
+        mode: "no-cors",
+        credentials: "include",
+      })
         .then(() => {
           // TODO is there a way to see if success
           setResults((prev) => ({
@@ -227,8 +226,8 @@ export const VideoVerifier = () => {
       return;
     }
     const rows = text.split("\n").map((row) => row.split("\t"));
-    if (rows.length === 0 || rows[0].length < 4) {
-      alert("Pasted data does not have the expected number of columns (4)");
+    if (rows.length === 0 || rows[0].length < 7) {
+      alert("Pasted data does not have the expected number of columns (7)");
       return;
     }
     if (clear()) {
@@ -580,6 +579,16 @@ export const VideoVerifier = () => {
         ) : (
           <h1>
             <em>PASTE FROM THE SPREADSHEET TO GET STARTED</em>
+            <iframe
+              title="Google form used to submit results to (silently in the background)"
+              src={`${GOOGLE_FORM_URL}/viewform?embedded=true`}
+              height={300}
+            ></iframe>
+            <EuiText>
+              If the above is showing an error OR not showing your work google
+              account then DO NOT PROCEED (as your results will disappear into
+              the ether) - contact Digital Investigations for help.
+            </EuiText>
           </h1>
         )}
       </div>
