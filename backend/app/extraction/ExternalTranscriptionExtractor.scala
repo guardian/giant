@@ -160,6 +160,7 @@ class ExternalTranscriptionExtractor(index: Index, transcribeConfig: TranscribeC
             .messageBody(Json.stringify(Json.toJson(job)))
             .messageGroupId(UUID.randomUUID().toString)
             .messageAttributes(Map("BlobId" -> MessageAttributeValue.builder()
+              .dataType("String")
               .stringValue(blob.uri.value).build()).asJava)
             .build()
           Right(sqsClient.sendMessage(messageRequest))

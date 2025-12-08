@@ -2,7 +2,7 @@ package extraction
 
 import cats.syntax.either._
 import software.amazon.awssdk.services.sqs.SqsClient
-import software.amazon.awssdk.services.sqs.model.{Message, DeleteMessageRequest, ReceiveMessageRequest, SendMessageRequest}
+import software.amazon.awssdk.services.sqs.model.{DeleteMessageRequest, Message, MessageSystemAttributeName, ReceiveMessageRequest, SendMessageRequest}
 import model.{English, Languages, Uri}
 import play.api.libs.json.{JsError, JsSuccess, Json}
 import services.index.Index
@@ -18,7 +18,7 @@ import scala.concurrent.ExecutionContext
 import scala.jdk.CollectionConverters.CollectionHasAsScala
 import scala.util.{Try, Using}
 
-case class TranscriptionMessageAttribute(receiveCount: Int, messageGroupId: String)
+case class TranscriptionMessageAttribute(receiveCount: Option[Int], messageGroupId: String)
 
 class ExternalTranscriptionWorker(manifest: WorkerManifest, sqsClient: SqsClient, transcribeConfig: TranscribeConfig, blobStorage: ObjectStorage, index: Index)(implicit executionContext: ExecutionContext)  extends Logging{
 
@@ -31,7 +31,7 @@ class ExternalTranscriptionWorker(manifest: WorkerManifest, sqsClient: SqsClient
     val messages = sqsClient.receiveMessage(ReceiveMessageRequest.builder()
         .queueUrl(transcribeConfig.transcriptionOutputQueueUrl)
         .maxNumberOfMessages(10)
-        .messageAttributeNames("MessageGroupId", "ApproximateReceiveCount")
+        .messageSystemAttributeNames(MessageSystemAttributeName.MESSAGE_GROUP_ID, MessageSystemAttributeName.APPROXIMATE_RECEIVE_COUNT)
         .build())
       .messages()
 
@@ -79,7 +79,7 @@ class ExternalTranscriptionWorker(manifest: WorkerManifest, sqsClient: SqsClient
         completed + 1
       case Left(failure) =>
         logger.error(s"failed to process sqs message", failure.toThrowable)
-        if (messageAttributes.receiveCount >= MAX_RECEIVE_COUNT) {
+        if (messageAttributes.receiveCount.exists(_ >= MAX_RECEIVE_COUNT)) {
           markAsFailure(new Uri(messageAttributes.messageGroupId), EXTRACTOR_NAME, failure.msg)
         }
         completed
@@ -113,8 +113,9 @@ class ExternalTranscriptionWorker(manifest: WorkerManifest, sqsClient: SqsClient
   private def getMessageAttribute(message: Message) = {
     Try {
       val attributes = message.attributes()
-      val receiveCount = attributes.get("ApproximateReceiveCount").toInt
-      val messageGroupId = attributes.get("MessageGroupId")
+      // Receive count should always be defined, but if there is a problem with localstack it can be null, so wrap in an option
+      val receiveCount = Option(attributes.get(MessageSystemAttributeName.APPROXIMATE_RECEIVE_COUNT)).map(_.toInt)
+      val messageGroupId = attributes.get(MessageSystemAttributeName.MESSAGE_GROUP_ID)
       TranscriptionMessageAttribute(receiveCount, messageGroupId)
     }.toEither
   }
