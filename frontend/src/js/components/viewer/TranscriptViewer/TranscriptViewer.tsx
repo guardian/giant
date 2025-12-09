@@ -11,6 +11,15 @@ type TranscriptViewerProps = {
     mediaType: 'audio' | 'video';
 };
 
+const SECONDS_PARAMETER = 'seconds'
+
+const syncSegmentWithQueryString = (time: number) => {
+    const urlParams = new URLSearchParams(window.location.search);
+    urlParams.set(SECONDS_PARAMETER, time.toFixed(2));
+    const newUrl = `${window.location.pathname}?${urlParams.toString()}`;
+    window.history.replaceState({}, '', newUrl);
+};
+
 export const TranscriptViewer: React.FC<TranscriptViewerProps> = ({
                                                                       transcripts,
     mediaUrl,
@@ -23,7 +32,7 @@ export const TranscriptViewer: React.FC<TranscriptViewerProps> = ({
     const [language, setLanguage] = useState<string | null>(Object.keys(transcripts)[0] || null);
     const activeSegmentRef = useRef<HTMLDivElement>(null);
     const transcriptContainerRef = useRef<HTMLDivElement>(null);
-
+    const hasInitializedFromUrl = useRef(false);
 
     useEffect(() => {
         if (transcripts && language) {
@@ -32,6 +41,22 @@ export const TranscriptViewer: React.FC<TranscriptViewerProps> = ({
         }
     }, [transcripts, language]);
 
+    // Read seconds from URL on mount and seek to that time
+    useEffect(() => {
+        if (mediaRef.current && segments.length > 0 && !hasInitializedFromUrl.current) {
+            const urlParams = new URLSearchParams(window.location.search);
+            const seconds = urlParams.get(SECONDS_PARAMETER);
+            if (seconds) {
+                const time = parseFloat(seconds);
+                if (!isNaN(time)) {
+                    mediaRef.current.currentTime = time;
+                }
+            }
+            hasInitializedFromUrl.current = true;
+        }
+    }, [segments]);
+
+    // set up handler to sync player with transcript segments
     useEffect(() => {
         const currentMediaRef = mediaRef.current;
         const handleTimeUpdate = () => {
@@ -51,6 +76,11 @@ export const TranscriptViewer: React.FC<TranscriptViewerProps> = ({
             (seg) => currentTime >= seg.startTime && currentTime < seg.endTime,
         );
         setActiveSegmentIndex(activeIndex !== -1 ? activeIndex : null);
+
+        // Update URL with the active segment's start time
+        if (activeIndex !== -1 && segments[activeIndex]) {
+            syncSegmentWithQueryString(segments[activeIndex].startTime);
+        }
 
         // Auto-scroll to active segment within the transcript container only
         if (
@@ -79,6 +109,7 @@ export const TranscriptViewer: React.FC<TranscriptViewerProps> = ({
         if (mediaRef.current) {
             mediaRef.current.currentTime = segment.startTime;
             mediaRef.current.play();
+            syncSegmentWithQueryString(segment.startTime);
         }
     };
 
