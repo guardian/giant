@@ -31,19 +31,12 @@ interface InputItem {
 }
 
 type Sentiment = -2 | -1 | 0 | 1 | 2;
-type Result =
-  | "irrelevant"
-  | "Not sure?"
-  | "No faces"
-  | ({ sentiment: Sentiment } & (
-      | { ageCorrect: true }
-      | {
-          correctedAgeRange: [number, number];
-        }
-    ));
+type ResultOverride = "irrelevant" | "Not sure?" | "No faces";
 
 const GOOGLE_FORM_URL =
   "https://docs.google.com/forms/d/e/1FAIpQLSebuFuxBPAkZvlZDTVbsLjUFyQ8RdQ5qrUIPFfAFJLuepSQRw";
+
+const GOOGLE_FORM_IFRAME_NAME = "video-verifier-google-form-iframe";
 
 export const VideoVerifier = () => {
   const [playbackRate, setPlaybackRate] = useState(4.0);
@@ -70,15 +63,17 @@ export const VideoVerifier = () => {
     currentInputItem?.ageRangeMin === currentAgeMin &&
     currentInputItem?.ageRangeMax === currentAgeMax;
 
-  const [results, setResults] = useState<Record<string, Result | null>>({});
+  const [results, setResults] = useState<Record<string, true>>({});
   const countOfCompleted = Object.entries(results).length;
 
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [userEmail, setUserEmail] = useState<string | null>(null);
 
+  const formRef = useRef<HTMLFormElement>(null);
+
   const storeVerificationResult = useCallback(
-    (resultOverride?: Result) => {
+    (resultOverride?: ResultOverride) => {
       if (!currentInputItem) {
         alert("Ooops. No item selected");
         return;
@@ -100,35 +95,14 @@ export const VideoVerifier = () => {
             : `Yes&entry.1924877913=${isActuallyNoFaces ? NaN : currentAgeMin}&entry.611549584=${isActuallyNoFaces ? NaN : currentAgeMax}`
       }`;
       console.debug(body);
-      fetch(`${GOOGLE_FORM_URL}/formResponse`, {
-        headers: {
-          "content-type": "application/x-www-form-urlencoded",
-        },
-        referrer: `${GOOGLE_FORM_URL}/viewform`,
-        body,
-        method: "POST",
-        mode: "no-cors",
-        credentials: "include",
-      })
-        .then(() => {
-          // TODO is there a way to see if success
-          setResults((prev) => ({
-            ...prev,
-            [`${bucket}/${key}`]: resultOverride || {
-              sentiment: currentSentiment,
-              ...(isAgeRangeCorrect
-                ? { ageCorrect: true }
-                : { correctedAgeRange: [currentAgeMin!, currentAgeMax!] }),
-            },
-          }));
-        })
-        .catch((e) => {
-          console.error(e);
-          alert(
-            "There was an error submitting your response. Please try again.",
-          );
-        })
-        .finally(() => setIsSubmitting(false));
+      const form = formRef.current;
+      if (!form) {
+        alert("Ooops. Form is broken");
+        setIsSubmitting(false);
+        return;
+      }
+      form.action = `${GOOGLE_FORM_URL}/formResponse?${body}`;
+      form.submit();
     },
     [
       currentAgeMax,
@@ -137,7 +111,6 @@ export const VideoVerifier = () => {
       currentSentiment,
       isNoteworthy,
       notes,
-      isAgeRangeCorrect,
       userEmail,
     ],
   );
@@ -397,6 +370,34 @@ export const VideoVerifier = () => {
             CLEAR
           </EuiButton>
         </div>
+        <div
+          style={input.length > 0 ? { display: "none" } : { marginTop: "20px" }}
+        >
+          <iframe
+            name={GOOGLE_FORM_IFRAME_NAME}
+            title="Google form used to submit results to (silently in the background)"
+            src={`${GOOGLE_FORM_URL}/viewform?embedded=true`}
+            height={210}
+            style={{ width: "100%" }}
+            onLoad={(e) => {
+              // TODO is there a way to see if success
+              if (currentInputItem) {
+                setResults((prev) => ({
+                  ...prev,
+                  [`${currentInputItem.bucket}/${currentInputItem.key}`]: true,
+                }));
+                setIsSubmitting(false);
+              }
+            }}
+          ></iframe>
+          <EuiText textAlign="center">
+            If the above is showing an error OR not showing your work google
+            account then
+            <br /> DO NOT PROCEED (as your results will disappear into the
+            ether) - contact Digital Investigations for help.
+          </EuiText>
+          <form ref={formRef} method="POST" target={GOOGLE_FORM_IFRAME_NAME} />
+        </div>
       </div>
       <div style={{ width: "33vw", textAlign: "center" }}>
         {input.length > Object.keys(preSignedUrls).length && (
@@ -579,16 +580,6 @@ export const VideoVerifier = () => {
         ) : (
           <h1>
             <em>PASTE FROM THE SPREADSHEET TO GET STARTED</em>
-            <iframe
-              title="Google form used to submit results to (silently in the background)"
-              src={`${GOOGLE_FORM_URL}/viewform?embedded=true`}
-              height={300}
-            ></iframe>
-            <EuiText>
-              If the above is showing an error OR not showing your work google
-              account then DO NOT PROCEED (as your results will disappear into
-              the ether) - contact Digital Investigations for help.
-            </EuiText>
           </h1>
         )}
       </div>
