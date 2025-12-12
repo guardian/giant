@@ -31,7 +31,10 @@ object AwsCredentials {
   }
 
   private def awsCredentialsV2(profile: Option[String]): List[AwsCredentialsProvider] = {
-    List(ProfileCredentialsProvider.create(profile.getOrElse("investigations")))
+    List(
+      ProfileCredentialsProvider.create(profile.getOrElse("investigations")),
+      InstanceProfileCredentialsProvider.create()
+    )
   }
 
   private def minioCredentials(accessKey: Option[String], secretKey: Option[String]): List[AWSCredentialsProviderV1] = {
