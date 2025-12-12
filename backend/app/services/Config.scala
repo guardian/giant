@@ -191,7 +191,9 @@ case class AWSDiscoveryConfig(
   stage: String,
   runningLocally: Option[Boolean],
   workerAutoScalingGroupName: Option[String]
-)
+) {
+  val regionV2: Region = Region.of(region)
+}
 
 case class Config(
                    underlying: com.typesafe.config.Config,

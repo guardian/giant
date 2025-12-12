@@ -96,6 +96,7 @@ lazy val common = (project in file("common"))
       "org.playframework" %% "play-json-joda" % "3.0.1",
       "com.amazonaws" % "aws-java-sdk-s3" % awsVersion,
       "org.scalatest" %% "scalatest" % scalatestVersion,
+      "software.amazon.awssdk" % "auth" % awsSdkVersion2,
       // Play has a transitive dependency on Logback,
       // but we specify one here to ensure that Play uses compatible
       // versions of SLF4J and Logback (i.e. its versions should be evicted by those here).
@@ -141,7 +142,7 @@ lazy val backend = (project in file("backend"))
       "org.apache.logging.log4j" % "log4j-core" % log4jVersion,
       "net.logstash.logback" % "logstash-logback-encoder" % "6.3",
       "com.github.jwt-scala" % "jwt-play_2.13" % "9.4.5",
-      "com.amazonaws" % "aws-java-sdk-ec2" % awsVersion,
+      "software.amazon.awssdk" % "ec2" % awsSdkVersion2,
       "com.amazonaws" % "aws-java-sdk-ssm" % awsVersion,
       "com.amazonaws" % "aws-java-sdk-autoscaling" % awsVersion,
       "com.amazonaws" % "aws-java-sdk-cloudwatch" % awsVersion,
