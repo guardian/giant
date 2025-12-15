@@ -42,7 +42,6 @@ class RemoteIngestWorker(
     path: Path,
     fingerprint: String,
     job: RemoteIngest,
-    parsedJob: RemoteIngestOutput,
     folderId: String,
     workspaceMetadata: WorkspaceMetadata,
     ingestion: CreateIngestionResponse,
@@ -135,9 +134,9 @@ class RemoteIngestWorker(
               if (remoteIngestOutput.outputType == "WEBPAGE_SNAPSHOT") {
                   for {
                     files <- getWebpageSnapshotFiles(path, job.id)
-                    htmlIngest <- ingestRemoteIngestOutput(files.html, files.htmlFingerprint, job, remoteIngestOutput, folderId, workspaceMetadata, ingestion, s"[text] ${files.baseFilename}")
+                    htmlIngest <- ingestRemoteIngestOutput(files.html, files.htmlFingerprint, job, folderId, workspaceMetadata, ingestion, s"[text] ${files.baseFilename}")
                     _ = htmlIngest.workspaceNodeId.map(remoteIngestStore.linkRemoteIngestToWorkspaceNode(job.id, _))
-                    screenshotIngest <- ingestRemoteIngestOutput(files.screenshot, files.screenshotFingerprint, job, remoteIngestOutput, folderId, workspaceMetadata, ingestion, s"[screenshot] ${files.baseFilename}")
+                    screenshotIngest <- ingestRemoteIngestOutput(files.screenshot, files.screenshotFingerprint, job, folderId, workspaceMetadata, ingestion, s"[screenshot] ${files.baseFilename}")
                     _ = screenshotIngest.workspaceNodeId.map(remoteIngestStore.linkRemoteIngestToWorkspaceNode(job.id, _))
                   } yield {
                     Files.delete(files.html)
@@ -146,7 +145,7 @@ class RemoteIngestWorker(
                   }
               } else {
                 val fileName = remoteIngestOutput.metadata.map(meta => s"${meta.title}.${meta.extension}").getOrElse(s"${job.url}")
-                ingestRemoteIngestOutput(path, fingerprint.value, job, remoteIngestOutput, folderId, workspaceMetadata, ingestion, fileName).map { ingestResult =>
+                ingestRemoteIngestOutput(path, fingerprint.value, job, folderId, workspaceMetadata, ingestion, fileName).map { ingestResult =>
                   ingestResult.workspaceNodeId.map(remoteIngestStore.linkRemoteIngestToWorkspaceNode(job.id, _))
                   remoteIngestStore.updateRemoteIngestTaskBlobUris(remoteIngestOutput.taskId, List(ingestResult.blob.uri.value))
                 }
