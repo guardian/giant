@@ -143,7 +143,7 @@ lazy val backend = (project in file("backend"))
       "net.logstash.logback" % "logstash-logback-encoder" % "6.3",
       "com.github.jwt-scala" % "jwt-play_2.13" % "9.4.5",
       "software.amazon.awssdk" % "ec2" % awsSdkVersion2,
-      "com.amazonaws" % "aws-java-sdk-ssm" % awsVersion,
+      "software.amazon.awssdk" % "ssm" % awsSdkVersion2,
       "com.amazonaws" % "aws-java-sdk-autoscaling" % awsVersion,
       "com.amazonaws" % "aws-java-sdk-cloudwatch" % awsVersion,
       "com.amazonaws" % "aws-java-sdk-cloudwatchmetrics" % awsVersion,

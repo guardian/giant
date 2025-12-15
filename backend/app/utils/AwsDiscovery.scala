@@ -3,8 +3,8 @@ package utils
 import java.util.Locale
 import software.amazon.awssdk.services.ec2.model.{DescribeInstancesRequest, Filter, Instance}
 import software.amazon.awssdk.services.ec2.Ec2Client
-import com.amazonaws.services.simplesystemsmanagement.model.GetParameterRequest
-import com.amazonaws.services.simplesystemsmanagement.{AWSSimpleSystemsManagement, AWSSimpleSystemsManagementClientBuilder}
+import software.amazon.awssdk.services.ssm.model.GetParameterRequest
+import software.amazon.awssdk.services.ssm.SsmClient
 import com.amazonaws.util.EC2MetadataUtils
 import com.typesafe.config.ConfigValueFactory.fromAnyRef
 import org.apache.commons.lang3.StringUtils
@@ -35,7 +35,7 @@ object AwsDiscovery extends Logging {
       .region(regionV2)
       .credentialsProvider(credentialsV2)
       .build()
-    val ssmClient = AWSSimpleSystemsManagementClientBuilder.standard().withCredentials(credentials).withRegion(region).build()
+    val ssmClient = SsmClient.builder().credentialsProvider(credentialsV2).region(regionV2).build()
     val secretsManagerClient = AWSSecretsManagerClientBuilder.standard().withCredentials(credentials).withRegion(region).build()
 
     logger.info(s"AWS discovery stack: $stack app: $app stage: $stage region: $regionV2 runningLocally: $runningLocally")
@@ -213,13 +213,14 @@ object AwsDiscovery extends Logging {
     after
   }
 
-  private def readSSMParameter(name: String, stack: String, stage: String, ssmClient: AWSSimpleSystemsManagement): String = {
-    val request = new GetParameterRequest()
-      .withName(s"/pfi/$stack/$stage/$name")
-      .withWithDecryption(true)
+  private def readSSMParameter(name: String, stack: String, stage: String, ssmClient: SsmClient): String = {
+    val request =GetParameterRequest.builder()
+      .name(s"/pfi/$stack/$stage/$name")
+      .withDecryption(true)
+      .build()
 
     val response = ssmClient.getParameter(request)
-    response.getParameter.getValue
+    response.parameter().value()
   }
 
   private def getDbSecrets(stack: String, secretsManagerClient: AWSSecretsManager): Option[PostgresConfig] = {
