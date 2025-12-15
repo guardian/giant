@@ -1,8 +1,8 @@
 package utils
 
 import java.util.Locale
-import com.amazonaws.services.ec2.model.{DescribeInstancesRequest, Filter, Instance}
-import com.amazonaws.services.ec2.{AmazonEC2, AmazonEC2ClientBuilder}
+import software.amazon.awssdk.services.ec2.model.{DescribeInstancesRequest, Filter, Instance}
+import software.amazon.awssdk.services.ec2.Ec2Client
 import com.amazonaws.services.simplesystemsmanagement.model.GetParameterRequest
 import com.amazonaws.services.simplesystemsmanagement.{AWSSimpleSystemsManagement, AWSSimpleSystemsManagementClientBuilder}
 import com.amazonaws.util.EC2MetadataUtils
@@ -12,6 +12,7 @@ import services.{AWSDiscoveryConfig, BucketConfig, Config, DatabaseAuthConfig, P
 import com.amazonaws.services.secretsmanager.{AWSSecretsManager, AWSSecretsManagerClientBuilder}
 import com.amazonaws.services.secretsmanager.model.GetSecretValueRequest
 import play.api.libs.json.Json
+import software.amazon.awssdk.auth.credentials.ProfileCredentialsProvider
 
 import scala.jdk.CollectionConverters._
 import scala.util.Try
@@ -25,13 +26,19 @@ object AwsDiscovery extends Logging {
 
     val AWSDiscoveryConfig(region, stack, app, stage, _, _) = discoveryConfig
     val runningLocally = discoveryConfig.runningLocally.getOrElse(false)
+    val regionV2 = discoveryConfig.regionV2
 
     val credentials = AwsCredentials(profile = if(runningLocally) { Some("investigations") } else { None })
-    val ec2Client = AmazonEC2ClientBuilder.standard().withCredentials(credentials).withRegion(region).build()
+    val credentialsV2 = AwsCredentials.credentialsV2(profile = if(runningLocally) { Some("investigations") } else { None })
+
+    val ec2Client = Ec2Client.builder()
+      .region(regionV2)
+      .credentialsProvider(credentialsV2)
+      .build()
     val ssmClient = AWSSimpleSystemsManagementClientBuilder.standard().withCredentials(credentials).withRegion(region).build()
     val secretsManagerClient = AWSSecretsManagerClientBuilder.standard().withCredentials(credentials).withRegion(region).build()
 
-    logger.info(s"AWS discovery stack: $stack app: $app stage: $stage region: $region runningLocally: $runningLocally")
+    logger.info(s"AWS discovery stack: $stack app: $app stage: $stage region: $regionV2 runningLocally: $runningLocally")
 
     val updatedConfig = config.copy(
       app = config.app.copy(
@@ -111,47 +118,73 @@ object AwsDiscovery extends Logging {
     }
   }
 
-  def findRunningInstances(stack: String, app: String, stage: String, ec2Client: AmazonEC2): Iterable[Instance] = {
-    val request = new DescribeInstancesRequest().withFilters(
-      new Filter("tag:Stack").withValues(stack),
-      new Filter("tag:App").withValues(app),
-      new Filter("tag:Stage").withValues(stage),
-      new Filter("instance-state-name").withValues("running")
-    )
+  def findRunningInstances(stack: String, app: String, stage: String, ec2Client: Ec2Client): Iterable[Instance] = {
+    val request = DescribeInstancesRequest.builder()
+      .filters(
+        Filter.builder()
+        .name("tag:Stack")
+        .values(stack)
+        .build(),
+        Filter.builder()
+          .name("tag:App")
+          .values(app)
+          .build(),
+        Filter.builder()
+          .name("tag:Stage")
+          .values(stage)
+          .build(),
+        Filter.builder()
+          .name("instance-state-name")
+          .values("running")
+          .build(),
+        )
+      .build()
 
-    ec2Client
-      .describeInstances(request)
-      .getReservations.asScala
-      .flatMap(_.getInstances.asScala)
+    ec2Client.describeInstances(request).
+      reservations().asScala.
+      flatMap(_.instances().asScala)
   }
 
-  def isRiffRaffDeployRunning(stack: String, stage: String, ec2Client: AmazonEC2): Boolean = {
-    val request = new DescribeInstancesRequest().withFilters(
-      new Filter("tag:Stack").withValues(stack),
-      new Filter("tag:Stage").withValues(stage),
-      new Filter("tag:Magenta").withValues("Terminate"),
-      new Filter("instance-state-name").withValues("running")
-    )
+  def isRiffRaffDeployRunning(stack: String, stage: String, ec2Client: Ec2Client): Boolean = {
+    val request = DescribeInstancesRequest.builder()
+      .filters(
+        Filter.builder()
+          .name("tag:Stack")
+          .values(stack)
+          .build(),
+        Filter.builder()
+          .name("tag:Stage")
+          .values(stage)
+          .build(),
+        Filter.builder()
+          .name("tag:Magenta")
+          .values("Terminate")
+          .build(),
+        Filter.builder()
+          .name("instance-state-name")
+          .values("running")
+          .build(),
+      )
+      .build()
 
-    ec2Client
-      .describeInstances(request)
-      .getReservations.asScala
-      .nonEmpty
+      ec2Client.describeInstances(request)
+        .reservations().asScala
+        .nonEmpty
   }
 
-  private def buildElasticsearchHosts(stack: String, stage: String, ec2Client: AmazonEC2): List[String] = {
+  private def buildElasticsearchHosts(stack: String, stage: String, ec2Client: Ec2Client): List[String] = {
     val instances = findRunningInstances(stack, app = "elasticsearch", stage, ec2Client).toList
-    val hosts = instances.map(_.getPrivateIpAddress).map("http://" + _ + ":9200")
+    val hosts = instances.map(_.privateIpAddress()).map("http://" + _ + ":9200")
 
     logger.info(s"AWS discovery elasticsearch hosts: [${hosts.mkString(",")}]")
 
     hosts
   }
 
-  private def buildNeo4jUrl(stack: String, stage: String, ec2Client: AmazonEC2): String = {
+  private def buildNeo4jUrl(stack: String, stage: String, ec2Client: Ec2Client): String = {
     findRunningInstances(stack, app = "neo4j", stage, ec2Client).toList match {
       case instance :: Nil =>
-        val url = s"bolt://${instance.getPrivateIpAddress}:7687"
+        val url = s"bolt://${instance.privateIpAddress()}:7687"
         logger.info(s"AWS discovery neo4j url: $url")
 
         url

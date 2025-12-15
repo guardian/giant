@@ -8,7 +8,7 @@ import org.apache.pekko.actor.{ActorSystem, Cancellable, Scheduler}
 import org.apache.pekko.cluster.{Cluster, MemberStatus}
 import com.amazonaws.services.autoscaling.AmazonAutoScalingClientBuilder
 import com.amazonaws.services.autoscaling.model.{AutoScalingGroup, DescribeAutoScalingGroupsRequest, DescribeScalingActivitiesRequest, SetDesiredCapacityRequest}
-import com.amazonaws.services.ec2.AmazonEC2ClientBuilder
+import software.amazon.awssdk.services.ec2.Ec2Client
 import com.amazonaws.util.EC2MetadataUtils
 import services.manifest.WorkerManifest
 import services.{AWSDiscoveryConfig, IngestStorage, WorkerConfig}
@@ -46,7 +46,9 @@ class AWSWorkerControl(config: WorkerConfig, discoveryConfig: AWSDiscoveryConfig
   extends WorkerControl with Logging {
 
   val credentials = AwsCredentials()
-  val ec2 = AmazonEC2ClientBuilder.standard().withCredentials(credentials).withRegion(discoveryConfig.region).build()
+  val credentialsV2 = AwsCredentials.credentialsV2()
+
+  val ec2 = Ec2Client.builder().region(discoveryConfig.regionV2).credentialsProvider(credentialsV2).build()
   val autoscaling = AmazonAutoScalingClientBuilder.standard().withCredentials(credentials).withRegion(discoveryConfig.region).build()
 
   var timerHandler: Option[Cancellable] = None
@@ -57,7 +59,7 @@ class AWSWorkerControl(config: WorkerConfig, discoveryConfig: AWSDiscoveryConfig
       AwsDiscovery.findRunningInstances(discoveryConfig.stack, app = "pfi-worker", discoveryConfig.stage, ec2)
     }
   } yield {
-    WorkerDetails(instances.map(_.getInstanceId).toSet, myInstanceId)
+    WorkerDetails(instances.map(_.instanceId()).toSet, myInstanceId)
   }
 
   override def start(scheduler: Scheduler)(implicit ec: ExecutionContext): Unit = {
@@ -91,7 +93,7 @@ class AWSWorkerControl(config: WorkerConfig, discoveryConfig: AWSDiscoveryConfig
     val myInstanceId = EC2MetadataUtils.getInstanceId
     val otherInstances =  AwsDiscovery.findRunningInstances(discoveryConfig.stack, app = "pfi", discoveryConfig.stage, ec2)
 
-    val oldestInstance = otherInstances.toList.sortBy(_.getLaunchTime).headOption.map(_.getInstanceId)
+    val oldestInstance = otherInstances.toList.sortBy(_.launchTime()).headOption.map(_.instanceId())
 
     oldestInstance.isEmpty || oldestInstance.contains(myInstanceId)
   }
@@ -185,7 +187,7 @@ class AWSWorkerControl(config: WorkerConfig, discoveryConfig: AWSDiscoveryConfig
   private def breakLocksOnTerminatedWorkers(): Attempt[Unit] = {
     Attempt.catchNonFatalBlasé {
       val runningWorkers = AwsDiscovery.findRunningInstances(discoveryConfig.stack, app = "pfi-worker", discoveryConfig.stage, ec2)
-      val runningInstanceIds = runningWorkers.map(_.getInstanceId).toList
+      val runningInstanceIds = runningWorkers.map(_.instanceId()).toList
 
       logger.info(s"Breaking locks for any worker not running. Running: [${runningInstanceIds.mkString(", ")}]")
 
