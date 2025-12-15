@@ -261,7 +261,6 @@ export const VideoVerifier = () => {
       onKeyUp={keyHandler}
     >
       <div style={{ width: "67vw" }}>
-        <p>Enter video URLs below (one per line):</p>
         <div
           style={{
             overflowY: "scroll",
