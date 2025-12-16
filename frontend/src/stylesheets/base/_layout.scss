@@ -28,6 +28,16 @@
         flex-grow: 2;
     }
 
+    &__footer {
+        position: fixed;
+         bottom: $baseSpacing;
+         right: $baseSpacing;
+         display: flex;
+         justify-content: space-between;
+         align-items: center;
+         width: calc(100vw - #{$sidebarWidth} - 24px - $baseSpacing);
+    };
+
     &__section {
         margin: 0 0 $baseSpacing;
         padding-bottom: $baseSpacing;

@@ -364,7 +364,7 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
         this.poller = setInterval(this.performPollingIfRequired, 5000);
     }
 
-    componentDidUpdate(prevProps: Props) {
+    componentDidUpdate(prevProps: Props, prevState: State) {
         this.setTitle();
         if (localStorage.getItem('selectedWorkspaceId') !== this.props.match.params.id) {
             localStorage.setItem('selectedWorkspaceId', this.props.match.params.id);
@@ -392,6 +392,24 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
             this.props.setFocusedEntry(lastEntry);
           }
           this.setState({haveAppliedWorkspaceLocationParam: true})
+        }
+
+        const isMoveInProgress = this.state.itemsBeingMoved > 0;
+        const prevIsMoveInProgress = prevState.itemsBeingMoved > 0;
+        if(isMoveInProgress !== prevIsMoveInProgress) {
+          if(window.onbeforeunload) {
+            console.log("Removing beforeunload handler");
+            window.onbeforeunload = null;
+          }
+          if (this.state.itemsBeingMoved > 0) {
+            console.log("Adding beforeunload handler");
+            // we assign to onbeforeunload rather than using addEventListener for better browser support
+            window.onbeforeunload = (e: BeforeUnloadEvent) => {
+              e.preventDefault();
+              // note the following custom string isn't used in modern browsers, but still nice to provide it
+              return "Items are being moved. Are you absolutely sure you want to leave?";
+            }
+          }
         }
     }
 
@@ -867,18 +885,22 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
                 <div className='workspace'>
                     {this.renderFolderTree(this.props.currentWorkspace)}
                 </div>
-                <div style={{position: "fixed", bottom: "5px", right: "5px", display: "flex", justifyContent: "space-between", alignItems: "center"}}>
+                <div className='app__footer'>
+                  <div>{selectedTotalCounts && <span>
+                    {this.props.selectedEntries.length} items selected<FileAndFolderCounts prefix="ultimately containing" descendantsNodeCount={selectedTotalCounts.descendantsNodeCount} descendantsLeafCount={selectedTotalCounts.descendantsLeafCount}/>
+                  </span>}
+                  </div>
+                  <div>
                   {this.state.itemsBeingMoved > 0 &&
-                    <div>
                       <EuiProgress
                         label="Moving items:"
                         valueText={`${this.state.itemsWithMoveSettled} of ${this.state.itemsBeingMoved}`}
                         value={this.state.itemsWithMoveSettled}
                         max={this.state.itemsBeingMoved}
-                        size="l"
+                        size="s"
                       />
-                    </div>
                   }
+                  </div>
                 </div>
                 {this.state.contextMenu.isOpen && this.state.contextMenu.entry
                     ? this.renderContextMenu(
