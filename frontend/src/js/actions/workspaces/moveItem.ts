@@ -18,14 +18,23 @@ export function moveItems(
             () => {dispatch(getWorkspace(workspaceId))},
             1000 // don't refresh the workspace more than once per second
           );
-        for (const itemId of itemIds) {
-            if (itemId !== newParentId) {
-                await moveItemApi(workspaceId, itemId, newWorkspaceId, newParentId)
-                .then(throttledCallback)
-                .catch(error => dispatch(() => errorMovingItem(error)))
-                .finally(onEachSettled);
+        const batchSize = Math.ceil(itemIds.length / 5);
+
+        await Promise.allSettled(
+          // Create 5 batches to move items in parallel
+          [0, 1, 2, 3, 4].map(async batchIndex => {
+                const batchItemIds = itemIds.slice(batchIndex * batchSize, (batchIndex + 1) * batchSize);
+                for (const itemId of batchItemIds) {
+                    if (itemId !== newParentId) {
+                        await moveItemApi(workspaceId, itemId, newWorkspaceId, newParentId)
+                        .then(throttledCallback)
+                        .catch(error => dispatch(() => errorMovingItem(error)))
+                        .finally(onEachSettled);
+                    }
+                }
             }
-        }
+          )
+        );
     };
 }
 
