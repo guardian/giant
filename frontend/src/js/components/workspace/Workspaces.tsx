@@ -406,7 +406,7 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
             // we assign to onbeforeunload rather than using addEventListener for better browser support
             window.onbeforeunload = (e: BeforeUnloadEvent) => {
               e.preventDefault();
-              // note the following custom string isn't used in modern browsers, but still nice to provide it
+              // note the following custom string isn't used in modern browsers (see https://stackoverflow.com/a/1119324), but still nice to provide it
               return "Items are being moved. Are you absolutely sure you want to leave?";
             }
           }
@@ -863,6 +863,20 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
         if (!this.props.currentWorkspace || !this.props.currentUser) {
           return false;
         }
+
+        const selectedTotalCounts = this.props.selectedEntries.length > 1 && this.props.selectedEntries.reduce((acc, entry) => {
+          if (isWorkspaceNode(entry.data)) {
+            return {
+              descendantsNodeCount: acc.descendantsNodeCount + 1 + (entry.data.descendantsNodeCount || 0),
+              descendantsLeafCount: acc.descendantsLeafCount + (entry.data.descendantsLeafCount || 0)
+            }
+          } else {
+            return {
+              descendantsNodeCount: acc.descendantsNodeCount,
+              descendantsLeafCount: acc.descendantsLeafCount + 1
+            }
+          }
+        }, {descendantsNodeCount: 0, descendantsLeafCount: 0});
 
         return (
             <div className='app__main-content'>
