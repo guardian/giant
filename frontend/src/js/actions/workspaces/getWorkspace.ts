@@ -22,10 +22,12 @@ export function getWorkspace(id: string, options:{shouldClearFirst?: boolean} = 
         idRequestedAgainWhilstInProgress = null;
         const operation: () => Promise<unknown> = () => getWorkspaceApi(id)
             .then(workspace => {
-                dispatch({
-                    type: WorkspacesActionType.WORKSPACE_GET_RECEIVE,
-                    workspace
-                });
+                if(idInProgress === id) { // only dispatch if still relevant
+                    dispatch({
+                        type: WorkspacesActionType.WORKSPACE_GET_RECEIVE,
+                        workspace
+                    });
+                }
             })
             .catch(error => dispatch({
                 type:        AppActionType.APP_SHOW_ERROR,
