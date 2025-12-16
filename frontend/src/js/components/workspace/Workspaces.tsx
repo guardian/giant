@@ -53,7 +53,7 @@ import history from '../../util/history';
 import {takeOwnershipOfWorkspace} from "../../actions/workspaces/takeOwnershipOfWorkspace";
 import {setNodesAsExpanded} from "../../actions/workspaces/setNodesAsExpanded";
 import {FileAndFolderCounts} from "../UtilComponents/TreeBrowser/FileAndFolderCounts";
-import {EuiLoadingSpinner} from "@elastic/eui";
+import {EuiLoadingSpinner, EuiProgress} from "@elastic/eui";
 import MdGlobeIcon from "react-icons/lib/md/public";
 import ReactTooltip from "react-tooltip";
 
@@ -84,7 +84,9 @@ type State = {
         isOpen: boolean,
         entry: null | TreeEntry<WorkspaceEntry>,
         status: ModalStatus,
-    }
+    },
+    itemsBeingMoved: number,
+    itemsWithMoveSettled: number,
 }
 
 type ContextMenuEntry = {
@@ -346,7 +348,9 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
             isOpen: false,
             entry: null,
             status: "unconfirmed",
-        }
+        },
+        itemsBeingMoved: 0,
+        itemsWithMoveSettled: 0,
     };
 
     poller: NodeJS.Timeout | null = null;
@@ -566,7 +570,19 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
 
     onMoveItems = (itemIds: string[], newParentId: string) => {
         const workspaceId = this.props.match.params.id;
-        this.props.moveItems(workspaceId, itemIds, workspaceId, newParentId);
+        this.setState(prev => ({
+          itemsBeingMoved: prev.itemsBeingMoved + itemIds.length
+        }));
+        this.props.moveItems(workspaceId, itemIds, workspaceId, newParentId, () => {
+          this.setState(prev => {
+            const newItemsWithMoveSettled = prev.itemsWithMoveSettled + 1;
+            const isAllSettled = newItemsWithMoveSettled === prev.itemsBeingMoved;
+            return {
+                itemsWithMoveSettled: isAllSettled ? 0 : newItemsWithMoveSettled,
+                itemsBeingMoved: isAllSettled ? 0 : prev.itemsBeingMoved,
+            }
+          });
+        });
     };
 
     onContextMenu = (e: React.MouseEvent, entry: TreeEntry<WorkspaceEntry>) => {
@@ -850,6 +866,19 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
                 />
                 <div className='workspace'>
                     {this.renderFolderTree(this.props.currentWorkspace)}
+                </div>
+                <div style={{position: "fixed", bottom: "5px", right: "5px", display: "flex", justifyContent: "space-between", alignItems: "center"}}>
+                  {this.state.itemsBeingMoved > 0 &&
+                    <div>
+                      <EuiProgress
+                        label="Moving items:"
+                        valueText={`${this.state.itemsWithMoveSettled} of ${this.state.itemsBeingMoved}`}
+                        value={this.state.itemsWithMoveSettled}
+                        max={this.state.itemsBeingMoved}
+                        size="l"
+                      />
+                    </div>
+                  }
                 </div>
                 {this.state.contextMenu.isOpen && this.state.contextMenu.entry
                     ? this.renderContextMenu(
