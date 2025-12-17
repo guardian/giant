@@ -6,8 +6,8 @@ import java.util.Date
 
 import org.apache.pekko.actor.{ActorSystem, Cancellable, Scheduler}
 import org.apache.pekko.cluster.{Cluster, MemberStatus}
-import com.amazonaws.services.autoscaling.AmazonAutoScalingClientBuilder
-import com.amazonaws.services.autoscaling.model.{AutoScalingGroup, DescribeAutoScalingGroupsRequest, DescribeScalingActivitiesRequest, SetDesiredCapacityRequest}
+import software.amazon.awssdk.services.autoscaling.AutoScalingClient
+import software.amazon.awssdk.services.autoscaling.model.{AutoScalingGroup, DescribeAutoScalingGroupsRequest, DescribeScalingActivitiesRequest, SetDesiredCapacityRequest}
 import software.amazon.awssdk.services.ec2.Ec2Client
 import com.amazonaws.util.EC2MetadataUtils
 import services.manifest.WorkerManifest
@@ -45,11 +45,10 @@ class PekkoWorkerControl(actorSystem: ActorSystem) extends WorkerControl {
 class AWSWorkerControl(config: WorkerConfig, discoveryConfig: AWSDiscoveryConfig, ingestStorage: IngestStorage, manifest: WorkerManifest)
   extends WorkerControl with Logging {
 
-  val credentials = AwsCredentials()
   val credentialsV2 = AwsCredentials.credentialsV2()
 
   val ec2 = Ec2Client.builder().region(discoveryConfig.regionV2).credentialsProvider(credentialsV2).build()
-  val autoscaling = AmazonAutoScalingClientBuilder.standard().withCredentials(credentials).withRegion(discoveryConfig.region).build()
+  val autoscaling = AutoScalingClient.builder().credentialsProvider(credentialsV2).region(discoveryConfig.regionV2).build()
 
   var timerHandler: Option[Cancellable] = None
 
@@ -124,13 +123,13 @@ class AWSWorkerControl(config: WorkerConfig, discoveryConfig: AWSDiscoveryConfig
   private def getCurrentState(workerAutoScalingGroupName: String)(implicit ec: ExecutionContext): Attempt[AWSWorkerControl.State] = {
     for {
       workerAutoScalingGroup <- getAutoScalingGroup(workerAutoScalingGroupName)
-      desiredNumberOfWorkers = workerAutoScalingGroup.getDesiredCapacity.intValue()
-      minimumNumberOfWorkers = workerAutoScalingGroup.getMinSize.intValue()
+      desiredNumberOfWorkers = workerAutoScalingGroup.desiredCapacity().intValue()
+      minimumNumberOfWorkers = workerAutoScalingGroup.minSize().intValue()
       // This is not the same as the max in the auto-scaling group as we
       // need to maintain headroom to accommodate new workers during a
       // deploy even if we're scaled up due to the number of tasks
-      maximumNumberOfWorkers = Math.max(workerAutoScalingGroup.getMinSize, workerAutoScalingGroup.getMaxSize / 2)
-      lastEventTime <- getLastEventTime(workerAutoScalingGroup.getAutoScalingGroupName)
+      maximumNumberOfWorkers = Math.max(workerAutoScalingGroup.minSize(), workerAutoScalingGroup.maxSize() / 2)
+      lastEventTime <- getLastEventTime(workerAutoScalingGroup.autoScalingGroupName())
 
       extractorWorkCounts <- Attempt.fromEither(manifest.getWorkCounts())
       filesLeftInS3UploadBucket <- Attempt.fromEither(ingestStorage.list)
@@ -142,12 +141,10 @@ class AWSWorkerControl(config: WorkerConfig, discoveryConfig: AWSDiscoveryConfig
 
   private def getAutoScalingGroup(workerAutoScalingGroupName: String)(implicit ec: ExecutionContext): Attempt[AutoScalingGroup] = {
     Attempt.catchNonFatalBlasé {
-      val request = new DescribeAutoScalingGroupsRequest()
-        .withAutoScalingGroupNames(workerAutoScalingGroupName)
-
+      val request = DescribeAutoScalingGroupsRequest.builder().autoScalingGroupNames(workerAutoScalingGroupName).build()
       autoscaling.describeAutoScalingGroups(request)
     }.flatMap { response =>
-      response.getAutoScalingGroups.asScala.headOption match {
+      response.autoScalingGroups().asScala.headOption match {
         case Some(asg) =>
           Attempt.Right(asg)
 
@@ -159,14 +156,12 @@ class AWSWorkerControl(config: WorkerConfig, discoveryConfig: AWSDiscoveryConfig
 
   private def getLastEventTime(workerAutoScalingGroupName: String)(implicit ec: ExecutionContext): Attempt[Long] = {
     Attempt.catchNonFatalBlasé {
-      val request = new DescribeScalingActivitiesRequest()
-        .withAutoScalingGroupName(workerAutoScalingGroupName)
-
+      val request = DescribeScalingActivitiesRequest.builder().autoScalingGroupName(workerAutoScalingGroupName).build()
       autoscaling.describeScalingActivities(request)
     }.flatMap { response =>
       // events are returned with the latest first
-      response.getActivities.asScala.headOption match {
-        case Some(event) => Attempt.Right(event.getStartTime.getTime)
+      response.activities().asScala.headOption match {
+        case Some(event) => Attempt.Right(event.startTime().toEpochMilli)
         case None => Attempt.Left(IllegalStateFailure(s"No events on autoscaling group $workerAutoScalingGroupName"))
       }
     }
@@ -176,9 +171,9 @@ class AWSWorkerControl(config: WorkerConfig, discoveryConfig: AWSDiscoveryConfig
     Attempt.catchNonFatalBlasé {
       logger.info(s"Worker control updating number of workers in $workerAutoScalingGroupName to $numberOfWorkers")
 
-      val request = new SetDesiredCapacityRequest()
-        .withAutoScalingGroupName(workerAutoScalingGroupName)
-        .withDesiredCapacity(numberOfWorkers)
+      val request = SetDesiredCapacityRequest.builder()
+        .autoScalingGroupName(workerAutoScalingGroupName)
+        .desiredCapacity(numberOfWorkers).build()
 
       autoscaling.setDesiredCapacity(request)
     }

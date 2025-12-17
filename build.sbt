@@ -144,7 +144,7 @@ lazy val backend = (project in file("backend"))
       "com.github.jwt-scala" % "jwt-play_2.13" % "9.4.5",
       "software.amazon.awssdk" % "ec2" % awsSdkVersion2,
       "software.amazon.awssdk" % "ssm" % awsSdkVersion2,
-      "com.amazonaws" % "aws-java-sdk-autoscaling" % awsVersion,
+      "software.amazon.awssdk" % "autoscaling" % awsSdkVersion2,
       "com.amazonaws" % "aws-java-sdk-cloudwatch" % awsVersion,
       "com.amazonaws" % "aws-java-sdk-cloudwatchmetrics" % awsVersion,
       "software.amazon.awssdk" % "sqs" % awsSdkVersion2,
