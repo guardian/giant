@@ -53,9 +53,11 @@ import history from '../../util/history';
 import {takeOwnershipOfWorkspace} from "../../actions/workspaces/takeOwnershipOfWorkspace";
 import {setNodesAsExpanded} from "../../actions/workspaces/setNodesAsExpanded";
 import {FileAndFolderCounts} from "../UtilComponents/TreeBrowser/FileAndFolderCounts";
-import {EuiLoadingSpinner, EuiProgress} from "@elastic/eui";
+import {EuiButton, EuiButtonIcon, EuiLoadingSpinner, EuiProgress, EuiText} from "@elastic/eui";
 import MdGlobeIcon from "react-icons/lib/md/public";
 import ReactTooltip from "react-tooltip";
+import moment from "moment";
+import {FromNowDurationText} from "../UtilComponents/FromNowDurationText";
 
 
 type Props = ReturnType<typeof mapStateToProps>
@@ -816,6 +818,21 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
                         <Modal isOpen={this.state.createFolderModalOpen} dismiss={this.dismissModal}>
                             <CreateFolderModal onComplete={this.dismissModal} workspace={workspace} parentEntry={createFolderDestination} addFolderToWorkspace={this.props.addFolderToWorkspace}/>
                         </Modal>
+
+
+                    </div>
+                    <div className='workspace__tree-actions'>
+                      {this.props.isGettingWorkspace && <EuiText size="xs">refreshing workspace...</EuiText>}
+                      <EuiButtonIcon
+                        size="xs"
+                        iconType="refresh"
+                        onClick={() => this.props.getWorkspace(workspace.id)}
+                        disabled={this.props.isGettingWorkspace}
+                        isLoading={this.props.isGettingWorkspace}
+                      />
+                      <EuiText size="xs" style={{marginRight: "10px"}}>
+                        last refreshed <FromNowDurationText date={this.props.currentWorkspaceLastRefreshedAt} />
+                      </EuiText>
                     </div>
                 </div>
                 <TreeBrowser
@@ -948,7 +965,9 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
 function mapStateToProps(state: GiantState) {
     return {
         workspacesMetadata: state.workspaces.workspacesMetadata,
+        isGettingWorkspace: state.workspaces.isGettingWorkspace,
         currentWorkspace: state.workspaces.currentWorkspace,
+        currentWorkspaceLastRefreshedAt: state.workspaces.currentWorkspaceLastRefreshedAt,
         selectedEntries: state.workspaces.selectedEntries,
         focusedEntry: state.workspaces.focusedEntry,
         entryBeingRenamed: state.workspaces.entryBeingRenamed,

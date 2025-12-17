@@ -1,12 +1,14 @@
-import { TreeNode } from '../types/Tree';
-import { WorkspacesAction, WorkspacesActionType } from '../types/redux/GiantActions';
-import { WorkspacesState } from '../types/redux/GiantState';
-import { WorkspaceEntry } from '../types/Workspaces';
+import {TreeNode} from '../types/Tree';
+import {WorkspacesAction, WorkspacesActionType} from '../types/redux/GiantActions';
+import {WorkspacesState} from '../types/redux/GiantState';
+import {WorkspaceEntry} from '../types/Workspaces';
 
 export default function workspaces(
     state: WorkspacesState = {
         workspacesMetadata: [],
+        isGettingWorkspace: false,
         currentWorkspace: null,
+        currentWorkspaceLastRefreshedAt: new Date(),
         selectedEntries: [],
         focusedEntry: null,
         expandedNodes: [],
@@ -18,8 +20,16 @@ export default function workspaces(
         case WorkspacesActionType.WORKSPACES_METADATA_GET_RECEIVE:
             return { ...state, workspacesMetadata: action.workspacesMetadata };
 
+        case WorkspacesActionType.WORKSPACE_GET_START:
+            return {...state, isGettingWorkspace: true}
+
         case WorkspacesActionType.WORKSPACE_GET_RECEIVE: {
-            return { ...state, currentWorkspace: action.workspace };
+            return {
+              ...state,
+              currentWorkspace: action.workspace,
+              isGettingWorkspace: false,
+              currentWorkspaceLastRefreshedAt: new Date(),
+            };
         }
 
         case WorkspacesActionType.SET_SELECTED_ENTRIES:
