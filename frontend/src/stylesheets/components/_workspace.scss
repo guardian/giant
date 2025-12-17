@@ -143,9 +143,13 @@
     &-header {
         display: flex;
         justify-content: space-between;
+        gap: $baseSpacing;
     }
 }
 
 .workspace__tree-actions {
     margin-bottom: $baseSpacing;
+    display: flex;
+    align-items: center;
+    gap: $baseSpacing;
 }

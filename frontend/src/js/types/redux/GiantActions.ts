@@ -8,6 +8,7 @@ import { PagedDocument } from '../../reducers/pagesReducer';
 
 export enum WorkspacesActionType {
     WORKSPACES_METADATA_GET_RECEIVE = 'WORKSPACES_METADATA_GET_RECEIVE',
+    WORKSPACE_GET_START = 'WORKSPACE_GET_START',
     WORKSPACE_GET_RECEIVE = 'WORKSPACE_GET_RECEIVE',
     SET_SELECTED_ENTRIES = 'SET_SELECTED_ENTRIES',
     SET_FOCUSED_ENTRY = 'SET_FOCUSED_ENTRY',
@@ -52,6 +53,10 @@ interface ReceiveWorkspaceAction {
     workspace: Workspace | null // null when clearing current workspace
 }
 
+interface StartGetWorkspaceAction {
+    type: WorkspacesActionType.WORKSPACE_GET_START,
+}
+
 export type WorkspacesAction =
     | TreeNodeAction
     | TreeNodesAction
@@ -60,6 +65,7 @@ export type WorkspacesAction =
     | EntryBeingRenamedAction
     | ReceiveWorkspacesMetadataAction
     | ReceiveWorkspaceAction
+    | StartGetWorkspaceAction
 
 export enum AppActionType {
     APP_SHOW_ERROR = 'APP_SHOW_ERROR',

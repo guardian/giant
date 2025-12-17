@@ -53,9 +53,10 @@ import history from '../../util/history';
 import {takeOwnershipOfWorkspace} from "../../actions/workspaces/takeOwnershipOfWorkspace";
 import {setNodesAsExpanded} from "../../actions/workspaces/setNodesAsExpanded";
 import {FileAndFolderCounts} from "../UtilComponents/TreeBrowser/FileAndFolderCounts";
-import {EuiLoadingSpinner} from "@elastic/eui";
+import {EuiButtonIcon, EuiLoadingSpinner, EuiProgress, EuiText} from "@elastic/eui";
 import MdGlobeIcon from "react-icons/lib/md/public";
 import ReactTooltip from "react-tooltip";
+import {FromNowDurationText} from "../UtilComponents/FromNowDurationText";
 
 
 type Props = ReturnType<typeof mapStateToProps>
@@ -84,7 +85,9 @@ type State = {
         isOpen: boolean,
         entry: null | TreeEntry<WorkspaceEntry>,
         status: ModalStatus,
-    }
+    },
+    itemsBeingMoved: number,
+    itemsWithMoveSettled: number,
 }
 
 type ContextMenuEntry = {
@@ -231,7 +234,7 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
                       </ReactTooltip>
                     </>}
                     <ItemName canEdit={canEdit} id={entry.id} name={entry.name} onFinishRename={curryRename}/>
-                    {isWorkspaceNode(entry.data) && <FileAndFolderCounts {...entry.data} />}
+                    {isWorkspaceNode(entry.data) && <FileAndFolderCounts marginLeft="5px" {...entry.data} />}
                 </React.Fragment>;
             },
             sort: (a: TreeEntry<WorkspaceEntry>, b: TreeEntry<WorkspaceEntry>) => {
@@ -346,7 +349,9 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
             isOpen: false,
             entry: null,
             status: "unconfirmed",
-        }
+        },
+        itemsBeingMoved: 0,
+        itemsWithMoveSettled: 0,
     };
 
     poller: NodeJS.Timeout | null = null;
@@ -360,7 +365,7 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
         this.poller = setInterval(this.performPollingIfRequired, 5000);
     }
 
-    componentDidUpdate(prevProps: Props) {
+    componentDidUpdate(prevProps: Props, prevState: State) {
         this.setTitle();
         if (localStorage.getItem('selectedWorkspaceId') !== this.props.match.params.id) {
             localStorage.setItem('selectedWorkspaceId', this.props.match.params.id);
@@ -388,6 +393,24 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
             this.props.setFocusedEntry(lastEntry);
           }
           this.setState({haveAppliedWorkspaceLocationParam: true})
+        }
+
+        const isMoveInProgress = this.state.itemsBeingMoved > 0;
+        const prevIsMoveInProgress = prevState.itemsBeingMoved > 0;
+        if(isMoveInProgress !== prevIsMoveInProgress) {
+          if(window.onbeforeunload) {
+            console.log("Removing beforeunload handler");
+            window.onbeforeunload = null;
+          }
+          if (this.state.itemsBeingMoved > 0) {
+            console.log("Adding beforeunload handler");
+            // we assign to onbeforeunload rather than using addEventListener for better browser support
+            window.onbeforeunload = (e: BeforeUnloadEvent) => {
+              e.preventDefault();
+              // note the following custom string isn't used in modern browsers (see https://stackoverflow.com/a/1119324), but still nice to provide it
+              return "Items are being moved. Are you absolutely sure you want to leave?";
+            }
+          }
         }
     }
 
@@ -566,7 +589,19 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
 
     onMoveItems = (itemIds: string[], newParentId: string) => {
         const workspaceId = this.props.match.params.id;
-        this.props.moveItems(workspaceId, itemIds, workspaceId, newParentId);
+        this.setState(prev => ({
+          itemsBeingMoved: prev.itemsBeingMoved + itemIds.length
+        }));
+        this.props.moveItems(workspaceId, itemIds, workspaceId, newParentId, () => {
+          this.setState(prev => {
+            const newItemsWithMoveSettled = prev.itemsWithMoveSettled + 1;
+            const isAllSettled = newItemsWithMoveSettled === prev.itemsBeingMoved;
+            return {
+                itemsWithMoveSettled: isAllSettled ? 0 : newItemsWithMoveSettled,
+                itemsBeingMoved: isAllSettled ? 0 : prev.itemsBeingMoved,
+            }
+          });
+        });
     };
 
     onContextMenu = (e: React.MouseEvent, entry: TreeEntry<WorkspaceEntry>) => {
@@ -772,18 +807,61 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
         const createFolderDestination = this.props.focusedEntry || workspace.rootNode;
         const selectedCount = this.props.selectedEntries.length;
 
-        return (
-            <div className='workspace__tree' onCopy={this.onCopy}>
-                <div className='workspace__tree-header'>
-                    <div className='workspace__tree-actions'>
-                        <button className='btn btn--primary workspace__button' disabled={selectedCount > 1} onClick={() => this.createFolder()}>New Folder</button>
+        const selectedTotalCounts = selectedCount > 1 && this.props.selectedEntries.reduce((acc, entry) => {
+          if (isWorkspaceNode(entry.data)) {
+            return {
+              descendantsNodeCount: acc.descendantsNodeCount + 1 + (entry.data.descendantsNodeCount || 0),
+              descendantsLeafCount: acc.descendantsLeafCount + (entry.data.descendantsLeafCount || 0)
+            }
+          } else {
+            return {
+              descendantsNodeCount: acc.descendantsNodeCount,
+              descendantsLeafCount: acc.descendantsLeafCount + 1
+            }
+          }
+        }, {descendantsNodeCount: 0, descendantsLeafCount: 0});
 
-                        {/*<button className='btn btn--primary' onClick={() => alert('not yet implemented')}>{t('Manage Columns')}</button>*/}
-                        <Modal isOpen={this.state.createFolderModalOpen} dismiss={this.dismissModal}>
-                            <CreateFolderModal onComplete={this.dismissModal} workspace={workspace} parentEntry={createFolderDestination} addFolderToWorkspace={this.props.addFolderToWorkspace}/>
-                        </Modal>
-                    </div>
-                </div>
+        return (<>
+          <div className='workspace__tree-header'>
+            <div className='workspace__tree-actions'>
+              <button className='btn btn--primary workspace__button' disabled={selectedCount > 1} onClick={() => this.createFolder()}>New Folder</button>
+
+              {/*<button className='btn btn--primary' onClick={() => alert('not yet implemented')}>{t('Manage Columns')}</button>*/}
+              <Modal isOpen={this.state.createFolderModalOpen} dismiss={this.dismissModal}>
+                <CreateFolderModal onComplete={this.dismissModal} workspace={workspace} parentEntry={createFolderDestination} addFolderToWorkspace={this.props.addFolderToWorkspace}/>
+              </Modal>
+
+              {selectedTotalCounts && <EuiText size="xs" style={{lineHeight: "0.9rem"}}>
+                {this.props.selectedEntries.length} items selected<br/><FileAndFolderCounts prefix="ultimately containing" descendantsNodeCount={selectedTotalCounts.descendantsNodeCount} descendantsLeafCount={selectedTotalCounts.descendantsLeafCount}/>
+              </EuiText>}
+
+            </div>
+            <div>
+              {this.state.itemsBeingMoved > 0 &&
+                <EuiProgress
+                  label="Moving items:"
+                  valueText={`${this.state.itemsWithMoveSettled} of ${this.state.itemsBeingMoved}`}
+                  value={this.state.itemsWithMoveSettled}
+                  max={this.state.itemsBeingMoved}
+                  size="s"
+                />
+              }
+            </div>
+            <div className='workspace__tree-actions' style={{gap: "2px"}}>
+              <EuiText size="xs" style={{visibility: this.props.isGettingWorkspace ? "visible" : "hidden"}}>refreshing workspace...</EuiText>
+              <EuiButtonIcon
+                size="xs"
+                iconType="refresh"
+                onClick={() => this.props.getWorkspace(workspace.id)}
+                disabled={this.props.isGettingWorkspace}
+                isLoading={this.props.isGettingWorkspace}
+              />
+              <EuiText size="xs" style={{marginRight: "10px"}}>
+                last refreshed <FromNowDurationText date={this.props.currentWorkspaceLastRefreshedAt} />
+              </EuiText>
+            </div>
+          </div>
+            <div className='workspace__tree' onCopy={this.onCopy}>
                 <TreeBrowser
                     showColumnHeaders={true}
                     rootId={workspace.rootNode.id}
@@ -804,6 +882,7 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
                     onContextMenu={this.onContextMenu}
                 />
             </div>
+          </>
         );
     };
 
@@ -883,7 +962,9 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
 function mapStateToProps(state: GiantState) {
     return {
         workspacesMetadata: state.workspaces.workspacesMetadata,
+        isGettingWorkspace: state.workspaces.isGettingWorkspace,
         currentWorkspace: state.workspaces.currentWorkspace,
+        currentWorkspaceLastRefreshedAt: state.workspaces.currentWorkspaceLastRefreshedAt,
         selectedEntries: state.workspaces.selectedEntries,
         focusedEntry: state.workspaces.focusedEntry,
         entryBeingRenamed: state.workspaces.entryBeingRenamed,

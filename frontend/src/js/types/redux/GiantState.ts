@@ -11,7 +11,9 @@ import { PagedDocument } from '../../reducers/pagesReducer';
 
 export interface WorkspacesState {
     workspacesMetadata: WorkspaceMetadata[],
+    isGettingWorkspace: boolean;
     currentWorkspace: Workspace | null,
+    currentWorkspaceLastRefreshedAt: Date,
     selectedEntries: TreeEntry<WorkspaceEntry>[],
     focusedEntry: TreeEntry<WorkspaceEntry> | null,
     expandedNodes: TreeNode<WorkspaceEntry>[],

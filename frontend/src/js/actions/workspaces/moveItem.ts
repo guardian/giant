@@ -3,34 +3,38 @@ import { getWorkspace } from './getWorkspace';
 import { ThunkAction } from 'redux-thunk';
 import { AppAction, AppActionType, WorkspacesAction } from '../../types/redux/GiantActions';
 import { GiantState } from '../../types/redux/GiantState';
+import throttle from 'lodash/throttle';
 
 export function moveItems(
     workspaceId: string,
     itemIds: string[],
     newWorkspaceId?: string,
-    newParentId?: string
+    newParentId?: string,
+    onEachSettled?: () => void,
 ): ThunkAction<void, GiantState, null, WorkspacesAction | AppAction> {
-    return dispatch => {
-        for (const itemId of itemIds) {
-            if (itemId !== newParentId) {
-                dispatch(moveItem(workspaceId, itemId, newWorkspaceId, newParentId));
-            }
-        }
-    };
-}
+    return async dispatch => {
+        const throttledCallback =
+          throttle(
+            () => {dispatch(getWorkspace(workspaceId))},
+            1000 // don't refresh the workspace more than once per second
+          );
+        const batchSize = Math.ceil(itemIds.length / 5);
 
-export function moveItem(
-    workspaceId: string,
-    itemId: string,
-    newWorkspaceId?: string,
-    newParentId?: string
-): ThunkAction<void, GiantState, null, WorkspacesAction | AppAction> {
-    return dispatch => {
-        return moveItemApi(workspaceId, itemId, newWorkspaceId, newParentId)
-            .then(() => {
-                dispatch(getWorkspace(workspaceId));
-            })
-            .catch(error => dispatch(() => errorMovingItem(error)));
+        await Promise.allSettled(
+          // Create 5 batches to move items in parallel
+          [0, 1, 2, 3, 4].map(async batchIndex => {
+                const batchItemIds = itemIds.slice(batchIndex * batchSize, (batchIndex + 1) * batchSize);
+                for (const itemId of batchItemIds) {
+                    if (itemId !== newParentId) {
+                        await moveItemApi(workspaceId, itemId, newWorkspaceId, newParentId)
+                        .then(throttledCallback)
+                        .catch(error => dispatch(() => errorMovingItem(error)))
+                        .finally(onEachSettled);
+                    }
+                }
+            }
+          )
+        );
     };
 }
 
