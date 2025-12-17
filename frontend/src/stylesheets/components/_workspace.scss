@@ -143,6 +143,7 @@
     &-header {
         display: flex;
         justify-content: space-between;
+        gap: $baseSpacing;
     }
 }
 
@@ -150,5 +151,5 @@
     margin-bottom: $baseSpacing;
     display: flex;
     align-items: center;
-    gap: 2px;
+    gap: $baseSpacing;
 }

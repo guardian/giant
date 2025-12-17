@@ -53,10 +53,9 @@ import history from '../../util/history';
 import {takeOwnershipOfWorkspace} from "../../actions/workspaces/takeOwnershipOfWorkspace";
 import {setNodesAsExpanded} from "../../actions/workspaces/setNodesAsExpanded";
 import {FileAndFolderCounts} from "../UtilComponents/TreeBrowser/FileAndFolderCounts";
-import {EuiButton, EuiButtonIcon, EuiLoadingSpinner, EuiProgress, EuiText} from "@elastic/eui";
+import {EuiButtonIcon, EuiLoadingSpinner, EuiProgress, EuiText} from "@elastic/eui";
 import MdGlobeIcon from "react-icons/lib/md/public";
 import ReactTooltip from "react-tooltip";
-import moment from "moment";
 import {FromNowDurationText} from "../UtilComponents/FromNowDurationText";
 
 
@@ -808,33 +807,61 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
         const createFolderDestination = this.props.focusedEntry || workspace.rootNode;
         const selectedCount = this.props.selectedEntries.length;
 
-        return (
+        const selectedTotalCounts = selectedCount > 1 && this.props.selectedEntries.reduce((acc, entry) => {
+          if (isWorkspaceNode(entry.data)) {
+            return {
+              descendantsNodeCount: acc.descendantsNodeCount + 1 + (entry.data.descendantsNodeCount || 0),
+              descendantsLeafCount: acc.descendantsLeafCount + (entry.data.descendantsLeafCount || 0)
+            }
+          } else {
+            return {
+              descendantsNodeCount: acc.descendantsNodeCount,
+              descendantsLeafCount: acc.descendantsLeafCount + 1
+            }
+          }
+        }, {descendantsNodeCount: 0, descendantsLeafCount: 0});
+
+        return (<>
+          <div className='workspace__tree-header'>
+            <div className='workspace__tree-actions'>
+              <button className='btn btn--primary workspace__button' disabled={selectedCount > 1} onClick={() => this.createFolder()}>New Folder</button>
+
+              {/*<button className='btn btn--primary' onClick={() => alert('not yet implemented')}>{t('Manage Columns')}</button>*/}
+              <Modal isOpen={this.state.createFolderModalOpen} dismiss={this.dismissModal}>
+                <CreateFolderModal onComplete={this.dismissModal} workspace={workspace} parentEntry={createFolderDestination} addFolderToWorkspace={this.props.addFolderToWorkspace}/>
+              </Modal>
+
+              {selectedTotalCounts && <EuiText size="xs" style={{lineHeight: "0.9rem"}}>
+                {this.props.selectedEntries.length} items selected<br/><FileAndFolderCounts prefix="ultimately containing" descendantsNodeCount={selectedTotalCounts.descendantsNodeCount} descendantsLeafCount={selectedTotalCounts.descendantsLeafCount}/>
+              </EuiText>}
+
+            </div>
+            <div>
+              {this.state.itemsBeingMoved > 0 &&
+                <EuiProgress
+                  label="Moving items:"
+                  valueText={`${this.state.itemsWithMoveSettled} of ${this.state.itemsBeingMoved}`}
+                  value={this.state.itemsWithMoveSettled}
+                  max={this.state.itemsBeingMoved}
+                  size="s"
+                />
+              }
+            </div>
+            <div className='workspace__tree-actions' style={{gap: "2px"}}>
+              <EuiText size="xs" style={{visibility: this.props.isGettingWorkspace ? "visible" : "hidden"}}>refreshing workspace...</EuiText>
+              <EuiButtonIcon
+                size="xs"
+                iconType="refresh"
+                onClick={() => this.props.getWorkspace(workspace.id)}
+                disabled={this.props.isGettingWorkspace}
+                isLoading={this.props.isGettingWorkspace}
+              />
+              <EuiText size="xs" style={{marginRight: "10px"}}>
+                last refreshed <FromNowDurationText date={this.props.currentWorkspaceLastRefreshedAt} />
+              </EuiText>
+            </div>
+          </div>
             <div className='workspace__tree' onCopy={this.onCopy}>
-                <div className='workspace__tree-header'>
-                    <div className='workspace__tree-actions'>
-                        <button className='btn btn--primary workspace__button' disabled={selectedCount > 1} onClick={() => this.createFolder()}>New Folder</button>
-
-                        {/*<button className='btn btn--primary' onClick={() => alert('not yet implemented')}>{t('Manage Columns')}</button>*/}
-                        <Modal isOpen={this.state.createFolderModalOpen} dismiss={this.dismissModal}>
-                            <CreateFolderModal onComplete={this.dismissModal} workspace={workspace} parentEntry={createFolderDestination} addFolderToWorkspace={this.props.addFolderToWorkspace}/>
-                        </Modal>
-
-
-                    </div>
-                    <div className='workspace__tree-actions'>
-                      {this.props.isGettingWorkspace && <EuiText size="xs">refreshing workspace...</EuiText>}
-                      <EuiButtonIcon
-                        size="xs"
-                        iconType="refresh"
-                        onClick={() => this.props.getWorkspace(workspace.id)}
-                        disabled={this.props.isGettingWorkspace}
-                        isLoading={this.props.isGettingWorkspace}
-                      />
-                      <EuiText size="xs" style={{marginRight: "10px"}}>
-                        last refreshed <FromNowDurationText date={this.props.currentWorkspaceLastRefreshedAt} />
-                      </EuiText>
-                    </div>
-                </div>
                 <TreeBrowser
                     showColumnHeaders={true}
                     rootId={workspace.rootNode.id}
@@ -855,6 +882,7 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
                     onContextMenu={this.onContextMenu}
                 />
             </div>
+          </>
         );
     };
 
@@ -881,20 +909,6 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
           return false;
         }
 
-        const selectedTotalCounts = this.props.selectedEntries.length > 1 && this.props.selectedEntries.reduce((acc, entry) => {
-          if (isWorkspaceNode(entry.data)) {
-            return {
-              descendantsNodeCount: acc.descendantsNodeCount + 1 + (entry.data.descendantsNodeCount || 0),
-              descendantsLeafCount: acc.descendantsLeafCount + (entry.data.descendantsLeafCount || 0)
-            }
-          } else {
-            return {
-              descendantsNodeCount: acc.descendantsNodeCount,
-              descendantsLeafCount: acc.descendantsLeafCount + 1
-            }
-          }
-        }, {descendantsNodeCount: 0, descendantsLeafCount: 0});
-
         return (
             <div className='app__main-content'>
                 <WorkspaceSummary
@@ -915,23 +929,6 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
                 />
                 <div className='workspace'>
                     {this.renderFolderTree(this.props.currentWorkspace)}
-                </div>
-                <div className='app__footer'>
-                  <div>{selectedTotalCounts && <span>
-                    {this.props.selectedEntries.length} items selected<FileAndFolderCounts prefix="ultimately containing" descendantsNodeCount={selectedTotalCounts.descendantsNodeCount} descendantsLeafCount={selectedTotalCounts.descendantsLeafCount}/>
-                  </span>}
-                  </div>
-                  <div>
-                  {this.state.itemsBeingMoved > 0 &&
-                      <EuiProgress
-                        label="Moving items:"
-                        valueText={`${this.state.itemsWithMoveSettled} of ${this.state.itemsBeingMoved}`}
-                        value={this.state.itemsWithMoveSettled}
-                        max={this.state.itemsBeingMoved}
-                        size="s"
-                      />
-                  }
-                  </div>
                 </div>
                 {this.state.contextMenu.isOpen && this.state.contextMenu.entry
                     ? this.renderContextMenu(

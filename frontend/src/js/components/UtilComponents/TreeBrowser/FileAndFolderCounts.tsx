@@ -7,7 +7,7 @@ interface FileAndFolderCountsProps {
 }
 
 export const FileAndFolderCounts = ({descendantsNodeCount, descendantsLeafCount, prefix}: FileAndFolderCountsProps) => (
-  <span style={{marginLeft: "5px", fontSize: "smaller", color: "#8b8b8b"}}>
+  <span style={{marginLeft: prefix ? undefined : "5px", fontSize: "smaller", color: "#8b8b8b"}}>
     ({prefix}{prefix && " "}{descendantsNodeCount === 0 && descendantsLeafCount === 0
       ? 'empty'
       : `${descendantsNodeCount.toLocaleString()} folders & ${descendantsLeafCount.toLocaleString()} files`

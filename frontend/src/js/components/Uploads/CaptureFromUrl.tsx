@@ -249,7 +249,7 @@ export const CaptureFromUrl = connect(
                   align: 'left',
                   render: (entry) =>
                     isWorkspaceNode(entry.data)
-                      ? <>{entry.name || '--'} <FileAndFolderCounts {...entry.data} /></>
+                      ? <>{entry.name || '--'}<FileAndFolderCounts {...entry.data} /></>
                       : <></>, // don't render leaves since they can't be selected
                   sort: (a, b) => a.name.localeCompare(b.name),
                   style: {},
