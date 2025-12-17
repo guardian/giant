@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {useState} from 'react';
 import {WorkspaceMetadata, WorkspaceEntry, Workspace, isWorkspaceNode} from '../../types/Workspaces';
 import ModalAction from '../UtilComponents/ModalAction';
 import { Label, Popup } from 'semantic-ui-react';
@@ -14,6 +14,7 @@ import { getWorkspace } from '../../actions/workspaces/getWorkspace';
 import ShareWorkspaceModal from './ShareWorkspaceModal';
 import MdEdit from "react-icons/lib/md/edit";
 import MdDelete from "react-icons/lib/md/delete";
+import MdMore from "react-icons/lib/md/expand-more";
 import TakeOwnershipOfWorkspaceModal from "./TakeOwnershipOfWorkspaceModal";
 import {takeOwnershipOfWorkspace} from "../../actions/workspaces/takeOwnershipOfWorkspace";
 import {CaptureFromUrl} from "../Uploads/CaptureFromUrl";
@@ -54,6 +55,8 @@ export default function WorkspaceSummary({
     isAdmin
 }: Props) {
 
+    const [isShowingMoreOptions, setIsShowingMoreOptions] = useState(false);
+
     const workspaceUsers = workspace.followers.filter(follower =>
         follower.username !== currentUser.username
         && follower.username !== workspace.owner.username
@@ -61,7 +64,7 @@ export default function WorkspaceSummary({
 
     const maybeRootNodeData = isWorkspaceNode(workspace.rootNode.data) && workspace.rootNode.data;
 
-    return <div className='page-title workspace__header'>
+    return <div className='page-title workspace__header shrinkable-buttons'>
         <h1 className='workspace__title'>
             {workspace.name}{maybeRootNodeData && <>
               <br/>
@@ -93,42 +96,66 @@ export default function WorkspaceSummary({
           expandedNodes={expandedNodes}
         />
         <CaptureFromUrl maybePreSelectedWorkspace={workspace} withButton />
-        <TakeOwnershipOfWorkspaceModal
-                workspace={workspace}
-                isAdmin={isAdmin}
-                currentUser={currentUser}
-                takeOwnershipOfWorkspace={takeOwnershipOfWorkspace}
-            />
-            <ShareWorkspaceModal
-          workspace={workspace}
-          workspaceUsers={workspaceUsers}
-          allUsers={users}
-          currentUser={currentUser}
-          setWorkspaceFollowers={setWorkspaceFollowers}
-          setWorkspaceIsPublic={setWorkspaceIsPublic}
-        />
-        <ModalAction
-          actionType="edit"
-          className='btn workspace__button'
-          actionDescription='Rename'
-          title={`Rename workspace '${workspace.name}'`}
-          value={workspace.name}
-          onConfirm={(newName) => renameWorkspace(workspace.id, newName)}
-          disabled={currentUser.username !== workspace.owner.username}
-        >
-            <MdEdit />
-            Rename Workspace
-        </ModalAction>
-        <ModalAction
-          actionType="confirm"
-          className='btn workspace__button'
-          actionDescription='Delete'
-          title={`Delete workspace '${workspace.name}'?`}
-          onConfirm={() => deleteWorkspace(workspace.id)}
-          disabled={currentUser.username !== workspace.owner.username && !(isAdmin && workspace.isPublic)}
-        >
-            <MdDelete />
-            Delete Workspace
-        </ModalAction>
+        <div>
+            <button className="btn workspace__button" onClick={() => setIsShowingMoreOptions(prev => {
+                if(!prev){
+                    document.addEventListener("click", () => {
+                        setIsShowingMoreOptions(false);
+                    }, {once: true});
+                }
+                return !prev;
+            })}>
+                <MdMore />
+            </button>
+            <div
+              className={`workspace__header ${isShowingMoreOptions ? "" : "hide-direct-child-buttons"}`}
+              style={{
+                position: 'absolute',
+                alignItems: "flex-end"
+,               flexDirection: 'column',
+                gap: "5px",
+                padding: "12px",
+                right: 0,
+                zIndex: 9999,
+            }}>
+                <TakeOwnershipOfWorkspaceModal
+                  workspace={workspace}
+                  isAdmin={isAdmin}
+                  currentUser={currentUser}
+                  takeOwnershipOfWorkspace={takeOwnershipOfWorkspace}
+                />
+                    <ShareWorkspaceModal
+                      workspace={workspace}
+                      workspaceUsers={workspaceUsers}
+                      allUsers={users}
+                      currentUser={currentUser}
+                      setWorkspaceFollowers={setWorkspaceFollowers}
+                      setWorkspaceIsPublic={setWorkspaceIsPublic}
+                    />
+                    <ModalAction
+                      actionType="edit"
+                      className='btn workspace__button'
+                      actionDescription='Rename'
+                      title={`Rename workspace '${workspace.name}'`}
+                      value={workspace.name}
+                      onConfirm={(newName) => renameWorkspace(workspace.id, newName)}
+                      disabled={currentUser.username !== workspace.owner.username}
+                    >
+                        <MdEdit />
+                        Rename Workspace
+                    </ModalAction>
+                    <ModalAction
+                      actionType="confirm"
+                      className='btn workspace__button'
+                      actionDescription='Delete'
+                      title={`Delete workspace '${workspace.name}'?`}
+                      onConfirm={() => deleteWorkspace(workspace.id)}
+                      disabled={currentUser.username !== workspace.owner.username && !(isAdmin && workspace.isPublic)}
+                    >
+                        <MdDelete />
+                        Delete Workspace
+                    </ModalAction>
+                </div>
+        </div>
     </div>;
 }

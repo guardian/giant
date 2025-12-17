@@ -41,17 +41,20 @@
         font-size: 16px;
         margin-right: 3px;
     }
+}
 
-    @media (width < 1200px) {
-        &__header > button {
-            font-size: 0; // hides the text
-        }
-        &__header > button svg {
-            margin-right: 0;
-            font-size: 16px; // unhides the icon
-        }
+@media (width < 1200px) {
+    .shrinkable-buttons > button {
+        font-size: 0; // hides the text
     }
+    .shrinkable-buttons > button svg {
+        margin-right: 0;
+        font-size: 16px; // unhides the icon
+    }
+}
 
+.hide-direct-child-buttons > button {
+    display: none;
 }
 
 .workspace__documents {
