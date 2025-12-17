@@ -234,7 +234,7 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
                       </ReactTooltip>
                     </>}
                     <ItemName canEdit={canEdit} id={entry.id} name={entry.name} onFinishRename={curryRename}/>
-                    {isWorkspaceNode(entry.data) && <FileAndFolderCounts {...entry.data} />}
+                    {isWorkspaceNode(entry.data) && <FileAndFolderCounts marginLeft="5px" {...entry.data} />}
                 </React.Fragment>;
             },
             sort: (a: TreeEntry<WorkspaceEntry>, b: TreeEntry<WorkspaceEntry>) => {

@@ -1,5 +1,5 @@
 import React from 'react';
-import { WorkspaceMetadata, WorkspaceEntry, Workspace } from '../../types/Workspaces';
+import {WorkspaceMetadata, WorkspaceEntry, Workspace, isWorkspaceNode} from '../../types/Workspaces';
 import ModalAction from '../UtilComponents/ModalAction';
 import { Label, Popup } from 'semantic-ui-react';
 import { PartialUser } from '../../types/User';
@@ -17,6 +17,8 @@ import MdDelete from "react-icons/lib/md/delete";
 import TakeOwnershipOfWorkspaceModal from "./TakeOwnershipOfWorkspaceModal";
 import {takeOwnershipOfWorkspace} from "../../actions/workspaces/takeOwnershipOfWorkspace";
 import {CaptureFromUrl} from "../Uploads/CaptureFromUrl";
+import {EuiText} from "@elastic/eui";
+import {FileAndFolderCounts} from "../UtilComponents/TreeBrowser/FileAndFolderCounts";
 
 type Props = {
     workspace: Workspace,
@@ -57,8 +59,18 @@ export default function WorkspaceSummary({
         && follower.username !== workspace.owner.username
     )
 
+    const maybeRootNodeData = isWorkspaceNode(workspace.rootNode.data) && workspace.rootNode.data;
+
     return <div className='page-title workspace__header'>
-        <h1 className='workspace__title'>{workspace.name}</h1>
+        <h1 className='workspace__title'>
+            {workspace.name}{maybeRootNodeData && <>
+              <br/>
+              <EuiText size="s"><FileAndFolderCounts
+                descendantsNodeCount={maybeRootNodeData.descendantsNodeCount}
+                descendantsLeafCount={maybeRootNodeData.descendantsLeafCount}
+              /></EuiText>
+            </>}
+        </h1>
         <div className='workspace__badges'>
             {workspace.owner.username !== workspace.creator.username && (<Label>Created&nbsp;by {workspace.creator.displayName}</Label>)}
             <Label>Owned&nbsp;by {workspace.owner.displayName}</Label>
