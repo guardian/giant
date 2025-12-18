@@ -1027,6 +1027,10 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
         |MATCH (blob)<-[todo :TODO]-(failedExtractor)
         |WHERE todo.attempts > 0
         |SET todo.attempts = 0
+        | // return processed relations - these shouldn't ever exist if there is an EXTRACTION_FAILURE but have happened
+        | // in the past as a result of two workers picking up the same extraction job
+        |OPTIONAL MATCH (blob)<-[processed :PROCESSED]-(failedExtractor)
+        |RETURN count(processed) as processedCount
         |""".stripMargin,
       parameters(
         "uri", uri.value
@@ -1037,10 +1041,16 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
       val relationshipsDeleted = counters.relationshipsDeleted()
       val propertiesSet = counters.propertiesSet()
 
-      if (propertiesSet != relationshipsDeleted) {
-        Attempt.Left(IllegalStateFailure(
-          s"When re-running failed extractors for blob ${uri.value}, ${relationshipsDeleted} EXTRACTION_FAILURE relations were deleted and ${propertiesSet} TODOs had their attempts reset to 0. These should be equal"
-        ))
+      val processedCount = result.list().asScala.toList
+        .flatMap(r => Option(r.get("processedCount")).map(_.asLong()))
+        .sum
+
+      // fail if EXTRACTION_FAILURE relation missing, TODO attempts == 0, or if TODO doesn't exist and there are no PROCESSED
+      // relations between that blob/extractor
+      if (propertiesSet != relationshipsDeleted && processedCount == 0) {
+        val msg = s"When re-running failed extractors for blob ${uri.value}, ${relationshipsDeleted} EXTRACTION_FAILURE relations were deleted and ${propertiesSet} TODOs had their attempts reset to 0. These should be equal"
+        logger.error(msg)
+        Attempt.Left(IllegalStateFailure(msg))
       } else {
         logger.info(
           s"When re-running failed extractors for blob ${uri.value}, ${relationshipsCreated} relations created, ${propertiesSet} properties set and ${relationshipsDeleted} relations deleted"
@@ -1065,7 +1075,7 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
     ).flatMap(result => {
       val counters = result.summary().counters()
       val propertiesSet = counters.propertiesSet()
-      logger.info(s"When resetting TODO attempts for blob ${uri.value}, ${propertiesSet} properties were set")
+      logger.info(s"When resetting external extractor TODO attempts for blob ${uri.value}, ${propertiesSet} properties were set")
       Attempt.Right(())
     })
   }
