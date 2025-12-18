@@ -108,7 +108,8 @@ object WorkspaceEntry {
     hasFailures: Boolean
   ): TreeEntry[WorkspaceEntry] = {
     val processingStage = if (hasFailures) {
-      ProcessingStage.Failed
+      if (numberOfTodos > 0) ProcessingStage.Processing(numberOfTodos, Some("some failures"))
+      else ProcessingStage.Failed
     } else if (numberOfTodos > 0) {
       ProcessingStage.Processing(numberOfTodos, note)
     } else {
