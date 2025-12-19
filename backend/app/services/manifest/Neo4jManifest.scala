@@ -1038,9 +1038,9 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
       val propertiesSet = counters.propertiesSet()
 
       if (propertiesSet != relationshipsDeleted) {
-        Attempt.Left(IllegalStateFailure(
-          s"When re-running failed extractors for blob ${uri.value}, ${relationshipsDeleted} EXTRACTION_FAILURE relations were deleted and ${propertiesSet} TODOs had their attempts reset to 0. These should be equal"
-        ))
+        val msg = s"When re-running failed extractors for blob ${uri.value}, ${relationshipsDeleted} EXTRACTION_FAILURE relations were deleted and ${propertiesSet} TODOs had their attempts reset to 0. These should be equal"
+        logger.error(msg)
+        Attempt.Left(IllegalStateFailure(msg))
       } else {
         logger.info(
           s"When re-running failed extractors for blob ${uri.value}, ${relationshipsCreated} relations created, ${propertiesSet} properties set and ${relationshipsDeleted} relations deleted"
