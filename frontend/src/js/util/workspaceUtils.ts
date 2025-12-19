@@ -79,7 +79,7 @@ export function processingStageToString(processingStage: ProcessingStage): strin
             return 'processed';
 
         case 'failed':
-            return 'failed';
+            return 'processed (with errors)';
     }
 }
 
