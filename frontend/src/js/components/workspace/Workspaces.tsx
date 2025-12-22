@@ -207,7 +207,7 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
             name: 'Name',
             align: 'left' as const,
             style: {
-                width: '500px'
+                width: '560px'
             },
             render: (entry: TreeEntry<WorkspaceEntry>) => {
                 const workspaceId = this.props.match.params.id;
