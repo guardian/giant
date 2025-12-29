@@ -78,7 +78,6 @@ import {
   EuiText,
 } from "@elastic/eui";
 import MdGlobeIcon from "react-icons/lib/md/public";
-import MdLink from "react-icons/lib/md/link";
 import ReactTooltip from "react-tooltip";
 import { FromNowDurationText } from "../UtilComponents/FromNowDurationText";
 
