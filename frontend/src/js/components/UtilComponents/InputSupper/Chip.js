@@ -1,6 +1,5 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import ReactTooltip from 'react-tooltip';
 
 import AutosizeInput from 'react-input-autosize';
 
@@ -93,20 +92,12 @@ export default class Chip extends React.Component {
         this.currentControl = element;
     }
 
-    getDisplayValue = () => {
-        if (this.props.type === 'workspace_folder' && this.props.value.length > 75) {
-            return this.props.value.substring(0, 72) + '...';
-        }
-        return this.props.value;
-    }
-
     renderControl = () => {
-        const displayValue = this.getDisplayValue();
         switch (this.props.type) {
             case 'text':
                 return <InputChip ref={this.refHandler} value={this.props.value} onChange={this.onChange} onKeyDown={this.onKeyDownText} onFocus={this.onFocus}/>;
             case 'workspace_folder':
-                return <WorkspaceFolderChip ref={this.refHandler} value={displayValue} onChange={this.onChange} onKeyDown={this.onKeyDownDropdown} onFocus={this.onFocus}/>
+                return <WorkspaceFolderChip ref={this.refHandler} value={this.props.value} onChange={this.onChange} onKeyDown={this.onKeyDownDropdown} onFocus={this.onFocus}/>
             case 'date':
                 return <DateChip ref={this.refHandler} value={this.props.value} onChange={this.onChange} onKeyDown={this.onKeyDownText} dateMode='from_start'/>;
             case 'date_ex':
@@ -119,18 +110,6 @@ export default class Chip extends React.Component {
     }
 
     render() {
-        // Determine display name based on type and value length
-        let displayName = this.props.name;
-        if (this.props.type === 'workspace_folder' && this.props.value.length > 50) {
-            displayName = 'Folder';
-        }
-
-        // Determine tooltip text
-        let tooltipText = this.props.value;
-        if (this.props.type === 'workspace_folder') {
-            tooltipText = 'Workspace Folder: ' + this.props.value;
-        }
-
         return (
             <span className={`input-supper__chip ${this.props.stagedForDeletion ? 'input-supper__chip--delete-glow': ''}`}>
                 <button className='input-supper__chip-negate' onClick={this.onNegateClicked}>
@@ -139,9 +118,9 @@ export default class Chip extends React.Component {
                     </div>
                 </button>
 
-                <span className='input-supper__chip-body' data-tip={tooltipText} data-effect='solid'>
+                <span className='input-supper__chip-body'>
                     <span className='input-supper__chip-name'>
-                        {displayName}
+                        {this.props.name}
                     </span>
                     {this.renderControl()}
                 </span>
@@ -151,7 +130,6 @@ export default class Chip extends React.Component {
                         &times;
                     </div>
                 </button>
-                <ReactTooltip insecure={false} />
             </span>
         );
     }
