@@ -121,7 +121,7 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
                 case 'processing':
                     return <Loader active inline size="tiny" className="file-browser__icon" />;
                 case 'failed':
-                    return <Icon name="exclamation triangle" inline size="small" color="red" className="file-browser__icon"/>;
+                    return <Icon name="exclamation triangle" inline size="small" className="file-browser__icon"/>;
                 default:
                     // TODO: this used to use .icon, which seems to me a rendering layer thing so I removed from the server response
                     // Also there's only a single workspace node in prod where icon is 'email'. Can this be right??
@@ -196,7 +196,7 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
           {entry.data.descendantsProcessingTaskCount.toLocaleString()} task{entry.data.descendantsProcessingTaskCount > 1 && "s"} remaining{" "}
         </em>}
         {entry.data.descendantsProcessingTaskCount > 0 && entry.data.descendantsFailedCount > 0 && <>&nbsp;&amp;&nbsp;</>}
-        {entry.data.descendantsFailedCount > 0 && <em>{entry.data.descendantsFailedCount.toLocaleString()} failed</em>}
+        {entry.data.descendantsFailedCount > 0 && <em>{entry.data.descendantsFailedCount.toLocaleString()} errors</em>}
       </>
     }
     return (<></>)
@@ -207,7 +207,7 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
             name: 'Name',
             align: 'left' as const,
             style: {
-                width: '500px'
+                width: '560px'
             },
             render: (entry: TreeEntry<WorkspaceEntry>) => {
                 const workspaceId = this.props.match.params.id;
