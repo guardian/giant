@@ -926,6 +926,7 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
                     workspaces={this.props.workspacesMetadata}
                     expandedNodes={this.props.expandedNodes}
                     isAdmin={this.props.myPermissions.includes('CanPerformAdminOperations')}
+                    clearFocus={this.clearFocus}
                 />
                 <div className='workspace'>
                     {this.renderFolderTree(this.props.currentWorkspace)}
