@@ -1,5 +1,5 @@
-import { useEffect } from 'react';
-import Mousetrap from 'mousetrap';
+import { useEffect } from "react";
+import Mousetrap from "mousetrap";
 
 // We used to use react-keydown that provides a decorator syntax:
 //   @keydown('a')
@@ -10,13 +10,13 @@ import Mousetrap from 'mousetrap';
 // Representing the API using a dummy React node is one way to automatically register/unregister
 // the listeners as components appear and disappear.
 export function KeyboardShortcut({ shortcut, func }) {
-    useEffect(() => {
-        Mousetrap.bind(shortcut, func);
+  useEffect(() => {
+    Mousetrap.bind(shortcut, func);
 
-        return () => {
-            Mousetrap.unbind(shortcut);
-        };
-    });
+    return () => {
+      Mousetrap.unbind(shortcut);
+    };
+  });
 
-    return null;
+  return null;
 }

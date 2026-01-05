@@ -24,7 +24,7 @@ export class LruCache<K extends string | number, V> {
   constructor(
     maxEntries: number,
     onMiss: OnMissFunction<K, V>,
-    onEvict: OnEvictFunction<K, V> = () => {}
+    onEvict: OnEvictFunction<K, V> = () => {},
   ) {
     this.maxEntries = maxEntries;
     this.onMiss = onMiss;
@@ -92,5 +92,5 @@ export class LruCache<K extends string | number, V> {
       console.warn(`Cannot replace cache for page ${k} that doesn't exist`);
       this.addToCache(k, v);
     }
-  }
+  };
 }

@@ -2,8 +2,8 @@ import authFetch from "../../util/auth/authFetch";
 import { LruCache } from "../../util/LruCache";
 import { CachedPreview, PageData } from "./model";
 import { renderPdfPreview, updatePreview } from "./PdfHelpers";
-import { removeLastUnmatchedQuote } from '../../util/stringUtils';
-import {PDFWorker} from "pdfjs-dist";
+import { removeLastUnmatchedQuote } from "../../util/stringUtils";
+import { PDFWorker } from "pdfjs-dist";
 
 export type CachedPage = {
   previewAbortController: AbortController;
@@ -52,12 +52,12 @@ export class PageCache {
     this.previewCache = new LruCache(
       PageCache.MAX_CACHED_PAGES,
       this.onPreviewCacheMiss,
-      this.onPreviewCacheEvict
+      this.onPreviewCacheEvict,
     );
     this.dataCache = new LruCache(
       PageCache.MAX_CACHED_PAGES,
       this.onDataCacheMiss,
-      this.onDataCacheEvict
+      this.onDataCacheEvict,
     );
     this.pdfWorker = new PDFWorker();
   }
@@ -71,7 +71,6 @@ export class PageCache {
   };
 
   private onPreviewCacheMiss = (pageNumber: number): CachedPreviewData => {
-
     const previewAbortController = new AbortController();
     const preview = authFetch(`/api/pages2/${this.uri}/${pageNumber}/preview`, {
       signal: previewAbortController.signal,
@@ -103,7 +102,7 @@ export class PageCache {
     }
     const data = authFetch(
       `/api/pages2/${this.uri}/${pageNumber}/text?${textParams.toString()}`,
-      { signal: dataAbortController.signal }
+      { signal: dataAbortController.signal },
     ).then((res) => res.json());
 
     return {
@@ -130,15 +129,19 @@ export class PageCache {
     };
   };
 
-  reRenderPagePreview = (pageNumber: number, preview: Promise<CachedPreview>, containerSize: number): CachedPage => {  
+  reRenderPagePreview = (
+    pageNumber: number,
+    preview: Promise<CachedPreview>,
+    containerSize: number,
+  ): CachedPage => {
     this.setContainerSize(containerSize);
     const originalPreviewData = this.previewCache.get(pageNumber);
     const newPreview = updatePreview(preview, containerSize);
     const newPreviewCache = {
       previewAbortController: originalPreviewData.previewAbortController,
       preview: newPreview,
-      previewContainerSize: this.containerSize    
-    };  
+      previewContainerSize: this.containerSize,
+    };
 
     const data = this.dataCache.get(pageNumber);
 
@@ -169,14 +172,14 @@ export class PageCache {
   getPageAndWipeFindHighlights = (pageNumber: number): CachedPage => {
     const preview = this.previewCache.get(pageNumber);
     const data = this.dataCache.get(pageNumber);
-    data.data = data.data.then(d => ({
+    data.data = data.data.then((d) => ({
       ...d,
-      highlights: d.highlights.filter(h => h.type === "SearchHighlight")
+      highlights: d.highlights.filter((h) => h.type === "SearchHighlight"),
     }));
 
     return {
       ...preview,
       ...data,
     };
-  }
+  };
 }

@@ -1,75 +1,74 @@
 .app {
-    background: $secondaryLight;
+  background: $secondaryLight;
 
-    &__header {
-        width: 100%;
-        height: $headerHeight;
+  &__header {
+    width: 100%;
+    height: $headerHeight;
+  }
+
+  &__page {
+    width: 100%;
+    display: flex;
+    min-height: calc(100vh - #{$headerHeight});
+
+    &--centered {
+      justify-content: center;
+      align-items: top;
+      padding-top: 50px;
     }
+  }
 
-    &__page {
-        width: 100%;
-        display: flex;
-        min-height: calc(100vh - #{$headerHeight});
+  &__content {
+    flex-grow: 1;
+  }
 
-        &--centered {
-            justify-content: center;
-            align-items: top;
-            padding-top: 50px;
-        }
+  &__main-content {
+    margin: $baseSpacing * 2;
+    flex-grow: 2;
+  }
+
+  &__section {
+    margin: 0 0 $baseSpacing;
+    padding-bottom: $baseSpacing;
+
+    &:not(:last-child) {
+      border-bottom: 1px solid $borderColour;
     }
-
-
-    &__content {
-        flex-grow: 1;
-    }
-
-    &__main-content {
-        margin: $baseSpacing * 2;
-        flex-grow: 2;
-    }
-
-    &__section {
-        margin: 0 0 $baseSpacing;
-        padding-bottom: $baseSpacing;
-
-        &:not(:last-child) {
-            border-bottom: 1px solid $borderColour;
-        }
-    }
+  }
 }
 
 .hover-show__hidden {
-    display: none;
+  display: none;
 }
 
 .hover-show:hover .hover-show__hidden {
-    display: initial;
+  display: initial;
 }
 
 .required-field::after {
-    color: $accessibleRed;
-    margin-left: 5px;
-    content: "*";
+  color: $accessibleRed;
+  margin-left: 5px;
+  content: "*";
 }
 
 .highlighted {
-    background-color: $highlightColour;
+  background-color: $highlightColour;
 }
 
 .info-icon {
-    margin: 0 5px 0 5px;
-    height: 16px;
-    width: 16px;
+  margin: 0 5px 0 5px;
+  height: 16px;
+  width: 16px;
 }
 
 .centered {
-    width: 100%;
-    height:100%;
-    margin: 0;
-    position: absolute;
-    top: 0;
-    left: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }

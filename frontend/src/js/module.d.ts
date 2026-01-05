@@ -1,1 +1,1 @@
-declare module 'human-date';
+declare module "human-date";

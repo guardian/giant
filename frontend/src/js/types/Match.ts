@@ -1,16 +1,16 @@
-import PropTypes from 'prop-types';
+import PropTypes from "prop-types";
 
 export type Match = {
-    params: {
-        uri: string,
-        timestamp: string,
-        id: string
-    }
-}
+  params: {
+    uri: string;
+    timestamp: string;
+    id: string;
+  };
+};
 
 export const match = PropTypes.shape({
-    params: PropTypes.shape({
-        uri: PropTypes.string,
-        timestamp: PropTypes.string
-    }).isRequired
+  params: PropTypes.shape({
+    uri: PropTypes.string,
+    timestamp: PropTypes.string,
+  }).isRequired,
 });
