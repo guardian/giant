@@ -27,16 +27,23 @@
 }
 
 @-webkit-keyframes bouncedelay {
-  0%, 60% { -webkit-transform: scale(0) }
-  20% { -webkit-transform: scale(1.0) }
+  0%,
+  60% {
+    -webkit-transform: scale(0);
+  }
+  20% {
+    -webkit-transform: scale(1);
+  }
 }
 
 @keyframes bouncedelay {
-  0%, 60% {
+  0%,
+  60% {
     -webkit-transform: scale(0);
     transform: scale(0);
-  } 20% {
-    -webkit-transform: scale(1.0);
-    transform: scale(1.0);
+  }
+  20% {
+    -webkit-transform: scale(1);
+    transform: scale(1);
   }
 }

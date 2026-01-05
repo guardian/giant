@@ -1,15 +1,14 @@
-import React, { FC, useCallback, useEffect, useState } from 'react';
-import RotateLeft from 'react-icons/lib/md/rotate-left';
-import RotateRight from 'react-icons/lib/md/rotate-right';
-import ZoomInIcon from 'react-icons/lib/md/zoom-in';
-import ZoomOutIcon from 'react-icons/lib/md/zoom-out';
-import styles from './Controls.module.css';
-import { FindInput } from './FindInput';
-import { HighlightForSearchNavigation } from './model';
-import { removeLastUnmatchedQuote } from '../../util/stringUtils';
-import authFetch from '../../util/auth/authFetch';
-import { HighlightsState } from './PageViewer';
-
+import React, { FC, useCallback, useEffect, useState } from "react";
+import RotateLeft from "react-icons/lib/md/rotate-left";
+import RotateRight from "react-icons/lib/md/rotate-right";
+import ZoomInIcon from "react-icons/lib/md/zoom-in";
+import ZoomOutIcon from "react-icons/lib/md/zoom-out";
+import styles from "./Controls.module.css";
+import { FindInput } from "./FindInput";
+import { HighlightForSearchNavigation } from "./model";
+import { removeLastUnmatchedQuote } from "../../util/stringUtils";
+import authFetch from "../../util/auth/authFetch";
+import { HighlightsState } from "./PageViewer";
 
 type ControlsProps = {
   // Rotation
@@ -32,10 +31,14 @@ export const Controls: FC<ControlsProps> = ({
   onHighlightStateChange,
   onQueryChange,
   zoomIn,
-  zoomOut
+  zoomOut,
 }) => {
-  const [focusedFindHighlightIndex, setFocusedFindHighlightIndex] = useState<number | null>(null);
-  const [findHighlights, setFindHighlights] = useState<HighlightForSearchNavigation[]>([]);
+  const [focusedFindHighlightIndex, setFocusedFindHighlightIndex] = useState<
+    number | null
+  >(null);
+  const [findHighlights, setFindHighlights] = useState<
+    HighlightForSearchNavigation[]
+  >([]);
   // TODO: should we use ths?
   const [, setFindVisible] = useState(false);
   const [isFindPending, setIsFindPending] = useState<boolean>(false);
@@ -43,49 +46,52 @@ export const Controls: FC<ControlsProps> = ({
   useEffect(() => {
     onHighlightStateChange({
       focusedIndex: focusedFindHighlightIndex,
-      highlights: findHighlights
+      highlights: findHighlights,
     });
-  }, [focusedFindHighlightIndex, findHighlights, onHighlightStateChange])
+  }, [focusedFindHighlightIndex, findHighlights, onHighlightStateChange]);
 
+  const performFind = useCallback(
+    (query: string) => {
+      if (!query) {
+        setFocusedFindHighlightIndex(null);
+        setFindHighlights([]);
+        onQueryChange("");
+        return;
+      }
 
-  const performFind = useCallback((query: string) => {
-    if (!query) {
-      setFocusedFindHighlightIndex(null);
-      setFindHighlights([]);
-      onQueryChange('');
-      return;
-    }
+      const params = new URLSearchParams();
 
-    const params = new URLSearchParams();
+      // The backend will respect quotes and do an exact search,
+      // but if quotes are unbalanced elasticsearch will error
+      params.set("q", removeLastUnmatchedQuote(query));
 
-    // The backend will respect quotes and do an exact search,
-    // but if quotes are unbalanced elasticsearch will error
-    params.set("q", removeLastUnmatchedQuote(query));
+      const endpoint = fixedQuery === undefined ? "find" : "search";
 
-    const endpoint = fixedQuery === undefined ? "find" : "search";
-
-    // In order to use same debounce on communicating query change to parent
-    onQueryChange(query);
-    setIsFindPending(true);
-    // TODO: handle error
-    return authFetch(`/api/pages2/${uri}/${endpoint}?${params.toString()}`)
-      .then((res) => res.json())
-      .then((highlights) => {
-        setIsFindPending(false);
-        setFindHighlights(highlights);
-        if (highlights.length > 0) {
-          setFocusedFindHighlightIndex(0);
-        } else {
-          setFocusedFindHighlightIndex(null);
-        }
-      })
-  },   [uri, onQueryChange, fixedQuery]);
-
+      // In order to use same debounce on communicating query change to parent
+      onQueryChange(query);
+      setIsFindPending(true);
+      // TODO: handle error
+      return authFetch(`/api/pages2/${uri}/${endpoint}?${params.toString()}`)
+        .then((res) => res.json())
+        .then((highlights) => {
+          setIsFindPending(false);
+          setFindHighlights(highlights);
+          if (highlights.length > 0) {
+            setFocusedFindHighlightIndex(0);
+          } else {
+            setFocusedFindHighlightIndex(null);
+          }
+        });
+    },
+    [uri, onQueryChange, fixedQuery],
+  );
 
   const jumpToNextFindHit = useCallback(() => {
     if (findHighlights.length > 0) {
-      const nextHighlightIndex = (focusedFindHighlightIndex !== null && focusedFindHighlightIndex < (findHighlights.length - 1))
-          ? (focusedFindHighlightIndex + 1)
+      const nextHighlightIndex =
+        focusedFindHighlightIndex !== null &&
+        focusedFindHighlightIndex < findHighlights.length - 1
+          ? focusedFindHighlightIndex + 1
           : 0;
 
       setFocusedFindHighlightIndex(nextHighlightIndex);
@@ -94,9 +100,10 @@ export const Controls: FC<ControlsProps> = ({
 
   const jumpToPreviousFindHit = useCallback(() => {
     if (findHighlights.length > 0) {
-      const previousHighlightIndex = (focusedFindHighlightIndex !== null && focusedFindHighlightIndex > 0)
-          ? (focusedFindHighlightIndex - 1)
-          : (findHighlights.length - 1);
+      const previousHighlightIndex =
+        focusedFindHighlightIndex !== null && focusedFindHighlightIndex > 0
+          ? focusedFindHighlightIndex - 1
+          : findHighlights.length - 1;
 
       setFocusedFindHighlightIndex(previousHighlightIndex);
     }
@@ -109,7 +116,7 @@ export const Controls: FC<ControlsProps> = ({
       setFindVisible(true);
 
       const maybeInput = document.getElementById(
-          "find-search-input"
+        "find-search-input",
       ) as HTMLInputElement;
       if (maybeInput) {
         maybeInput.focus();
@@ -125,29 +132,28 @@ export const Controls: FC<ControlsProps> = ({
     };
   }, [handleUserKeyPress]);
 
-
   return (
     <div className={styles.bar}>
-      {fixedQuery === undefined &&
+      {fixedQuery === undefined && (
         <>
           <div>
-            <button onClick={zoomIn} >
+            <button onClick={zoomIn}>
               <ZoomInIcon />
             </button>
-            <button onClick={zoomOut}  >
+            <button onClick={zoomOut}>
               <ZoomOutIcon />
             </button>
           </div>
           <div>
-            <button onClick={rotateAnticlockwise} >
+            <button onClick={rotateAnticlockwise}>
               <RotateLeft />
             </button>
-            <button onClick={rotateClockwise}  >
+            <button onClick={rotateClockwise}>
               <RotateRight />
             </button>
           </div>
         </>
-      }
+      )}
 
       <FindInput
         fixedQuery={fixedQuery}

@@ -60,25 +60,55 @@
 .Select.has-value.is-clearable.Select--single > .Select-control .Select-value {
   padding-right: 42px;
 }
-.Select.has-value.Select--single > .Select-control .Select-value .Select-value-label,
-.Select.has-value.is-pseudo-focused.Select--single > .Select-control .Select-value .Select-value-label {
+.Select.has-value.Select--single
+  > .Select-control
+  .Select-value
+  .Select-value-label,
+.Select.has-value.is-pseudo-focused.Select--single
+  > .Select-control
+  .Select-value
+  .Select-value-label {
   color: $primaryDark;
 }
-.Select.has-value.Select--single > .Select-control .Select-value a.Select-value-label,
-.Select.has-value.is-pseudo-focused.Select--single > .Select-control .Select-value a.Select-value-label {
+.Select.has-value.Select--single
+  > .Select-control
+  .Select-value
+  a.Select-value-label,
+.Select.has-value.is-pseudo-focused.Select--single
+  > .Select-control
+  .Select-value
+  a.Select-value-label {
   cursor: pointer;
   text-decoration: none;
 }
-.Select.has-value.Select--single > .Select-control .Select-value a.Select-value-label:hover,
-.Select.has-value.is-pseudo-focused.Select--single > .Select-control .Select-value a.Select-value-label:hover,
-.Select.has-value.Select--single > .Select-control .Select-value a.Select-value-label:focus,
-.Select.has-value.is-pseudo-focused.Select--single > .Select-control .Select-value a.Select-value-label:focus {
+.Select.has-value.Select--single
+  > .Select-control
+  .Select-value
+  a.Select-value-label:hover,
+.Select.has-value.is-pseudo-focused.Select--single
+  > .Select-control
+  .Select-value
+  a.Select-value-label:hover,
+.Select.has-value.Select--single
+  > .Select-control
+  .Select-value
+  a.Select-value-label:focus,
+.Select.has-value.is-pseudo-focused.Select--single
+  > .Select-control
+  .Select-value
+  a.Select-value-label:focus {
   color: $primary;
   outline: none;
   text-decoration: underline;
 }
-.Select.has-value.Select--single > .Select-control .Select-value a.Select-value-label:focus,
-.Select.has-value.is-pseudo-focused.Select--single > .Select-control .Select-value a.Select-value-label:focus {
+.Select.has-value.Select--single
+  > .Select-control
+  .Select-value
+  a.Select-value-label:focus,
+.Select.has-value.is-pseudo-focused.Select--single
+  > .Select-control
+  .Select-value
+  a.Select-value-label:focus {
   background: white;
 }
 .Select.has-value.is-pseudo-focused .Select-input {
@@ -194,7 +224,7 @@
   width: 17px;
 }
 .Select-clear-zone:hover {
-  color: #D0021B;
+  color: #d0021b;
 }
 .Select-clear {
   display: inline-block;

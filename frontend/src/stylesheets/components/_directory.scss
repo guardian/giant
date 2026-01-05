@@ -1,11 +1,10 @@
 .directory {
+  &__item {
+    display: block;
+    padding: $baseSpacing 0;
 
-    &__item {
-        display: block;
-        padding: $baseSpacing 0;
-
-        &:not(:last-child) {
-            border-bottom: 1px solid $borderColour;
-        }
+    &:not(:last-child) {
+      border-bottom: 1px solid $borderColour;
     }
+  }
 }

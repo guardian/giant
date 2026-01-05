@@ -1,6 +1,6 @@
-import PropTypes from 'prop-types';
+import PropTypes from "prop-types";
 
 export const suggestedFieldsPropType = PropTypes.shape({
-    name: PropTypes.string.isRequired,
-    type: PropTypes.string.isRequired
+  name: PropTypes.string.isRequired,
+  type: PropTypes.string.isRequired,
 });

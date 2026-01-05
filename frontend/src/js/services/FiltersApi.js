@@ -1,5 +1,5 @@
-import authFetch from '../util/auth/authFetch';
+import authFetch from "../util/auth/authFetch";
 
 export function fetchFilters() {
-    return authFetch('/api/filters').then(res => res.json());
+  return authFetch("/api/filters").then((res) => res.json());
 }

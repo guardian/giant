@@ -17,7 +17,9 @@ html {
  * making all elements inheriting from the root box-sizing value
  * See: https://css-tricks.com/inheriting-box-sizing-probably-slightly-better-best-practice/
  */
-*, *::before, *::after {
+*,
+*::before,
+*::after {
   box-sizing: inherit;
 }
 
@@ -35,13 +37,14 @@ html {
   margin: 0 auto;
 }
 
-input::placeholder, textarea::placeholder {
-    color: $secondaryLight;
+input::placeholder,
+textarea::placeholder {
+  color: $secondaryLight;
 }
 
 button:focus,
 input[type="text"]:focus {
-    outline: none;
-    box-shadow: 0px 0px 5px $primaryLight;
-    box-shadow: 0px 0px 5px -webkit-focus-ring-color;
+  outline: none;
+  box-shadow: 0px 0px 5px $primaryLight;
+  box-shadow: 0px 0px 5px -webkit-focus-ring-color;
 }

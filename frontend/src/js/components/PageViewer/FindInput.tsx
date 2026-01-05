@@ -1,17 +1,18 @@
-import _, { uniq } from 'lodash';
+import _, { uniq } from "lodash";
 import React, {
   FC,
   KeyboardEventHandler,
   useCallback,
-  useEffect, useMemo,
+  useEffect,
+  useMemo,
   useState,
-} from 'react';
+} from "react";
 import DownIcon from "react-icons/lib/md/arrow-downward";
 import UpIcon from "react-icons/lib/md/arrow-upward";
 import styles from "./FindInput.module.css";
-import { HighlightForSearchNavigation } from './model';
-import { Loader } from 'semantic-ui-react';
-import InputSupper from '../UtilComponents/InputSupper';
+import { HighlightForSearchNavigation } from "./model";
+import { Loader } from "semantic-ui-react";
+import InputSupper from "../UtilComponents/InputSupper";
 
 type FindInputProps = {
   fixedQuery?: string;
@@ -39,11 +40,12 @@ export const FindInput: FC<FindInputProps> = ({
 }) => {
   const [showWarning, setShowWarning] = useState(false);
 
-  const debouncedPerformSearch = useMemo(() => _.debounce(performFind, 500), [
-    performFind,
-  ]);
+  const debouncedPerformSearch = useMemo(
+    () => _.debounce(performFind, 500),
+    [performFind],
+  );
 
-  const [value, setValue] = useState(fixedQuery ?? '');
+  const [value, setValue] = useState(fixedQuery ?? "");
   useEffect(() => {
     if (fixedQuery !== undefined) {
       performFind(fixedQuery);
@@ -61,7 +63,7 @@ export const FindInput: FC<FindInputProps> = ({
   };
 
   useEffect(() => {
-    if (uniq(highlights.map(h => h.pageNumber)).length >= MAX_PAGE_HITS) {
+    if (uniq(highlights.map((h) => h.pageNumber)).length >= MAX_PAGE_HITS) {
       setShowWarning(true);
       setTimeout(() => setShowWarning(false), 5000);
     }
@@ -69,15 +71,17 @@ export const FindInput: FC<FindInputProps> = ({
 
   const renderFindCount = useCallback(() => {
     if (!value) {
-      return '';
+      return "";
     }
 
-    const current = (focusedFindHighlightIndex !== null) ? focusedFindHighlightIndex + 1 : 0;
+    const current =
+      focusedFindHighlightIndex !== null ? focusedFindHighlightIndex + 1 : 0;
     const total = `${showWarning ? ">" : ""}${highlights.length}`;
-    return `${current}/${total}`
+    return `${current}/${total}`;
   }, [value, focusedFindHighlightIndex, highlights, showWarning]);
 
-  const input = <input
+  const input = (
+    <input
       id="find-search-input"
       className={styles.input}
       autoComplete="off"
@@ -90,13 +94,29 @@ export const FindInput: FC<FindInputProps> = ({
           debouncedPerformSearch(e.target.value);
         }
       }}
-  />
+    />
+  );
   return (
     <div className={styles.container}>
       <div className={styles.inputContainer}>
-        {fixedQuery === undefined ? input : <InputSupper disabled={true} value={value} className={styles.chipsContainer} chips={[]} onChange={() => {}} updateSearchText={() => {}}/> }
+        {fixedQuery === undefined ? (
+          input
+        ) : (
+          <InputSupper
+            disabled={true}
+            value={value}
+            className={styles.chipsContainer}
+            chips={[]}
+            onChange={() => {}}
+            updateSearchText={() => {}}
+          />
+        )}
         <div className={styles.count}>
-          {isPending ? <Loader active inline="centered" size="tiny" /> : renderFindCount()}
+          {isPending ? (
+            <Loader active inline="centered" size="tiny" />
+          ) : (
+            renderFindCount()
+          )}
         </div>
       </div>
       <button onClick={jumpToPreviousFindHit}>

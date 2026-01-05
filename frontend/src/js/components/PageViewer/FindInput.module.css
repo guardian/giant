@@ -33,7 +33,9 @@
   top: 100%;
   visibility: hidden;
   opacity: 0;
-  transition: visibility 0s 200ms, opacity 200ms linear;
+  transition:
+    visibility 0s 200ms,
+    opacity 200ms linear;
 }
 
 .warningContainer[data-visible] {
