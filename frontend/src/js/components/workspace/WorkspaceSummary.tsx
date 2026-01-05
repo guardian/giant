@@ -20,6 +20,7 @@ import {takeOwnershipOfWorkspace} from "../../actions/workspaces/takeOwnershipOf
 import {CaptureFromUrl} from "../Uploads/CaptureFromUrl";
 import {EuiText} from "@elastic/eui";
 import {FileAndFolderCounts} from "../UtilComponents/TreeBrowser/FileAndFolderCounts";
+import history from '../../util/history';
 
 type Props = {
     workspace: Workspace,
@@ -36,6 +37,7 @@ type Props = {
     workspaces: WorkspaceMetadata[],
     expandedNodes: TreeNode<WorkspaceEntry>[],
     isAdmin: boolean,
+    clearFocus: () => void
 }
 
 export default function WorkspaceSummary({
@@ -52,7 +54,8 @@ export default function WorkspaceSummary({
     focusedEntry,
     workspaces,
     expandedNodes,
-    isAdmin
+    isAdmin,
+    clearFocus
 }: Props) {
 
     const [isShowingMoreOptions, setIsShowingMoreOptions] = useState(false);
@@ -64,8 +67,13 @@ export default function WorkspaceSummary({
 
     const maybeRootNodeData = isWorkspaceNode(workspace.rootNode.data) && workspace.rootNode.data;
 
+    const handleTitleClick = () => {
+        clearFocus();
+        history.push(`/workspaces/${workspace.id}`);
+    };
+
     return <div className='page-title workspace__header shrinkable-buttons'>
-        <h1 className='workspace__title'>
+        <h1 className='workspace__title' onClick={handleTitleClick} style={{ cursor: "pointer" }}>
             {workspace.name}{maybeRootNodeData && <>
               <br/>
               <EuiText size="s"><FileAndFolderCounts
