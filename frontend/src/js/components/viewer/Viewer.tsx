@@ -275,7 +275,7 @@ class Viewer extends React.Component<Props, State> {
         if (view === 'table') {
             return <TablePreview text={resource.text.contents}/>
         } else if (view === 'preview') {
-            return <Preview fingerprint={resource.uri} />;
+            return <Preview resource={resource} />;
         } else if (view.startsWith('ocr')) {
             if (resource.ocr) {
                 return this.renderTextPreview(resource, _.get(this.props.resource, view), view);
