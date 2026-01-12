@@ -164,7 +164,10 @@ lazy val backend = (project in file("backend"))
       // because of the version of tikka-parsers we're using)
       "com.fasterxml.jackson.module" % "jackson-module-scala_2.13" % "2.15.4",
 
-      // Libraries whose use are potentially contentious
+
+      "com.gu" %% "play-v30-brotli-filter" % "0.18.0",
+
+        // Libraries whose use are potentially contentious
 
       // These dependencies allow PDF box to read images (which is critical for PdfOcrExtractor)
       "org.apache.pdfbox" % "jbig2-imageio" % "3.0.2",
