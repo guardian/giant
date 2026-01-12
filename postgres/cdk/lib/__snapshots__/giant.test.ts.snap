@@ -3,8 +3,373 @@
 exports[`The Giant stack matches the snapshot 1`] = `
 {
   "Metadata": {
-    "gu:cdk:constructs": [],
+    "gu:cdk:constructs": [
+      "GuVpcParameter",
+      "GuSubnetListParameter",
+    ],
     "gu:cdk:version": "TEST",
+  },
+  "Outputs": {
+    "DbAccessSecurityGroup": {
+      "Export": {
+        "Name": "pfi-playground-postgres-TEST-DbAccessSecurityGroup",
+      },
+      "Value": {
+        "Fn::GetAtt": [
+          "dbaccess7C99761D",
+          "GroupId",
+        ],
+      },
+    },
+    "PostgresDbSecretArn": {
+      "Export": {
+        "Name": "pfi-playground-postgres-TEST-PostgresDbSecretArn",
+      },
+      "Value": {
+        "Ref": "DatabaseSecretAttachmentE5D1B020",
+      },
+    },
+  },
+  "Parameters": {
+    "PrivateSubnets": {
+      "Default": "/account/vpc/primary/subnets/private",
+      "Description": "A list of private subnets",
+      "Type": "AWS::SSM::Parameter::Value<List<AWS::EC2::Subnet::Id>>",
+    },
+    "VpcId": {
+      "Default": "/account/vpc/primary/id",
+      "Description": "Virtual Private Cloud to run EC2 instances within. Should NOT be the account default VPC.",
+      "Type": "AWS::SSM::Parameter::Value<AWS::EC2::VPC::Id>",
+    },
+  },
+  "Resources": {
+    "DatabaseB269D8BB": {
+      "DeletionPolicy": "Snapshot",
+      "Properties": {
+        "AllocatedStorage": "20",
+        "AllowMajorVersionUpgrade": true,
+        "AutoMinorVersionUpgrade": true,
+        "CopyTagsToSnapshot": true,
+        "DBInstanceClass": "db.t4g.micro",
+        "DBInstanceIdentifier": "giant-db-test",
+        "DBName": "giant",
+        "DBSubnetGroupName": {
+          "Ref": "DatabaseSubnetGroup7D60F180",
+        },
+        "DeleteAutomatedBackups": false,
+        "DeletionProtection": true,
+        "EnableCloudwatchLogsExports": [
+          "postgresql",
+        ],
+        "EnableIAMDatabaseAuthentication": true,
+        "Engine": "postgres",
+        "EngineVersion": "15",
+        "MasterUserPassword": {
+          "Fn::Join": [
+            "",
+            [
+              "{{resolve:secretsmanager:",
+              {
+                "Ref": "GiantDatabaseSecret51D228833fdaad7efa858a3daf9490cf0a702aeb",
+              },
+              ":SecretString:password::}}",
+            ],
+          ],
+        },
+        "MasterUsername": "giant_master",
+        "MaxAllocatedStorage": 40,
+        "MonitoringInterval": 60,
+        "MonitoringRoleArn": {
+          "Fn::GetAtt": [
+            "DatabaseMonitoringRole576991DA",
+            "Arn",
+          ],
+        },
+        "MultiAZ": false,
+        "Port": "5432",
+        "PubliclyAccessible": false,
+        "StorageEncrypted": true,
+        "StorageType": "gp3",
+        "Tags": [
+          {
+            "Key": "devx-backup-enabled",
+            "Value": "true",
+          },
+          {
+            "Key": "gu:cdk:version",
+            "Value": "TEST",
+          },
+          {
+            "Key": "gu:repo",
+            "Value": "guardian/giant",
+          },
+          {
+            "Key": "Stack",
+            "Value": "pfi-playground",
+          },
+          {
+            "Key": "Stage",
+            "Value": "TEST",
+          },
+        ],
+        "VPCSecurityGroups": [
+          {
+            "Fn::GetAtt": [
+              "DatabaseSecurityGroup7319C0F6",
+              "GroupId",
+            ],
+          },
+        ],
+      },
+      "Type": "AWS::RDS::DBInstance",
+      "UpdateReplacePolicy": "Snapshot",
+    },
+    "DatabaseMonitoringRole576991DA": {
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "monitoring.rds.amazonaws.com",
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "ManagedPolicyArns": [
+          {
+            "Fn::Join": [
+              "",
+              [
+                "arn:",
+                {
+                  "Ref": "AWS::Partition",
+                },
+                ":iam::aws:policy/service-role/AmazonRDSEnhancedMonitoringRole",
+              ],
+            ],
+          },
+        ],
+        "Tags": [
+          {
+            "Key": "devx-backup-enabled",
+            "Value": "true",
+          },
+          {
+            "Key": "gu:cdk:version",
+            "Value": "TEST",
+          },
+          {
+            "Key": "gu:repo",
+            "Value": "guardian/giant",
+          },
+          {
+            "Key": "Stack",
+            "Value": "pfi-playground",
+          },
+          {
+            "Key": "Stage",
+            "Value": "TEST",
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Role",
+    },
+    "DatabaseSecretAttachmentE5D1B020": {
+      "Properties": {
+        "SecretId": {
+          "Ref": "GiantDatabaseSecret51D228833fdaad7efa858a3daf9490cf0a702aeb",
+        },
+        "TargetId": {
+          "Ref": "DatabaseB269D8BB",
+        },
+        "TargetType": "AWS::RDS::DBInstance",
+      },
+      "Type": "AWS::SecretsManager::SecretTargetAttachment",
+    },
+    "DatabaseSecurityGroup7319C0F6": {
+      "Properties": {
+        "GroupDescription": "Giant/DatabaseSecurityGroup",
+        "SecurityGroupEgress": [
+          {
+            "CidrIp": "0.0.0.0/0",
+            "Description": "Allow all outbound traffic by default",
+            "IpProtocol": "-1",
+          },
+        ],
+        "Tags": [
+          {
+            "Key": "gu:cdk:version",
+            "Value": "TEST",
+          },
+          {
+            "Key": "gu:repo",
+            "Value": "guardian/giant",
+          },
+          {
+            "Key": "Stack",
+            "Value": "pfi-playground",
+          },
+          {
+            "Key": "Stage",
+            "Value": "TEST",
+          },
+        ],
+        "VpcId": {
+          "Ref": "VpcId",
+        },
+      },
+      "Type": "AWS::EC2::SecurityGroup",
+    },
+    "DatabaseSecurityGroupfromGiantdbaccess9A17AB315432E7A0126D": {
+      "Properties": {
+        "Description": "from Giantdbaccess9A17AB31:5432",
+        "FromPort": 5432,
+        "GroupId": {
+          "Fn::GetAtt": [
+            "DatabaseSecurityGroup7319C0F6",
+            "GroupId",
+          ],
+        },
+        "IpProtocol": "tcp",
+        "SourceSecurityGroupId": {
+          "Fn::GetAtt": [
+            "dbaccess7C99761D",
+            "GroupId",
+          ],
+        },
+        "ToPort": 5432,
+      },
+      "Type": "AWS::EC2::SecurityGroupIngress",
+    },
+    "DatabaseSubnetGroup7D60F180": {
+      "Properties": {
+        "DBSubnetGroupDescription": "Subnet group for Database database",
+        "SubnetIds": {
+          "Ref": "PrivateSubnets",
+        },
+        "Tags": [
+          {
+            "Key": "devx-backup-enabled",
+            "Value": "true",
+          },
+          {
+            "Key": "gu:cdk:version",
+            "Value": "TEST",
+          },
+          {
+            "Key": "gu:repo",
+            "Value": "guardian/giant",
+          },
+          {
+            "Key": "Stack",
+            "Value": "pfi-playground",
+          },
+          {
+            "Key": "Stage",
+            "Value": "TEST",
+          },
+        ],
+      },
+      "Type": "AWS::RDS::DBSubnetGroup",
+    },
+    "GiantDatabaseSecret51D228833fdaad7efa858a3daf9490cf0a702aeb": {
+      "DeletionPolicy": "Delete",
+      "Properties": {
+        "Description": {
+          "Fn::Join": [
+            "",
+            [
+              "Generated by the CDK for stack: ",
+              {
+                "Ref": "AWS::StackName",
+              },
+            ],
+          ],
+        },
+        "GenerateSecretString": {
+          "ExcludeCharacters": " %+~\`#$&*()|[]{}:;<>?!'/@"\\",
+          "GenerateStringKey": "password",
+          "PasswordLength": 30,
+          "SecretStringTemplate": "{"username":"giant_master"}",
+        },
+        "Name": "pfi-playground-postgres-TEST",
+        "Tags": [
+          {
+            "Key": "devx-backup-enabled",
+            "Value": "true",
+          },
+          {
+            "Key": "gu:cdk:version",
+            "Value": "TEST",
+          },
+          {
+            "Key": "gu:repo",
+            "Value": "guardian/giant",
+          },
+          {
+            "Key": "Stack",
+            "Value": "pfi-playground",
+          },
+          {
+            "Key": "Stage",
+            "Value": "TEST",
+          },
+        ],
+      },
+      "Type": "AWS::SecretsManager::Secret",
+      "UpdateReplacePolicy": "Delete",
+    },
+    "dbaccess7C99761D": {
+      "Properties": {
+        "GroupDescription": "Giant/db-access",
+        "Tags": [
+          {
+            "Key": "gu:cdk:version",
+            "Value": "TEST",
+          },
+          {
+            "Key": "gu:repo",
+            "Value": "guardian/giant",
+          },
+          {
+            "Key": "Stack",
+            "Value": "pfi-playground",
+          },
+          {
+            "Key": "Stage",
+            "Value": "TEST",
+          },
+        ],
+        "VpcId": {
+          "Ref": "VpcId",
+        },
+      },
+      "Type": "AWS::EC2::SecurityGroup",
+    },
+    "dbaccesstoGiantDatabaseSecurityGroup645117305432BE54698B": {
+      "Properties": {
+        "Description": "Allow DB access",
+        "DestinationSecurityGroupId": {
+          "Fn::GetAtt": [
+            "DatabaseSecurityGroup7319C0F6",
+            "GroupId",
+          ],
+        },
+        "FromPort": 5432,
+        "GroupId": {
+          "Fn::GetAtt": [
+            "dbaccess7C99761D",
+            "GroupId",
+          ],
+        },
+        "IpProtocol": "tcp",
+        "ToPort": 5432,
+      },
+      "Type": "AWS::EC2::SecurityGroupEgress",
+    },
   },
 }
 `;
