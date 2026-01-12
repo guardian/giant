@@ -1,68 +1,68 @@
 .main-header {
-    position: relative;
-    background-color: $primary;
-    color: white;
+  position: relative;
+  background-color: $primary;
+  color: white;
+  display: flex;
+  height: 100%;
+  z-index: 2;
+  user-select: none;
+
+  &__label {
+    font-weight: bold;
+    padding: 5px 15px 5px 15px;
+    margin-left: $baseSpacing;
+    background-color: $accessibleRed;
+    border-radius: 10px;
+    align-self: center;
+  }
+
+  &__title {
+    flex-grow: 0;
+    flex-shrink: 0;
+    padding: 10px;
+    margin: 0;
+    font-weight: bold;
+
+    &-link:hover {
+      background-color: $primaryDark;
+      text-decoration: none;
+    }
+  }
+
+  &__links {
     display: flex;
-    height: 100%;
-    z-index: 2;
-    user-select: none;
+    justify-content: space-between;
+    width: 100%;
 
-    &__label {
-        font-weight: bold;
-        padding: 5px 15px 5px 15px;
-        margin-left: $baseSpacing;
-        background-color: $accessibleRed;
-        border-radius: 10px;
-        align-self: center;
+    &-section {
+      display: flex;
+    }
+  }
+
+  &__item {
+    display: flex;
+    align-items: center;
+    padding: 0 10px;
+    font-size: 16px;
+
+    &--link {
+      // If you use a "fake link" with an href, Chrome doesn't give it the right pointer
+      cursor: pointer;
+      font-weight: bold;
     }
 
-    &__title {
-        flex-grow: 0;
-        flex-shrink: 0;
-        padding: 10px;
-        margin: 0;
-        font-weight: bold;
-
-        &-link:hover {
-            background-color: $primaryDark;
-            text-decoration: none;
-        }
+    &--link:hover {
+      background-color: $primaryDark;
+      text-decoration: none !important;
     }
 
-    &__links {
-        display: flex;
-        justify-content: space-between;
-        width: 100%;
-
-        &-section {
-            display: flex;
-        }
+    &--active {
+      background-color: $primaryDark;
     }
 
-    &__item {
-        display: flex;
-        align-items: center;
-        padding: 0 10px;
-        font-size: 16px;
-
-        &--link {
-            // If you use a "fake link" with an href, Chrome doesn't give it the right pointer
-            cursor: pointer;
-            font-weight: bold;
-        }
-
-        &--link:hover {
-            background-color: $primaryDark;
-            text-decoration: none !important;
-        }
-
-        &--active {
-            background-color: $primaryDark;
-        }
-
-        &__icon {
-            margin-right: 5px;
-            font-size: 20px;
-        }
+    &__icon {
+      margin-right: 5px;
+      font-size: 20px;
     }
+  }
 }

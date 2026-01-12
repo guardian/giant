@@ -1,14 +1,13 @@
-
 .dropdownMenus {
-    display: 'inline-flex';
-    flexWrap: 'wrap';
-    padding: 2px;
+  display: "inline-flex";
+  flexwrap: "wrap";
+  padding: 2px;
 }
 
 .dropdown {
-    min-width: 300px;
+  min-width: 300px;
 }
 
 .expandedRowExtractorStatus {
-    margin-left: 20px;
+  margin-left: 20px;
 }

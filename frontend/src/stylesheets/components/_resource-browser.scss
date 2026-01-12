@@ -1,32 +1,32 @@
 .resource-browser {
-    padding: $baseSpacing 0;
+  padding: $baseSpacing 0;
 
-    &__path {
-        font-size: 14px;
-        font-weight: bold;
+  &__path {
+    font-size: 14px;
+    font-weight: bold;
+  }
+
+  &__resource {
+    padding-right: 3px;
+    white-space: nowrap;
+
+    &:before {
+      white-space: normal;
+      content: "/ ";
+      color: $primaryLight;
+      margin-right: 2px;
     }
-
-    &__resource {
-        padding-right: 3px;
-        white-space: nowrap;
-
-        &:before {
-            white-space: normal;
-            content: "/ ";
-            color: $primaryLight;
-            margin-right: 2px;
-        }
-    }
+  }
 }
 
 .document__metadata__resources {
-    .resource-browser__resource {
-        padding: 0;
-        &:before {
-            margin-right: 0;
-        }
+  .resource-browser__resource {
+    padding: 0;
+    &:before {
+      margin-right: 0;
     }
-    .resource-browser__path {
-        padding: 3px 10px;
-    }
+  }
+  .resource-browser__path {
+    padding: 3px 10px;
+  }
 }

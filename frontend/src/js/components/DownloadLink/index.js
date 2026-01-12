@@ -1,1 +1,1 @@
-export {DownloadLink} from './DownloadLink';
+export { DownloadLink } from "./DownloadLink";

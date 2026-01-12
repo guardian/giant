@@ -1,158 +1,158 @@
 .workspace {
-    width: calc(100vw - #{$sidebarWidth} - 24px);
-    height: calc(100vh - #{$headerHeight} - 115px);
+  width: calc(100vw - #{$sidebarWidth} - 24px);
+  height: calc(100vh - #{$headerHeight} - 115px);
 
-    &__header {
-        display: flex;
-        flex-direction: row;
-        gap: $baseSpacing;
-        align-items: center;
-        padding-right: $baseSpacing;
-        justify-content: right;
+  &__header {
+    display: flex;
+    flex-direction: row;
+    gap: $baseSpacing;
+    align-items: center;
+    padding-right: $baseSpacing;
+    justify-content: right;
+  }
+
+  &__title {
+    margin-bottom: 0;
+  }
+
+  &__badges {
+    display: flex;
+    align-items: center;
+    gap: $baseSpacing/2;
+    row-gap: $baseSpacing/2;
+    line-height: 15px;
+    flex-shrink: 2;
+    flex-wrap: wrap;
+
+    .ui.label {
+      margin: 0;
     }
+  }
 
-    &__title {
-        margin-bottom: 0;
-    }
+  &__header > button {
+    display: flex;
+    align-items: center;
+    line-height: 15px;
+    flex-shrink: 5;
+  }
 
-    &__badges {
-        display: flex;
-        align-items: center;
-        gap: $baseSpacing/2;
-        row-gap: $baseSpacing/2;
-        line-height: 15px;
-        flex-shrink: 2;
-        flex-wrap: wrap;
-
-        .ui.label {
-            margin: 0;
-        }
-    }
-
-    &__header > button {
-        display: flex;
-        align-items: center;
-        line-height: 15px;
-        flex-shrink: 5;
-    }
-
-    &__header > button svg {
-        flex-shrink: 0;
-        font-size: 16px;
-        margin-right: 3px;
-    }
+  &__header > button svg {
+    flex-shrink: 0;
+    font-size: 16px;
+    margin-right: 3px;
+  }
 }
 
 @media (width < 1200px) {
-    .shrinkable-buttons > button {
-        font-size: 0; // hides the text
-    }
-    .shrinkable-buttons > button svg {
-        margin-right: 0;
-        font-size: 16px; // unhides the icon
-    }
+  .shrinkable-buttons > button {
+    font-size: 0; // hides the text
+  }
+  .shrinkable-buttons > button svg {
+    margin-right: 0;
+    font-size: 16px; // unhides the icon
+  }
 }
 
 .hide-direct-child-buttons > button {
-    display: none;
+  display: none;
 }
 
 .workspace__documents {
-    height: 100%;
-    width: 100%;
-    position: relative;
+  height: 100%;
+  width: 100%;
+  position: relative;
 }
 
 .workspace_documents-split {
-    display: flex;
-    flex-direction: row;
-    height: 100%;
+  display: flex;
+  flex-direction: row;
+  height: 100%;
 }
 
 .workspace__summary {
-    height: 100%;
-    width: 350px;
-    border-left: 1px solid $primaryDark;
+  height: 100%;
+  width: 350px;
+  border-left: 1px solid $primaryDark;
 }
 
 .workspace__chronology {
-    width: 100%;
-    position: relative;
-    border-top: 1px solid white;
+  width: 100%;
+  position: relative;
+  border-top: 1px solid white;
 }
 
 .workspace__drag-indicator-top {
-    position: absolute;
-    left: 50%;
-    bottom: 0px;
-    transform: rotate(180deg);
+  position: absolute;
+  left: 50%;
+  bottom: 0px;
+  transform: rotate(180deg);
 }
 
 .workspace__drag-indicator-bottom {
-    position: absolute;
-    left: 50%;
-    top: 0px;
+  position: absolute;
+  left: 50%;
+  top: 0px;
 }
 
 .workspace__tag {
-    width: 12px;
-    height: 12px;
-    border-radius: 50%;
-    margin-right: 5px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  margin-right: 5px;
 
-    &--grey {
-        background-color: rgb(156, 160, 165);
-    }
+  &--grey {
+    background-color: rgb(156, 160, 165);
+  }
 
-    &--red {
-        background-color: rgb(237, 15, 36);
-    }
+  &--red {
+    background-color: rgb(237, 15, 36);
+  }
 
-    &--green {
-        background-color: rgb(134, 223, 106);
-    }
+  &--green {
+    background-color: rgb(134, 223, 106);
+  }
 
-    &--blue {
-        background-color: rgb(33, 162, 223);
-    }
+  &--blue {
+    background-color: rgb(33, 162, 223);
+  }
 
-    &--orange {
-        background-color: rgb(247, 102, 56);
-    }
+  &--orange {
+    background-color: rgb(247, 102, 56);
+  }
 
-    &--purple {
-        background-color: rgb(120, 89, 161);
-    }
+  &--purple {
+    background-color: rgb(120, 89, 161);
+  }
 }
 
 .workspace-modal__tag-dropdown {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
 }
 
 .workspace__tree {
-    position: relative;
-    height: 100%;
-    width: 100%;
+  position: relative;
+  height: 100%;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: auto;
+
+  &--fixed {
+    height: 300px;
+  }
+
+  &-header {
     display: flex;
-    flex-direction: column;
-    overflow: auto;
-
-    &--fixed {
-        height: 300px
-    }
-
-    &-header {
-        display: flex;
-        justify-content: space-between;
-        gap: $baseSpacing;
-    }
+    justify-content: space-between;
+    gap: $baseSpacing;
+  }
 }
 
 .workspace__tree-actions {
-    margin-bottom: $baseSpacing;
-    display: flex;
-    align-items: center;
-    gap: $baseSpacing;
+  margin-bottom: $baseSpacing;
+  display: flex;
+  align-items: center;
+  gap: $baseSpacing;
 }
