@@ -2,6 +2,7 @@ import org.apache.pekko.actor.{ActorSystem, CoordinatedShutdown}
 import org.apache.pekko.actor.CoordinatedShutdown.Reason
 import cats.syntax.either._
 import com.amazonaws.client.builder.AwsClientBuilder
+
 import java.net.URI
 import software.amazon.awssdk.services.sns.SnsClient
 import software.amazon.awssdk.services.sqs.SqsClient
@@ -34,6 +35,7 @@ import services.annotations.Neo4jAnnotations
 import services.events.ElasticsearchEvents
 import services.index.{ElasticsearchPages, ElasticsearchResources, Pages2}
 import ingestion.{IngestionServices, Neo4jRemoteIngestStore, RemoteIngestWorker}
+import play.filters.brotli.BrotliFilter
 import services.manifest.Neo4jManifest
 import services.observability.{PostgresClientDoNothing, PostgresClientImpl}
 import services.previewing.PreviewService
@@ -67,7 +69,8 @@ class AppComponents(context: Context, config: Config)
     super.httpFilters.filterNot(disabledFilters.contains) ++ Seq(
       new AllowFrameFilter,
       new RequestLoggingFilter(materializer),
-      new ReadOnlyFilter(config.app, materializer)
+      new ReadOnlyFilter(config.app, materializer),
+      new BrotliFilter()
     )
   }
 
