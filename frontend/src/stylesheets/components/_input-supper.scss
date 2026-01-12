@@ -1,133 +1,134 @@
 .input-supper {
-    display: flex;
-    flex-wrap: wrap;
-    padding: 0 $baseSpacing;
+  display: flex;
+  flex-wrap: wrap;
+  padding: 0 $baseSpacing;
 
-    & input:focus {
-        box-shadow: none;
-    }
+  & input:focus {
+    box-shadow: none;
+  }
 }
 
 .input-supper__inline-date {
-    position: relative;
+  position: relative;
 
-    &__warning {
-        position: absolute;
-        top: -15px;
-        right: -15px;
-        background-color: $accessibleRed;
-        width: 20px;
-        height: 20px;
-        border-radius: 20px;
-        text-align: center;
+  &__warning {
+    position: absolute;
+    top: -15px;
+    right: -15px;
+    background-color: $accessibleRed;
+    width: 20px;
+    height: 20px;
+    border-radius: 20px;
+    text-align: center;
 
-        &--visible {
-            transition-timing-function: ease-in;
-            transition: 0.3s;
-            transform: scale(100%);
-        }
-
-        &--hidden {
-            transition-timing-function: ease-out;
-            transition: 0.3s;
-            transform: scale(0);
-        }
+    &--visible {
+      transition-timing-function: ease-in;
+      transition: 0.3s;
+      transform: scale(100%);
     }
+
+    &--hidden {
+      transition-timing-function: ease-out;
+      transition: 0.3s;
+      transform: scale(0);
+    }
+  }
 }
 
 // Inline input
 .input-supper__inline-input {
-    display: inline-block;
-    background-color: transparent;
-    display: inline-block;
-    border: none;
-    font-size: 18px;
+  display: inline-block;
+  background-color: transparent;
+  display: inline-block;
+  border: none;
+  font-size: 18px;
 
-    &--chip {
-        color: white;
-    }
+  &--chip {
+    color: white;
+  }
 
-    &--date-picker-input {
-        color: white;
-        width: 100px;
-    }
+  &--date-picker-input {
+    color: white;
+    width: 100px;
+  }
 }
 
 .input-supper__input-wrapper {
-    position: relative;
-    display: inline-block;
-    height: 100%;
-    margin: 0 calc($baseSpacing / 2) 0 0;
+  position: relative;
+  display: inline-block;
+  height: 100%;
+  margin: 0 calc($baseSpacing / 2) 0 0;
 
-    &:last-child {
-        flex-grow: 1;
-        cursor: text;
-        margin: 0;
-    }
+  &:last-child {
+    flex-grow: 1;
+    cursor: text;
+    margin: 0;
+  }
 }
 
 // Chips
 .input-supper__chip {
-    display: inline-block;
-    width: fit-content;
-    margin-right: calc($baseSpacing / 2);
-    color: white;
+  display: inline-block;
+  width: fit-content;
+  margin-right: calc($baseSpacing / 2);
+  color: white;
 
-    & > button {
-        display: inline-flex;
-        height: 100%;
-        width: 20px;
-        border: none;
-        padding: 0px;
-        flex-direction: row;
-        justify-content: center;
-        vertical-align: top;
-        color: white;
-    }
+  & > button {
+    display: inline-flex;
+    height: 100%;
+    width: 20px;
+    border: none;
+    padding: 0px;
+    flex-direction: row;
+    justify-content: center;
+    vertical-align: top;
+    color: white;
+  }
 }
 
 .input-supper__button-icon {
-    align-self: center;
+  align-self: center;
 }
 
 .input-supper__chip-negate {
-    border-radius: $borderRadiusLarge 0 0 $borderRadiusLarge;
-    background-color: $primaryDark;
+  border-radius: $borderRadiusLarge 0 0 $borderRadiusLarge;
+  background-color: $primaryDark;
 }
 
 .input-supper__chip-body {
-    display: inline-block;
-    height: 100%;
-    margin-left: 2px;
-    margin-right: 2px;
-    padding: 0 5px 0 5px;
-    background-color: $primaryDark;
+  display: inline-block;
+  height: 100%;
+  margin-left: 2px;
+  margin-right: 2px;
+  padding: 0 5px 0 5px;
+  background-color: $primaryDark;
 }
 
 .input-supper__chip-name {
-    margin-right: 2px;
-    font-size: 16px;
+  margin-right: 2px;
+  font-size: 16px;
 
-    &:after {
-        content: ":"
-    }
+  &:after {
+    content: ":";
+  }
 }
 
 .input-supper__chip--delete-glow {
-    border-radius: $borderRadiusLarge $borderRadiusLarge $borderRadiusLarge $borderRadiusLarge;
-    box-shadow: 0px 0px 15px 2px $errorColour;
+  border-radius: $borderRadiusLarge $borderRadiusLarge $borderRadiusLarge
+    $borderRadiusLarge;
+  box-shadow: 0px 0px 15px 2px $errorColour;
 }
 
 .input-supper__chip-delete {
-    border-radius: 0 $borderRadiusLarge $borderRadiusLarge 0;
-    background-color: $primaryDark;
+  border-radius: 0 $borderRadiusLarge $borderRadiusLarge 0;
+  background-color: $primaryDark;
 }
 
 .label-supper__span {
-    margin-left: 3px;
+  margin-left: 3px;
 }
 
 .input-supper__dropdown {
-    display: inline-block;
-    width: 125px;
+  display: inline-block;
+  width: 125px;
 }

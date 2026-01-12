@@ -1,8 +1,5 @@
 @charset 'UTF-8';
 
-@import
-    './abstracts/variables';
+@import "./abstracts/variables";
 
-@import
-    './components/document',
-    './components/comments';
+@import "./components/document", "./components/comments";

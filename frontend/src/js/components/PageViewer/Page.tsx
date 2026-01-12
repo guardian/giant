@@ -1,9 +1,9 @@
-import React, { FC, useEffect, useRef, useState } from 'react';
-import { CachedPreview, PageData, PdfText } from './model';
-import styles from './Page.module.css';
-import { PageHighlight } from './PageHighlight';
-import { PageOverlayText } from './PageOverlayText';
-import { renderTextOverlays } from './PdfHelpers';
+import React, { FC, useEffect, useRef, useState } from "react";
+import { CachedPreview, PageData, PdfText } from "./model";
+import styles from "./Page.module.css";
+import { PageHighlight } from "./PageHighlight";
+import { PageOverlayText } from "./PageOverlayText";
+import { renderTextOverlays } from "./PdfHelpers";
 
 type PageProps = {
   focusedFindHighlightId: string | undefined;
@@ -49,7 +49,7 @@ export const Page: FC<PageProps> = ({
           if (node) {
             setScale(preview.scale);
 
-            const oldCanvas = node.querySelector('canvas');
+            const oldCanvas = node.querySelector("canvas");
 
             if (oldCanvas) {
               node.replaceChild(preview.canvas, oldCanvas);
@@ -69,9 +69,11 @@ export const Page: FC<PageProps> = ({
   }, [getPagePreview, pageHeight]);
 
   useEffect(() => {
-    getPageData.then((text) => {
-      setPageText(text);
-    }).catch(handleAbort);
+    getPageData
+      .then((text) => {
+        setPageText(text);
+      })
+      .catch(handleAbort);
   }, [containerRef, getPageData]);
 
   return (
@@ -90,7 +92,10 @@ export const Page: FC<PageProps> = ({
           <PageHighlight
             key={hl.id}
             highlight={hl}
-            focused={hl.id === focusedFindHighlightId || hl.id === focusedSearchHighlightId}
+            focused={
+              hl.id === focusedFindHighlightId ||
+              hl.id === focusedSearchHighlightId
+            }
             scale={scale}
           />
         ))}

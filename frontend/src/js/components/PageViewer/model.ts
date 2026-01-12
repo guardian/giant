@@ -1,4 +1,4 @@
-import {PDFPageProxy} from "pdfjs-dist";
+import { PDFPageProxy } from "pdfjs-dist";
 
 // Copy-pasta from the old reducer
 export type PageDimensions = {
@@ -59,8 +59,14 @@ export type CachedPreview = {
 };
 
 export type HighlightForSearchNavigation = {
-  pageNumber: number,
-  highlightNumber: number,
-  id: string,
-  firstSpan: {x: number, y: number, height: number, rotation: number, width: number} | null,
+  pageNumber: number;
+  highlightNumber: number;
+  id: string;
+  firstSpan: {
+    x: number;
+    y: number;
+    height: number;
+    rotation: number;
+    width: number;
+  } | null;
 };

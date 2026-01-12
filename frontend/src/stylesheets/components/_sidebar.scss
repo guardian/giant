@@ -1,143 +1,145 @@
 .sidebar {
-    font-size: 14px;
-    flex-shrink: 0;
-    flex-grow: 0;
-    width: $sidebarWidth;
-    overflow-x: hidden;
+  font-size: 14px;
+  flex-shrink: 0;
+  flex-grow: 0;
+  width: $sidebarWidth;
+  overflow-x: hidden;
 
-    &--collapsed {
-        width: 0px;
+  &--collapsed {
+    width: 0px;
 
-        .sidebar__actions {
-            position: absolute;
-        }
+    .sidebar__actions {
+      position: absolute;
+    }
+  }
+
+  &__title {
+    padding: $baseSpacing $baseSpacing 0 $baseSpacing;
+    font-size: 20px;
+    display: flex;
+    justify-content: space-between;
+  }
+
+  &__button {
+    margin: calc($baseSpacing / 2) $baseSpacing;
+  }
+
+  &__group {
+    margin: 0 0 ($baseSpacing * 2);
+  }
+
+  &__item {
+    display: flex;
+    line-height: 25px;
+    padding: 0 $baseSpacing;
+    align-items: center;
+    overflow: hidden;
+    word-wrap: break-word;
+
+    .sidebar__filtervalue & {
+      padding-left: 8px;
     }
 
-    &__title {
-        padding: $baseSpacing $baseSpacing 0 $baseSpacing;
-        font-size: 20px;
-        display: flex;
-        justify-content: space-between;
+    &--active {
+      background-color: $secondary;
     }
 
-    &__button {
-        margin: calc($baseSpacing / 2) $baseSpacing;
+    &--drop-target {
+      background-color: $primaryLight;
     }
 
-    &__group {
-        margin: 0 0 ($baseSpacing * 2);
-    }
+    &__text {
+      font-weight: normal;
+      padding: 0;
+      flex-grow: 2;
+      width: 100px;
+      text-align: left;
 
-    &__item {
-        display: flex;
-        line-height: 25px;
-        padding: 0 $baseSpacing;
-        align-items: center;
-        overflow: hidden;
-        word-wrap: break-word;
+      &--disabled {
+        font-style: italic;
+        color: $primary;
+      }
 
-        .sidebar__filtervalue & {
-            padding-left: 8px;
-        }
-
-        &--active {
-            background-color: $secondary;
-        }
-
-        &--drop-target {
-            background-color: $primaryLight;
-        }
-
-        &__text {
-            font-weight: normal;
-            padding: 0;
-            flex-grow: 2;
-            width: 100px;
-            text-align: left;
-
-            &--disabled {
-                font-style: italic;
-                color: $primary;
-            }
-
-            &--center {
-                text-align: center;
-            }
-        }
-    }
-
-    &__filtervalue {
-        padding-left: $baseSpacing;
-    }
-
-    &__count {
-        border-radius: 15px;
-        min-width: 20px;
-        margin: 0 5px 0 5px;
-        padding: 0 5px 0 5px;
-        font-weight: bold;
+      &--center {
         text-align: center;
-        white-space: nowrap;
+      }
+    }
+  }
+
+  &__filtervalue {
+    padding-left: $baseSpacing;
+  }
+
+  &__count {
+    border-radius: 15px;
+    min-width: 20px;
+    margin: 0 5px 0 5px;
+    padding: 0 5px 0 5px;
+    font-weight: bold;
+    text-align: center;
+    white-space: nowrap;
+  }
+
+  &__chevron-container {
+    width: 20px;
+    flex-shrink: 0;
+  }
+
+  &__chevron,
+  &__chevron--rtl,
+  &__chevron--open {
+    font-size: 16px;
+    margin-right: 3px;
+  }
+
+  &__chevron {
+    flex-shrink: 0;
+    transform: rotate(-90deg);
+
+    &--rtl {
+      transform: rotate(90deg);
     }
 
-    &__chevron-container {
-        width: 20px;
-        flex-shrink: 0;
+    &--open {
+      transform: rotate(0);
     }
+  }
 
-    &__chevron, &__chevron--rtl, &__chevron--open {
-        font-size: 16px;
-        margin-right: 3px;
-    }
+  &__title__text {
+    flex-grow: 0;
+  }
 
-    &__chevron {
-        flex-shrink: 0;
-        transform: rotate(-90deg);
-
-        &--rtl {
-            transform: rotate(90deg);
-        }
-
-        &--open  {
-            transform: rotate(0);
-        }
-    }
-
-    &__title__text {
-        flex-grow: 0;
-    }
-
-    &__title__spacer {
-        flex-grow: 1;
-    }
+  &__title__spacer {
+    flex-grow: 1;
+  }
 }
 
 .sidebar__actions {
-    float: right;
-    margin-top: 5px;
-    margin-right: 5px;
-    z-index: 1000;
+  float: right;
+  margin-top: 5px;
+  margin-right: 5px;
+  z-index: 1000;
 }
 
 .sidebar__list {
-    list-style: none;
-    margin: 0;
-    padding: 0;
+  list-style: none;
+  margin: 0;
+  padding: 0;
 
-    &-item {
-        padding: calc($baseSpacing / 2) $baseSpacing;
+  &-item {
+    padding: calc($baseSpacing / 2) $baseSpacing;
+  }
+
+  &-title {
+    margin-bottom: calc($baseSpacing / 2);
+    font-weight: bold;
+  }
+
+  &-value {
+    font-size: 12px;
+
+    &:not(:last-child) {
+      margin-bottom: calc($baseSpacing / 4);
     }
-
-    &-title {
-        margin-bottom: calc($baseSpacing / 2);
-        font-weight: bold;
-    }
-
-    &-value {
-        font-size: 12px;
-
-        &:not(:last-child) {
-            margin-bottom: calc($baseSpacing / 4);
-        }
-    }
+  }
 }

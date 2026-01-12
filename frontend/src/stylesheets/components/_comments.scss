@@ -1,31 +1,33 @@
 .comments-sidebar {
-    min-width: $sidebarWidth;
-    margin-right: 30px;
-    position: relative;
+  min-width: $sidebarWidth;
+  margin-right: 30px;
+  position: relative;
 }
 
 .comment {
-    position: absolute;
-    padding: $baseSpacing;
-    background: $secondary;
-    width: 100%;
-    /* stretch to fill width */
-    left: 0;
-    right: 0;
+  position: absolute;
+  padding: $baseSpacing;
+  background: $secondary;
+  width: 100%;
+  /* stretch to fill width */
+  left: 0;
+  right: 0;
 }
 
 .comment--animatable {
-    transition: top .4s ease 0s, left .4s ease 0s;
+  transition:
+    top 0.4s ease 0s,
+    left 0.4s ease 0s;
 }
 
 .comment--add {
-   border-top: 1px solid $borderColour;
-   background: $primary;
-   padding: $baseSpacing;
+  border-top: 1px solid $borderColour;
+  background: $primary;
+  padding: $baseSpacing;
 }
 
 .comment--add > textarea {
-    resize: none;
-    width: 100%;
-    margin-bottom: $baseSpacing;
+  resize: none;
+  width: 100%;
+  margin-bottom: $baseSpacing;
 }

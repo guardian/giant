@@ -1,5 +1,5 @@
-import authFetch from '../util/auth/authFetch';
+import authFetch from "../util/auth/authFetch";
 
 export function getEmailThread(uri) {
-    return authFetch(`/api/emails/thread/${uri}`).then(res => res.json());
+  return authFetch(`/api/emails/thread/${uri}`).then((res) => res.json());
 }

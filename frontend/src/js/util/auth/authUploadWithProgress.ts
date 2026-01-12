@@ -12,7 +12,7 @@ export default function authUploadWithProgress(
   path: string,
   workspace?: WorkspaceUploadMetadata,
   onProgress?: ProgressHandler,
-  ingestionName?: string
+  ingestionName?: string,
 ) {
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
@@ -36,7 +36,7 @@ export default function authUploadWithProgress(
       resolve,
       reject,
       workspace,
-      ingestionName
+      ingestionName,
     );
   });
 }
@@ -51,12 +51,12 @@ const processRequest = (
   resolve: (value: unknown) => void,
   reject: (reason?: any) => void,
   workspace?: WorkspaceUploadMetadata,
-  ingestionName?: string
+  ingestionName?: string,
 ) => {
   xhr.onloadend = () => {
     handleResponseFromAuthRequest(
       xhr.status,
-      xhr.getResponseHeader("X-Offer-Authorization")
+      xhr.getResponseHeader("X-Offer-Authorization"),
     );
     if (xhr.status >= 200 && xhr.status < 300) {
       resolve(xhr.response);
@@ -72,18 +72,27 @@ const processRequest = (
           resolve,
           reject,
           workspace,
-          ingestionName
+          ingestionName,
         );
       } else {
         console.error(
-          `request failed due to ${xhr.responseText} - status: ${xhr.status}, retry: ${retryCount} for url: ${url}`
+          `request failed due to ${xhr.responseText} - status: ${xhr.status}, retry: ${retryCount} for url: ${url}`,
         );
         reject(`${xhr.status} - ${xhr.responseText}`);
       }
     }
   };
 
-  sendRequest(xhr, url, file, path, uploadId, retryCount, workspace, ingestionName);
+  sendRequest(
+    xhr,
+    url,
+    file,
+    path,
+    uploadId,
+    retryCount,
+    workspace,
+    ingestionName,
+  );
 };
 
 const retryRequest = (
@@ -96,7 +105,7 @@ const retryRequest = (
   resolve: (value: unknown) => void,
   reject: (reason?: any) => void,
   workspace?: WorkspaceUploadMetadata,
-  ingestionName?: string
+  ingestionName?: string,
 ) => {
   const limit = retryCount ? Math.pow(2, retryCount - 1) * 1000 : 0;
   const pause = Math.random() * limit;
@@ -112,7 +121,7 @@ const retryRequest = (
       resolve,
       reject,
       workspace,
-      ingestionName
+      ingestionName,
     );
   }, pause);
 };
@@ -125,7 +134,7 @@ const sendRequest = (
   uploadId: string,
   retryCount: number,
   workspace?: WorkspaceUploadMetadata,
-  ingestionName?: string
+  ingestionName?: string,
 ) => {
   xhr.open("POST", url);
 
@@ -143,12 +152,12 @@ const sendRequest = (
     xhr.setRequestHeader("X-PFI-Workspace-Id", workspace.workspaceId);
     xhr.setRequestHeader(
       "X-PFI-Workspace-Parent-Node-Id",
-      workspace.parentNodeId
+      workspace.parentNodeId,
     );
     xhr.setRequestHeader("X-PFI-Workspace-Name", workspace.workspaceName);
   }
 
-  if(ingestionName) {
+  if (ingestionName) {
     xhr.setRequestHeader("X-PFI-Ingestion-Name", ingestionName);
   }
   xhr.setRequestHeader("X-PFI-Last-Modified", file.lastModified.toString());

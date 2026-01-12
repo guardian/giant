@@ -1,39 +1,45 @@
-
 import { PDFPageProxy } from "pdfjs-dist/types/src/display/api";
 import { CachedPreview, PdfText } from "./model";
-import {getDocument, GlobalWorkerOptions, PDFWorker, renderTextLayer} from "pdfjs-dist";
+import {
+  getDocument,
+  GlobalWorkerOptions,
+  PDFWorker,
+  renderTextLayer,
+} from "pdfjs-dist";
 
 // PDFjs has webpack config built-in but it uses worker-loader which seems
 // to break automatic reloading in dev in our Create React App project.
 // My solution is to symlink the worker js file into our existing 3rd party
 // directory in the backend and reference it directly.
-GlobalWorkerOptions.workerSrc = '/third-party/pdf.worker.min.js';
-export const updatePreview = async (preview: Promise<CachedPreview>, containerSize: number): Promise<CachedPreview> => {
-  return preview.then(async prev => {
+GlobalWorkerOptions.workerSrc = "/third-party/pdf.worker.min.js";
+export const updatePreview = async (
+  preview: Promise<CachedPreview>,
+  containerSize: number,
+): Promise<CachedPreview> => {
+  return preview.then(async (prev) => {
     const page = prev.pdfPage;
     return renderPagePreview(page, containerSize);
   });
-}
+};
 
 export const renderPdfPreview = async (
   buffer: ArrayBuffer,
   pdfWorker: PDFWorker,
-  containerSize: number
+  containerSize: number,
 ): Promise<CachedPreview> => {
-
   const doc = await getDocument({
     data: new Uint8Array(buffer),
     // Use the same web worker for all pages
-    worker: pdfWorker
+    worker: pdfWorker,
   }).promise;
-  
+
   const pdfPage = await doc.getPage(1);
-  
+
   return renderPagePreview(pdfPage, containerSize);
 };
 
 export const renderTextOverlays = async (
-  preview: CachedPreview
+  preview: CachedPreview,
 ): Promise<PdfText[]> => {
   const { pdfPage, scale } = preview;
 
@@ -61,7 +67,10 @@ export const renderTextOverlays = async (
   }));
 };
 
-const renderPagePreview = async (pdfPage: PDFPageProxy, containerSize: number) => {
+const renderPagePreview = async (
+  pdfPage: PDFPageProxy,
+  containerSize: number,
+) => {
   const canvas = document.createElement("canvas");
   const canvasContext = canvas.getContext("2d")!;
 
@@ -83,6 +92,6 @@ const renderPagePreview = async (pdfPage: PDFPageProxy, containerSize: number) =
     canvasContext,
     viewport,
   });
-    
+
   return { pdfPage, canvas, scale };
-}
+};

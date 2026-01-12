@@ -1,274 +1,271 @@
 .search {
-    position: relative;
+  position: relative;
 }
 
 .search-box {
-    display: flex;
-    flex-direction: row;
-    position: relative;
-    align-items: center;
-    background-color: white;
-    border: 1px solid $borderColour;
-    border-radius: $borderRadius;
-    margin-bottom: $baseSpacing;
+  display: flex;
+  flex-direction: row;
+  position: relative;
+  align-items: center;
+  background-color: white;
+  border: 1px solid $borderColour;
+  border-radius: $borderRadius;
+  margin-bottom: $baseSpacing;
 
-    &__icon {
-        margin: $baseSpacing;
-        font-size: 30px;
-        pointer-events: none;
-    }
+  &__icon {
+    margin: $baseSpacing;
+    font-size: 30px;
+    pointer-events: none;
+  }
 
-    &__input {
-        flex-grow: 1;
-        padding: 15px;
-        padding-left: 0;
-        font-weight: 500;
-    }
+  &__input {
+    flex-grow: 1;
+    padding: 15px;
+    padding-left: 0;
+    font-weight: 500;
+  }
 }
 
 .search__underbar {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: $baseSpacing * 2;
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: $baseSpacing * 2;
 }
 
 .search__controls {
-    display: flex;
-    justify-content: flex-end;
-
+  display: flex;
+  justify-content: flex-end;
 }
 
 .search__control {
-    display: inline-block;
-    width: 200px;
+  display: inline-block;
+  width: 200px;
 
-    // Make sure the drop down menu appears above highlights
-    & .Select-menu-outer {
-        z-index: 100;
-    }
+  // Make sure the drop down menu appears above highlights
+  & .Select-menu-outer {
+    z-index: 100;
+  }
 
-    &:not(:last-child) {
-        margin-right: calc($baseSpacing / 2);
-    }
+  &:not(:last-child) {
+    margin-right: calc($baseSpacing / 2);
+  }
 }
 
 .search-result {
+  display: flex;
+  flex-wrap: wrap;
+  border-radius: $borderRadius;
+  background-color: white;
+  margin-bottom: $baseSpacing;
+  box-shadow: $boxShadow;
+
+  &__info {
     display: flex;
-    flex-wrap: wrap;
-    border-radius: $borderRadius;
+    flex-direction: column;
+
+    position: relative;
+    margin: calc($baseSpacing / 2);
+    width: 300px;
+    flex-shrink: 0;
+    border-radius: $borderRadius 0 0 $borderRadius;
+    background-color: $secondaryLight;
+
+    &--last-result {
+      box-shadow: inset 8px 0 0 0px $highlightColour;
+      &-overlay {
+        pointer-events: none;
+        box-shadow: inset 0px 0px 0px 3px #fdb600;
+        position: absolute;
+        width: 100%;
+        height: 100%;
+      }
+    }
+  }
+
+  &__summary {
+    display: flex;
+    height: fit-content;
+    align-items: center;
+    overflow-wrap: anywhere;
+  }
+
+  &__info-content {
+    padding: $baseSpacing;
+    display: flex;
+    flex-flow: column;
+  }
+
+  &__details {
+    padding-left: $baseSpacing;
+    padding-bottom: $baseSpacing;
+
+    &-info {
+      padding-left: $baseSpacing;
+      margin: 0;
+      font-size: 12px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+  }
+
+  &__content {
+    width: 300px;
+    flex-grow: 2;
+    position: relative;
     background-color: white;
-    margin-bottom: $baseSpacing;
-    box-shadow: $boxShadow;
+    padding: $baseSpacing;
+    word-wrap: break-word;
+  }
 
-    &__info {
-        display: flex;
-        flex-direction: column;
+  &__title {
+    padding: $baseSpacing;
+    margin-bottom: 0;
+    text-decoration: none;
+    font-weight: 500;
+    align-self: center;
+  }
 
-        position: relative;
-        margin: calc($baseSpacing / 2);
-        width: 300px;
-        flex-shrink: 0;
-        border-radius: $borderRadius 0 0 $borderRadius;
-        background-color: $secondaryLight;
+  &__link {
+    text-decoration: none;
+    cursor: pointer;
+    align-self: center;
+    display: block;
+  }
 
-        &--last-result {
-            box-shadow: inset 8px 0 0 0px $highlightColour;
-            &-overlay {
-                pointer-events: none;
-                box-shadow: inset 0px 0px 0px 3px #fdb600;
-                position: absolute;
-                width: 100%;
-                height: 100%;
-            }
-        }
+  &__icon--small {
+    width: 25px !important;
+    height: 25px !important;
+    padding: calc($baseSpacing / 3) !important;
+  }
+
+  &__icon-email {
+    padding: $baseSpacing;
+    width: 50px;
+    height: 50px;
+    margin: calc($baseSpacing / 2);
+    border-radius: 50%;
+    color: white;
+    background-color: $highlightColour;
+  }
+
+  &__icon-document {
+    display: inline-block;
+    padding: $baseSpacing;
+    width: 50px;
+    height: 50px;
+    margin: calc($baseSpacing / 2);
+    border-radius: 50%;
+    color: white;
+    background-color: $accentBlue;
+  }
+
+  &__attachment-count {
+    min-width: 25px;
+    user-select: none;
+    font-size: 14px;
+    width: max-content;
+
+    & svg {
+      transform: translate(0, -1px);
+    }
+  }
+
+  &__type {
+    margin-left: $baseSpacing;
+    vertical-align: middle;
+  }
+
+  &__highlight {
+    padding: calc($baseSpacing / 2);
+    position: relative;
+    font-family: monospace;
+    border-bottom: 1px solid $borderColour;
+
+    &:last-child {
+      border-bottom-width: 0;
     }
 
-    &__summary {
-        display: flex;
-        height: fit-content;
-        align-items: center;
-        overflow-wrap: anywhere;
+    &-field {
+      font-weight: bold;
     }
-
-    &__info-content {
-        padding: $baseSpacing;
-        display: flex;
-        flex-flow: column;
-    }
-
-    &__details {
-        padding-left: $baseSpacing;
-        padding-bottom: $baseSpacing;
-
-        &-info {
-            padding-left: $baseSpacing;
-            margin: 0;
-            font-size: 12px;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-        }
-    }
-
-    &__content {
-        width: 300px;
-        flex-grow: 2;
-        position: relative;
-        background-color: white;
-        padding: $baseSpacing;
-        word-wrap: break-word;
-
-    }
-
-    &__title {
-        padding: $baseSpacing;
-        margin-bottom: 0;
-        text-decoration: none;
-        font-weight: 500;
-        align-self: center;
-    }
-
-    &__link {
-        text-decoration: none;
-        cursor: pointer;
-        align-self: center;
-        display: block;
-    }
-
-    &__icon--small {
-        width: 25px !important;
-        height: 25px !important;
-        padding: calc($baseSpacing / 3) !important;
-    }
-
-    &__icon-email {
-        padding: $baseSpacing;
-        width: 50px;
-        height: 50px;
-        margin: calc($baseSpacing / 2);
-        border-radius: 50%;
-        color: white;
-        background-color: $highlightColour;
-    }
-
-    &__icon-document {
-        display: inline-block;
-        padding: $baseSpacing;
-        width: 50px;
-        height: 50px;
-        margin: calc($baseSpacing / 2);
-        border-radius: 50%;
-        color: white;
-        background-color: $accentBlue;
-    }
-
-    &__attachment-count {
-        min-width: 25px;
-        user-select: none;
-        font-size: 14px;
-        width: max-content;
-
-        & svg {
-            transform: translate(0, -1px);
-        }
-    }
-
-    &__type {
-        margin-left: $baseSpacing;
-        vertical-align: middle;
-    }
-
-    &__highlight {
-        padding: calc($baseSpacing / 2);
-        position: relative;
-        font-family: monospace;
-        border-bottom: 1px solid $borderColour;
-
-        &:last-child {
-            border-bottom-width: 0;
-        }
-
-        &-field {
-            font-weight: bold;
-        }
-    }
+  }
 }
 
 .search__compact {
-    &-table {
-        width: 100%;
-        border-collapse: collapse;
-        table-layout: fixed;
+  &-table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
 
-        & tr:nth-child(odd) {
-            background-color: $secondary;
-        }
+    & tr:nth-child(odd) {
+      background-color: $secondary;
+    }
+  }
 
+  &-title {
+    padding: 0;
+    margin-bottom: 0;
+    font-weight: 500;
+    width: 100%;
+
+    &-cell {
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      display: block;
+      width: 100%;
+      overflow: hidden;
+    }
+  }
+
+  &-details {
+    margin-left: $baseSpacing;
+  }
+
+  &-icon {
+    &-col {
+      width: 48px;
     }
 
-    &-title {
-        padding: 0;
-        margin-bottom: 0;
-        font-weight: 500;
-        width: 100%;
-
-        &-cell {
-            text-overflow:  ellipsis;
-            white-space:  nowrap;
-            display:  block;
-            width:  100%;
-            overflow:  hidden;
-        }
+    &-cell {
+      text-align: center;
     }
+  }
+  &-created-at-cell {
+    padding-right: $baseSpacing;
+  }
 
-    &-details {
-        margin-left: $baseSpacing;
-    }
+  &-attachment-count-col {
+    width: 46px;
+  }
 
-    &-icon {
-        &-col {
-            width: 48px;
-        }
+  &-attachment-count-cell {
+    text-align: center;
+  }
 
-        &-cell {
-            text-align: center;
-        }
-    }
-    &-created-at-cell {
-        padding-right: $baseSpacing;
-    }
-
-    &-attachment-count-col {
-        width: 46px;
-    }
-
-    &-attachment-count-cell {
-        text-align: center;
-    }
-
-    &-date-col {
-        width: 240px;
-    }
+  &-date-col {
+    width: 240px;
+  }
 }
 
-.search__status{
-    border: 1px solid transparent;
-    align-self: center;
-    margin-right: 12px;
+.search__status {
+  border: 1px solid transparent;
+  align-self: center;
+  margin-right: 12px;
 
-    &--error {
-        background-color: $errorColour;
-        padding: calc($baseSpacing / 2);
-        border-radius: $borderRadius;
-        color: white;
-    }
+  &--error {
+    background-color: $errorColour;
+    padding: calc($baseSpacing / 2);
+    border-radius: $borderRadius;
+    color: white;
+  }
 }
 
 .search__actions {
-    display: flex;
-    margin-right: $baseSpacing;
+  display: flex;
+  margin-right: $baseSpacing;
 }
 
 .search__button {
-    margin-right: 10px;
+  margin-right: 10px;
 }
