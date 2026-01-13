@@ -4,11 +4,8 @@ import java.nio.file.{Files, Path}
 import java.util.UUID
 import org.apache.pekko.actor.{ActorSystem, Cancellable}
 import cats.syntax.either._
-import com.amazonaws.services.cloudwatch.model.MetricDatum
-import extraction.Worker
 import model.Uri
 import model.ingestion.Key
-import org.apache.xmlbeans.impl.soap.Detail
 import services.ingestion.IngestionServices
 import services.{FingerprintServices, IngestStorage, MetricUpdate, Metrics, MetricsService, ScratchSpace}
 import utils.attempt.{Attempt, ElasticSearchQueryFailure, Failure, UnknownFailure}
