@@ -230,8 +230,8 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
           {entry.data.descendantsProcessingTaskCount > 0 && (
             <em>
               {entry.data.descendantsProcessingTaskCount.toLocaleString()} task
-              {entry.data.descendantsProcessingTaskCount > 1 &&
-                "s"} remaining{" "}
+              {entry.data.descendantsProcessingTaskCount > 1 && "s"}{" "}
+              remaining{" "}
             </em>
           )}
           {entry.data.descendantsProcessingTaskCount > 0 &&
@@ -261,7 +261,7 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
             this.props.renameItem(
               workspaceId,
               this.props.entryBeingRenamed.id,
-              newName
+              newName,
             );
           }
         };
@@ -455,12 +455,12 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
       const entryTreeEntries =
         this.getEntryTreeNodes(
           workspaceLocation,
-          this.props.currentWorkspace.rootNode
+          this.props.currentWorkspace.rootNode,
         ) || [];
       const entriesWithoutRoot = entryTreeEntries.filter(
         (entry) =>
           this.props.currentWorkspace &&
-          entry.id !== this.props.currentWorkspace.rootNode.id
+          entry.id !== this.props.currentWorkspace.rootNode.id,
       );
       const entryTreeNodes = entriesWithoutRoot.filter(isTreeNode);
 
@@ -536,7 +536,7 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
   };
 
   setSelectedEntriesAfterShiftClick = (
-    newlyFocusedEntry: TreeEntry<WorkspaceEntry>
+    newlyFocusedEntry: TreeEntry<WorkspaceEntry>,
   ) => {
     if (!this.props.currentWorkspace) {
       return;
@@ -546,7 +546,7 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
     const orderedEntries = treeToOrderedEntries(
       this.props.currentWorkspace.rootNode.children,
       this.state.columnsConfig,
-      this.props.expandedNodes
+      this.props.expandedNodes,
     );
     if (!previouslyFocusedEntry) {
       // if nothing focused, set the focused node to the top one
@@ -559,15 +559,15 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
     const newShiftClickSelectedEntries = getShiftClickSelectedEntries(
       orderedEntries,
       previouslyFocusedEntry,
-      newlyFocusedEntry
+      newlyFocusedEntry,
     );
 
     this.props.setSelectedEntries(
       newSelectionFromShiftClick(
         this.state.previousShiftClickSelectedEntries,
         newShiftClickSelectedEntries,
-        this.props.selectedEntries
-      )
+        this.props.selectedEntries,
+      ),
     );
 
     // Specifically do not change the focused entry when setting a shift-click selection,
@@ -583,7 +583,7 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
     if (entriesIncludes(this.props.selectedEntries, entry)) {
       // deselect the clicked entry
       const newSelectedEntries = this.props.selectedEntries.filter(
-        (n) => n.id !== entry.id
+        (n) => n.id !== entry.id,
       );
       this.props.setSelectedEntries(newSelectedEntries);
 
@@ -594,12 +594,12 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
         entriesAreEqual(this.props.focusedEntry, entry)
       ) {
         this.props.setFocusedEntry(
-          newSelectedEntries[newSelectedEntries.length - 1] || null
+          newSelectedEntries[newSelectedEntries.length - 1] || null,
         );
       }
     } else {
       this.props.setSelectedEntries(
-        R.append(entry, this.props.selectedEntries)
+        R.append(entry, this.props.selectedEntries),
       );
       this.props.setFocusedEntry(entry);
     }
@@ -617,7 +617,7 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
   onFocus = (
     entry: TreeEntry<WorkspaceEntry>,
     isMetaKeyHeld: boolean,
-    isShiftKeyHeld: boolean
+    isShiftKeyHeld: boolean,
   ) => {
     if (isMetaKeyHeld) {
       this.setSelectedEntriesAfterMetaClick(entry);
@@ -689,7 +689,7 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
         this.props.deleteResourceFromWorkspace(
           workspaceId,
           entry.data.uri,
-          this.onDeleteCompleteHandler
+          this.onDeleteCompleteHandler,
         );
         this.props.resetFocusedAndSelectedEntries();
       }
@@ -709,7 +709,7 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
         this.props.deleteItem(
           workspaceId,
           entry.id,
-          this.onRemoveCompleteHandler
+          this.onRemoveCompleteHandler,
         );
         this.props.resetFocusedAndSelectedEntries();
       }
@@ -788,7 +788,7 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
    */
   getEntryTreeNodes(
     entryId: string,
-    startNode: TreeEntry<WorkspaceEntry>
+    startNode: TreeEntry<WorkspaceEntry>,
   ): TreeEntry<WorkspaceEntry>[] | undefined {
     if (startNode.id === entryId) {
       return [startNode];
@@ -806,7 +806,7 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
 
   getEntryPath(
     entryId: string,
-    workspaceRootNode: TreeEntry<WorkspaceEntry>
+    workspaceRootNode: TreeEntry<WorkspaceEntry>,
   ): string {
     const pathArray = this.getEntryTreeNodes(entryId, workspaceRootNode);
     if (pathArray) {
@@ -822,7 +822,7 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
     positionX: number,
     positionY: number,
     currentUser: PartialUser,
-    workspace: Workspace
+    workspace: Workspace,
   ) {
     const isFolder = isWorkspaceNode(entry.data);
     const copyFilenameContent = isFolder
@@ -852,7 +852,7 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
     if (!isRemoteIngest) {
       items.push(
         { key: "rename", content: "Rename", icon: "pen square" }, // or 'pencil alternate'
-        { key: "remove", content: "Remove from workspace", icon: "trash" }
+        { key: "remove", content: "Remove from workspace", icon: "trash" },
       );
     }
 
@@ -945,12 +945,12 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
                   break;
                 case copyFilePathContent:
                   navigator.clipboard.writeText(
-                    this.getEntryPath(entry.id, workspace.rootNode)
+                    this.getEntryPath(entry.id, workspace.rootNode),
                   );
                   break;
                 case copyCaptureURLContent:
                   navigator.clipboard.writeText(
-                    entry.data.maybeCapturedFromURL!
+                    entry.data.maybeCapturedFromURL!,
                   );
                   break;
                 case copyLinkToFolderContent:
@@ -960,7 +960,7 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
               }
 
               const menuItem = items.find(
-                (i: ContextMenuEntry) => i.content === menuItemProps.content
+                (i: ContextMenuEntry) => i.content === menuItemProps.content,
               );
               if (menuItem) {
                 menuItem.content = "Copied!";
@@ -1005,7 +1005,7 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
                     "*",
                   ]),
                   page: 1,
-                })
+                }),
               );
             }
 
@@ -1019,7 +1019,7 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
   onCopy: ClipboardEventHandler<HTMLDivElement> = (e) => {
     e.clipboardData.setData(
       "text/plain",
-      this.props.selectedEntries?.map((entry) => entry.name).join("\n")
+      this.props.selectedEntries?.map((entry) => entry.name).join("\n"),
     );
     e.preventDefault();
   };
@@ -1061,7 +1061,7 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
             };
           }
         },
-        { descendantsNodeCount: 0, descendantsLeafCount: 0 }
+        { descendantsNodeCount: 0, descendantsLeafCount: 0 },
       );
 
     return (
@@ -1209,7 +1209,7 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
           workspaces={this.props.workspacesMetadata}
           expandedNodes={this.props.expandedNodes}
           isAdmin={this.props.myPermissions.includes(
-            "CanPerformAdminOperations"
+            "CanPerformAdminOperations",
           )}
         />
         <div className="workspace">
@@ -1221,13 +1221,13 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
               this.state.contextMenu.positionX,
               this.state.contextMenu.positionY,
               this.props.currentUser,
-              this.props.currentWorkspace
+              this.props.currentWorkspace,
             )
           : null}
         <DeleteModal
           deleteItemHandler={this.onDeleteItem(
             this.props.match.params.id,
-            this.state.deleteModalContext.entry
+            this.state.deleteModalContext.entry,
           )}
           isOpen={this.state.deleteModalContext.isOpen}
           setModalOpen={this.onDeleteModalOpen}
@@ -1237,7 +1237,7 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
         <RemoveFromWorkspaceModal
           removeHandler={this.onRemoveFromWorkspace(
             this.props.match.params.id,
-            this.state.removeFromWorkspaceModalContext.entry
+            this.state.removeFromWorkspaceModalContext.entry,
           )}
           isOpen={this.state.removeFromWorkspaceModalContext.isOpen}
           setModalOpen={this.onRemoveFromWorkspaceModalOpen}
@@ -1275,7 +1275,7 @@ function mapDispatchToProps(dispatch: GiantDispatch) {
     reprocessBlob: bindActionCreators(reprocessBlob, dispatch),
     deleteResourceFromWorkspace: bindActionCreators(
       deleteResourceFromWorkspace,
-      dispatch
+      dispatch,
     ),
     addFolderToWorkspace: bindActionCreators(addFolderToWorkspace, dispatch),
     deleteWorkspace: bindActionCreators(deleteWorkspace, dispatch),
@@ -1296,7 +1296,7 @@ function mapDispatchToProps(dispatch: GiantDispatch) {
     renameWorkspace: bindActionCreators(renameWorkspace, dispatch),
     takeOwnershipOfWorkspace: bindActionCreators(
       takeOwnershipOfWorkspace,
-      dispatch
+      dispatch,
     ),
     setWorkspaceFollowers: bindActionCreators(setWorkspaceFollowers, dispatch),
     setWorkspaceIsPublic: bindActionCreators(setWorkspaceIsPublic, dispatch),
@@ -1310,5 +1310,5 @@ function mapDispatchToProps(dispatch: GiantDispatch) {
 
 export default connect(
   mapStateToProps,
-  mapDispatchToProps
+  mapDispatchToProps,
 )(WorkspacesUnconnected);
