@@ -1,21 +1,15 @@
 package utils.controller
 
-import com.amazonaws.services.cloudwatch.AmazonCloudWatchClientBuilder
-import com.amazonaws.services.cloudwatch.model.{Dimension, MetricDatum, PutMetricDataRequest}
-import com.amazonaws.util.EC2MetadataUtils
 import net.logstash.logback.marker.Markers.{aggregate, append}
 import play.api.http.HeaderNames
 import play.api.libs.json.JsError
 import play.api.mvc.{Result, Results}
-import services.{AWSDiscoveryConfig, Metrics, MetricsService}
+import services.{Metrics, MetricsService}
 import utils.attempt._
 import utils.auth.User
-import utils.{AwsCredentials, Logging}
+import utils.Logging
 
-import java.util.Date
 import scala.jdk.CollectionConverters._
-import scala.language.higherKinds
-import scala.util.control.NonFatal
 
 trait FailureToResultMapper {
   def failureToResult(err: Failure, user: Option[User] = None): Result

@@ -1,11 +1,12 @@
 package services
 
 import com.amazonaws.auth.AWSCredentialsProvider
-import com.amazonaws.services.cloudwatch.{AmazonCloudWatch, AmazonCloudWatchClientBuilder}
-import com.amazonaws.services.cloudwatch.model.{Dimension, MetricDatum, PutMetricDataRequest}
+import software.amazon.awssdk.services.cloudwatch.CloudWatchClient
+import software.amazon.awssdk.services.cloudwatch.model.{Dimension, MetricDatum, PutMetricDataRequest}
 import utils.{AwsCredentials, Logging}
 
-import java.util.Date
+import java.time.Instant
+
 import scala.util.control.NonFatal
 
 case class MetricUpdate(name: String, value: Double)
@@ -23,11 +24,11 @@ object Metrics {
 
 
   def metricDatum(name: String, dimensions: List[Dimension], value: Double): MetricDatum = {
-    new MetricDatum()
-      .withMetricName(name)
-      .withTimestamp(new Date())
-      .withDimensions(dimensions: _*)
-      .withValue(value)
+     MetricDatum.builder()
+      .metricName(name)
+      .timestamp(Instant.now())
+      .dimensions(dimensions: _*)
+      .values(value).build()
   }
 }
 
@@ -48,9 +49,8 @@ class NoOpMetricsService() extends MetricsService {
 class CloudwatchMetricsService(config: AWSDiscoveryConfig) extends MetricsService with Logging {
 
   private val credentials: AWSCredentialsProvider = AwsCredentials()
-  private val cloudwatch: AmazonCloudWatch = AmazonCloudWatchClientBuilder.standard()
-    .withCredentials(credentials)
-    .withRegion(config.region)
+  private val cloudwatch: CloudWatchClient = CloudWatchClient.builder()
+    .region(config.regionV2)
     .build()
 
   // These must be exactly the same as in the alarm, without any additional dimensions.
@@ -65,17 +65,18 @@ class CloudwatchMetricsService(config: AWSDiscoveryConfig) extends MetricsServic
 
   private def updateMetrics(metrics:List[MetricUpdate], dimensionValues: List[(String, String)] = List()): Unit = {
     val dimensions = dimensionValues.map{
-      case (name, value) => new Dimension().withName(name).withValue(value)
+      case (name, value) => Dimension.builder().name(name).value(value).build()
     }
 
     val metricsData = metrics.map(m => Metrics.metricDatum(m.name, dimensions, m.value))
     try {
-      val request = new PutMetricDataRequest()
-        .withNamespace(Metrics.namespace)
-        .withMetricData(
+      val request = PutMetricDataRequest.builder()
+        .namespace(Metrics.namespace)
+        .metricData(
           // As above, the metric must have the same unit as the alarm, in this case no unit
           metricsData : _*
         )
+        .build()
 
       cloudwatch.putMetricData(request)
    } catch {
