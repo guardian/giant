@@ -4,6 +4,9 @@ import com.amazonaws.auth.AWSCredentialsProvider
 import com.amazonaws.client.builder.AwsClientBuilder.EndpointConfiguration
 import com.amazonaws.services.s3.{AmazonS3, AmazonS3ClientBuilder}
 import com.amazonaws.services.s3.transfer.{TransferManager, TransferManagerBuilder}
+import software.amazon.awssdk.auth.credentials.{AwsCredentialsProvider => AwsCredentialsProviderV2}
+import software.amazon.awssdk.regions.Region
+import software.amazon.awssdk.services.s3.{S3Client => S3ClientV2}
 
 object AwsS3Clients {
   def apply(credentials: AWSCredentialsProvider, region: String, endpoint: Option[String]): (AmazonS3, TransferManager) = {
@@ -35,10 +38,11 @@ object AwsS3Clients {
         .build()
   }
 
-  def pandaS3Client(credentials: AWSCredentialsProvider, region: String): AmazonS3 = {
-    AmazonS3ClientBuilder.standard()
-      .withCredentials(credentials)
-      .withRegion(region)
+
+  def pandaS3Client(credentials: AwsCredentialsProviderV2, region: String): S3ClientV2 = {
+    S3ClientV2.builder()
+      .credentialsProvider(credentials)
+      .region(Region.of(region))
       .build()
   }
 }

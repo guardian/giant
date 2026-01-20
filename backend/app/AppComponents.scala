@@ -129,7 +129,7 @@ class AppComponents(context: Context, config: Config)
         val passwordValidator = new PasswordValidator(config.minPasswordLength)
         new DatabaseUserProvider(config, passwordHashingService, users, totpService, secureSecretGenerator, passwordValidator)
       case config: PandaAuthConfig =>
-        val credentials = AwsCredentials(profile = config.aws.profile)
+        val credentials = AwsCredentials.credentialsV2(profile = config.aws.profile)
         val pandaS3Client = AwsS3Clients.pandaS3Client(credentials, config.aws.region)
         val publicSettings = new PublicSettings(config.publicSettingsKey, config.bucketName, pandaS3Client)
         // start polling of S3 bucket for public key

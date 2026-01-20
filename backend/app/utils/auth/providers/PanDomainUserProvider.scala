@@ -41,7 +41,7 @@ class PanDomainUserProvider(val config: PandaAuthConfig, verificationProvider: (
 
     maybeCookie match {
       case Some(cookieData) =>
-        val status = PanDomain.authStatus(cookieData.value, verificationProvider(), validateUser, 0L, "giant", false, false)
+        val status = PanDomain.authStatus(cookieData.value, verificationProvider(), validateUser, "giant", cacheValidation = false, forceExpiry = false)
         status match {
           case Authenticated(authedUser) =>
             val downcasedAuthedUser = authedUser.copy(user = authedUser.user.copy(email = authedUser.user.email.toLowerCase()))

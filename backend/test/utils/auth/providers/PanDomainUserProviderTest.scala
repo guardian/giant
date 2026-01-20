@@ -16,6 +16,8 @@ import test.{AttemptValues, TestUserManagement}
 import utils.Epoch
 import utils.attempt.PanDomainCookieInvalid
 
+import java.time.Instant
+import java.time.temporal.ChronoUnit
 import scala.concurrent.ExecutionContext.Implicits.global
 
 class PanDomainUserProviderTest extends AnyFreeSpec with Matchers with AttemptValues with Results  {
@@ -70,7 +72,7 @@ class PanDomainUserProviderTest extends AnyFreeSpec with Matchers with AttemptVa
 
       "fails when user is not in database" in {
         val privateCookie = CookieUtils.generateCookieData(
-          AuthenticatedUser(User("Bob", "Bob", "bob@example.net", None), "test", Set("test"), now.millis+60*60*1000, multiFactor = true),
+          AuthenticatedUser(User("Bob", "Bob", "bob@example.net", None), "test", Set("test"), Instant.ofEpochMilli(now.millis).plus(1, ChronoUnit.HOURS), multiFactor = true),
           signingAndVerification
         )
 
@@ -87,7 +89,7 @@ class PanDomainUserProviderTest extends AnyFreeSpec with Matchers with AttemptVa
 
       "succeeds when cookie is valid" in {
         val privateCookie = CookieUtils.generateCookieData(
-          AuthenticatedUser(User("Bob", "Bob", "bob@example.net", None), "test", Set("test"), now.millis+60*60*1000, multiFactor = true),
+          AuthenticatedUser(User("Bob", "Bob", "bob@example.net", None), "test", Set("test"), Instant.ofEpochMilli(now.millis).plus(1, ChronoUnit.HOURS), multiFactor = true),
           signingAndVerification
         )
 
@@ -105,7 +107,7 @@ class PanDomainUserProviderTest extends AnyFreeSpec with Matchers with AttemptVa
 
       "succeeds when authed user email is title case but is lower case in the database" in {
         val privateCookie = CookieUtils.generateCookieData(
-          AuthenticatedUser(User("Bob", "Bob", "Bob@example.net", None), "test", Set("test"), now.millis + 60 * 60 * 1000, multiFactor = true),
+          AuthenticatedUser(User("Bob", "Bob", "Bob@example.net", None), "test", Set("test"), Instant.ofEpochMilli(now.millis).plus(1, ChronoUnit.HOURS), multiFactor = true),
           signingAndVerification
         )
 
@@ -123,7 +125,7 @@ class PanDomainUserProviderTest extends AnyFreeSpec with Matchers with AttemptVa
 
       "registers a user on first access" in {
         val privateCookie = CookieUtils.generateCookieData(
-          AuthenticatedUser(User("Bob", "Bob", "bob@example.net", None), "test", Set("test"), now.millis+60*60*1000, multiFactor = true),
+          AuthenticatedUser(User("Bob", "Bob", "bob@example.net", None), "test", Set("test"), Instant.ofEpochMilli(now.millis).plus(1, ChronoUnit.HOURS), multiFactor = true),
           signingAndVerification
         )
 
