@@ -206,7 +206,6 @@ lazy val backend = (project in file("backend"))
       "-Dcom.amazonaws.sdk.enableDefaultMetrics=cloudwatchRegion=eu-west-1",
       "-J-XX:MaxRAMPercentage=50",
       "-J-XX:InitialRAMPercentage=50",
-      "-J-XX:MaxMetaspaceSize=500m",
       "-J-XX:+UseG1GC",
       "-J-Xlog:gc*",
       "-J-XX:+HeapDumpOnOutOfMemoryError",
