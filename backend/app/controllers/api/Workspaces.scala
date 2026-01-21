@@ -5,13 +5,13 @@ import commands.DeleteResource
 import model.Uri
 import model.annotations.{ProcessingStage, Workspace, WorkspaceEntry, WorkspaceLeaf}
 import model.frontend.{TreeEntry, TreeLeaf, TreeNode}
-import model.ingestion.{ RemoteIngest, RemoteIngestStatus}
+import model.ingestion.{RemoteIngest, RemoteIngestStatus}
 import net.logstash.logback.marker.LogstashMarker
 import net.logstash.logback.marker.Markers.append
 import org.joda.time.DateTime
 import play.api.libs.json._
 import play.api.mvc.Action
-import services.{IngestStorage, RemoteIngestConfig, ObjectStorage}
+import services.{IngestStorage, ObjectStorage, RemoteIngestConfig}
 import services.manifest.Manifest
 import services.observability.PostgresClient
 import services.annotations.Annotations
@@ -19,7 +19,7 @@ import services.annotations.Annotations.AffectedResource
 import services.index.Index
 import services.ingestion.RemoteIngestStore
 import services.users.UserManagement
-import utils.Logging
+import utils.{Logging, Stopwatch}
 import utils.attempt._
 import utils.auth.{User, UserIdentityRequest}
 import utils.controller.{AuthApiController, AuthControllerComponents}
@@ -146,13 +146,18 @@ class Workspaces(
   }
 
   def get(workspaceId: String) = ApiAction.attempt { req: UserIdentityRequest[_] =>
-    for {
-      metadata <- annotation.getWorkspaceMetadata(req.user.username, workspaceId)
-      relevantRemoteJobs <- remoteIngestStore.getRelevantRemoteIngestJobs(workspaceId)
-      contents <- annotation.getWorkspaceContents(req.user.username, workspaceId, relevantRemoteJobs)
+    val requestId = UUID.randomUUID().toString
+    val trackingId = s"$workspaceId-$requestId"
+    val response = for {
+      metadata <- Stopwatch.measureAttempt(annotation.getWorkspaceMetadata(req.user.username, workspaceId)).track("getWorkspaceMetadata", trackingId)
+      relevantRemoteJobs <- Stopwatch.measureAttempt(remoteIngestStore.getRelevantRemoteIngestJobs(workspaceId)).track("relevantRemoteJobs", trackingId)
+      contents <- Stopwatch.measureAttempt(annotation.getWorkspaceContents(req.user.username, workspaceId, relevantRemoteJobs)).track("getWorkspaceContents", trackingId)
     } yield {
-      Ok(Json.toJson(Workspace.fromMetadataAndRootNode(metadata, contents)))
+      val json: JsValue = Stopwatch.measureAndLog({Json.toJson(Workspace.fromMetadataAndRootNode(metadata, contents))}, "json write", trackingId  )
+      Ok(json)
     }
+    Stopwatch.measureAttempt(response).track(s"get workspace ${workspaceId}", trackingId)
+    response
   }
 
   def getContents(workspaceId: String) = ApiAction.attempt { req =>
