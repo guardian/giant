@@ -204,10 +204,10 @@ lazy val backend = (project in file("backend"))
     Universal / javaOptions ++= Seq(
       "-Dpidfile.path=/dev/null",
       "-Dcom.amazonaws.sdk.enableDefaultMetrics=cloudwatchRegion=eu-west-1",
-      "-J-XX:MaxRAMFraction=2",
-      "-J-XX:InitialRAMFraction=2",
+      "-J-XX:MaxRAMPercentage=50",
+      "-J-XX:InitialRAMPercentage=50",
       "-J-XX:MaxMetaspaceSize=500m",
-      "-J-XX:+UseConcMarkSweepGC",
+      "-J-XX:+UseG1GC",
       "-J-Xlog:gc*",
       "-J-XX:+HeapDumpOnOutOfMemoryError",
       s"-J-Xloggc:/var/log/${name.value}/gc.log",
