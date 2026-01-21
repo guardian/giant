@@ -149,6 +149,9 @@ lazy val backend = (project in file("backend"))
       "software.amazon.awssdk" % "cloudwatch" % awsSdkVersion2,
       "software.amazon.awssdk" % "sqs" % awsSdkVersion2,
       "software.amazon.awssdk" % "sns" % awsSdkVersion2,
+      // remove the below once s3 has been upgraded to v2
+      "com.amazonaws" % "aws-java-sdk-cloudwatch" % awsVersion,
+      "com.amazonaws" % "aws-java-sdk-cloudwatchmetrics" % awsVersion,
       "com.beachape" %% "enumeratum-play" % "1.8.0",
       "com.iheart" %% "ficus" % "1.5.2",
       "org.jsoup" % "jsoup" % "1.14.2",
