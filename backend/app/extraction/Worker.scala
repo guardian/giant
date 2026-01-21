@@ -12,6 +12,7 @@ import utils.attempt._
 import java.io.InputStream
 import scala.concurrent.ExecutionContext
 import scala.language.postfixOps
+import scala.util.Try
 import scala.util.control.NonFatal
 
 object Worker extends Logging {
@@ -83,8 +84,10 @@ class Worker(
           status = EventStatus.Started,
           details = EventDetails.extractorDetails(extractor.name))
       )
-      val result = blobStorage.get(blob.uri.toStoragePath)
+      val streamOrError = blobStorage.get(blob.uri.toStoragePath)
+      val result = streamOrError
         .flatMap(safeInvokeExtractor(params, extractor, blob, _))
+      streamOrError.foreach(s => s.close())
 
 
       result match {
