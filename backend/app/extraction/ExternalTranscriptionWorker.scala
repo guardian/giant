@@ -80,7 +80,7 @@ class ExternalTranscriptionWorker(manifest: WorkerManifest, sqsClient: SqsClient
       case Left(failure) =>
         logger.error(s"failed to process sqs message", failure.toThrowable)
         if (messageAttributes.receiveCount.exists(_ >= MAX_RECEIVE_COUNT)) {
-          markAsFailure(new Uri(messageAttributes.messageGroupId), EXTRACTOR_NAME, failure.msg)
+          handleExternalTranscriptionOutputFailure(message, messageAttributes.messageGroupId, failure.msg)
         }
         completed
     }
