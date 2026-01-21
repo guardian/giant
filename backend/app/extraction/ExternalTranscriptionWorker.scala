@@ -78,7 +78,7 @@ class ExternalTranscriptionWorker(manifest: WorkerManifest, sqsClient: SqsClient
         handleExternalTranscriptionOutputFailure(message, messageAttributes.messageGroupId, failure.msg)
         completed + 1
       case Left(failure) =>
-        logger.error(s"failed to process sqs message", failure.toThrowable)
+        logger.error(s"failed to process sqs message. Receive count: ${messageAttributes.receiveCount}", failure.toThrowable)
         if (messageAttributes.receiveCount.exists(_ >= MAX_RECEIVE_COUNT)) {
           handleExternalTranscriptionOutputFailure(message, messageAttributes.messageGroupId, failure.msg)
         }
