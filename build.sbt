@@ -97,6 +97,7 @@ lazy val common = (project in file("common"))
       "com.amazonaws" % "aws-java-sdk-s3" % awsVersion,
       "org.scalatest" %% "scalatest" % scalatestVersion,
       "software.amazon.awssdk" % "auth" % awsSdkVersion2,
+      "software.amazon.awssdk" % "s3" % awsSdkVersion2,
       // Play has a transitive dependency on Logback,
       // but we specify one here to ensure that Play uses compatible
       // versions of SLF4J and Logback (i.e. its versions should be evicted by those here).
@@ -155,7 +156,7 @@ lazy val backend = (project in file("backend"))
       // see https://github.com/guardian/giant/pull/131
       "org.eclipse.angus" % "angus-mail" % "2.0.2",
       "com.sun.mail" % "javax.mail" % "1.6.2",
-      "com.gu" %% "pan-domain-auth-verification" % "7.0.0",
+      "com.gu" %% "pan-domain-auth-verification" % "15.0.0",
       "com.amazonaws" % "aws-java-sdk-secretsmanager" % "1.12.528",
 
       // this is needed to override the 2.11.4 version of jackson-module used in various play libraries (including jwt-play)
