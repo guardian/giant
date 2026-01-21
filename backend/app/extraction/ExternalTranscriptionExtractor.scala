@@ -50,7 +50,6 @@ sealed trait TranscriptionOutput {
   def id: String
   def originalFilename: String
   def userEmail: String
-  def isTranslation: Boolean
   def status: String
 }
 
@@ -58,7 +57,6 @@ case class TranscriptionOutputSuccess(
                                           id: String,
                                           originalFilename: String,
                                           userEmail: String,
-                                          isTranslation: Boolean,
                                           status: String = "SUCCESS",
                                           languageCode: String,
                                           combinedOutputKey: String,
@@ -68,7 +66,6 @@ case class TranscriptionOutputFailure(
                                       id: String,
                                       originalFilename: String,
                                       userEmail: String,
-                                      isTranslation: Boolean,
                                       status: String = "FAILURE"
                                     ) extends TranscriptionOutput
 
