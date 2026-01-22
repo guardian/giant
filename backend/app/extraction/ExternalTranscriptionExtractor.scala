@@ -142,7 +142,7 @@ class ExternalTranscriptionExtractor(index: Index, transcribeConfig: TranscribeC
         combinedOutputUrl = CombinedOutputUrl(url = combinedOutputUrl,key = combinedOutputKey),
         languageCode = "auto",
         translate = true,
-        diarize = true,
+        diarize = false,
         engine = "whisperx",
         ingestion = params.ingestion)
     }
