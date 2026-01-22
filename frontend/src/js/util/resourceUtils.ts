@@ -7,7 +7,7 @@ import {
 import { HighlightsState } from "../types/redux/GiantState";
 
 // safety-valve against a large flat structure slowing down the browser
-export const MAX_NUMBER_OF_CHILDREN = 3000;
+export const MAX_NUMBER_OF_CHILDREN = 5000;
 
 export function hasSingleBlobChild(
   resource: BasicResource,
