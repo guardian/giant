@@ -84,10 +84,14 @@ class Worker(
           status = EventStatus.Started,
           details = EventDetails.extractorDetails(extractor.name))
       )
-      val streamOrError = blobStorage.get(blob.uri.toStoragePath)
-      val result = streamOrError
-        .flatMap(safeInvokeExtractor(params, extractor, blob, _))
-      streamOrError.foreach(s => s.close())
+      val result = blobStorage.get(blob.uri.toStoragePath).flatMap { inputStream =>
+        try {
+          safeInvokeExtractor(params, extractor, blob, inputStream)
+        } finally {
+          if (inputStream != null) inputStream.close()
+        }
+      }
+
 
 
       result match {
