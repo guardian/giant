@@ -42,6 +42,10 @@
   display: inline-block;
   border: none;
   font-size: 18px;
+  max-width: 100%;
+  word-wrap: break-word;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
 
   &--chip {
     color: white;
@@ -58,11 +62,13 @@
   display: inline-block;
   height: 100%;
   margin: 0 calc($baseSpacing / 2) 0 0;
+  max-width: 100%;
 
   &:last-child {
     flex-grow: 1;
     cursor: text;
     margin: 0;
+    min-width: 100px; // Ensure there's always some space for typing
   }
 }
 
