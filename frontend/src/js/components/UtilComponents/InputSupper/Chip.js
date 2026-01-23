@@ -1,5 +1,6 @@
 import React from "react";
 import PropTypes from "prop-types";
+import ReactTooltip from "react-tooltip";
 
 import AutosizeInput from "react-input-autosize";
 
@@ -99,7 +100,19 @@ export default class Chip extends React.Component {
     this.currentControl = element;
   };
 
+  getDisplayValue = () => {
+    if (
+      this.props.type === "workspace_folder" &&
+      this.props.value.length > 75
+    ) {
+      return `${this.props.value.substring(0, 72)}...`;
+    }
+
+    return this.props.value;
+  };
+
   renderControl = () => {
+    const displayValue = this.getDisplayValue();
     switch (this.props.type) {
       case "text":
         return (
@@ -115,7 +128,7 @@ export default class Chip extends React.Component {
         return (
           <WorkspaceFolderChip
             ref={this.refHandler}
-            value={this.props.value}
+            value={displayValue}
             onChange={this.onChange}
             onKeyDown={this.onKeyDownDropdown}
             onFocus={this.onFocus}
@@ -163,6 +176,17 @@ export default class Chip extends React.Component {
   };
 
   render() {
+    const isWorkspaceFolder = this.props.type === "workspace_folder";
+
+    let displayName = this.props.name;
+    if (isWorkspaceFolder && this.props.value.length > 50) {
+      displayName = "Folder";
+    }
+
+    const tooltipText = isWorkspaceFolder
+      ? `Workspace Folder: ${this.props.value}`
+      : undefined;
+
     return (
       <span
         className={`input-supper__chip ${this.props.stagedForDeletion ? "input-supper__chip--delete-glow" : ""}`}
@@ -176,8 +200,12 @@ export default class Chip extends React.Component {
           </div>
         </button>
 
-        <span className="input-supper__chip-body">
-          <span className="input-supper__chip-name">{this.props.name}</span>
+        <span
+          className="input-supper__chip-body"
+          data-tip={tooltipText}
+          data-effect={tooltipText ? "solid" : undefined}
+        >
+          <span className="input-supper__chip-name">{displayName}</span>
           {this.renderControl()}
         </span>
 
@@ -187,6 +215,7 @@ export default class Chip extends React.Component {
         >
           <div className="input-supper__button-icon">&times;</div>
         </button>
+        {tooltipText ? <ReactTooltip insecure={false} /> : null}
       </span>
     );
   }
