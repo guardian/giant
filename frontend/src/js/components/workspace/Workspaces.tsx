@@ -840,8 +840,10 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
     currentUser: PartialUser,
     workspace: Workspace,
   ) {
-    const isWorkspaceFolder = isWorkspaceNode(entry.data);
-    const isWorkspaceFile = isWorkspaceLeaf(entry.data);
+    const workspaceLeaf = isWorkspaceLeaf(entry.data) ? entry.data : null;
+    const workspaceNode = isWorkspaceNode(entry.data) ? entry.data : null;
+    const isWorkspaceFolder = workspaceNode !== null;
+    const isWorkspaceFile = workspaceLeaf !== null;
     const copyFilenameContent = isWorkspaceFolder
       ? "Copy folder name"
       : "Copy file name";
@@ -886,12 +888,12 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
 
     if (
       isRemoteIngest &&
-      isWorkspaceFile &&
-      entry.data.processingStage.type === "failed"
+      workspaceLeaf &&
+      workspaceLeaf.processingStage.type === "failed"
     ) {
       items.push({
         key: "dismissFailed",
-        content: `Dismiss failed '${entry.data.mimeType}'`,
+        content: `Dismiss failed '${workspaceLeaf.mimeType}'`,
         icon: "trash",
       });
     }
@@ -994,9 +996,9 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
 
             if (
               menuItemProps.content === "Reprocess source file" &&
-              isWorkspaceFile
+              workspaceLeaf
             ) {
-              this.props.reprocessBlob(workspaceId, entry.data.uri);
+              this.props.reprocessBlob(workspaceId, workspaceLeaf.uri);
             }
 
             if (menuItemProps.content === "Search in folder") {
