@@ -8,7 +8,7 @@
     },
     "dependencies": {
         "@aws-sdk/client-secrets-manager": "^3.624.0",
-        "lodash": "4.17.21",
+        "lodash": "4.17.23",
         "npm-run-all": "^4.1.5",
         "pg": "8.7.1",
         "postgrator": "^5.0.0",
