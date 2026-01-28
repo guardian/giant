@@ -118,6 +118,16 @@ lazy val backend = (project in file("backend"))
     name := "pfi",
     scalacOptions := compilerFlags,
     evictionErrorLevel := Level.Warn,
+    // Exclude vulnerable htmlunit (all versions before 3.0.0 are vulnerable to RCE via XSLT)
+    // and force use of patched version. htmlunit moved from net.sourceforge.htmlunit to
+    // org.htmlunit starting with 3.0.0
+    excludeDependencies ++= Seq(
+      ExclusionRule("net.sourceforge.htmlunit", "htmlunit"),
+      ExclusionRule("net.sourceforge.htmlunit", "htmlunit-core-js"),
+      ExclusionRule("net.sourceforge.htmlunit", "neko-htmlunit"),
+      ExclusionRule("net.sourceforge.htmlunit", "htmlunit-xpath"),
+      ExclusionRule("net.sourceforge.htmlunit", "htmlunit-cssparser")
+    ),
     libraryDependencies ++= Seq(
       ws,
       "commons-codec" % "commons-codec" % "1.11",
@@ -188,7 +198,12 @@ lazy val backend = (project in file("backend"))
       "org.scalamock" %% "scalamock" % "4.4.0" % Test,
       "com.dimafeng" %% "testcontainers-scala-scalatest" % "0.41.4" % Test,
       "com.dimafeng" %% "testcontainers-scala-neo4j" % "0.41.4" % Test,
-      "com.dimafeng" %% "testcontainers-scala-elasticsearch" % "0.41.4" % Test
+      "com.dimafeng" %% "testcontainers-scala-elasticsearch" % "0.41.4" % Test,
+      // Explicitly include patched htmlunit to replace excluded vulnerable versions
+      "org.htmlunit" % "htmlunit" % "4.21.0" % Test,
+      "org.htmlunit" % "htmlunit-core-js" % "4.21.0" % Test,
+      "org.htmlunit" % "neko-htmlunit" % "4.21.0" % Test,
+      "org.htmlunit" % "htmlunit-xpath" % "4.21.0" % Test
     ),
 
     // set up separate tests and integration tests - http://www.scala-sbt.org/0.13.1/docs/Detailed-Topics/Testing.html#custom-test-configuration
