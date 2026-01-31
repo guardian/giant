@@ -427,7 +427,8 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
     this.props.getCollections();
     this.props.getWorkspace(this.props.match.params.id);
 
-    this.poller = setInterval(this.performPollingIfRequired, 5000);
+    // poll every minute
+    this.poller = setInterval(this.performPollingIfRequired, 60 * 1000);
 
     const workspaceLocationParam = this.props.match.params.workspaceLocation;
     if (!workspaceLocationParam || workspaceLocationParam.length === 0) {
