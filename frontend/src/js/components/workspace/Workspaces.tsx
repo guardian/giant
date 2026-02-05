@@ -822,6 +822,18 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
     return "unknown";
   }
 
+  getEntryLink(workspace: Workspace, entry: TreeEntry<WorkspaceEntry>): string {
+    const basePath =
+      entry.id === workspace.rootNode.id
+        ? `/workspaces/${workspace.id}`
+        : `/workspaces/${workspace.id}/${entry.id}`;
+    const origin =
+      typeof window !== "undefined" && window.location
+        ? window.location.origin
+        : "";
+    return `${origin}${basePath}`;
+  }
+
   renderContextMenu(
     entry: TreeEntry<WorkspaceEntry>,
     positionX: number,
@@ -829,15 +841,31 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
     currentUser: PartialUser,
     workspace: Workspace,
   ) {
-    const copyFilenameContent = "Copy file name";
-    const copyFilePathContent = "Copy file path";
+    const workspaceLeaf = isWorkspaceLeaf(entry.data) ? entry.data : null;
+    const workspaceNode = isWorkspaceNode(entry.data) ? entry.data : null;
+    const isWorkspaceFolder = workspaceNode !== null;
+    const isWorkspaceFile = workspaceLeaf !== null;
+    const copyFilenameContent = isWorkspaceFolder
+      ? "Copy folder name"
+      : "Copy file name";
+    const copyFilePathContent = isWorkspaceFolder
+      ? "Copy folder path"
+      : "Copy file path";
     const copyCaptureURLContent = "Copy URL this was captured from";
+    const copyEntryLinkContent = isWorkspaceFolder
+      ? "Copy link to folder"
+      : "Copy link to file";
+    const deleteEntryContent = isWorkspaceFolder
+      ? "Delete folder"
+      : "Delete file";
+    const entryLink = this.getEntryLink(workspace, entry);
 
     const isRemoteIngest = entry.id.startsWith("RemoteIngest");
 
     const items = [
       { key: "copyFilename", content: copyFilenameContent, icon: "copy" },
       { key: "copyFilePath", content: copyFilePathContent, icon: "copy" },
+      { key: "copyEntryLink", content: copyEntryLinkContent, icon: "linkify" },
     ];
 
     if (!isRemoteIngest) {
@@ -849,24 +877,24 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
 
     if (
       entry.data.addedBy.username === currentUser.username &&
-      isWorkspaceLeaf(entry.data) &&
+      isWorkspaceFile &&
       !isRemoteIngest
     ) {
       items.push({
         key: "deleteOrRemove",
-        content: "Delete file",
+        content: deleteEntryContent,
         icon: "trash",
       });
     }
 
     if (
       isRemoteIngest &&
-      isWorkspaceLeaf(entry.data) &&
-      entry.data.processingStage.type === "failed"
+      workspaceLeaf &&
+      workspaceLeaf.processingStage.type === "failed"
     ) {
       items.push({
         key: "dismissFailed",
-        content: `Dismiss failed '${entry.data.mimeType}'`,
+        content: `Dismiss failed '${workspaceLeaf.mimeType}'`,
         icon: "trash",
       });
     }
@@ -879,13 +907,13 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
       });
     }
 
-    if (isWorkspaceNode(entry.data) && !isRemoteIngest) {
+    if (isWorkspaceFolder && !isRemoteIngest) {
       items.push({
         key: "search",
         content: "Search in folder",
         icon: "search",
       });
-    } else if (isWorkspaceLeaf(entry.data) && !isRemoteIngest) {
+    } else if (isWorkspaceFile && !isRemoteIngest) {
       // TODO hopefully support re-processing remote ingests in future
       items.push({
         key: "reprocess",
@@ -922,6 +950,7 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
                 copyFilenameContent,
                 copyFilePathContent,
                 copyCaptureURLContent,
+                copyEntryLinkContent,
               ].includes(menuItemProps.content as string)
             ) {
               switch (menuItemProps.content) {
@@ -938,6 +967,9 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
                     entry.data.maybeCapturedFromURL!,
                   );
                   break;
+                case copyEntryLinkContent:
+                  navigator.clipboard.writeText(entryLink);
+                  break;
               }
 
               const menuItem = items.find(
@@ -951,7 +983,7 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
             }
 
             if (
-              menuItemProps.content === "Delete file" ||
+              menuItemProps.content === deleteEntryContent ||
               menuItemProps.content?.toString().startsWith("Dismiss failed")
             ) {
               this.setState({
@@ -965,9 +997,9 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
 
             if (
               menuItemProps.content === "Reprocess source file" &&
-              isWorkspaceLeaf(entry.data)
+              workspaceLeaf
             ) {
-              this.props.reprocessBlob(workspaceId, entry.data.uri);
+              this.props.reprocessBlob(workspaceId, workspaceLeaf.uri);
             }
 
             if (menuItemProps.content === "Search in folder") {
