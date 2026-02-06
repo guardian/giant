@@ -70,6 +70,7 @@ POST          /api/workspaces/:workspaceId/remoteUrl                        cont
 PUT           /api/workspaces/:workspaceId/nodes/:itemId/name               controllers.api.Workspaces.renameItem(workspaceId: String, itemId: String)
 PUT           /api/workspaces/:workspaceId/nodes/:itemId/parent             controllers.api.Workspaces.moveItem(workspaceId: String, itemId: String)
 POST          /api/workspaces/:workspaceId/nodes/:itemId/copy               controllers.api.Workspaces.copyItem(workspaceId: String, itemId: String)
+POST          /api/workspaces/:workspaceId/nodes/:folderId/add-resource  controllers.api.Workspaces.addResourceFileChildrenToWorkspaceFolder(workspaceId: String, folderId: String)
 DELETE        /api/workspaces/:workspaceId/nodes/:itemId                    controllers.api.Workspaces.removeItem(workspaceId: String, itemId: String)
 POST          /api/workspaces/:workspaceId/nodes/delete/:blobUri            controllers.api.Workspaces.deleteBlob(workspaceId: String, blobUri: String)
 POST          /api/workspaces/:workspaceId/nodes/delete/RemoteIngestTask/:taskId     controllers.api.Workspaces.archiveRemoteIngestTask(workspaceId: String, taskId: String)

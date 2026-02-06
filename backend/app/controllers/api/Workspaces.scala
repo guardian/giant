@@ -5,13 +5,14 @@ import commands.DeleteResource
 import model.Uri
 import model.annotations.{ProcessingStage, Workspace, WorkspaceEntry, WorkspaceLeaf}
 import model.frontend.{TreeEntry, TreeLeaf, TreeNode}
-import model.ingestion.{ RemoteIngest, RemoteIngestStatus}
+import model.ingestion.{RemoteIngest, RemoteIngestStatus}
+import model.user.UserPermission.CanPerformAdminOperations
 import net.logstash.logback.marker.LogstashMarker
 import net.logstash.logback.marker.Markers.append
 import org.joda.time.DateTime
 import play.api.libs.json._
-import play.api.mvc.Action
-import services.{IngestStorage, RemoteIngestConfig, ObjectStorage}
+import play.api.mvc.{Action, AnyContent}
+import services.{IngestStorage, ObjectStorage, RemoteIngestConfig}
 import services.manifest.Manifest
 import services.observability.PostgresClient
 import services.annotations.Annotations
@@ -73,6 +74,11 @@ object RenameItemData {
 case class MoveCopyDestination(newParentId: Option[String], newWorkspaceId: Option[String])
 object MoveCopyDestination {
   implicit val format: Format[MoveCopyDestination] = Json.format[MoveCopyDestination]
+}
+
+case class AddResourceChildrenToFolder(workspaceId: String, parentFolderId: String, resourceId: String)
+object AddResourceChildrenToFolder {
+  implicit val format: Format[AddResourceChildrenToFolder] = Json.format[AddResourceChildrenToFolder]
 }
 
 class Workspaces(
@@ -369,6 +375,17 @@ class Workspaces(
       }
     } yield {
       NoContent
+    }
+  }
+
+  def addResourceFileChildrenToWorkspaceFolder(workspaceId: String, folderId: String): Action[JsValue] = ApiAction.attempt(parse.json) { req =>
+    for {
+      data <- req.body.validate[AddResourceChildrenToFolder].toAttempt
+      isAdmin <- users.hasPermission(req.user.username, CanPerformAdminOperations)
+      _ <- if (isAdmin) annotation.addResourceFileChildrenToWorkspaceFolder(req.user.username, workspaceId, data.parentFolderId, data.resourceId) else Attempt.Left(ClientFailure("Only administrators can add file children of a resource to a workspace folder"))
+      _ = logAction(req.user, workspaceId, s"Adding file children of resource to workspace folder. Resource ID: ${data.resourceId}. Parent folder ID: $folderId")
+    } yield {
+      Ok("completed adding file children to workspace folder")
     }
   }
 

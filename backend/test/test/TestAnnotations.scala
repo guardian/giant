@@ -37,4 +37,5 @@ class TestAnnotations(usersToWorkspaces: Map[String, List[String]] = Map.empty) 
   override def getWorkspaceContents(currentUser: String, id: String, remoteIngestsToMixin: List[RemoteIngest]): Attempt[TreeEntry[WorkspaceEntry]] = Attempt.Left(UnsupportedOperationFailure(""))
   override def getWorkspaceMetadata(currentUser: String, id: String): Attempt[WorkspaceMetadata] = Attempt.Left(UnsupportedOperationFailure(""))
   override def getBlobOwners(blobUri: String): Attempt[Set[String]] = Attempt.Left(UnsupportedOperationFailure(""))
+  override def addResourceFileChildrenToWorkspaceFolder(currentUser: String, workspaceId: String, parentFolderId: String, resourceUri: String): Attempt[List[String]] = Attempt.Left(UnsupportedOperationFailure(""))
 }

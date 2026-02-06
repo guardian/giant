@@ -33,6 +33,7 @@ trait Annotations {
   def getComments(uri: Uri): Attempt[List[Comment]]
   def deleteComment(currentUser: String, commentId: String): Attempt[Unit]
   def getBlobOwners(blobUri: String): Attempt[Set[String]]
+  def addResourceFileChildrenToWorkspaceFolder(currentUser: String, workspaceId: String, parentFolderId: String, resourceUri: String): Attempt[List[String]]
 }
 
 object Annotations {
