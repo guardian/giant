@@ -418,7 +418,11 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
   }
 
 
-
+  /**
+    * Looks in resourceUri for any child nodes that are Files and adds them to workspaceId under parentFolderId.
+    * TODO: Make this work for nested folders (file->directory->directory->ingestion->collection)
+    * @return list of new workspace node ids
+    */
   override def addResourceFileChildrenToWorkspaceFolder(currentUser: String, workspaceId: String, parentFolderId: String, resourceUri: String): Attempt[List[String]] = attemptTransaction { tx =>
 
     // TODO: check user is admin here
