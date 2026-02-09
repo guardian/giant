@@ -3,7 +3,6 @@ package utils
 
 import java.time.Instant
 import java.util.Date
-
 import org.apache.pekko.actor.{ActorSystem, Cancellable, Scheduler}
 import org.apache.pekko.cluster.{Cluster, MemberStatus}
 import software.amazon.awssdk.services.autoscaling.AutoScalingClient
@@ -11,7 +10,7 @@ import software.amazon.awssdk.services.autoscaling.model.{AutoScalingGroup, Desc
 import software.amazon.awssdk.services.ec2.Ec2Client
 import com.amazonaws.util.EC2MetadataUtils
 import services.manifest.WorkerManifest
-import services.{AWSDiscoveryConfig, IngestStorage, WorkerConfig}
+import services.{AWSDiscoveryConfig, IngestStorage, MetricUpdate, Metrics, MetricsService, WorkerConfig}
 import utils.AWSWorkerControl.{AddNewWorker, RemoveWorker}
 import utils.attempt.{Attempt, Failure, IllegalStateFailure}
 
@@ -42,7 +41,7 @@ class PekkoWorkerControl(actorSystem: ActorSystem) extends WorkerControl {
   override def stop(): Future[Unit] = Future.successful(())
 }
 
-class AWSWorkerControl(config: WorkerConfig, discoveryConfig: AWSDiscoveryConfig, ingestStorage: IngestStorage, manifest: WorkerManifest)
+class AWSWorkerControl(config: WorkerConfig, discoveryConfig: AWSDiscoveryConfig, ingestStorage: IngestStorage, manifest: WorkerManifest, metrics: MetricsService)
   extends WorkerControl with Logging {
 
   val credentialsV2 = AwsCredentials.credentialsV2()
@@ -134,6 +133,8 @@ class AWSWorkerControl(config: WorkerConfig, discoveryConfig: AWSDiscoveryConfig
       extractorWorkCounts <- Attempt.fromEither(manifest.getWorkCounts())
       filesLeftInS3UploadBucket <- Attempt.fromEither(ingestStorage.list)
     } yield {
+      metrics.updateMetric(Metrics.extractorWorkInProgress, extractorWorkCounts.inProgress)
+      metrics.updateMetric(Metrics.extractorWorkOutstanding, extractorWorkCounts.outstanding)
       AWSWorkerControl.State(desiredNumberOfWorkers, extractorWorkCounts.inProgress, filesLeftInS3UploadBucket.size,
         extractorWorkCounts.outstanding, lastEventTime, minimumNumberOfWorkers, maximumNumberOfWorkers)
     }
