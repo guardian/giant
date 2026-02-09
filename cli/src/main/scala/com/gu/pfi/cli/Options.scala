@@ -27,6 +27,7 @@ object HttpMethod extends CliEnum[HttpMethod] {
 
 trait CommonOptions { _: ScallopConf =>
   val uri = opt[String]("uri", descr = "URI of the PFI installation to connect to eg https://mtest.pfi.gutools.co.uk, http://localhost:9001", noshort = true)
+  val verbose = opt[Boolean]("verbose", descr = "Enable verbose output for debugging", default = Some(false), noshort = true)
 }
 
 trait LanguageOptions { _: ScallopConf =>

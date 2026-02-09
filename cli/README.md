@@ -2,6 +2,30 @@
 
 This is typically used for ingesting datasets which are too large to feasibly be uploaded via the UI. It is installed via a Debian package on worker instances so is available as `pfi-cli` on these boxes.
 
+### Getting Help
+
+View all available commands:
+```bash
+pfi-cli --help
+```
+
+Get help for a specific command:
+```bash
+pfi-cli ingest --help
+pfi-cli create-ingestion --help
+```
+
+#### Verbose Mode
+Add `--verbose` to any command for detailed output:
+```bash
+pfi-cli login --token YOUR_TOKEN --verbose
+```
+- Shows success confirmations
+- Displays full stack traces for errors
+- Provides detailed progress information
+
+### Ingestion Workflow
+
 Here are some example steps for performing such an ingestion.
 
 1. Set the `WorkerDataVolumeSize` CloudFormation parameter in the relevant Giant/Playground stack (it will be the one containing `investigations` rather than `neo4j` or `elasticsearch`, e.g. `pfi-giant-investigations-rex`). Set it to at least twice the size of the data you want to ingest. This is because you'll need to download the data to the box and Giant will then need scratch space to make a copy of it, potentially unzip it, etc.
@@ -57,6 +81,34 @@ need to make sure you tell pfi-cli to use minio rather than uploading stuff to S
 ./pfi-cli create-ingestion --uri http://localhost:9001 --ingestionUri testfolder/test
 ./pfi-cli ingest --path ~/stufftoingest --languages english --ingestionUri testfolder/test --minioAccessKey minio-user --minioEndpoint http://localhost:9090 --minioSecretKey reallyverysecret
 ```
+
+**Tip:** Add `--verbose` to see detailed output during development:
+```bash
+./pfi-cli ingest --path ~/stufftoingest --ingestionUri testfolder/test --verbose
+```
+
+### Troubleshooting
+
+#### Authentication Issues
+If you get authentication errors:
+- Run `pfi-cli login --token YOUR_TOKEN` to refresh your session
+- Check that your token hasn't expired (tokens are available in Settings > About in the UI)
+- Verify the `--uri` parameter points to the correct Giant instance
+
+#### Invalid Ingestion URI
+Ingestion URIs must follow the format: `<collection>/<ingestion>`
+```bash
+# ✓ Correct
+pfi-cli create-ingestion --ingestionUri "MyCollection/MyIngestion"
+
+# ✗ Incorrect
+pfi-cli create-ingestion --ingestionUri "MyIngestion"
+```
+
+#### File Not Found Errors
+- Ensure paths are absolute or relative to your current directory
+- Check file permissions: files must be readable
+- Use `--verbose` to see which file is causing the issue
 
 ### Deleting data with the CLI
 If a blob exists in multiple ingestions, you need to either delete the blob in the Giant UI, or pass all of the relevant ingestions to `delete-ingestion`.

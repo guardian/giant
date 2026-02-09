@@ -4,6 +4,7 @@ import java.nio.file.{Files, LinkOption, Path}
 import java.util.UUID
 
 import com.google.common.io.ByteStreams
+import com.gu.pfi.cli.{ConsoleColors, ProgressTracker}
 import com.gu.pfi.cli.service.{CliIngestionService, IngestionS3Client}
 import model._
 import model.ingestion.{IngestionFile, Key, OnDiskFileContext}
@@ -28,7 +29,9 @@ class CliIngestionPipeline(ingestionService: CliIngestionService, s3Client: Inge
 
   private def ingest(files: Iterator[OnDiskFileContext], rootUri: Uri, inMemorySize: Long, languages: List[Language]): Future[Unit] = {
     implicit val ec: ExecutionContext = nonBlockingContext // this is the default context for when we are not doing IO
-    logger.info(s"Copying... $rootUri")
+    
+    val progressTracker = ProgressTracker(s"Phase I ingestion of $rootUri")
+    progressTracker.start()
 
     // this lock is used to prevent interleaved reads
     val ioLock = new Object()
@@ -42,7 +45,6 @@ class CliIngestionPipeline(ingestionService: CliIngestionService, s3Client: Inge
 
     object Input {
       def apply(file: OnDiskFileContext, key: Key): Input = {
-        logger.info(s"Phase I ingesting ${file.path} (${file.size}) as $key")
         if (file.size <= inMemorySize) {
           val dataStream = Files.newInputStream(file.path)
           val bytes = try {
@@ -109,19 +111,19 @@ class CliIngestionPipeline(ingestionService: CliIngestionService, s3Client: Inge
       val batchSizeAttempt = Attempt.sequenceWithFailures(attemptedResults.toList)
         .map{ r => files.zip(r) }
         .map{ results =>
-          val files: Seq[(OnDiskFileContext, Key)] = results.collect{ case (_, Right(value)) => value }
-          val summaryData = files.map { case (fileContext, (_, _)) =>
-            (fileContext.path.toString, fileContext.size)
-          }
+          val successfulFiles: Seq[(OnDiskFileContext, Key)] = results.collect{ case (_, Right(value)) => value }
+          val totalBytes = successfulFiles.map { case (fileContext, _) => fileContext.size }.sum
 
           val failures: Seq[(OnDiskFileContext, attempt.Failure)] = results.collect{ case (file, Left(failure)) => file -> failure }
           failures.foreach { case (file, failure) =>
-            logger.error(s"Error during Phase I ingestion for ${file.path}: $failure", failure.cause.orNull)
-            failure.cause.foreach(_.printStackTrace())
+            logger.error(ConsoleColors.error(s"Error during Phase I ingestion for ${file.path}: ${failure.msg}"))
+            if (logger.isDebugEnabled) {
+              failure.cause.foreach(_.printStackTrace())
+            }
           }
 
-          logger.info(s"Phase I of $rootUri batch completed. Successful: ${summaryData.size} Failures: $failures.")
-          summaryData.size -> failures.size
+          progressTracker.updateBatch(successfulFiles.size, failures.size, totalBytes)
+          successfulFiles.size -> failures.size
         }
 
       val syncBatchSizeAttempt = Attempt.fromEither(Await.result(batchSizeAttempt.asFuture, Duration.Inf))
@@ -133,9 +135,11 @@ class CliIngestionPipeline(ingestionService: CliIngestionService, s3Client: Inge
     }
 
     finalAttempt.fold(
-      _ => (),
+      failure => {
+        progressTracker.fail(failure.msg)
+      },
       { case (successes, failures) =>
-        logger.info(s"Phase I of $rootUri done! Successful: $successes Failures: $failures.")
+        progressTracker.complete()
       }
     )(nonBlockingContext)
   }
