@@ -14,7 +14,7 @@ deployments:
       amiTags:
         Recipe: investigations-giant-app-arm
         AmigoStage: PROD
-        Encrypted: pfi-playground
+        Encrypted: investigations
 
   pfi-neo4j-ami-update:
     type: ami-cloudformation-parameter
