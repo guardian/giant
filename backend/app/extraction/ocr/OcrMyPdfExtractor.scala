@@ -19,7 +19,7 @@ import java.io.File
 import java.nio.file.{Files, Path}
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
-import scala.util.Try
+import scala.util.{Try, Using}
 
 class OcrMyPdfExtractor(scratch: ScratchSpace, index: Index, pageService: Pages, previewStorage: ObjectStorage,
   ingestionServices: IngestionServices)(implicit ec: ExecutionContext) extends BaseOcrExtractor(scratch) with Logging {
@@ -47,7 +47,7 @@ class OcrMyPdfExtractor(scratch: ScratchSpace, index: Index, pageService: Pages,
 
     try {
       pdDocuments = params.languages.map { lang =>
-        val pages = Try(PDDocument.load(file).getNumberOfPages).toOption
+        val pages = Using(PDDocument.load(file))(_.getNumberOfPages).toOption
         val biggerThanA1 = Ocr.isBiggerThanA1(file.toPath, stdErrLogger)
         val preProcessPdf = Ocr.preProcessPdf(file.toPath, tmpDir, stdErrLogger, biggerThanA1)
         val pdfPath = Ocr.invokeOcrMyPdf(lang.ocr, preProcessPdf.getOrElse(file.toPath), None, stdErrLogger, tmpDir, pages)
