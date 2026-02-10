@@ -217,7 +217,7 @@ class AppComponents(context: Context, config: Config)
 
     val workerControl = config.aws match {
       case Some(awsDiscoveryConfig) =>
-        new AWSWorkerControl(config.worker, awsDiscoveryConfig, ingestStorage, manifest)
+        new AWSWorkerControl(config.worker, awsDiscoveryConfig, ingestStorage, manifest, metricsService)
 
       case None =>
         new PekkoWorkerControl(actorSystem)

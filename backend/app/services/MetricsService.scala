@@ -21,6 +21,8 @@ object Metrics {
   val failureToResultMapper = "ErrorsInGiantFailureToResultMapper"
   val usageEvents = "UsageEvents"
   val searchInFolderEvents = "SearchInFolderEvents"
+  val extractorWorkInProgress = "ExtractorWorkInProgress"
+  val extractorWorkOutstanding = "ExtractorWorkOutstanding"
 
 
   def metricDatum(name: String, dimensions: List[Dimension], value: Double): MetricDatum = {

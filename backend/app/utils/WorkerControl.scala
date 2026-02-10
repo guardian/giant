@@ -3,7 +3,6 @@ package utils
 
 import java.time.Instant
 import java.util.Date
-
 import org.apache.pekko.actor.{ActorSystem, Cancellable, Scheduler}
 import org.apache.pekko.cluster.{Cluster, MemberStatus}
 import software.amazon.awssdk.services.autoscaling.AutoScalingClient
@@ -11,12 +10,13 @@ import software.amazon.awssdk.services.autoscaling.model.{AutoScalingGroup, Desc
 import software.amazon.awssdk.services.ec2.Ec2Client
 import com.amazonaws.util.EC2MetadataUtils
 import services.manifest.WorkerManifest
-import services.{AWSDiscoveryConfig, IngestStorage, WorkerConfig}
+import services.{AWSDiscoveryConfig, IngestStorage, MetricUpdate, Metrics, MetricsService, WorkerConfig}
 import utils.AWSWorkerControl.{AddNewWorker, RemoveWorker}
 import utils.attempt.{Attempt, Failure, IllegalStateFailure}
 
 import scala.jdk.CollectionConverters._
 import scala.concurrent.{ExecutionContext, Future}
+import scala.util.Try
 
 case class WorkerDetails(nodes: Set[String], thisNode: String)
 
@@ -42,7 +42,7 @@ class PekkoWorkerControl(actorSystem: ActorSystem) extends WorkerControl {
   override def stop(): Future[Unit] = Future.successful(())
 }
 
-class AWSWorkerControl(config: WorkerConfig, discoveryConfig: AWSDiscoveryConfig, ingestStorage: IngestStorage, manifest: WorkerManifest)
+class AWSWorkerControl(config: WorkerConfig, discoveryConfig: AWSDiscoveryConfig, ingestStorage: IngestStorage, manifest: WorkerManifest, metrics: MetricsService)
   extends WorkerControl with Logging {
 
   val credentialsV2 = AwsCredentials.credentialsV2()
@@ -61,16 +61,24 @@ class AWSWorkerControl(config: WorkerConfig, discoveryConfig: AWSDiscoveryConfig
     WorkerDetails(instances.map(_.instanceId()).toSet, myInstanceId)
   }
 
+  private def publishStateMetrics (state: AWSWorkerControl.State): Unit = {
+    metrics.updateMetric(Metrics.extractorWorkInProgress, state.inProgress)
+    metrics.updateMetric(Metrics.extractorWorkOutstanding, state.outstandingFromTodos)
+  }
+
   override def start(scheduler: Scheduler)(implicit ec: ExecutionContext): Unit = {
     discoveryConfig.workerAutoScalingGroupName match {
       case Some(workerAutoScalingGroupName) =>
         scheduler.scheduleWithFixedDelay(config.controlInterval, config.controlInterval)(() => {
           // Only run the check on the oldest instance to get as close as we running the checks as a "singleton"
           if(runningOnOldestInstance()) {
+            val state = getCurrentState(workerAutoScalingGroupName)
+            // reuse the state needed for worker control to report cloudwatch metrics on work remaining
+            state.foreach(publishStateMetrics)
             if(AwsDiscovery.isRiffRaffDeployRunning(discoveryConfig.stack, discoveryConfig.stage, ec2)) {
               logger.info("AWSWorkerControl - not running check as Riff-Raff deploy is running (instances are running and tagged as Magenta:Terminate)")
             } else {
-              scaleUpOrDownIfNeeded(workerAutoScalingGroupName)
+              state.foreach(s => scaleUpOrDownIfNeeded(s, workerAutoScalingGroupName))
               breakLocksOnTerminatedWorkers()
             }
           } else {
@@ -97,13 +105,12 @@ class AWSWorkerControl(config: WorkerConfig, discoveryConfig: AWSDiscoveryConfig
     oldestInstance.isEmpty || oldestInstance.contains(myInstanceId)
   }
 
-  private def scaleUpOrDownIfNeeded(workerAutoScalingGroupName: String)(implicit ec: ExecutionContext): Unit = {
-    getCurrentState(workerAutoScalingGroupName).flatMap { state =>
+  private def scaleUpOrDownIfNeeded(state: AWSWorkerControl.State, workerAutoScalingGroupName: String)(implicit ec: ExecutionContext): Unit = {
       val operation = AWSWorkerControl.decideOperation(state, Instant.now().toEpochMilli, config.controlCooldown.toMillis)
       
       logger.info(s"AWSWorkerControl desiredNumberOfWorkers: ${state.desiredNumberOfWorkers}, inProgress: ${state.inProgress}, outstandingFromIngestStore: ${state.outstandingFromIngestStore}, outstandingFromTodos: ${state.outstandingFromTodos} lastEventTime: ${new Date(state.lastEventTime)}, minimumNumberOfWorkers: ${state.minimumNumberOfWorkers}, maximumNumberOfWorkers: ${state.maximumNumberOfWorkers}, operation: $operation")
 
-      operation match {
+      val scaleResult = operation match {
         case Some(AddNewWorker) if state.desiredNumberOfWorkers < state.maximumNumberOfWorkers =>
           setNumberOfWorkers(state.desiredNumberOfWorkers + 1, workerAutoScalingGroupName)
 
@@ -113,7 +120,8 @@ class AWSWorkerControl(config: WorkerConfig, discoveryConfig: AWSDiscoveryConfig
         case _ =>
           Attempt.Right(())
       }
-    }.recoverWith {
+
+    scaleResult.recoverWith {
       case f: Failure =>
         logger.warn(s"Worker control update failed. Retry in ${config.controlInterval.toSeconds} seconds", f.toThrowable)
         Attempt.Right(())
