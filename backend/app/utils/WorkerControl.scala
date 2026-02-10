@@ -102,6 +102,10 @@ class AWSWorkerControl(config: WorkerConfig, discoveryConfig: AWSDiscoveryConfig
       
       logger.info(s"AWSWorkerControl desiredNumberOfWorkers: ${state.desiredNumberOfWorkers}, inProgress: ${state.inProgress}, outstandingFromIngestStore: ${state.outstandingFromIngestStore}, outstandingFromTodos: ${state.outstandingFromTodos} lastEventTime: ${new Date(state.lastEventTime)}, minimumNumberOfWorkers: ${state.minimumNumberOfWorkers}, maximumNumberOfWorkers: ${state.maximumNumberOfWorkers}, operation: $operation")
 
+      // side effect here unrelated to scaling! Just a convenient place to report these metrics without setting up a separate task and hit neo4j again
+      metrics.updateMetric(Metrics.extractorWorkInProgress, state.inProgress)
+      metrics.updateMetric(Metrics.extractorWorkOutstanding, state.outstandingFromTodos)
+
       operation match {
         case Some(AddNewWorker) if state.desiredNumberOfWorkers < state.maximumNumberOfWorkers =>
           setNumberOfWorkers(state.desiredNumberOfWorkers + 1, workerAutoScalingGroupName)
@@ -133,8 +137,6 @@ class AWSWorkerControl(config: WorkerConfig, discoveryConfig: AWSDiscoveryConfig
       extractorWorkCounts <- Attempt.fromEither(manifest.getWorkCounts())
       filesLeftInS3UploadBucket <- Attempt.fromEither(ingestStorage.list)
     } yield {
-      metrics.updateMetric(Metrics.extractorWorkInProgress, extractorWorkCounts.inProgress)
-      metrics.updateMetric(Metrics.extractorWorkOutstanding, extractorWorkCounts.outstanding)
       AWSWorkerControl.State(desiredNumberOfWorkers, extractorWorkCounts.inProgress, filesLeftInS3UploadBucket.size,
         extractorWorkCounts.outstanding, lastEventTime, minimumNumberOfWorkers, maximumNumberOfWorkers)
     }
