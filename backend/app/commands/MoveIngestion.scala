@@ -36,7 +36,7 @@ case class MoveIngestion(
 
       // Check if an ingestion with the new URI already exists
       existingCheck <- manifest.getIngestion(newIngestionUri).transform(
-        existing => Attempt.Left(IllegalStateFailure(s"An ingestion named '$ingestionName' already exists in collection '${targetCollectionUri.value}'")),
+        existing => Attempt.Left[Unit](IllegalStateFailure(s"An ingestion named '$ingestionName' already exists in collection '${targetCollectionUri.value}'")),
         _ => Attempt.Right(())
       )
 

@@ -1359,7 +1359,7 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
       )
     ).flatMap { result =>
       if (result.list().isEmpty) {
-        Attempt.Left(NotFoundFailure(s"Could not find ingestion ${ingestionUri.value} or collection ${targetCollectionUri.value}"))
+        Attempt.Left[Unit](NotFoundFailure(s"Could not find ingestion ${ingestionUri.value} or collection ${targetCollectionUri.value}"))
       } else {
         Attempt.Right(())
       }
