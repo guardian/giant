@@ -98,4 +98,6 @@ trait Manifest extends WorkerManifest {
   def deleteResourceAndDescendants(uri: Uri): Attempt[Unit]
 
   def getWorkspaceChildrenWithUri(workspaceNodeId: Option[WorkspaceItemUploadContext], childUri: String): Attempt[List[IngestFileResult]]
+
+  def moveIngestionToCollection(ingestionUri: Uri, targetCollectionUri: Uri, newIngestionUri: Uri): Attempt[Unit]
 }

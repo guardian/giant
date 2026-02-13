@@ -671,6 +671,44 @@ class ElasticsearchResources(override val client: ElasticClient, indexName: Stri
     }
   }
 
+  override def updateIngestionPath(oldIngestionPath: String, newIngestionPath: String): Attempt[Unit] = {
+    logger.info(s"Updating Elasticsearch documents from ingestion $oldIngestionPath to $newIngestionPath")
+    
+    val oldCollection = oldIngestionPath.split("/").headOption.getOrElse("unknown")
+    val newCollection = newIngestionPath.split("/").headOption.getOrElse("unknown")
+
+    executeUpdateByQuery {
+      updateByQuerySync(indexName,
+        termQuery(IndexFields.ingestionRaw, oldIngestionPath)
+      ).script(
+        Script(
+          s"""
+             |// Update ingestion array - remove old path and add new path
+             |if(ctx._source.${IndexFields.ingestion} != null) {
+             |  ctx._source.${IndexFields.ingestion}.removeIf(ing -> ing.equals(params.oldIngestionPath));
+             |  if(!ctx._source.${IndexFields.ingestion}.contains(params.newIngestionPath)) {
+             |    ctx._source.${IndexFields.ingestion}.add(params.newIngestionPath);
+             |  }
+             |}
+             |// Update collection array if the collection has changed
+             |if(ctx._source.${IndexFields.collection} != null && !params.oldCollection.equals(params.newCollection)) {
+             |  ctx._source.${IndexFields.collection}.removeIf(col -> col.equals(params.oldCollection));
+             |  if(!ctx._source.${IndexFields.collection}.contains(params.newCollection)) {
+             |    ctx._source.${IndexFields.collection}.add(params.newCollection);
+             |  }
+             |}
+             |""".stripMargin.replaceAll("\\\r?\\\n", "").trim())
+          .lang("painless")
+          .params(Map(
+            "oldIngestionPath" -> oldIngestionPath,
+            "newIngestionPath" -> newIngestionPath,
+            "oldCollection" -> oldCollection,
+            "newCollection" -> newCollection
+          ))
+      )
+    }
+  }
+
   private def buildQueryStringQuery(q: String) = {
     queryStringQuery(q)
       .defaultOperator("and")

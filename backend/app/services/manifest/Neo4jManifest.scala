@@ -1340,4 +1340,94 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
       Attempt.Left(NotFoundFailure(s"No children with this"))
     }
   }
+
+  override def moveIngestionToCollection(ingestionUri: Uri, targetCollectionUri: Uri, newIngestionUri: Uri): Attempt[Unit] = attemptTransaction { tx =>
+    logger.info(s"Moving ingestion ${ingestionUri.value} to collection ${targetCollectionUri.value}")
+
+    // Step 1: Update the PARENT relationship - delete old, create new
+    tx.run(
+      """
+        |MATCH (ingestion:Ingestion {uri: {oldUri}})-[oldParent:PARENT]->(oldCollection:Collection)
+        |MATCH (newCollection:Collection {uri: {newCollectionUri}})
+        |DELETE oldParent
+        |CREATE (ingestion)-[:PARENT]->(newCollection)
+        |RETURN ingestion, newCollection
+      """.stripMargin,
+      parameters(
+        "oldUri", ingestionUri.value,
+        "newCollectionUri", targetCollectionUri.value
+      )
+    ).flatMap { result =>
+      if (result.list().isEmpty) {
+        Attempt.Left[Unit](NotFoundFailure(s"Could not find ingestion ${ingestionUri.value} or collection ${targetCollectionUri.value}"))
+      } else {
+        Attempt.Right(())
+      }
+    }.flatMap { _ =>
+      // Step 2: Update the ingestion node's URI property
+      logger.info(s"Updating ingestion URI from ${ingestionUri.value} to ${newIngestionUri.value}")
+      tx.run(
+        """
+          |MATCH (ingestion:Ingestion {uri: {oldUri}})
+          |SET ingestion.uri = {newUri}
+          |RETURN ingestion
+        """.stripMargin,
+        parameters(
+          "oldUri", ingestionUri.value,
+          "newUri", newIngestionUri.value
+        )
+      ).map(_ => ())
+    }.flatMap { _ =>
+      // Step 3: Update TODO relationship properties
+      logger.info(s"Updating TODO relationship properties")
+      tx.run(
+        """
+          |MATCH ()-[todo:TODO {ingestion: {oldIngestionPath}}]->()
+          |SET todo.ingestion = {newIngestionPath}
+          |RETURN count(todo) as count
+        """.stripMargin,
+        parameters(
+          "oldIngestionPath", ingestionUri.value,
+          "newIngestionPath", newIngestionUri.value
+        )
+      ).map { result =>
+        val count = result.single().get("count").asInt()
+        logger.info(s"Updated $count TODO relationships")
+      }
+    }.flatMap { _ =>
+      // Step 4: Update PROCESSED relationship properties
+      logger.info(s"Updating PROCESSED relationship properties")
+      tx.run(
+        """
+          |MATCH ()-[processed:PROCESSED {ingestion: {oldIngestionPath}}]->()
+          |SET processed.ingestion = {newIngestionPath}
+          |RETURN count(processed) as count
+        """.stripMargin,
+        parameters(
+          "oldIngestionPath", ingestionUri.value,
+          "newIngestionPath", newIngestionUri.value
+        )
+      ).map { result =>
+        val count = result.single().get("count").asInt()
+        logger.info(s"Updated $count PROCESSED relationships")
+      }
+    }.flatMap { _ =>
+      // Step 5: Update PROCESSING_EXTERNALLY relationship properties
+      logger.info(s"Updating PROCESSING_EXTERNALLY relationship properties")
+      tx.run(
+        """
+          |MATCH ()-[processing:PROCESSING_EXTERNALLY {ingestion: {oldIngestionPath}}]->()
+          |SET processing.ingestion = {newIngestionPath}
+          |RETURN count(processing) as count
+        """.stripMargin,
+        parameters(
+          "oldIngestionPath", ingestionUri.value,
+          "newIngestionPath", newIngestionUri.value
+        )
+      ).map { result =>
+        val count = result.single().get("count").asInt()
+        logger.info(s"Updated $count PROCESSING_EXTERNALLY relationships")
+      }
+    }
+  }
 }
