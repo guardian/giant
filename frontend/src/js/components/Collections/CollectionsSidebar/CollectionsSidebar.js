@@ -29,9 +29,11 @@ export class CollectionsSidebar extends React.Component {
 
     // If you're an admin you have a full list of collections in Redux to power the settings page even if you
     // yourself don't have access to some of them (although you could grant yourself access)
-    const visibleCollections = this.props.collections.filter(({ users }) =>
-      users.includes(this.props.username),
-    );
+    const visibleCollections = this.props.collections
+      .filter(({ users }) => users.includes(this.props.username))
+      .sort((a, b) =>
+        a.display.toLowerCase().localeCompare(b.display.toLowerCase()),
+      );
 
     return (
       <div className="sidebar">
