@@ -59,7 +59,7 @@ export function AllIngestionEvents({
 
   const collectionOptions: EuiSelectOption[] = _.sortBy(
     collections,
-    (c) => c.display,
+    (c) => c.display.toLowerCase(),
   ).map((collection: Collection) => ({
     value: collection.uri,
     text: collection.display,
@@ -71,12 +71,10 @@ export function AllIngestionEvents({
       sc &&
         setIngestOptions(
           [{ value: "all", text: "All ingestions" }].concat(
-            _.sortBy(sc.ingestions, (i) => i.display).map(
-              (ingestion: Ingestion) => ({
-                value: ingestion.path,
-                text: ingestion.display,
-              }),
-            ),
+            sc.ingestions.map((ingestion: Ingestion) => ({
+              value: ingestion.path,
+              text: ingestion.display,
+            })),
           ),
         );
       if (
