@@ -983,7 +983,7 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
                       workspaceId: workspace.id,
                       folderId: entry.id,
                     },
-                    "*",
+                    "",
                   ]),
                   page: 1,
                 }),

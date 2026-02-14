@@ -1,10 +1,16 @@
 import React from "react";
 import PropTypes from "prop-types";
+import ReactTooltip from "react-tooltip";
 
 import AutosizeInput from "react-input-autosize";
 
 import _ from "lodash";
 import { parseDate } from "../../../util/parseDate";
+
+// Default truncation settings for chip values
+const DEFAULT_MAX_VALUE_LENGTH = 75;
+const DEFAULT_TRUNCATED_LENGTH = 72;
+const DEFAULT_MAX_NAME_LENGTH = 50;
 
 export default class Chip extends React.Component {
   static propTypes = {
@@ -23,6 +29,12 @@ export default class Chip extends React.Component {
     onNegateClicked: PropTypes.func.isRequired,
     onDeleteClicked: PropTypes.func.isRequired,
     onEnterPressed: PropTypes.func.isRequired,
+
+    // Optional truncation configuration
+    maxValueLength: PropTypes.number,
+    truncatedLength: PropTypes.number,
+    maxNameLength: PropTypes.number,
+    showTooltip: PropTypes.bool,
   };
 
   onChange = (value) => {
@@ -99,7 +111,19 @@ export default class Chip extends React.Component {
     this.currentControl = element;
   };
 
+  getDisplayValue = () => {
+    const maxLength = this.props.maxValueLength ?? DEFAULT_MAX_VALUE_LENGTH;
+    const truncateAt = this.props.truncatedLength ?? DEFAULT_TRUNCATED_LENGTH;
+
+    if (this.props.value.length > maxLength) {
+      return `${this.props.value.substring(0, truncateAt)}...`;
+    }
+
+    return this.props.value;
+  };
+
   renderControl = () => {
+    const displayValue = this.getDisplayValue();
     switch (this.props.type) {
       case "text":
         return (
@@ -115,7 +139,7 @@ export default class Chip extends React.Component {
         return (
           <WorkspaceFolderChip
             ref={this.refHandler}
-            value={this.props.value}
+            value={displayValue}
             onChange={this.onChange}
             onKeyDown={this.onKeyDownDropdown}
             onFocus={this.onFocus}
@@ -163,6 +187,20 @@ export default class Chip extends React.Component {
   };
 
   render() {
+    const maxNameLength = this.props.maxNameLength ?? DEFAULT_MAX_NAME_LENGTH;
+    const showTooltip = this.props.showTooltip ?? true;
+    const maxValueLength =
+      this.props.maxValueLength ?? DEFAULT_MAX_VALUE_LENGTH;
+
+    let displayName = this.props.name;
+    if (this.props.value.length > maxNameLength) {
+      displayName = this.props.name.split(" ")[0]; // Use first word of name
+    }
+
+    const shouldShowTooltip =
+      showTooltip && this.props.value.length > maxValueLength;
+    const tooltipText = shouldShowTooltip ? this.props.value : undefined;
+
     return (
       <span
         className={`input-supper__chip ${this.props.stagedForDeletion ? "input-supper__chip--delete-glow" : ""}`}
@@ -176,8 +214,12 @@ export default class Chip extends React.Component {
           </div>
         </button>
 
-        <span className="input-supper__chip-body">
-          <span className="input-supper__chip-name">{this.props.name}</span>
+        <span
+          className="input-supper__chip-body"
+          data-tip={tooltipText}
+          data-effect={tooltipText ? "solid" : undefined}
+        >
+          <span className="input-supper__chip-name">{displayName}</span>
           {this.renderControl()}
         </span>
 
@@ -187,6 +229,7 @@ export default class Chip extends React.Component {
         >
           <div className="input-supper__button-icon">&times;</div>
         </button>
+        {tooltipText ? <ReactTooltip insecure={false} /> : null}
       </span>
     );
   }

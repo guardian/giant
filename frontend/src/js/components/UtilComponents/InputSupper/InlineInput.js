@@ -149,7 +149,11 @@ export default class InlineInput extends React.Component {
           type="text"
           onChange={this.onUpdate}
           value={this.props.value}
-          inputStyle={{ fontSize: 18, fontFamily: "Avenir Next" }}
+          inputStyle={{
+            fontSize: 18,
+            fontFamily: "Avenir Next",
+            maxWidth: "100%",
+          }}
           onKeyDown={this.onKeyPress}
           onClick={this.onClickInput}
           onFocus={this.onFocus}
