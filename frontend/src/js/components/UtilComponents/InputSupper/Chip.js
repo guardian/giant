@@ -7,6 +7,11 @@ import AutosizeInput from "react-input-autosize";
 import _ from "lodash";
 import { parseDate } from "../../../util/parseDate";
 
+// Default truncation settings for chip values
+const DEFAULT_MAX_VALUE_LENGTH = 75;
+const DEFAULT_TRUNCATED_LENGTH = 72;
+const DEFAULT_MAX_NAME_LENGTH = 50;
+
 export default class Chip extends React.Component {
   static propTypes = {
     index: PropTypes.number.isRequired,
@@ -24,6 +29,12 @@ export default class Chip extends React.Component {
     onNegateClicked: PropTypes.func.isRequired,
     onDeleteClicked: PropTypes.func.isRequired,
     onEnterPressed: PropTypes.func.isRequired,
+
+    // Optional truncation configuration
+    maxValueLength: PropTypes.number,
+    truncatedLength: PropTypes.number,
+    maxNameLength: PropTypes.number,
+    showTooltip: PropTypes.bool,
   };
 
   onChange = (value) => {
@@ -101,11 +112,11 @@ export default class Chip extends React.Component {
   };
 
   getDisplayValue = () => {
-    if (
-      this.props.type === "workspace_folder" &&
-      this.props.value.length > 75
-    ) {
-      return `${this.props.value.substring(0, 72)}...`;
+    const maxLength = this.props.maxValueLength ?? DEFAULT_MAX_VALUE_LENGTH;
+    const truncateAt = this.props.truncatedLength ?? DEFAULT_TRUNCATED_LENGTH;
+
+    if (this.props.value.length > maxLength) {
+      return `${this.props.value.substring(0, truncateAt)}...`;
     }
 
     return this.props.value;
@@ -176,16 +187,19 @@ export default class Chip extends React.Component {
   };
 
   render() {
-    const isWorkspaceFolder = this.props.type === "workspace_folder";
+    const maxNameLength = this.props.maxNameLength ?? DEFAULT_MAX_NAME_LENGTH;
+    const showTooltip = this.props.showTooltip ?? true;
+    const maxValueLength =
+      this.props.maxValueLength ?? DEFAULT_MAX_VALUE_LENGTH;
 
     let displayName = this.props.name;
-    if (isWorkspaceFolder && this.props.value.length > 50) {
-      displayName = "Folder";
+    if (this.props.value.length > maxNameLength) {
+      displayName = this.props.name.split(" ")[0]; // Use first word of name
     }
 
-    const tooltipText = isWorkspaceFolder
-      ? `Workspace Folder: ${this.props.value}`
-      : undefined;
+    const shouldShowTooltip =
+      showTooltip && this.props.value.length > maxValueLength;
+    const tooltipText = shouldShowTooltip ? this.props.value : undefined;
 
     return (
       <span
