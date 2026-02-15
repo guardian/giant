@@ -330,24 +330,27 @@ export default function UploadFiles(props: Props) {
   const [focusedWorkspaceFolder, setFocusedWorkspaceFolder] =
     useState<TreeNode<WorkspaceEntry> | null>(null);
 
+  // Destructure for useEffect dependencies
+  const { droppedFiles, onClearDroppedFiles } = props;
+
   // Handle files dropped from the file system via drag-and-drop
   useEffect(() => {
-    if (props.droppedFiles && props.droppedFiles.files.size > 0) {
+    if (droppedFiles && droppedFiles.files.size > 0) {
       // Set the target folder (null means root)
-      setFocusedWorkspaceFolder(props.droppedFiles.targetFolder);
+      setFocusedWorkspaceFolder(droppedFiles.targetFolder);
 
       // Add the files
-      dispatch({ type: "Add_Files", files: props.droppedFiles.files });
+      dispatch({ type: "Add_Files", files: droppedFiles.files });
 
       // Open the modal
       setOpen(true);
 
       // Clear the dropped files prop
-      if (props.onClearDroppedFiles) {
-        props.onClearDroppedFiles();
+      if (onClearDroppedFiles) {
+        onClearDroppedFiles();
       }
     }
-  }, [props.droppedFiles, props.onClearDroppedFiles]);
+  }, [droppedFiles, onClearDroppedFiles]);
 
   async function onSubmit() {
     const { username, workspace, collections, getResource } = props;
