@@ -12,7 +12,7 @@ import { setWorkspaceFollowers } from "../../actions/workspaces/setWorkspaceFoll
 import { setWorkspaceIsPublic } from "../../actions/workspaces/setWorkspaceIsPublic";
 import { renameWorkspace } from "../../actions/workspaces/renameWorkspace";
 import { deleteWorkspace } from "../../actions/workspaces/deleteWorkspace";
-import UploadFiles from "../Uploads/UploadFiles";
+import UploadFiles, { DroppedFilesInfo } from "../Uploads/UploadFiles";
 import { Collection } from "../../types/Collection";
 import { TreeEntry, TreeNode } from "../../types/Tree";
 import { getWorkspace } from "../../actions/workspaces/getWorkspace";
@@ -43,6 +43,10 @@ type Props = {
   expandedNodes: TreeNode<WorkspaceEntry>[];
   isAdmin: boolean;
   clearFocus: () => void;
+  /** Files dropped from the file system (via drag-and-drop) */
+  droppedFiles?: DroppedFilesInfo;
+  /** Callback to clear the dropped files after they've been consumed */
+  onClearDroppedFiles?: () => void;
 };
 
 export default function WorkspaceSummary({
@@ -61,6 +65,8 @@ export default function WorkspaceSummary({
   expandedNodes,
   isAdmin,
   clearFocus,
+  droppedFiles,
+  onClearDroppedFiles,
 }: Props) {
   const [isShowingMoreOptions, setIsShowingMoreOptions] = useState(false);
 
@@ -125,6 +131,8 @@ export default function WorkspaceSummary({
         getResource={getWorkspaceContents}
         focusedWorkspaceEntry={focusedEntry}
         expandedNodes={expandedNodes}
+        droppedFiles={droppedFiles}
+        onClearDroppedFiles={onClearDroppedFiles}
       />
       <CaptureFromUrl maybePreSelectedWorkspace={workspace} withButton />
       <div>
