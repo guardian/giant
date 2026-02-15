@@ -17,6 +17,10 @@ import {
 import { MAX_NUMBER_OF_CHILDREN } from "../../../util/resourceUtils";
 import { SearchLink } from "../SearchLink";
 import { getIdsOfEntriesToMove, sortEntries } from "../../../util/treeUtils";
+import {
+  dragEventContainsFiles,
+  readFilesFromDragEvent,
+} from "../../Uploads/dropZoneUtils";
 
 type Props<T> = {
   onSelectLeaf: (leaf: TreeLeaf<T>) => void;
@@ -42,6 +46,8 @@ type Props<T> = {
   onExpandNode: (entry: TreeNode<T>) => void;
   onCollapseNode: (entry: TreeNode<T>) => void;
   onContextMenu: (e: React.MouseEvent, entry: TreeEntry<T>) => void;
+  /** Optional callback for handling file drops from the file system */
+  onDropFiles?: (files: Map<string, File>, targetFolderId: string) => void;
 };
 
 type State = {
@@ -174,13 +180,36 @@ export default class TreeBrowser<T> extends React.Component<Props<T>, State> {
   onDrop = (e: React.DragEvent, idOfLocationToMoveTo: string) => {
     e.preventDefault();
 
+    // Check if this is a file drop from the file system
+    if (dragEventContainsFiles(e) && this.props.onDropFiles) {
+      // Prevent React from reusing the event since readFilesFromDragEvent is asynchronous
+      e.persist();
+
+      this.setState({ hoveredOver: false });
+
+      readFilesFromDragEvent(e)
+        .then((files) => {
+          if (files.size > 0 && this.props.onDropFiles) {
+            this.props.onDropFiles(files, idOfLocationToMoveTo);
+          }
+        })
+        .catch((error) => {
+          console.error("Failed to read dropped files:", error);
+          window.alert(error instanceof Error ? error.message : String(error));
+        });
+      return;
+    }
+
+    // Handle internal item move
     const json = e.dataTransfer.getData("application/json");
-    const { id: idOfDraggedEntry } = JSON.parse(json);
-    const idsOfEntriesToMove = getIdsOfEntriesToMove(
-      this.props.selectedEntries,
-      idOfDraggedEntry,
-    );
-    this.props.onMoveItems(idsOfEntriesToMove, idOfLocationToMoveTo);
+    if (json) {
+      const { id: idOfDraggedEntry } = JSON.parse(json);
+      const idsOfEntriesToMove = getIdsOfEntriesToMove(
+        this.props.selectedEntries,
+        idOfDraggedEntry,
+      );
+      this.props.onMoveItems(idsOfEntriesToMove, idOfLocationToMoveTo);
+    }
 
     this.setState({
       hoveredOver: false,
