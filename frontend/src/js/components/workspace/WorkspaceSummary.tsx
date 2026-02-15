@@ -20,6 +20,7 @@ import ShareWorkspaceModal from "./ShareWorkspaceModal";
 import MdEdit from "react-icons/lib/md/edit";
 import MdDelete from "react-icons/lib/md/delete";
 import MdMore from "react-icons/lib/md/expand-more";
+import SearchIcon from "react-icons/lib/md/search";
 import TakeOwnershipOfWorkspaceModal from "./TakeOwnershipOfWorkspaceModal";
 import { takeOwnershipOfWorkspace } from "../../actions/workspaces/takeOwnershipOfWorkspace";
 import { CaptureFromUrl } from "../Uploads/CaptureFromUrl";
@@ -118,6 +119,17 @@ export default function WorkspaceSummary({
         )}
       </div>
       <div style={{ flexGrow: 1 }}></div>
+      <button
+        className="btn"
+        onClick={() => {
+          const searchUrl = `/search?filters.workspace[]=${encodeURIComponent(workspace.id)}`;
+          window.open(searchUrl, "_blank");
+        }}
+        title="Search workspace"
+      >
+        <SearchIcon style={{ marginRight: "3px", marginBottom: "1px" }} />
+        Search workspace
+      </button>
       <UploadFiles
         username={currentUser.username}
         workspace={workspace}
