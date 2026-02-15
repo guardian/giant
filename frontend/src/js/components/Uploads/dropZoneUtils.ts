@@ -15,7 +15,7 @@ import {
  * @returns A Map of file paths to File objects
  */
 export async function readFilesFromDragEvent(
-  e: React.DragEvent
+  e: React.DragEvent,
 ): Promise<Map<string, File>> {
   const files = new Map<string, File>();
 
@@ -28,7 +28,7 @@ export async function readFilesFromDragEvent(
         files.set(file.name, file as File);
       } else if (entry && entry.isDirectory) {
         const directoryFiles = await readDirectoryEntry(
-          entry as FileSystemDirectoryEntry
+          entry as FileSystemDirectoryEntry,
         );
 
         for (const [path, file] of directoryFiles) {

@@ -775,7 +775,7 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
     if (targetFolderId !== workspace.rootNode.id) {
       // Look for the folder in expanded nodes
       const foundNode = this.props.expandedNodes.find(
-        (node) => node.id === targetFolderId
+        (node) => node.id === targetFolderId,
       );
       if (foundNode) {
         targetFolder = foundNode;
