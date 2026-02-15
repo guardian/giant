@@ -1,43 +1,6 @@
 import React from "react";
 import { Button } from "semantic-ui-react";
-import {
-  readFileEntry,
-  readDirectoryEntry,
-  FileSystemEntry,
-  FileSystemFileEntry,
-  FileSystemDirectoryEntry,
-} from "./FileApiHelpers";
-
-async function readDragEvent(e: React.DragEvent): Promise<Map<string, File>> {
-  const files = new Map<string, File>();
-
-  for (const item of e.dataTransfer.items) {
-    if (item.webkitGetAsEntry()) {
-      const entry: FileSystemEntry | null = item.webkitGetAsEntry();
-
-      if (entry && entry.isFile) {
-        const file = await readFileEntry(entry as FileSystemFileEntry);
-        files.set(file.name, file as File);
-      } else if (entry && entry.isDirectory) {
-        const directoryFiles = await readDirectoryEntry(
-          entry as FileSystemDirectoryEntry,
-        );
-
-        for (const [path, file] of directoryFiles) {
-          files.set(path, file as File);
-        }
-      }
-    } else {
-      const file = item.getAsFile();
-
-      if (file) {
-        files.set(file.name, file);
-      }
-    }
-  }
-
-  return files;
-}
+import { readFilesFromDragEvent } from "./dropZoneUtils";
 
 type Props = {
   disabled: boolean;
@@ -129,11 +92,11 @@ export default class FilePicker extends React.Component<Props, State> {
   onDrop = (e: React.DragEvent) => {
     e.preventDefault();
 
-    // Prevents React re-uses the event since readDragEvent is asynchronous
+    // Prevents React re-uses the event since readFilesFromDragEvent is asynchronous
     e.persist();
 
     this.setState({ readingFiles: true });
-    readDragEvent(e).then((files) => {
+    readFilesFromDragEvent(e).then((files) => {
       this.props.onAddFiles(files);
       this.setState({ readingFiles: false });
     });
