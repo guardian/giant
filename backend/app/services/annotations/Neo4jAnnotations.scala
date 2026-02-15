@@ -8,6 +8,7 @@ import model.annotations._
 import model.frontend.{TreeEntry, TreeLeaf, TreeNode}
 import model.ingestion.RemoteIngest
 import model.user.DBUser
+import org.joda.time.DateTime
 import org.neo4j.driver.v1.{Driver, Record, Value}
 import org.neo4j.driver.v1.Values.parameters
 import play.api.libs.json.Json
@@ -413,6 +414,88 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
     getFolder(tx, workspaceId, parentFolderId, folderName).recoverWith {
       case _: NotFoundFailure =>
         addFolder(tx, currentUser, workspaceId, parentFolderId, folderName)
+    }
+  }
+
+
+  /**
+    * Looks in resourceUri for any child nodes that are Files and adds them to workspaceId under parentFolderId.
+    * TODO: Make this work for nested folders (file->directory->directory->ingestion->collection)
+    * @return list of new workspace node ids
+    */
+  override def addResourceFileChildrenToWorkspaceFolder(currentUser: String, workspaceId: String, parentFolderId: String, resourceUri: String): Attempt[List[String]] = attemptTransaction { tx =>
+
+    // TODO: check user is admin here
+
+    case class DatasetWorkspaceLeaf(addedOn: Long, name: String, id: String, nodeType: String, parentFolderId: String, mimeType: String, icon: String, blobUri: String, size: Long)
+    val filesToMove: Attempt[List[DatasetWorkspaceLeaf]] = tx.run(
+      """MATCH (b:Blob:Resource)-[:PARENT]->(f:File:Resource)-[:PARENT]->(r:Resource {uri:{ingestionUri}})
+        |MATCH (b)-[:TYPE_OF]->(m:MimeType)
+        |RETURN m.mimeType AS mimeType, f.uri AS fileUri, b.uri AS blobUri, b.size AS size
+        |""".stripMargin,
+    parameters(
+      "ingestionUri", resourceUri
+    )).flatMap { r =>
+      val records = r.list().asScala
+      if (records.isEmpty) {
+        Attempt.Left(NotFoundFailure(s"No files found for resource $resourceUri"))
+      } else {
+        val leaves: List[DatasetWorkspaceLeaf] = records.map { record =>
+          val mimeType = record.get("mimeType").asString()
+          val fileUri = record.get("fileUri").asString()
+          val blobUri = record.get("blobUri").asString()
+
+          // generate new uuid
+          val uuid = UUID.randomUUID().toString
+          DatasetWorkspaceLeaf(
+            addedOn = new DateTime().getMillis,
+            name = fileUri.replace(s"$resourceUri/", ""),
+            id = uuid,
+            nodeType = "file",
+            parentFolderId = parentFolderId,
+            mimeType = mimeType,
+            icon = "document",
+            blobUri = blobUri,
+            size = record.get("size").asLong()
+          )
+        }.toList
+        Attempt.Right(leaves)
+      }
+    }
+    filesToMove.flatMap { files =>
+      logger.info(s"Adding ${files.length} files from resource $resourceUri to workspace $workspaceId under parent folder $parentFolderId")
+      val result: List[Attempt[String]] = files.map { file =>
+        tx.run(
+          """
+            |MATCH (workspace: Workspace {id: {workspaceId}})<-[:PART_OF]-(parentFolder: WorkspaceNode {id: {parentFolderId}})
+            |MATCH (currentUser: User {username: {currentUser}})
+            |MERGE (file: WorkspaceNode {id: {fileId}, name: {fileName}, type: 'file', icon: {icon}, uri: {blobUri}, addedOn: {addedOn}, mimeType: {mimeType}, size: {size}})
+            |CREATE (file)-[:PARENT]->(parentFolder)
+            |CREATE (file)-[:PART_OF]->(workspace)
+            |CREATE (file)<-[:CREATED]-(currentUser)
+            |RETURN file
+          """.stripMargin,
+          parameters(
+            "fileId", file.id,
+            "fileName", file.name,
+            "icon", file.icon,
+            "blobUri", file.blobUri,
+            "addedOn", Long.box(file.addedOn),
+            "mimeType", file.mimeType,
+            "size", file.size,
+            "workspaceId", workspaceId,
+            "parentFolderId", parentFolderId,
+            "currentUser", currentUser
+          )).flatMap {
+          case r if r.summary().counters().nodesCreated() == 0 =>
+            println(r.summary())
+            Attempt.Left(IllegalStateFailure(s"Failed to create workspace node for file ${file.name}"))
+          case r =>
+            logger.info(s"Added blob ${file.blobUri} as workspace node ${file.id} for file ${file.name}")
+            Attempt.Right[String](r.single().get("file").get("id").asString())
+        }
+      }
+      Attempt.sequence(result)
     }
   }
 
