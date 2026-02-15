@@ -34,6 +34,7 @@ import {
   isTreeNode,
   TreeEntry,
   TreeLeaf,
+  TreeNode,
 } from "../../types/Tree";
 import {
   isWorkspaceLeaf,
