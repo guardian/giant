@@ -33,6 +33,7 @@ export function uploadFileWithNewIngestion(
   uploadId: string,
   file: File,
   path: string,
+  isFastLane: boolean,
   workspace?: WorkspaceUploadMetadata,
   onProgress?: ProgressHandler,
 ) {
@@ -41,6 +42,7 @@ export function uploadFileWithNewIngestion(
     uploadId,
     file,
     path,
+    isFastLane,
     workspace,
     onProgress,
     ingestionName,

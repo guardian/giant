@@ -24,7 +24,9 @@ object IngestFileResult {
 
 class IngestFile(collectionUri: Uri, ingestionUri: Uri, uploadId: String, workspace: Option[WorkspaceItemUploadContext],
                  username: String, temporaryFilePath: Path, originalPath: Path, lastModifiedTime: Option[String],
-                 manifest: Manifest, esEvents: Events, ingestionServices: IngestionServices, annotations: Annotations, fingerPrint: Option[String] = None)(implicit ec: ExecutionContext) extends AttemptCommand[IngestFileResult] {
+                 manifest: Manifest, esEvents: Events, ingestionServices: IngestionServices, annotations: Annotations,
+                 fingerPrint: Option[String] = None, isFastLane: Boolean = false
+                )(implicit ec: ExecutionContext) extends AttemptCommand[IngestFileResult] {
 
   override def process(): Attempt[IngestFileResult] = {
     for {
@@ -37,7 +39,7 @@ class IngestFile(collectionUri: Uri, ingestionUri: Uri, uploadId: String, worksp
       )
       _ = workspaceEvent.foreach(ingestionServices.recordIngestionEvent)
       metadata = buildMetadata(ingestion, lastModifiedTime, workspace.map(WorkspaceItemContext.fromUpload(fileUri, _)))
-      blob <- Attempt.fromEither(ingestionServices.ingestFile(metadata, Uri(fileUri), temporaryFilePath))
+      blob <- Attempt.fromEither(ingestionServices.ingestFile(metadata, Uri(fileUri), temporaryFilePath, isFastLane))
       workspaceNodeId <- addToWorkspaceIfRequired(blob)
     } yield {
       workspaceEvent.foreach(e => ingestionServices.recordIngestionEvent(e.copy(status = EventStatus.Success)))

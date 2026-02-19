@@ -245,7 +245,10 @@ class Collections(override val controllerComponents: AuthControllerComponents, m
       temporaryFilePath = req.body.path,
       originalPath = Paths.get(originalPath),
       lastModifiedTime,
-      manifest, esEvents, ingestionServices, annotations, fingerprint
+      manifest, esEvents, ingestionServices, annotations, fingerprint,
+      // TODO consider isAdmin check too for fast lane (isAdmin <- users.hasPermission(req.user.username, CanPerformAdminOperations)
+      isFastLane = req.headers.get("X-PFI-Fast-Lane").contains("true")
+
     ).process().map { result =>
       Created(Json.toJson(result))
     }

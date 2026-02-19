@@ -125,6 +125,7 @@ export default function WorkspaceSummary({
         getResource={getWorkspaceContents}
         focusedWorkspaceEntry={focusedEntry}
         expandedNodes={expandedNodes}
+        isAdmin={isAdmin}
       />
       <CaptureFromUrl maybePreSelectedWorkspace={workspace} withButton />
       <div>

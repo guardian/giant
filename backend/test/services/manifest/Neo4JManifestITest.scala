@@ -183,7 +183,8 @@ class Neo4JManifestITest extends AnyFreeSpec
           extractors,
           workspace = workspace.map { id =>
             WorkspaceItemContext(id, id, uri.value)
-          }
+          },
+          isFastLane = true
         )
       }
 

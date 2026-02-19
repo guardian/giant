@@ -61,6 +61,7 @@ type Props = {
   getResource: typeof getCollection | typeof getWorkspace;
   focusedWorkspaceEntry: TreeEntry<WorkspaceEntry> | null;
   expandedNodes?: TreeNode<WorkspaceEntry>[];
+  isAdmin: boolean;
 };
 
 type State = {
@@ -178,6 +179,7 @@ async function uploadFiles(
   target: WorkspaceTarget,
   files: Map<string, UploadFile>,
   dispatch: React.Dispatch<Action>,
+  isFastLane: boolean,
 ): Promise<void> {
   const uploadId = uuid();
   let workspaceFolderCache: Map<string, string> = new Map();
@@ -228,6 +230,7 @@ async function uploadFiles(
           uploadId,
           file,
           path,
+          isFastLane,
           metadata,
           onProgress,
         );
@@ -301,6 +304,8 @@ export default function UploadFiles(props: Props) {
   const currentUpload = getCurrentlyUploading(state);
   const isUploading = currentUpload !== undefined;
 
+  const [shouldUseFastLane, setShouldUseFastLane] = useState(false);
+
   const completeCount = [...state.files.values()].filter(
     ({ state }) => state.description === "uploaded",
   ).length;
@@ -312,6 +317,7 @@ export default function UploadFiles(props: Props) {
 
   function dismissAndResetModal() {
     setOpen(false);
+    setShouldUseFastLane(false);
     dispatch({ type: "Reset", state: { files: new Map(), target: undefined } });
   }
 
@@ -337,7 +343,12 @@ export default function UploadFiles(props: Props) {
         dismissAndResetModal();
         history.push(`/workspaces/${target.workspace.id}`);
       } else {
-        await uploadFiles(target, state.files, dispatch).then(() => {
+        await uploadFiles(
+          target,
+          state.files,
+          dispatch,
+          shouldUseFastLane,
+        ).then(() => {
           getResource(workspace.id);
         });
       }
@@ -352,6 +363,8 @@ export default function UploadFiles(props: Props) {
 
   function onDismiss() {
     setOpen(false);
+
+    setShouldUseFastLane(false);
 
     setFocusedWorkspaceFolder(null);
     dispatch({ type: "Reset", state: { files: new Map(), target: undefined } });
@@ -387,6 +400,9 @@ export default function UploadFiles(props: Props) {
       ? displayRelativePath(props.workspace.rootNode, focusedWorkspaceFolder.id)
       : null;
 
+  const isFastLaneDisabled =
+    state.files.size === 0 || isUploading || isComplete;
+
   return (
     <React.Fragment>
       <button
@@ -402,12 +418,10 @@ export default function UploadFiles(props: Props) {
           <h2 className="form__title">
             Upload Files (limit {MAX_FILE_UPLOAD_SIZE_MBYTES}MB per file)
           </h2>
-          {focusedWorkspaceRelativePath ? (
+          {!!focusedWorkspaceRelativePath && (
             <div className="form__row">
               Uploading to folder {focusedWorkspaceRelativePath}
             </div>
-          ) : (
-            false
           )}
           <Form.Field>
             <FilePicker
@@ -426,15 +440,32 @@ export default function UploadFiles(props: Props) {
               }}
             />
           </Form.Field>
-          {currentUpload ? (
+          {!!currentUpload && (
             <FileUploadProgressBar
               file={currentUpload.file}
               uploadState={currentUpload.uploadState}
             />
-          ) : (
-            false
           )}
-          {!isComplete ? (
+          {props.isAdmin && (
+            <label
+              style={{
+                display: "flex",
+                alignItems: "center",
+                cursor: isFastLaneDisabled ? "not-allowed" : "pointer",
+                marginBottom: "1em",
+                color: isFastLaneDisabled ? "grey" : "inherit",
+              }}
+            >
+              <input
+                type="checkbox"
+                checked={shouldUseFastLane}
+                onChange={(e) => setShouldUseFastLane(e.target.checked)}
+                disabled={isFastLaneDisabled}
+              />
+              &nbsp;Use Fast Lane
+            </label>
+          )}
+          {!isComplete && (
             <Button
               type="submit"
               primary
@@ -443,22 +474,16 @@ export default function UploadFiles(props: Props) {
             >
               {"Upload"}
             </Button>
-          ) : (
-            false
           )}
-          {isComplete && !isUploading ? (
+          {isComplete && !isUploading && (
             <Button type="button" onClick={() => dismissAndResetModal()}>
               Close
             </Button>
-          ) : (
-            false
           )}
-          {isUploading ? (
+          {isUploading && (
             <span>
               Uploaded {completeCount}/{state.files.size}
             </span>
-          ) : (
-            false
           )}
         </Form>
       </Modal>
