@@ -16,8 +16,17 @@ import java.nio.file.Path
 object Manifest {
   sealed trait Insertion
   case class InsertDirectory(parentUri: Uri, uri: Uri) extends Insertion
-  case class InsertBlob(file: IngestionFile, blobUri: Uri, parentBlobs: List[Uri], mimeType: MimeType, ingestion: String,
-                        languages: List[String], extractors: Iterable[Extractor], workspace: Option[WorkspaceItemContext]) extends Insertion
+  case class InsertBlob(
+    file: IngestionFile,
+    blobUri: Uri,
+    parentBlobs: List[Uri],
+    mimeType: MimeType,
+    ingestion: String,
+    languages: List[String],
+    extractors: Iterable[Extractor],
+    workspace: Option[WorkspaceItemContext],
+    isFastLane: Boolean
+  ) extends Insertion
   case class InsertEmail(email: Email, parent: Uri) extends Insertion
 
   case class WorkCounts(inProgress: Int, outstanding: Int)

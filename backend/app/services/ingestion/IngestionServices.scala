@@ -43,7 +43,7 @@ trait IngestionServices {
 
   def recordIngestionEvent(event: IngestionEvent): Unit
   def ingestEmail(context: EmailContext, sourceMimeType: String): Either[Failure, Unit]
-  def ingestFile(context: FileContext, blobUri: Uri, path: Path): Either[Failure, Blob]
+  def ingestFile(context: FileContext, blobUri: Uri, path: Path, isFastLane: Boolean = false): Either[Failure, Blob]
   def setProgressNote(blobUri: Uri, extractor: Extractor, note: String): Either[Failure, Unit]
 }
 
@@ -69,7 +69,7 @@ object IngestionServices extends Logging {
       )
     }
 
-    override def ingestFile(context: FileContext, blobUri: Uri, path: Path): Either[Failure, Blob] = {
+    override def ingestFile(context: FileContext, blobUri: Uri, path: Path, isFastLane: Boolean): Either[Failure, Blob] = {
       val ingestionMetaData = EventMetadata(blobUri.value, context.ingestion)
       postgresClient.insertMetadata(BlobMetadata(
         ingestId = context.ingestion,
@@ -113,7 +113,17 @@ object IngestionServices extends Logging {
         extractors = if(fileSize == 0) { List.empty } else { mimeTypeMapper.getExtractorsFor(mediaType.toString) }
         mimeType = MimeType(mediaType.toString)
         intermediateResources = uriParents.collect { case p: UriParentPair => p }.map(p => Manifest.InsertDirectory(parentUri = p.parent, uri = p.child))
-        insertions = intermediateResources :+ Manifest.InsertBlob(context.file, blobUri, context.parentBlobs, mimeType, context.ingestion, context.languages.map(_.key), extractors, context.workspace)
+        insertions = intermediateResources :+ Manifest.InsertBlob(
+          context.file,
+          blobUri,
+          context.parentBlobs,
+          mimeType,
+          context.ingestion,
+          context.languages.map(_.key),
+          extractors,
+          context.workspace,
+          isFastLane
+        )
         _ <- manifest.insert(insertions, rootUri)
 
         data = IngestionData(

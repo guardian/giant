@@ -313,14 +313,25 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
     Right(())
   }
 
-  def insertBlob(tx: StatementRunner, file: IngestionFile, uri: Uri, parentBlobs: List[Uri], mimeType: MimeType,
-                 ingestion: String, languages: List[String], extractors: Iterable[Extractor], workspace: Option[WorkspaceItemContext]): Either[Failure, Unit] = {
+  def insertBlob(
+    tx: StatementRunner,
+    file: IngestionFile,
+    uri: Uri,
+    parentBlobs: List[Uri],
+    mimeType: MimeType,
+    ingestion: String,
+    languages: List[String],
+    extractors: Iterable[Extractor],
+    workspace: Option[WorkspaceItemContext],
+    isFastLane: Boolean
+  ): Either[Failure, Unit] = {
+    val priorityMultiplier = if(isFastLane) { 10 } else { 1 }
     def toParameterMap(e: Extractor): java.util.Map[String, Object] = {
       Map[String, Object](
         "name" -> e.name,
         "indexing" -> Boolean.box(e.indexing),
         "extractorPriority" -> Int.box(e.priority),
-        "priority" -> Int.box(if(workspace.nonEmpty) { e.priority * 100 } else { e.priority }),
+        "priority" -> Int.box((if(workspace.nonEmpty) { e.priority * 100 } else { e.priority }) * priorityMultiplier),
         "cost" -> Long.box(e.cost(mimeType, file.size)),
         "external" -> Boolean.box(e.external)
       ).asJava
@@ -922,8 +933,8 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
     def insertions() = events.toList.traverse {
         case Manifest.InsertDirectory(parentUri, uri) =>
           insertDirectory(tx, parentUri = parentUri, uri = uri)
-        case Manifest.InsertBlob(file, blobUri, parentBlobs, mimeType, ingestion, languages, extractors, workspace) =>
-          insertBlob(tx, file, blobUri, parentBlobs, mimeType, ingestion, languages, extractors, workspace)
+        case Manifest.InsertBlob(file, blobUri, parentBlobs, mimeType, ingestion, languages, extractors, workspace, isFastLane) =>
+          insertBlob(tx, file, blobUri, parentBlobs, mimeType, ingestion, languages, extractors, workspace, isFastLane)
         case Manifest.InsertEmail(email, parent) =>
           insertEmail(tx, email, parent)
     }
