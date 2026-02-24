@@ -569,7 +569,7 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
     } yield {
       if (claimedUris.length > work.length) {
         val diff = claimedUris.length - work.length
-        logger.info(s"Worker $workerName attempted to claim ${claimedUris.length} items but $diff were (probably) locked by another worker. Attempted URIs: [${claimedUris.mkString(", ")}] Actual work items fetched: [${work.map(_.blob.uri.value).mkString(", ")}]")
+        logger.info(s"Worker $workerName attempted to claim ${claimedUris.length} items but $diff were (probably) locked by another worker so only claimed ${work.length} items. Attempted URIs: [${claimedUris.mkString(", ")}] Actual work items fetched: [${work.map(_.blob.uri.value).mkString(", ")}]")
       }
       work
     }
