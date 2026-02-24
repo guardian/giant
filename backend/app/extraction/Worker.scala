@@ -67,7 +67,7 @@ class Worker(
 
   def executeBatch(work: Batch): Int = {
     if(work.nonEmpty) {
-      logger.info(s"Found work: ${work.size} assignments")
+      logger.info(s"Found work: ${work.size} assignments, uris: [${work.map(_._2.uri).mkString(", ")}]")
     } else {
       logger.info("No work found")
     }

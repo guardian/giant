@@ -506,6 +506,10 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
       s"""
          |UNWIND {uris} as uri
          |MATCH (e: Extractor)-[todo: TODO]->(b: Blob:Resource {uri: uri, lockedBy: {workerName}})
+         |
+         | // we have to use WITH DISTINCT here to avoid duplicates for (very common) case where a blob has multiple extractor jobs
+         |WITH DISTINCT b, e, todo
+         |
          |MATCH (b)-[:TYPE_OF]-(m: MimeType)
          |SET todo.attempts = todo.attempts + 1
          |
