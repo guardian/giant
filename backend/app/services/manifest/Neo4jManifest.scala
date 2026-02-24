@@ -452,7 +452,10 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
     Right(())
   }
 
-  // claim work, respecting priority, cost and batch size limits
+  /**
+    * claim work, respecting priority, cost and batch size limits
+    * @return list of uris that have been claimed
+    */
   private def claimWork(workerName: String, maxBatchSize: Int, maxCost: Int): Either[Failure, List[String]] = transaction { tx =>
     val summary = tx.run(
       s"""
@@ -494,74 +497,79 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
     Right(summary.list().asScala.toList.map(_.get("uri").asString()))
   }
 
+
+  /**
+    * Given a list of uris, drop any that aren't locked by workerName and return the work items for the ones that are,
+    * as well as bumping the number of attempts on the TODO
+    * @return list of work items for the uris that are locked by workerName
+    */
+  private def fetchClaimedWork(uris: List[String], workerName: String): Either[Failure, List[WorkItem]] = transaction { tx =>
+    val summary = tx.run(
+      s"""
+         |UNWIND {uris} as uri
+         |MATCH (e: Extractor)-[todo: TODO]->(b: Blob:Resource {uri: uri, lockedBy: {workerName}})
+         |MATCH (b)-[:TYPE_OF]-(m: MimeType)
+         |SET todo.attempts = todo.attempts + 1
+         |
+         |RETURN
+         |    b as blob,
+         |    collect(m) as types,
+         |    e.name as extractorName,
+         |    todo.ingestion as ingestion,
+         |    todo.languages as languages,
+         |    todo.parentBlobs as parentBlobs,
+         |    todo.workspaceId as workspaceId,
+         |    todo.workspaceNodeId as workspaceNodeId,
+         |    todo.workspaceBlobUri as workspaceBlobUri
+          """.stripMargin,
+      parameters(
+        "uris", uris.asJava,
+        "workerName", workerName
+      )
+    )
+
+    Right(summary.list().asScala.toList.map { r =>
+      val rawBlob = r.get("blob")
+      val mimeTypes = r.get("types").values()
+
+      val blob = Blob.fromNeo4jValue(rawBlob, mimeTypes.asScala.toSeq)
+      val extractorName = r.get("extractorName").asString()
+
+      val ingestion = r.get("ingestion").asString()
+
+      val workspaceId = r.get("workspaceId")
+      val workspaceNodeId = r.get("workspaceNodeId")
+      val workspaceBlobUri = r.get("workspaceBlobUri")
+
+      val workspace = if(workspaceId.isNull || workspaceNodeId.isNull || workspaceBlobUri.isNull) {
+        None
+      } else {
+        Some(WorkspaceItemContext(workspaceId.asString(), workspaceNodeId.asString(), workspaceBlobUri.asString()))
+      }
+
+      val rawLanguages = r.get("languages")
+      val rawParentBlobs = r.get("parentBlobs")
+
+      if(rawLanguages.isNull || rawParentBlobs.isNull) {
+        val message = s"NULL languages or parentBlobs! blob: ${blob}. extractorName: ${extractorName}. ingestion: ${ingestion}. rawParentBlobs: ${rawParentBlobs}. rawLanguages: ${rawLanguages}. workspaceId: ${workspaceId}. workspaceNodeId: ${workspaceNodeId}. workspaceBlobUri: ${workspaceBlobUri}"
+        logger.error(message)
+
+        throw new IllegalStateException(message)
+      } else {
+        val languages = rawLanguages.asList(_.asString).asScala.toList.flatMap(Languages.getByKey)
+        val parentBlobs: List[Uri] = rawParentBlobs.asList(_.asString, new java.util.ArrayList[String]()).asScala.toList.map(Uri(_))
+
+        WorkItem(blob, parentBlobs, extractorName, ingestion, languages, workspace)
+      }
+    })
+  }
+
   override def fetchWork(workerName: String, maxBatchSize: Int, maxCost: Int): Either[Failure, List[WorkItem]] = {
-    // claim work
     val claimedUris = claimWork(workerName, maxBatchSize, maxCost)
 
     claimedUris.flatMap { uris =>
-      if (uris.isEmpty) return Right(List.empty)
-
-      // check that claimed work hasn't been claimed by another worker, increment attempts and fetch other metadata
-      transaction { tx =>
-        val summary = tx.run(
-          s"""
-             |UNWIND {uris} as uri
-             |MATCH (e: Extractor)-[todo: TODO]->(b: Blob:Resource {uri: uri, lockedBy: {workerName}})
-             |MATCH (b)-[:TYPE_OF]-(m: MimeType)
-             |SET todo.attempts = todo.attempts + 1
-             |
-             |RETURN
-             |    b as blob,
-             |    collect(m) as types,
-             |    e.name as extractorName,
-             |    todo.ingestion as ingestion,
-             |    todo.languages as languages,
-             |    todo.parentBlobs as parentBlobs,
-             |    todo.workspaceId as workspaceId,
-             |    todo.workspaceNodeId as workspaceNodeId,
-             |    todo.workspaceBlobUri as workspaceBlobUri
-          """.stripMargin,
-          parameters(
-            "uris", uris.asJava,
-            "workerName", workerName
-          )
-        )
-
-        Right(summary.list().asScala.toList.map { r =>
-          val rawBlob = r.get("blob")
-          val mimeTypes = r.get("types").values()
-
-          val blob = Blob.fromNeo4jValue(rawBlob, mimeTypes.asScala.toSeq)
-          val extractorName = r.get("extractorName").asString()
-
-          val ingestion = r.get("ingestion").asString()
-
-          val workspaceId = r.get("workspaceId")
-          val workspaceNodeId = r.get("workspaceNodeId")
-          val workspaceBlobUri = r.get("workspaceBlobUri")
-
-          val workspace = if(workspaceId.isNull || workspaceNodeId.isNull || workspaceBlobUri.isNull) {
-            None
-          } else {
-            Some(WorkspaceItemContext(workspaceId.asString(), workspaceNodeId.asString(), workspaceBlobUri.asString()))
-          }
-
-          val rawLanguages = r.get("languages")
-          val rawParentBlobs = r.get("parentBlobs")
-
-          if(rawLanguages.isNull || rawParentBlobs.isNull) {
-            val message = s"NULL languages or parentBlobs! blob: ${blob}. extractorName: ${extractorName}. ingestion: ${ingestion}. rawParentBlobs: ${rawParentBlobs}. rawLanguages: ${rawLanguages}. workspaceId: ${workspaceId}. workspaceNodeId: ${workspaceNodeId}. workspaceBlobUri: ${workspaceBlobUri}"
-            logger.error(message)
-
-            throw new IllegalStateException(message)
-          } else {
-            val languages = rawLanguages.asList(_.asString).asScala.toList.flatMap(Languages.getByKey)
-            val parentBlobs: List[Uri] = rawParentBlobs.asList(_.asString, new java.util.ArrayList[String]()).asScala.toList.map(Uri(_))
-
-            WorkItem(blob, parentBlobs, extractorName, ingestion, languages, workspace)
-          }
-        })
-      }
+      if (uris.isEmpty) Right(List.empty)
+      else fetchClaimedWork(uris, workerName)
     }
   }
 
