@@ -456,7 +456,7 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
     * claim work, respecting priority, cost and batch size limits
     * @return list of uris that have been claimed
     */
-  private def claimWork(workerName: String, maxBatchSize: Int, maxCost: Int): Either[Failure, List[String]] = transaction { tx =>
+  private def claimWork(workerName: String, maxBatchSize: Int, maxCost: Int): Either[Failure, Set[String]] = transaction { tx =>
     val summary = tx.run(
       s"""
          |MATCH (e: Extractor)-[todo: TODO]->(b: Blob:Resource)
@@ -492,7 +492,7 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
       )
     )
 
-    Right(summary.list().asScala.toList.map(_.get("uri").asString()))
+    Right(summary.list().asScala.toList.map(_.get("uri").asString()).toSet)
   }
 
 
@@ -501,7 +501,7 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
     * as well as bumping the number of attempts on the TODO
     * @return list of work items for the uris that are locked by workerName
     */
-  private def fetchClaimedWork(uris: List[String], workerName: String): Either[Failure, List[WorkItem]] = transaction { tx =>
+  private def fetchClaimedWork(uris: Set[String], workerName: String): Either[Failure, List[WorkItem]] = transaction { tx =>
     val summary = tx.run(
       s"""
          |UNWIND {uris} as uri
@@ -567,9 +567,9 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
       claimedUris <- claimWork(workerName, maxBatchSize, maxCost)
       work <- if(claimedUris.isEmpty) Right(List.empty) else fetchClaimedWork(claimedUris, workerName)
     } yield {
-      if (claimedUris.length > work.length) {
-        val diff = claimedUris.length - work.length
-        logger.info(s"Worker $workerName attempted to claim ${claimedUris.length} items but $diff were (probably) locked by another worker so only claimed ${work.length} items. Attempted URIs: [${claimedUris.mkString(", ")}] Actual work items fetched: [${work.map(_.blob.uri.value).mkString(", ")}]")
+      if (claimedUris.size > work.length) {
+        val diff = claimedUris.size - work.length
+        logger.info(s"Worker $workerName attempted to claim ${claimedUris.size} items but $diff were (probably) locked by another worker so only claimed ${work.length} items. Attempted URIs: [${claimedUris.mkString(", ")}] Actual work items fetched: [${work.map(_.blob.uri.value).mkString(", ")}]")
       }
       work
     }
