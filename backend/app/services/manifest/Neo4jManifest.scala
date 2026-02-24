@@ -481,10 +481,8 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
          |
          |UNWIND tasks[0] as task
          |  WITH task.blob as blob, task.extractor as e, task.todo as todo
-         |
-         |  SET blob.lockedBy = {workerName}
-         |
-         |RETURN blob.uri as uri
+         |    SET blob.lockedBy = {workerName}
+         |    RETURN blob.uri as uri
         """.stripMargin,
       parameters(
         "workerName", workerName,
@@ -565,11 +563,15 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
   }
 
   override def fetchWork(workerName: String, maxBatchSize: Int, maxCost: Int): Either[Failure, List[WorkItem]] = {
-    val claimedUris = claimWork(workerName, maxBatchSize, maxCost)
-
-    claimedUris.flatMap { uris =>
-      if (uris.isEmpty) Right(List.empty)
-      else fetchClaimedWork(uris, workerName)
+    for {
+      claimedUris <- claimWork(workerName, maxBatchSize, maxCost)
+      work <- if(claimedUris.isEmpty) Right(List.empty) else fetchClaimedWork(claimedUris, workerName)
+    } yield {
+      if (claimedUris.length > work.length) {
+        val diff = claimedUris.length - work.length
+        logger.info(s"Worker $workerName attempted to claim ${claimedUris.length} items but $diff were (probably) locked by another worker. Attempted URIs: ${claimedUris.mkString(", ")} Actual work items fetched: ${work.map(_.blob.uri.value).mkString(", ")}")
+      }
+      work
     }
   }
 
