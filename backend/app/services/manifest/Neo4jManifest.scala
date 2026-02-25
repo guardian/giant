@@ -42,7 +42,6 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
       tx.run("CREATE CONSTRAINT ON (resource: Resource)   ASSERT resource.uri   IS UNIQUE")
       tx.run("CREATE CONSTRAINT ON (extractor: Extractor) ASSERT extractor.name IS UNIQUE")
       tx.run("CREATE CONSTRAINT ON (tpe: MimeType)        ASSERT tpe.mimeType   IS UNIQUE")
-      tx.run("CREATE INDEX ON :Resource(lockedBy)")
 
       Right(())
   }
@@ -452,77 +451,59 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
     Right(())
   }
 
-  /**
-    * claim work, respecting priority, cost and batch size limits
-    * @return list of uris that have been claimed
-    */
-  private def claimWork(workerName: String, maxBatchSize: Int, maxCost: Int): Either[Failure, List[String]] = transaction { tx =>
+  override def fetchWork(workerName: String, workerCount: Int, workerIndex: Int, maxBatchSize: Int, maxCost: Int): Either[Failure, List[WorkItem]] = transaction { tx =>
     val summary = tx.run(
       s"""
-         |MATCH (e: Extractor)-[todo: TODO]->(b: Blob:Resource)
-         |  WHERE
-         |    b.lockedBy IS NULL AND todo.attempts < {maxExtractionAttempts}
-         |
-         |  WITH todo, e, b
-         |  // priority was originally just defined for extractors, we later extended it out to todos as well
-         |  // This maintains roll forward/backward compatibility with both
-         |  ORDER BY coalesce(todo.priority, e.priority) DESC
-         |  LIMIT {maxBatchSize}
-         |
-         |WITH collect({todo: todo, extractor: e, blob: b}) as allTasks
-         |WITH tail(reduce(acc = [0, []], task in allTasks |
-         |    case
-         |      when size(acc[1]) > 0 AND (acc[0] + task.todo.cost) >= {maxCost}
-         |        then [acc[0], acc[1]]
-         |      else
-         |        [acc[0] + task.todo.cost, acc[1] + task]
-         |     end
-         |  )) as tasks
-         |
-         |UNWIND tasks[0] as task
-         |  WITH task.blob as blob, task.extractor as e, task.todo as todo
-         |    SET blob.lockedBy = {workerName}
-         |    RETURN blob.uri as uri
-        """.stripMargin,
+        |MERGE (worker:Worker {name: {workerName}})
+        |  WITH
+        |    worker
+        |
+        |MATCH (e: Extractor)-[todo: TODO]->(b: Blob:Resource)
+        |  WHERE id(todo) % {workerCount} = {workerIndex} AND
+        |    NOT (b)-[:LOCKED_BY]->(:Worker) AND todo.attempts < {maxExtractionAttempts}
+        |
+        |  WITH worker, todo, e, b
+        |  // priority was originally just defined for extractors, we later extended it out to todos as well
+        |  // This maintains roll forward/backward compatibility with both
+        |  ORDER BY coalesce(todo.priority, e.priority) DESC
+        |  LIMIT {maxBatchSize}
+        |
+        |WITH collect({todo: todo, extractor: e, blob: b, worker: worker}) as allTasks
+        |WITH tail(reduce(acc = [0, []], task in allTasks |
+        |    case
+        |      when size(acc[1]) > 0 AND (acc[0] + task.todo.cost) >= {maxCost}
+        |        then [acc[0], acc[1]]
+        |      else
+        |        [acc[0] + task.todo.cost, acc[1] + task]
+        |     end
+        |  )) as tasks
+        |
+        |UNWIND tasks[0] as task
+        |  MATCH (blob: Blob:Resource { uri: task.blob.uri })-[:TYPE_OF]-(m: MimeType)
+        |  MATCH (worker :Worker { name: task.worker.name })
+        |
+        |  SET task.todo.attempts = task.todo.attempts + 1
+        |  MERGE (blob)-[:LOCKED_BY {lockedAt: {lockedAt}}]->(worker)
+        |
+        |RETURN
+        |    blob,
+        |    collect(m) as types,
+        |    task.extractor.name as extractorName,
+        |    task.todo.ingestion as ingestion,
+        |    task.todo.languages as languages,
+        |    task.todo.parentBlobs as parentBlobs,
+        |    task.todo.workspaceId as workspaceId,
+        |    task.todo.workspaceNodeId as workspaceNodeId,
+        |    task.todo.workspaceBlobUri as workspaceBlobUri
+      """.stripMargin,
       parameters(
         "workerName", workerName,
         "maxExtractionAttempts", Int.box(maxExtractionAttempts),
         "maxBatchSize", Int.box(maxBatchSize),
-        "maxCost", Int.box(maxCost)
-      )
-    )
-
-    Right(summary.list().asScala.toList.map(_.get("uri").asString()))
-  }
-
-
-  /**
-    * Given a list of uris, drop any that aren't locked by workerName and return the work items for the ones that are,
-    * as well as bumping the number of attempts on the TODO
-    * @return list of work items for the uris that are locked by workerName
-    */
-  private def fetchClaimedWork(uris: List[String], workerName: String): Either[Failure, List[WorkItem]] = transaction { tx =>
-    val summary = tx.run(
-      s"""
-         |UNWIND {uris} as uri
-         |MATCH (e: Extractor)-[todo: TODO]->(b: Blob:Resource {uri: uri, lockedBy: {workerName}})
-         |MATCH (b)-[:TYPE_OF]-(m: MimeType)
-         |SET todo.attempts = todo.attempts + 1
-         |
-         |RETURN
-         |    b as blob,
-         |    collect(m) as types,
-         |    e.name as extractorName,
-         |    todo.ingestion as ingestion,
-         |    todo.languages as languages,
-         |    todo.parentBlobs as parentBlobs,
-         |    todo.workspaceId as workspaceId,
-         |    todo.workspaceNodeId as workspaceNodeId,
-         |    todo.workspaceBlobUri as workspaceBlobUri
-          """.stripMargin,
-      parameters(
-        "uris", uris.asJava,
-        "workerName", workerName
+        "maxCost", Int.box(maxCost),
+        "workerCount", Int.box(workerCount),
+        "workerIndex", Int.box(workerIndex),
+        "lockedAt", Instant.now().toEpochMilli.asInstanceOf[java.lang.Long]
       )
     )
 
@@ -562,26 +543,13 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
     })
   }
 
-  override def fetchWork(workerName: String, maxBatchSize: Int, maxCost: Int): Either[Failure, List[WorkItem]] = {
-    for {
-      claimedUris <- claimWork(workerName, maxBatchSize, maxCost)
-      work <- if(claimedUris.isEmpty) Right(List.empty) else fetchClaimedWork(claimedUris, workerName)
-    } yield {
-      if (claimedUris.length > work.length) {
-        val diff = claimedUris.length - work.length
-        logger.info(s"Worker $workerName attempted to claim ${claimedUris.length} items but $diff were (probably) locked by another worker so only claimed ${work.length} items. Attempted URIs: [${claimedUris.mkString(", ")}] Actual work items fetched: [${work.map(_.blob.uri.value).mkString(", ")}]")
-      }
-      work
-    }
-  }
-
   // Called by the workers themselves once a batch work is complete
   override def releaseLocks(workerName: String): Either[Failure, Unit] = transaction { tx =>
     logger.info(s"Releasing all locks for $workerName")
     tx.run(
       """
-        |MATCH (resource :Resource {lockedBy: {workerName}})
-        |REMOVE resource.lockedBy
+        |MATCH (resource :Resource)-[lock :LOCKED_BY]->(:Worker {name: {workerName}})
+        |DELETE lock
         |WITH resource
         |MATCH (resource :Resource)<-[todo:TODO]-(e:Extractor)
         |WHERE NOT (resource)<-[:EXTRACTION_FAILURE]-(e)
@@ -599,11 +567,11 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
   def releaseLocksForTerminatedWorkers(runningWorkerNames: List[String]): Either[Failure, Unit] = transaction { tx =>
     tx.run(
       """
-        |MATCH (resource :Resource)
-        |WHERE resource.lockedBy IS NOT NULL AND NOT resource.lockedBy IN {runningWorkerNames}
-        |REMOVE resource.lockedBy
+        |MATCH (resource :Resource)-[lock:LOCKED_BY]->(w:Worker)
+        |WHERE NOT w.name in {runningWorkerNames}
+        |DELETE lock
         |WITH resource
-        |MATCH (resource)<-[todo:TODO]-(e:Extractor)
+        |MATCH (resource :Resource)<-[todo:TODO]-(e:Extractor)
         |WHERE NOT (resource)<-[:EXTRACTION_FAILURE]-(e)
         |SET todo.attempts = 0
       """.stripMargin,
@@ -1223,11 +1191,11 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
     val result = tx.run(
       """
         |OPTIONAL MATCH (:Extractor)-[t:TODO]->(b:Blob)
-        |WHERE b.lockedBy IS NOT NULL
+        |WHERE (b)-[:LOCKED_BY]->(:Worker)
         |WITH count(t) as inProgress
         |
         |OPTIONAL MATCH (:Extractor)-[t:TODO]->(b:Blob)
-        |WHERE t.attempts < {maxExtractionAttempts} AND b.lockedBy IS NULL AND NOT (b)<-[:EXTRACTION_FAILURE]-(:Extractor)
+        |WHERE t.attempts < {maxExtractionAttempts} AND NOT (b)-[:LOCKED_BY]->(:Worker) AND NOT (b)<-[:EXTRACTION_FAILURE]-(:Extractor)
         |RETURN inProgress, count(t) as outstanding
       """.stripMargin,
       parameters(

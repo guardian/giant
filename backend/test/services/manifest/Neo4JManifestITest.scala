@@ -18,16 +18,16 @@ import services.index.Index
 import services.ingestion.IngestionServices
 import services.{Neo4jQueryLoggingConfig, ObjectStorage, Tika}
 import test.integration.{Neo4jTestContainer, Neo4jTestService}
-import test.{TestPostgresClient}
+import test.TestPostgresClient
 import utils.Logging
 import utils.attempt._
 
 import java.io.InputStream
 import java.nio.charset.StandardCharsets
 import java.nio.file.{Files, Path, Paths}
-import java.util.concurrent.{CountDownLatch, CyclicBarrier, Executors, TimeUnit}
 import java.time.format.DateTimeFormatter
 import java.time.{OffsetDateTime, ZoneOffset}
+import java.util.concurrent.{CountDownLatch, CyclicBarrier, Executors, TimeUnit}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 
@@ -189,8 +189,8 @@ class Neo4JManifestITest extends AnyFreeSpec
         )
       }
 
-      def fetchWork(worker: String, maxBatchSize: Int, maxCost: Int = 10000): List[(Uri, String)] = {
-        val result = manifest.fetchWork(worker, maxBatchSize, maxCost)
+      def fetchWork(worker: String, maxBatchSize: Int, maxCost: Int = 10000, workerCount: Int = 1, workerIndex: Int = 0): List[(Uri, String)] = {
+        val result = manifest.fetchWork(worker, workerCount, workerIndex, maxBatchSize, maxCost)
         result.toOption.get.map { case WorkItem(blob, _, extractor, _, _, _) => blob.uri -> extractor }
       }
 
@@ -329,12 +329,13 @@ class Neo4JManifestITest extends AnyFreeSpec
         manifest.insertIngestion(Uri("distribution_test"), Uri("distribution_test/test"), "test", None, List(English), fixed = false, default = false).eitherValue.isRight should be(true)
         manifest.insert(blobs, Uri("distribution_test/test")).isRight should be(true)
 
-        fetchWork("worker_one", maxBatchSize = 2) should contain allOf(
+        // set workerCount to 1 here even though there are two workers so we can predict what the distribution will be
+        fetchWork("worker_one", maxBatchSize = 2, workerCount = 1, workerIndex = 0) should contain allOf(
           blobs(0).blobUri -> "ArchiveExtractor",
           blobs(1).blobUri -> "RarExtractor"
         )
 
-        fetchWork("worker_two", maxBatchSize = 2) should contain allOf(
+        fetchWork("worker_two", maxBatchSize = 2, workerCount = 1, workerIndex = 0) should contain allOf(
           blobs(2).blobUri -> "DocumentBodyExtractor",
           blobs(3).blobUri -> "DocumentBodyExtractor"
         )
@@ -373,7 +374,7 @@ class Neo4JManifestITest extends AnyFreeSpec
 
         manifest.insert(blobs, collection).isRight should be(true)
 
-        val rawResults = manifest.fetchWork("test", maxBatchSize = 3, maxCost = 10000).toOption.get
+        val rawResults = manifest.fetchWork("test", 1, 0, maxBatchSize = 3, maxCost = 10000).toOption.get
         val results = rawResults.map { case WorkItem(blob, _, _,  ingestion, _, _) => blob.uri -> ingestion }
 
         results should contain allOf(
@@ -401,13 +402,13 @@ class Neo4JManifestITest extends AnyFreeSpec
 
         manifest.insert(List(blobs(0)), collection).isRight should be(true)
 
-        val firstItem = manifest.fetchWork("test", maxBatchSize = 1, maxCost = 10000).toOption.get.head
+        val firstItem = manifest.fetchWork("test", 1, 0, maxBatchSize = 1, maxCost = 10000).toOption.get.head
         firstItem.blob.uri should be(blobs(0).blobUri)
 
         val wut = manifest.insert(List(blobs(1), blobs(2)), collection)
         wut.isRight should be(true)
 
-        val secondItem = manifest.fetchWork("test", maxBatchSize = 1, maxCost = 10000).toOption.get.head
+        val secondItem = manifest.fetchWork("test", 1, 0, maxBatchSize = 1, maxCost = 10000).toOption.get.head
         secondItem.blob.uri should be(blobs(2).blobUri)
       }
 
@@ -433,21 +434,20 @@ class Neo4JManifestITest extends AnyFreeSpec
         var workerOneResults: List[WorkItem] = List.empty
         var workerTwoResults: List[WorkItem] = List.empty
 
-
         // use java countdownlatch to try and get the fetchWork commands to execute as simultaneously as possible
         val latch = new CountDownLatch(2)
         executor.submit(new Runnable {
           def run(): Unit = {
             barrier.await() // wait for both threads to be ready
             workerOneResults = manifest
-              .fetchWork("concurrentWorkerOne", maxBatchSize = 10, maxCost = 10000).toOption.get
+              .fetchWork("concurrentWorkerOne", maxBatchSize = 10, maxCost = 10000, workerCount = 2, workerIndex = 0).toOption.get
             latch.countDown()
           }
         })
         executor.submit(new Runnable {
           def run(): Unit = {
             barrier.await() // wait for both threads to be ready
-            workerTwoResults = manifest.fetchWork("concurrentWorkerTwo", maxBatchSize = 10, maxCost = 10000).toOption.get
+            workerTwoResults = manifest.fetchWork("concurrentWorkerTwo", maxBatchSize = 10, maxCost = 10000, workerCount = 2, workerIndex = 1).toOption.get
             latch.countDown()
           }
         })

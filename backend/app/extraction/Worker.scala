@@ -6,7 +6,7 @@ import model.manifest.{Blob, WorkItem}
 import services.manifest.WorkerManifest
 import services.observability._
 import services.{Metrics, MetricsService, ObjectStorage}
-import utils.Logging
+import utils.{Logging, WorkerControl}
 import utils.attempt._
 
 import java.io.InputStream
@@ -21,6 +21,7 @@ object Worker extends Logging {
 
 class Worker(
   val name: String,
+  workerControl: WorkerControl,
   manifest: WorkerManifest,
   blobStorage: ObjectStorage,
   extractors: List[Extractor],
@@ -48,26 +49,29 @@ class Worker(
   def fetchBatch(): Attempt[Batch] = {
     logger.info("Fetching work")
 
-    manifest.fetchWork(name, maxBatchSize, maxCost).toAttempt.flatMap { work =>
-      Attempt.traverse(work) {
-        case WorkItem(blob, parentBlobs, extractorName, ingestion, languages, workspace) =>
-          extractors.find(_.name == extractorName) match {
-            case Some(extractor) =>
-              Attempt.Right((extractor, blob, ExtractionParams(ingestion, languages, parentBlobs, workspace)))
+    workerControl.getWorkerDetails.flatMap { workerDetail =>
+      val workerIndex = workerDetail.nodes.toList.sorted.indexOf(workerDetail.thisNode)
+      manifest.fetchWork(name, workerDetail.nodes.size, workerIndex, maxBatchSize, maxCost).toAttempt.flatMap { work =>
+        Attempt.traverse(work) {
+          case WorkItem(blob, parentBlobs, extractorName, ingestion, languages, workspace) =>
+            extractors.find(_.name == extractorName) match {
+              case Some(extractor) =>
+                Attempt.Right((extractor, blob, ExtractionParams(ingestion, languages, parentBlobs, workspace)))
 
-            case _ =>
-              val failureMsg = s"Unknown extractor $extractorName"
-              logger.error(failureMsg)
-              manifest.logExtractionFailure(blob.uri, extractorName, failureMsg)
-              Attempt.Left(UnsupportedOperationFailure(failureMsg))
-          }
+              case _ =>
+                val failureMsg = s"Unknown extractor $extractorName"
+                logger.error(failureMsg)
+                manifest.logExtractionFailure(blob.uri, extractorName, failureMsg)
+                Attempt.Left(UnsupportedOperationFailure(failureMsg))
+            }
+        }
       }
     }
   }
 
   def executeBatch(work: Batch): Int = {
     if(work.nonEmpty) {
-      logger.info(s"Found work: ${work.size} assignments")
+      logger.info(s"Found work: ${work.size} assignments: [${work.map(w => s"${w._2.uri.value}/${w._1.name}").mkString(", ")}]")
     } else {
       logger.info("No work found")
     }
