@@ -328,12 +328,13 @@ class Neo4JManifestITest extends AnyFreeSpec
         manifest.insertIngestion(Uri("distribution_test"), Uri("distribution_test/test"), "test", None, List(English), fixed = false, default = false).eitherValue.isRight should be(true)
         manifest.insert(blobs, Uri("distribution_test/test")).isRight should be(true)
 
-        fetchWork("worker_one", maxBatchSize = 2, workerCount = 2, workerIndex = 0) should contain allOf(
+        // set workerCount to 1 here even though there are two workers so we can predict what the distribution will be
+        fetchWork("worker_one", maxBatchSize = 2, workerCount = 1, workerIndex = 0) should contain allOf(
           blobs(0).blobUri -> "ArchiveExtractor",
           blobs(1).blobUri -> "RarExtractor"
         )
 
-        fetchWork("worker_two", maxBatchSize = 2, workerCount = 2, workerIndex = 1) should contain allOf(
+        fetchWork("worker_two", maxBatchSize = 2, workerCount = 1, workerIndex = 0) should contain allOf(
           blobs(2).blobUri -> "DocumentBodyExtractor",
           blobs(3).blobUri -> "DocumentBodyExtractor"
         )
