@@ -481,8 +481,10 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
          |
          |UNWIND tasks[0] as task
          |  WITH task.blob as blob, task.extractor as e, task.todo as todo
-         |    SET blob.lockedBy = {workerName}
-         |    RETURN blob.uri as uri
+         |    SET blob.lockedBy = CASE WHEN blob.lockedBy IS NULL THEN {workerName} ELSE blob.lockedBy END
+         |    WITH blob
+         |      WHERE blob.lockedBy = {workerName}
+         |      RETURN DISTINCT blob.uri as uri
         """.stripMargin,
       parameters(
         "workerName", workerName,
@@ -571,6 +573,7 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
         val diff = claimedUris.length - work.length
         logger.info(s"Worker $workerName attempted to claim ${claimedUris.length} items but $diff were (probably) locked by another worker so only claimed ${work.length} items. Attempted URIs: [${claimedUris.mkString(", ")}] Actual work items fetched: [${work.map(_.blob.uri.value).mkString(", ")}]")
       }
+      logger.info(s"Worker $workerName fetched ${work.length} items: [${work.map(_.blob.uri).mkString(", ")}]")
       work
     }
   }
