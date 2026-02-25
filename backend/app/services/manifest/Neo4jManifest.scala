@@ -483,7 +483,7 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
         |  MATCH (worker :Worker { name: task.worker.name })
         |
         |  SET task.todo.attempts = task.todo.attempts + 1
-        |  MERGE (blob)-[:LOCKED_BY]->(worker)
+        |  MERGE (blob)-[:LOCKED_BY {lockedAt: {lockedAt}}]->(worker)
         |
         |RETURN
         |    blob,
@@ -502,7 +502,8 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
         "maxBatchSize", Int.box(maxBatchSize),
         "maxCost", Int.box(maxCost),
         "workerCount", Int.box(workerCount),
-        "workerIndex", Int.box(workerIndex)
+        "workerIndex", Int.box(workerIndex),
+        "lockedAt", Instant.now().toEpochMilli.asInstanceOf[java.lang.Long]
       )
     )
 
