@@ -18,7 +18,7 @@ import services.index.Index
 import services.ingestion.IngestionServices
 import services.{Neo4jQueryLoggingConfig, ObjectStorage, Tika}
 import test.integration.{Neo4jTestContainer, Neo4jTestService}
-import test.{TestPostgresClient}
+import test.TestPostgresClient
 import utils.Logging
 import utils.attempt._
 
@@ -27,6 +27,7 @@ import java.nio.charset.StandardCharsets
 import java.nio.file.{Files, Path, Paths}
 import java.time.format.DateTimeFormatter
 import java.time.{OffsetDateTime, ZoneOffset}
+import java.util.concurrent.{CountDownLatch, CyclicBarrier, Executors, TimeUnit}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 
@@ -410,6 +411,60 @@ class Neo4JManifestITest extends AnyFreeSpec
         val secondItem = manifest.fetchWork("test", 1, 0, maxBatchSize = 1, maxCost = 10000).toOption.get.head
         secondItem.blob.uri should be(blobs(2).blobUri)
       }
+
+      "Two workers calling fetchWork concurrently should not receive the same blob" in {
+        val collection = Uri("concurrent_fetch_test")
+        val ingestion = collection.chain("test")
+
+        manifest.insertCollection(collection.value, collection.value, "test").eitherValue.isRight should be(true)
+        manifest.insertIngestion(collection, ingestion, "test", None, List(English), fixed = false, default = false).eitherValue.isRight should be(true)
+
+        val blobs = List(
+          blob(ingestion.chain("every.zip"), List(extractors("ArchiveExtractor")), ingestion.value),
+          blob(ingestion.chain("second.zip"), List(extractors("ArchiveExtractor")), ingestion.value),
+          blob(ingestion.chain("counts.zip"), List(extractors("ArchiveExtractor")), ingestion.value),
+          blob(ingestion.chain("fridge.zip"), List(extractors("ArchiveExtractor")), ingestion.value),
+          blob(ingestion.chain("time.zip"), List(extractors("ArchiveExtractor")), ingestion.value)
+        )
+        manifest.insert(blobs, ingestion).isRight should be(true)
+
+        val barrier = new CyclicBarrier(2)
+        val executor = Executors.newFixedThreadPool(2)
+
+        var workerOneResults: List[WorkItem] = List.empty
+        var workerTwoResults: List[WorkItem] = List.empty
+
+        // use java countdownlatch to try and get the fetchWork commands to execute as simultaneously as possible
+        val latch = new CountDownLatch(2)
+        executor.submit(new Runnable {
+          def run(): Unit = {
+            barrier.await() // wait for both threads to be ready
+            workerOneResults = manifest
+              .fetchWork("concurrentWorkerOne", maxBatchSize = 10, maxCost = 10000, workerCount = 2, workerIndex = 0).toOption.get
+            latch.countDown()
+          }
+        })
+        executor.submit(new Runnable {
+          def run(): Unit = {
+            barrier.await() // wait for both threads to be ready
+            workerTwoResults = manifest.fetchWork("concurrentWorkerTwo", maxBatchSize = 10, maxCost = 10000, workerCount = 2, workerIndex = 1).toOption.get
+            latch.countDown()
+          }
+        })
+        latch.await(30, TimeUnit.SECONDS)
+        executor.shutdown()
+
+        val workerOneBlobUris = workerOneResults.filter(_.ingestion == ingestion.value).map(_.blob.uri).toSet
+        val workerTwoBlobUris = workerTwoResults.filter(_.ingestion == ingestion.value).map(_.blob.uri).toSet
+
+        // Exactly one worker should have received each blob, not both
+        val overlap = workerOneBlobUris.intersect(workerTwoBlobUris)
+        overlap shouldBe empty
+
+        // Between them, they should have exactly 5 blobs (all of them)
+        (workerOneBlobUris ++ workerTwoBlobUris) should have size 5
+      }
+
     }
 
     "Upload" - {
