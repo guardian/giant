@@ -1,11 +1,10 @@
 import org.apache.pekko.actor.{ActorSystem, CoordinatedShutdown}
 import org.apache.pekko.actor.CoordinatedShutdown.Reason
 import cats.syntax.either._
-import com.amazonaws.client.builder.AwsClientBuilder
-
 import java.net.URI
 import software.amazon.awssdk.services.sns.SnsClient
 import software.amazon.awssdk.services.sqs.SqsClient
+import software.amazon.awssdk.services.s3.presigner.S3Presigner
 import com.gu.pandomainauth
 import com.gu.pandomainauth.PublicSettings
 import controllers.AssetsComponents
@@ -53,7 +52,6 @@ import java.net.InetAddress
 import java.nio.file.Paths
 import java.security.Security
 import java.time.Clock
-import java.util.concurrent.TimeUnit
 import scala.concurrent.Await
 import scala.concurrent.duration._
 import scala.language.postfixOps
@@ -81,6 +79,8 @@ class AppComponents(context: Context, config: Config)
     val s3ExecutionContext = actorSystem.dispatchers.lookup("s3-context")
     val ingestionExecutionContext = actorSystem.dispatchers.lookup("ingestion-context")
 
+    val credentialsProvider = AwsCredentials.credentialsV2()
+
     val s3Client = new S3Client(config.s3)(s3ExecutionContext)
 
     val sqsClient = if (config.sqs.endpoint.isDefined)
@@ -93,16 +93,21 @@ class AppComponents(context: Context, config: Config)
     else
       SnsClient.builder().region(config.sqs.regionV2).build()
 
+    val s3Presigner = S3Presigner.builder()
+      .region(config.sqs.regionV2)
+      .credentialsProvider(credentialsProvider)
+      .build()
+
     val workerName = config.worker.name.getOrElse(InetAddress.getLocalHost.getHostName)
 
     val scratchSpace = new ScratchSpace(Paths.get(config.ingestion.scratchPath))
     scratchSpace.setup().await()
 
     // data storage services
-    val ingestStorage = S3IngestStorage(s3Client, config.s3.buckets.ingestion, config.s3.buckets.deadLetter).valueOr(failure => throw new Exception(failure.msg))
-    val blobStorage = S3ObjectStorage(s3Client, config.s3.buckets.collections).valueOr(failure => throw new Exception(failure.msg))
-    val transcriptStorage = S3ObjectStorage(s3Client, config.s3.buckets.transcription).valueOr(failure => throw new Exception(failure.msg))
-    val remoteIngestStorage = S3IngestStorage(s3Client, config.s3.buckets.remoteIngestion, config.s3.buckets.deadLetter).valueOr(failure => throw new Exception(failure.msg))
+    val ingestStorage = S3IngestStorage(s3Client, s3Presigner, config.s3.buckets.ingestion, config.s3.buckets.deadLetter).valueOr(failure => throw new Exception(failure.msg))
+    val blobStorage = S3ObjectStorage(s3Client, s3Presigner, config.s3.buckets.collections).valueOr(failure => throw new Exception(failure.msg))
+    val transcriptStorage = S3ObjectStorage(s3Client, s3Presigner, config.s3.buckets.transcription).valueOr(failure => throw new Exception(failure.msg))
+    val remoteIngestStorage = S3IngestStorage(s3Client, s3Presigner, config.s3.buckets.remoteIngestion, config.s3.buckets.deadLetter).valueOr(failure => throw new Exception(failure.msg))
 
     val postgresClient = config.postgres match {
       case Some(postgresConfig) =>  new PostgresClientImpl(postgresConfig)
@@ -148,7 +153,7 @@ class AppComponents(context: Context, config: Config)
     val ingestionServices = IngestionServices(manifest, esResources, blobStorage, tika, mimeTypeMapper, postgresClient)
 
     // Preview
-    val previewStorage = S3ObjectStorage(s3Client, config.s3.buckets.preview).valueOr(failure => throw new Exception(failure.msg))
+    val previewStorage = S3ObjectStorage(s3Client, s3Presigner, config.s3.buckets.preview).valueOr(failure => throw new Exception(failure.msg))
     val previewService = PreviewService(config.preview, esResources, blobStorage, previewStorage)
 
     // extractors

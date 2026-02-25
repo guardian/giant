@@ -3,33 +3,33 @@ package services
 import java.io.InputStream
 import java.util.UUID
 import cats.syntax.either._
-import com.amazonaws.HttpMethod
-import com.amazonaws.services.s3.model.S3ObjectSummary
-import model.{Languages, Uri}
+import software.amazon.awssdk.services.s3.model.{CopyObjectRequest, DeleteObjectRequest, DeleteObjectResponse, GetObjectRequest, ListObjectsV2Request, S3Object}
 import model.ingestion._
-import org.joda.time.DateTime
 import play.api.libs.json.{JsError, JsSuccess, Json}
+import software.amazon.awssdk.services.s3.presigner.S3Presigner
+import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest
 import utils.Logging
 import utils.attempt.{Failure, IllegalStateFailure, JsonParseFailure, UnknownFailure}
 import utils.aws.S3Client
 
 import scala.jdk.CollectionConverters._
 import scala.util.Try
+import java.time.Duration
 import scala.util.control.NonFatal
 
 trait IngestStorage {
   def list: Either[Failure, Iterable[Key]]
   def getData(key: Key): Either[Failure, InputStream]
   def getMetadata(key: Key): Either[Failure, FileContext]
-  def delete(key: Key): Either[Failure, Unit]
-  def sendToDeadLetterBucket(key: Key): Either[Failure, Unit]
+  def delete(key: Key): Either[Failure, DeleteObjectResponse]
+  def sendToDeadLetterBucket(key: Key): Either[Failure, DeleteObjectResponse]
   def retryDeadLetters(): Either[Failure, Unit]
   def getUploadSignedUrl(key: Key): Either[Failure, String]
 }
 
-class S3IngestStorage private(client: S3Client, ingestBucket: String, deadLetterBucket: String) extends IngestStorage with Logging {
-  private def parseKey(item: S3ObjectSummary): (Long, UUID) = {
-    val components = item.getKey.stripPrefix(dataPrefix).stripSuffix(".data").split('_')
+class S3IngestStorage private(client: S3Client, presigner: S3Presigner, ingestBucket: String, deadLetterBucket: String) extends IngestStorage with Logging {
+  private def parseKey(item: S3Object): (Long, UUID) = {
+    val components = item.key().stripPrefix(dataPrefix).stripSuffix(".data").split('_')
     val timestamp = components(0).toLong
     val uuid = UUID.fromString(components(1))
 
@@ -37,28 +37,49 @@ class S3IngestStorage private(client: S3Client, ingestBucket: String, deadLetter
   }
 
   def getUploadSignedUrl(key: Key): Either[Failure, String] = {
+    val getObjectRequest = GetObjectRequest.builder()
+      .bucket(ingestBucket)
+      .key(dataKey(key))
+      .build()
 
-    val thisTimeTomorrow = new DateTime().plusDays(1)
+    val presignRequest = GetObjectPresignRequest.builder()
+      .signatureDuration(Duration.ofHours(24))
+      .getObjectRequest(getObjectRequest)
+      .build()
 
-    Either.catchNonFatal(client.aws.generatePresignedUrl(ingestBucket, dataKey(key), thisTimeTomorrow.toDate, HttpMethod.PUT).toString).leftMap(UnknownFailure.apply)
+    Either.catchNonFatal(presigner.presignGetObject(presignRequest).url().toString).leftMap(UnknownFailure.apply)
   }
+
 
   override def list = {
     Either.catchNonFatal {
-      val result = client.aws.listObjects(ingestBucket, dataPrefix)
-      val objs = result.getObjectSummaries.asScala
+      val listObjectsV2Request = ListObjectsV2Request.builder()
+        .bucket(ingestBucket)
+        .prefix(dataPrefix)
+        .build()
+
+      val result = client.s3.listObjectsV2(listObjectsV2Request)
+      val objs = result.contents().asScala
       objs.map(parseKey)
     }.leftMap(UnknownFailure.apply)
   }
 
   override def getData(key: Key): Either[Failure, InputStream] = {
-    Either.catchNonFatal(client.aws.getObject(ingestBucket, dataKey(key)).getObjectContent).leftMap(UnknownFailure.apply)
+    val request = GetObjectRequest.builder()
+      .bucket(ingestBucket)
+      .key(dataKey(key))
+      .build()
+    Either.catchNonFatal(client.s3.getObject(request)).leftMap(UnknownFailure.apply)
   }
 
   override def getMetadata(key: Key): Either[Failure, FileContext] = {
-    Either.catchNonFatal(client.aws.getObject(ingestBucket, metadataKey(key))).leftMap(UnknownFailure.apply).flatMap { s3Object =>
+    val request = GetObjectRequest.builder()
+      .bucket(ingestBucket)
+      .key(dataKey(key))
+      .build()
+
+    Either.catchNonFatal(client.s3.getObject(request)).leftMap(UnknownFailure.apply).flatMap { stream =>
       // turn stream back into the original object
-      val stream = s3Object.getObjectContent
 
       try {
         val json = Json.parse(stream)
@@ -73,17 +94,43 @@ class S3IngestStorage private(client: S3Client, ingestBucket: String, deadLetter
     }
   }
 
-  override def delete(key: (Long, UUID)) = {
-    Either.catchNonFatal{
-      client.aws.deleteObject(ingestBucket, dataKey(key))
-      client.aws.deleteObject(ingestBucket, metadataKey(key))
+  override def delete(key: (Long, UUID)): Either[UnknownFailure, DeleteObjectResponse] = {
+    Either.catchNonFatal {
+      val dataKeyDeleteRequest = DeleteObjectRequest.builder()
+        .bucket(ingestBucket)
+        .key(dataKey(key))
+        .build()
+      client.s3.deleteObject(dataKeyDeleteRequest)
+
+      val metadataKeyDeleteRequest = DeleteObjectRequest.builder()
+        .bucket(ingestBucket)
+        .key(dataKey(key))
+        .build()
+
+      client.s3.deleteObject(dataKeyDeleteRequest)
+      client.s3.deleteObject(metadataKeyDeleteRequest)
     }.leftMap(UnknownFailure.apply)
   }
 
-  override def sendToDeadLetterBucket(key: Key): Either[Failure, Unit] = {
+  override def sendToDeadLetterBucket(key: Key): Either[Failure, DeleteObjectResponse] = {
     Either.catchNonFatal {
-      client.aws.copyObject(ingestBucket, dataKey(key), deadLetterBucket, dataKey(key))
-      client.aws.copyObject(ingestBucket, metadataKey(key), deadLetterBucket, metadataKey(key))
+
+      val dataKeyCopyRequest = CopyObjectRequest.builder()
+        .sourceBucket(ingestBucket)
+        .sourceKey(dataKey(key))
+        .destinationBucket(deadLetterBucket)
+        .destinationKey(dataKey(key))
+        .build()
+
+      val metaDataKeyCopyRequest = CopyObjectRequest.builder()
+        .sourceBucket(ingestBucket)
+        .sourceKey(metadataKey(key))
+        .destinationBucket(deadLetterBucket)
+        .destinationKey(metadataKey(key))
+        .build()
+
+      client.s3.copyObject(dataKeyCopyRequest)
+      client.s3.copyObject(metaDataKeyCopyRequest)
     } match {
       // if copy succeeded, delete the files from the ingest bucket
       case Right(_) => delete(key)
@@ -93,16 +140,31 @@ class S3IngestStorage private(client: S3Client, ingestBucket: String, deadLetter
 
   override def retryDeadLetters(): Either[UnknownFailure, Unit] = {
     Either.catchNonFatal {
-      val result = client.aws.listObjects(deadLetterBucket)
-      if (!result.isTruncated) {
-        logger.info(s"Sending ${result.getObjectSummaries.size()} files from dead letter bucket to ingest bucket.")
-        val (meta, data) = result.getObjectSummaries.asScala.toList.map(_.getKey).partition(k => k.startsWith("meta"))
+
+      val listObjectsRequest = ListObjectsV2Request.builder()
+        .bucket(deadLetterBucket)
+        .build()
+
+      val response = client.s3.listObjectsV2(listObjectsRequest)
+      if (!response.isTruncated) {
+        logger.info(s"Sending ${response.contents().size()} files from dead letter bucket to ingest bucket.")
+        val (meta, data) = response.contents().asScala.toList.map(_.key()).partition(k => k.startsWith("meta"))
         // ingestion starts once a 'data' file is available, so copy meta files first
         val keysWithMetaFirst = meta.concat(data)
         keysWithMetaFirst.foreach{ key =>
-          Try(client.aws.copyObject(deadLetterBucket, key, ingestBucket, key))
+
+          val copyRequest = CopyObjectRequest.builder()
+            .sourceBucket(deadLetterBucket)
+            .sourceKey(key)
+            .destinationBucket(deadLetterBucket)
+            .destinationKey(key)
+            .build()
+          Try(client.s3.copyObject(copyRequest))
             // on success, clean up the file from the dead letter bucket
-            .map(_ => client.aws.deleteObject(deadLetterBucket, key))
+            .map(_ => client.s3.deleteObject(DeleteObjectRequest.builder()
+              .bucket(deadLetterBucket)
+              .key(key)
+              .build()))
         }
       } else {
         val msg = "Too many dead letter files to resync via API. Try using aws cli e.g aws s3 sync s3://deadletterbucket s3://ingestbucket"
@@ -115,14 +177,14 @@ class S3IngestStorage private(client: S3Client, ingestBucket: String, deadLetter
 
 
 object S3IngestStorage {
-  def apply(client: S3Client, ingestBucketName: String, deadLetterBucketName: String): Either[Failure, S3IngestStorage] = {
+  def apply(client: S3Client, s3Presigner: S3Presigner, ingestBucketName: String, deadLetterBucketName: String): Either[Failure, S3IngestStorage] = {
     try {
       if (!client.doesBucketExist(ingestBucketName)) {
         Left(IllegalStateFailure(s"Bucket $ingestBucketName does not exist"))
       } else if (!client.doesBucketExist(deadLetterBucketName)) {
         Left(IllegalStateFailure(s"Bucket $deadLetterBucketName does not exist"))
       }else {
-        Right(new S3IngestStorage(client, ingestBucketName, deadLetterBucketName))
+        Right(new S3IngestStorage(client, s3Presigner, ingestBucketName, deadLetterBucketName))
       }
     } catch {
       case ex: Exception => Left(UnknownFailure(ex))
