@@ -6,7 +6,7 @@ import model.manifest.{Blob, WorkItem}
 import services.manifest.WorkerManifest
 import services.observability._
 import services.{Metrics, MetricsService, ObjectStorage}
-import utils.Logging
+import utils.{Logging, WorkerControl}
 import utils.attempt._
 
 import java.io.InputStream
@@ -21,6 +21,7 @@ object Worker extends Logging {
 
 class Worker(
   val name: String,
+  workerControl: WorkerControl,
   manifest: WorkerManifest,
   blobStorage: ObjectStorage,
   extractors: List[Extractor],
@@ -48,7 +49,10 @@ class Worker(
   def fetchBatch(): Attempt[Batch] = {
     logger.info("Fetching work")
 
-    manifest.fetchWork(name, maxBatchSize, maxCost).toAttempt.flatMap { work =>
+    for {
+      workerDetail <- workerControl.getWorkerDetails
+      work <- manifest.fetchWork(name, workerDetail.nodes, maxBatchSize, maxCost).toAttempt
+    } yield {
       Attempt.traverse(work) {
         case WorkItem(blob, parentBlobs, extractorName, ingestion, languages, workspace) =>
           extractors.find(_.name == extractorName) match {
