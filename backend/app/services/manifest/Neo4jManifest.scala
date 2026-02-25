@@ -451,7 +451,7 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
     Right(())
   }
 
-  override def fetchWork(workerName: String, workerNodes: Set[String], maxBatchSize: Int, maxCost: Int): Either[Failure, List[WorkItem]] = transaction { tx =>
+  override def fetchWork(workerName: String, workerCount: Int, workerIndex: Int, maxBatchSize: Int, maxCost: Int): Either[Failure, List[WorkItem]] = transaction { tx =>
     val summary = tx.run(
       s"""
         |MERGE (worker:Worker {name: {workerName}})
@@ -501,8 +501,8 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
         "maxExtractionAttempts", Int.box(maxExtractionAttempts),
         "maxBatchSize", Int.box(maxBatchSize),
         "maxCost", Int.box(maxCost),
-        "workerCount", Int.box(workerNodes.size),
-        "workerIndex", Int.box(workerNodes.toList.sorted.indexOf(workerName))
+        "workerCount", Int.box(workerCount),
+        "workerIndex", Int.box(workerIndex)
       )
     )
 

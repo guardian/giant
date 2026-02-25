@@ -50,7 +50,8 @@ class Worker(
     logger.info("Fetching work")
 
     workerControl.getWorkerDetails.flatMap { workerDetail =>
-      manifest.fetchWork(name, workerDetail.nodes, maxBatchSize, maxCost).toAttempt.flatMap { work =>
+      val workerIndex = workerDetail.nodes.toList.sorted.indexOf(workerDetail.thisNode)
+      manifest.fetchWork(name, workerDetail.nodes.size, workerIndex, maxBatchSize, maxCost).toAttempt.flatMap { work =>
         Attempt.traverse(work) {
           case WorkItem(blob, parentBlobs, extractorName, ingestion, languages, workspace) =>
             extractors.find(_.name == extractorName) match {
