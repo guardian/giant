@@ -9,11 +9,13 @@ import services.manifest.Manifest.WorkCounts
 import services.manifest.WorkerManifest
 import services.{NoOpMetricsService, ObjectStorage}
 import test.TestPostgresClient
+import utils.{WorkerControl, WorkerDetails}
 import utils.attempt.AttemptAwait._
-import utils.attempt.{Failure, IllegalStateFailure}
+import utils.attempt.{Attempt, Failure, IllegalStateFailure}
 
 import java.io.InputStream
 import java.nio.file.Path
+import scala.concurrent.ExecutionContext
 import scala.concurrent.ExecutionContext.Implicits.global
 
 //noinspection NotImplementedCode
@@ -91,7 +93,14 @@ class WorkerTest extends AnyFlatSpec with Matchers with EitherValues {
       override def getUploadSignedUrl(key: String): Either[Failure, String] = ???
     }
 
-    new Worker("test", manifest, blobStorage, extractors, new NoOpMetricsService, new TestPostgresClient)(scala.concurrent.ExecutionContext.global)
+    val testWorkerControl = new WorkerControl {
+      override def getWorkerDetails(implicit ec: ExecutionContext): Attempt[WorkerDetails] =
+        Attempt.Right(WorkerDetails(Set("test"), "test"))
+      override def start(scheduler: org.apache.pekko.actor.Scheduler)(implicit ec: ExecutionContext): Unit = {}
+      override def stop(): scala.concurrent.Future[Unit] = scala.concurrent.Future.successful(())
+    }
+
+    new Worker("test", testWorkerControl, manifest, blobStorage, extractors, new NoOpMetricsService, new TestPostgresClient)(scala.concurrent.ExecutionContext.global)
   }
 }
 
@@ -101,7 +110,7 @@ class TestWorkerManifest(work: List[WorkItem]) extends WorkerManifest {
 
   var locksBroken: Boolean = false
 
-  override def fetchWork(workerName: String, maxBatchSize: Int, maxCost: Int): Either[Failure, List[WorkItem]] = {
+  override def fetchWork(workerName: String, workerCount: Int, workerIndex: Int, maxBatchSize: Int, maxCost: Int): Either[Failure, List[WorkItem]] = {
     Right(work)
   }
 
