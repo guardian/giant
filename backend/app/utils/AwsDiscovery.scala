@@ -58,6 +58,9 @@ object AwsDiscovery extends Logging {
         // these are determined using instance credentials
         endpoint = None, accessKey = None, secretKey = None
       ),
+      ingestion = config.ingestion.copy(
+        skipTextIngestionUris = readSSMParameter("ingestion/skipTextIngestionUris", stack, stage, ssmClient).split(",").toSet
+      ),
       elasticsearch = config.elasticsearch.copy(
         hosts = if(runningLocally) {
           List("http://localhost:19200")

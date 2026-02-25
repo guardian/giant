@@ -2,6 +2,7 @@ package extraction.ocr
 
 import extraction.ExtractionParams
 import model.index.{Page, PageDimensions}
+import model.ingestion.{RedoOcr, SkipText}
 import model.manifest.{Blob, MimeType}
 import model.{Language, Uri}
 import org.apache.commons.io.FileUtils
@@ -45,12 +46,14 @@ class OcrMyPdfExtractor(scratch: ScratchSpace, index: Index, pageService: Pages,
     val tmpDir = scratch.createWorkingDir(s"ocrmypdf-tmp-${blob.uri.value}")
     var pdDocuments: Map[Language, (Path, PDDocument)] = Map.empty
 
+    val ocrMyPdfFlag = if (params.skipTextIngestionUris.contains(params.ingestion)) SkipText else RedoOcr
+
     try {
       pdDocuments = params.languages.map { lang =>
         val pages = Using(PDDocument.load(file))(_.getNumberOfPages).toOption
         val biggerThanA1 = Ocr.isBiggerThanA1(file.toPath, stdErrLogger)
         val preProcessPdf = Ocr.preProcessPdf(file.toPath, tmpDir, stdErrLogger, biggerThanA1)
-        val pdfPath = Ocr.invokeOcrMyPdf(lang.ocr, preProcessPdf.getOrElse(file.toPath), None, stdErrLogger, tmpDir, pages)
+        val pdfPath = Ocr.invokeOcrMyPdf(lang.ocr, preProcessPdf.getOrElse(file.toPath), None, stdErrLogger, tmpDir, pages, ocrMyPdfFlag)
         val pdfDoc = PDDocument.load(pdfPath.toFile)
 
         lang -> (pdfPath, pdfDoc)

@@ -7,7 +7,7 @@ import model.{Language, Uri}
 import model.manifest.{Blob, MimeType}
 import utils.attempt.Failure
 
-case class ExtractionParams(ingestion: String, languages: List[Language], parentBlobs: List[Uri], workspace: Option[WorkspaceItemContext])
+case class ExtractionParams(ingestion: String, languages: List[Language], parentBlobs: List[Uri], workspace: Option[WorkspaceItemContext], skipTextIngestionUris: Set[String] = Set.empty)
 
 trait Extractor {
   def canProcessMimeType: String => Boolean

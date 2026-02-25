@@ -26,7 +26,8 @@ class Worker(
   blobStorage: ObjectStorage,
   extractors: List[Extractor],
   metricsService: MetricsService,
-  postgresClient: PostgresClient)(implicit executionContext: ExecutionContext) extends Logging {
+  postgresClient: PostgresClient,
+  skipTextIngestionUris: Set[String] = Set.empty)(implicit executionContext: ExecutionContext) extends Logging {
 
   private val maxBatchSize = 1000 // tasks
   private val maxCost = 100 * 1024 * 1024 // 100MB
@@ -56,7 +57,7 @@ class Worker(
           case WorkItem(blob, parentBlobs, extractorName, ingestion, languages, workspace) =>
             extractors.find(_.name == extractorName) match {
               case Some(extractor) =>
-                Attempt.Right((extractor, blob, ExtractionParams(ingestion, languages, parentBlobs, workspace)))
+                Attempt.Right((extractor, blob, ExtractionParams(ingestion, languages, parentBlobs, workspace, skipTextIngestionUris)))
 
               case _ =>
                 val failureMsg = s"Unknown extractor $extractorName"
