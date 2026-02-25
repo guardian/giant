@@ -33,7 +33,7 @@ object Manifest {
 }
 
 trait WorkerManifest {
-  def fetchWork(workerName: String, maxBatchSize: Int, maxCost: Int): Either[Failure, List[WorkItem]]
+  def fetchWork(workerName: String, workerIndex: Int, workerCount: Int, maxBatchSize: Int, maxCost: Int): Either[Failure, List[WorkItem]]
 
   def releaseLocks(workerName: String): Either[Failure, Unit]
 

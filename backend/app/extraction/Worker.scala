@@ -6,7 +6,7 @@ import model.manifest.{Blob, WorkItem}
 import services.manifest.WorkerManifest
 import services.observability._
 import services.{Metrics, MetricsService, ObjectStorage}
-import utils.Logging
+import utils.{Logging, WorkerControl}
 import utils.attempt._
 
 import java.io.InputStream
@@ -20,12 +20,13 @@ object Worker extends Logging {
 }
 
 class Worker(
-  val name: String,
-  manifest: WorkerManifest,
-  blobStorage: ObjectStorage,
-  extractors: List[Extractor],
-  metricsService: MetricsService,
-  postgresClient: PostgresClient)(implicit executionContext: ExecutionContext) extends Logging {
+              val name: String,
+              workerControl: WorkerControl,
+              manifest: WorkerManifest,
+              blobStorage: ObjectStorage,
+              extractors: List[Extractor],
+              metricsService: MetricsService,
+              postgresClient: PostgresClient)(implicit executionContext: ExecutionContext) extends Logging {
 
   private val maxBatchSize = 1000 // tasks
   private val maxCost = 100 * 1024 * 1024 // 100MB
@@ -48,19 +49,23 @@ class Worker(
   def fetchBatch(): Attempt[Batch] = {
     logger.info("Fetching work")
 
-    manifest.fetchWork(name, maxBatchSize, maxCost).toAttempt.flatMap { work =>
-      Attempt.traverse(work) {
-        case WorkItem(blob, parentBlobs, extractorName, ingestion, languages, workspace) =>
-          extractors.find(_.name == extractorName) match {
-            case Some(extractor) =>
-              Attempt.Right((extractor, blob, ExtractionParams(ingestion, languages, parentBlobs, workspace)))
+    workerControl.getWorkerDetails.flatMap { details =>
+      val sortedWorkers = details.nodes.toList.sorted
+      val workerIndex = sortedWorkers.indexWhere(_ == name)
+      manifest.fetchWork(name, workerIndex, sortedWorkers.length, maxBatchSize, maxCost).toAttempt.flatMap { work =>
+        Attempt.traverse(work) {
+          case WorkItem(blob, parentBlobs, extractorName, ingestion, languages, workspace) =>
+            extractors.find(_.name == extractorName) match {
+              case Some(extractor) =>
+                Attempt.Right((extractor, blob, ExtractionParams(ingestion, languages, parentBlobs, workspace)))
 
-            case _ =>
-              val failureMsg = s"Unknown extractor $extractorName"
-              logger.error(failureMsg)
-              manifest.logExtractionFailure(blob.uri, extractorName, failureMsg)
-              Attempt.Left(UnsupportedOperationFailure(failureMsg))
-          }
+              case _ =>
+                val failureMsg = s"Unknown extractor $extractorName"
+                logger.error(failureMsg)
+                manifest.logExtractionFailure(blob.uri, extractorName, failureMsg)
+                Attempt.Left(UnsupportedOperationFailure(failureMsg))
+            }
+        }
       }
     }
   }

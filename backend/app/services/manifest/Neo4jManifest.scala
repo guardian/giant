@@ -456,12 +456,12 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
     * claim work, respecting priority, cost and batch size limits
     * @return list of uris that have been claimed
     */
-  private def claimWork(workerName: String, maxBatchSize: Int, maxCost: Int): Either[Failure, List[String]] = transaction { tx =>
+  private def claimWork(workerName: String, workerIndex: Int, workerCount: Int, maxBatchSize: Int, maxCost: Int): Either[Failure, List[String]] = transaction { tx =>
     val summary = tx.run(
       s"""
          |MATCH (e: Extractor)-[todo: TODO]->(b: Blob:Resource)
          |  WHERE
-         |    b.lockedBy IS NULL AND todo.attempts < {maxExtractionAttempts}
+         |    id(todo) % {workerCount} = {workerIndex} AND b.lockedBy IS NULL AND todo.attempts < {maxExtractionAttempts}
          |
          |  WITH todo, e, b
          |  // priority was originally just defined for extractors, we later extended it out to todos as well
@@ -486,6 +486,8 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
         """.stripMargin,
       parameters(
         "workerName", workerName,
+        "workerIndex", Int.box(workerIndex),
+        "workerCount", Int.box(workerCount),
         "maxExtractionAttempts", Int.box(maxExtractionAttempts),
         "maxBatchSize", Int.box(maxBatchSize),
         "maxCost", Int.box(maxCost)
@@ -562,9 +564,9 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
     })
   }
 
-  override def fetchWork(workerName: String, maxBatchSize: Int, maxCost: Int): Either[Failure, List[WorkItem]] = {
+  override def fetchWork(workerName: String, workerIndex: Int, workerCount: Int, maxBatchSize: Int, maxCost: Int): Either[Failure, List[WorkItem]] = {
     for {
-      claimedUris <- claimWork(workerName, maxBatchSize, maxCost)
+      claimedUris <- claimWork(workerName, workerIndex, workerCount, maxBatchSize, maxCost)
       work <- if(claimedUris.isEmpty) Right(List.empty) else fetchClaimedWork(claimedUris, workerName)
     } yield {
       if (claimedUris.length > work.length) {
