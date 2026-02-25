@@ -49,22 +49,21 @@ class Worker(
   def fetchBatch(): Attempt[Batch] = {
     logger.info("Fetching work")
 
-    for {
-      workerDetail <- workerControl.getWorkerDetails
-      work <- manifest.fetchWork(name, workerDetail.nodes, maxBatchSize, maxCost).toAttempt
-    } yield {
-      Attempt.traverse(work) {
-        case WorkItem(blob, parentBlobs, extractorName, ingestion, languages, workspace) =>
-          extractors.find(_.name == extractorName) match {
-            case Some(extractor) =>
-              Attempt.Right((extractor, blob, ExtractionParams(ingestion, languages, parentBlobs, workspace)))
+    workerControl.getWorkerDetails.flatMap { workerDetail =>
+      manifest.fetchWork(name, workerDetail.nodes, maxBatchSize, maxCost).toAttempt.flatMap { work =>
+        Attempt.traverse(work) {
+          case WorkItem(blob, parentBlobs, extractorName, ingestion, languages, workspace) =>
+            extractors.find(_.name == extractorName) match {
+              case Some(extractor) =>
+                Attempt.Right((extractor, blob, ExtractionParams(ingestion, languages, parentBlobs, workspace)))
 
-            case _ =>
-              val failureMsg = s"Unknown extractor $extractorName"
-              logger.error(failureMsg)
-              manifest.logExtractionFailure(blob.uri, extractorName, failureMsg)
-              Attempt.Left(UnsupportedOperationFailure(failureMsg))
-          }
+              case _ =>
+                val failureMsg = s"Unknown extractor $extractorName"
+                logger.error(failureMsg)
+                manifest.logExtractionFailure(blob.uri, extractorName, failureMsg)
+                Attempt.Left(UnsupportedOperationFailure(failureMsg))
+            }
+        }
       }
     }
   }
