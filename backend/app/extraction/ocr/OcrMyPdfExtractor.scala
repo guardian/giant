@@ -46,7 +46,10 @@ class OcrMyPdfExtractor(scratch: ScratchSpace, index: Index, pageService: Pages,
     val tmpDir = scratch.createWorkingDir(s"ocrmypdf-tmp-${blob.uri.value}")
     var pdDocuments: Map[Language, (Path, PDDocument)] = Map.empty
 
-    val ocrMyPdfFlag = if (params.skipTextIngestionUris.contains(params.ingestion)) SkipText else RedoOcr
+    val ocrMyPdfFlag = if (params.skipTextIngestionUris.contains(params.ingestion)) {
+      logger.info(s"Using --skip-text instead of --redo-ocr for blob ${blob.uri}, ingestion ${params.ingestion}")
+      SkipText
+    } else RedoOcr
 
     try {
       pdDocuments = params.languages.map { lang =>

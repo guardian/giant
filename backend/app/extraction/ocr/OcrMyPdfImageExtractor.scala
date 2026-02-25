@@ -1,7 +1,7 @@
 package extraction.ocr
 
 import extraction.ExtractionParams
-import model.ingestion.{OcrMyPdfFlag, RedoOcr}
+import model.ingestion.RedoOcr
 import model.manifest.{Blob, MimeType}
 import model.{Language, Uri}
 import org.apache.commons.io.FileUtils
