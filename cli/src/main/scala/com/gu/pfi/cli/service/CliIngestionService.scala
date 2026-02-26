@@ -75,7 +75,7 @@ class CliIngestionService(http: CliHttpClient)(implicit ec: ExecutionContext) ex
 
     // Setting checkChildren to false means that we delete this blob
     // regardless of whether or not it has children.
-    http.delete(s"/api/blobs/${URLEncoder.encode(id, "UTF-8")}?checkChildren=false").map { r =>
+    http.delete(s"/api/blobs/${URLEncoder.encode(id, "UTF-8")}?checkChildren=false&isAdminDelete=false").map { r =>
       if(r.code() == 204) {
         Attempt.Right(())
       } else {

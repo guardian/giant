@@ -1,7 +1,7 @@
 package extraction.ocr
 
 import extraction.ExtractionParams
-import model.ingestion.OcrMyPdfFlag
+import model.ingestion.RedoOcr
 import model.manifest.{Blob, MimeType}
 import model.{Language, Uri}
 import org.apache.commons.io.FileUtils
@@ -77,7 +77,7 @@ class OcrMyPdfImageExtractor(config: OcrConfig, scratch: ScratchSpace, index: In
 
   private def invokeOcrMyPdf(blobUri: Uri, lang: Language, file: File, config: OcrConfig, stderr: OcrStderrLogger, tmpDir: Path): String = {
     val unprocessedFilePages = Using(PDDocument.load(file))(_.getNumberOfPages).toOption
-    val pdfFile = Ocr.invokeOcrMyPdf(lang.ocr, file.toPath, Some(config.dpi), stderr, tmpDir, unprocessedFilePages)
+    val pdfFile = Ocr.invokeOcrMyPdf(lang.ocr, file.toPath, Some(config.dpi), stderr, tmpDir, unprocessedFilePages, RedoOcr)
     var document: PDDocument = null
 
     try {

@@ -146,7 +146,8 @@ case class IngestConfig(
   batchSize: Int,
   fingerprintFiles: Boolean,
   scratchPath: String,
-  inMemoryThreshold: Long
+  inMemoryThreshold: Long,
+  skipTextIngestionUris: Set[String] // ingestion uris where we want to use the --skip-text ocrmypdf setting rather than --redo-ocr
 )
 
 case class PreviewConfig(
