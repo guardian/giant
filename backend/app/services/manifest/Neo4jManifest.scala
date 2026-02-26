@@ -469,16 +469,16 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
         |  LIMIT {maxBatchSize}
         |
         |WITH collect({todo: todo, extractor: e, blob: b, worker: worker}) as allTasks
-        |WITH tail(reduce(acc = [0, []], task in allTasks |
+        |WITH reduce(acc = {cost:0, tasks: []}, task in allTasks |
         |    case
-        |      when size(acc[1]) > 0 AND (acc[0] + task.todo.cost) >= {maxCost}
-        |        then [acc[0], acc[1]]
+        |      when size(acc.tasks) > 0 AND (acc.cost + task.todo.cost) >= {maxCost}
+        |        then acc
         |      else
-        |        [acc[0] + task.todo.cost, acc[1] + task]
+        |        {cost: acc.cost + task.todo.cost, tasks: acc.tasks + task}
         |     end
-        |  )) as tasks
+        |  ).tasks as tasks
         |
-        |UNWIND tasks[0] as task
+        |UNWIND tasks as task
         |  MATCH (blob: Blob:Resource { uri: task.blob.uri })-[:TYPE_OF]-(m: MimeType)
         |  MATCH (worker :Worker { name: task.worker.name })
         |
