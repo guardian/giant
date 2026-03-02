@@ -1,16 +1,14 @@
 import React from "react";
 import PropTypes from "prop-types";
-import ReactTooltip from "react-tooltip";
 
 import AutosizeInput from "react-input-autosize";
 
 import _ from "lodash";
 import { parseDate } from "../../../util/parseDate";
 
-// Default truncation settings for chip values
-const DEFAULT_MAX_VALUE_LENGTH = 75;
-const DEFAULT_TRUNCATED_LENGTH = 72;
-const DEFAULT_MAX_NAME_LENGTH = 50;
+// Truncation settings for chip display values
+const MAX_VALUE_LENGTH = 75;
+const TRUNCATED_LENGTH = 72;
 
 export default class Chip extends React.Component {
   static propTypes = {
@@ -29,12 +27,6 @@ export default class Chip extends React.Component {
     onNegateClicked: PropTypes.func.isRequired,
     onDeleteClicked: PropTypes.func.isRequired,
     onEnterPressed: PropTypes.func.isRequired,
-
-    // Optional truncation configuration
-    maxValueLength: PropTypes.number,
-    truncatedLength: PropTypes.number,
-    maxNameLength: PropTypes.number,
-    showTooltip: PropTypes.bool,
   };
 
   onChange = (value) => {
@@ -112,13 +104,9 @@ export default class Chip extends React.Component {
   };
 
   getDisplayValue = () => {
-    const maxLength = this.props.maxValueLength ?? DEFAULT_MAX_VALUE_LENGTH;
-    const truncateAt = this.props.truncatedLength ?? DEFAULT_TRUNCATED_LENGTH;
-
-    if (this.props.value.length > maxLength) {
-      return `${this.props.value.substring(0, truncateAt)}...`;
+    if (this.props.value.length > MAX_VALUE_LENGTH) {
+      return `${this.props.value.substring(0, TRUNCATED_LENGTH)}...`;
     }
-
     return this.props.value;
   };
 
@@ -149,7 +137,7 @@ export default class Chip extends React.Component {
         return (
           <DateChip
             ref={this.refHandler}
-            value={this.props.value}
+            value={displayValue}
             onChange={this.onChange}
             onKeyDown={this.onKeyDownText}
             dateMode="from_start"
@@ -159,7 +147,7 @@ export default class Chip extends React.Component {
         return (
           <DateChip
             ref={this.refHandler}
-            value={this.props.value}
+            value={displayValue}
             onChange={this.onChange}
             onKeyDown={this.onKeyDownText}
             dateMode="from_end"
@@ -169,7 +157,7 @@ export default class Chip extends React.Component {
         return (
           <DropDownChip
             ref={this.refHandler}
-            value={this.props.value}
+            value={displayValue}
             options={this.props.options}
             onKeyDown={this.onKeyDownDropdown}
             onChange={this.onChange}
@@ -187,19 +175,8 @@ export default class Chip extends React.Component {
   };
 
   render() {
-    const maxNameLength = this.props.maxNameLength ?? DEFAULT_MAX_NAME_LENGTH;
-    const showTooltip = this.props.showTooltip ?? true;
-    const maxValueLength =
-      this.props.maxValueLength ?? DEFAULT_MAX_VALUE_LENGTH;
-
-    let displayName = this.props.name;
-    if (this.props.value.length > maxNameLength) {
-      displayName = this.props.name.split(" ")[0]; // Use first word of name
-    }
-
-    const shouldShowTooltip =
-      showTooltip && this.props.value.length > maxValueLength;
-    const tooltipText = shouldShowTooltip ? this.props.value : undefined;
+    const isTruncated = this.props.value.length > MAX_VALUE_LENGTH;
+    const tooltipText = isTruncated ? this.props.value : undefined;
 
     return (
       <span
@@ -219,7 +196,7 @@ export default class Chip extends React.Component {
           data-tip={tooltipText}
           data-effect={tooltipText ? "solid" : undefined}
         >
-          <span className="input-supper__chip-name">{displayName}</span>
+          <span className="input-supper__chip-name">{this.props.name}</span>
           {this.renderControl()}
         </span>
 
@@ -229,7 +206,6 @@ export default class Chip extends React.Component {
         >
           <div className="input-supper__button-icon">&times;</div>
         </button>
-        {tooltipText ? <ReactTooltip insecure={false} /> : null}
       </span>
     );
   }
