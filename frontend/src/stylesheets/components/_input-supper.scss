@@ -39,13 +39,12 @@
 .input-supper__inline-input {
   display: inline-block;
   background-color: transparent;
-  display: inline-block;
   border: none;
   font-size: 18px;
   max-width: 100%;
-  word-wrap: break-word;
-  white-space: pre-wrap;
-  overflow-wrap: break-word;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 
   &--chip {
     color: white;
@@ -113,6 +112,12 @@
 .input-supper__chip-name {
   margin-right: 2px;
   font-size: 16px;
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: inline-block;
+  vertical-align: middle;
 
   &:after {
     content: ":";
