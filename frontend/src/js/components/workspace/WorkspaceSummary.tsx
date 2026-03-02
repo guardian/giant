@@ -26,6 +26,7 @@ import { takeOwnershipOfWorkspace } from "../../actions/workspaces/takeOwnership
 import { CaptureFromUrl } from "../Uploads/CaptureFromUrl";
 import { EuiText } from "@elastic/eui";
 import { FileAndFolderCounts } from "../UtilComponents/TreeBrowser/FileAndFolderCounts";
+import buildLink from "../../util/buildLink";
 import history from "../../util/history";
 
 type Props = {
@@ -122,10 +123,15 @@ export default function WorkspaceSummary({
       <button
         className="btn"
         onClick={() => {
-          const searchUrl = `/search?filters.workspace[]=${encodeURIComponent(workspace.id)}`;
-          window.open(searchUrl, "_blank");
+          const searchUrl = buildLink(
+            "/search",
+            {},
+            { filters: { workspace: [workspace.id] } },
+          );
+          window.open(searchUrl, "_blank", "noopener");
         }}
         title="Search workspace"
+        aria-label={`Search workspace ${workspace.name}`}
       >
         <SearchIcon style={{ marginRight: "3px", marginBottom: "1px" }} />
         Search workspace
