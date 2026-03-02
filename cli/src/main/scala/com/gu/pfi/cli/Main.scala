@@ -131,8 +131,7 @@ object Main extends App with Logging {
           ingestArgs.ingestionBucket()
         ).flatMap { _ =>
           val source = IngestionSource(options)
-          val credentials = AwsCredentials(ingestArgs.minioAccessKey.toOption, ingestArgs.minioSecretKey.toOption, ingestArgs.awsProfile.toOption)
-
+          val credentials = AwsCredentials.credentialsV2(ingestArgs.minioAccessKey.toOption, ingestArgs.minioSecretKey.toOption, ingestArgs.awsProfile.toOption)
           val ingestionS3Client = new DefaultIngestionS3Client(options.ingestCmd, credentials)
 
           val command = new RunIngestion(services.ingestion, ingestionS3Client, services.veracrypt)
