@@ -53,9 +53,14 @@ export async function readFilesFromDragEvent(
  * internal application data like dragging items within the workspace).
  *
  * @param e - The React drag event
- * @returns true if the drag event contains files from the file system
+ * @returns true if the drag event contains files from the file system and not internal app data
  */
 export function dragEventContainsFiles(e: React.DragEvent): boolean {
+  // Internal tree drags set application/json — exclude those even if Files is also present
+  if (e.dataTransfer.types.includes("application/json")) {
+    return false;
+  }
+
   // Check if there are any files in the dataTransfer
   if (e.dataTransfer.types.includes("Files")) {
     return true;
@@ -69,15 +74,4 @@ export function dragEventContainsFiles(e: React.DragEvent): boolean {
   }
 
   return false;
-}
-
-/**
- * Checks if a drag event contains only internal application data (e.g., items
- * being moved within the workspace tree).
- *
- * @param e - The React drag event
- * @returns true if the drag event contains internal app data
- */
-export function dragEventContainsInternalData(e: React.DragEvent): boolean {
-  return e.dataTransfer.types.includes("application/json");
 }

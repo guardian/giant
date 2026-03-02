@@ -85,6 +85,21 @@ import ReactTooltip from "react-tooltip";
 import { FromNowDurationText } from "../UtilComponents/FromNowDurationText";
 import { DroppedFilesInfo } from "../Uploads/UploadFiles";
 
+/** Recursively search a tree node for a child node by ID */
+function findNodeById(
+  node: TreeNode<WorkspaceEntry>,
+  id: string,
+): TreeNode<WorkspaceEntry> | undefined {
+  for (const child of node.children) {
+    if (isTreeNode(child)) {
+      if (child.id === id) return child;
+      const found = findNodeById(child, id);
+      if (found) return found;
+    }
+  }
+  return undefined;
+}
+
 type Props = ReturnType<typeof mapStateToProps> &
   ReturnType<typeof mapDispatchToProps> &
   RouteComponentProps<{ id: string; workspaceLocation: string }>;
@@ -769,22 +784,22 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
    * Sets the droppedFiles state which triggers the upload modal to open with the files pre-populated.
    */
   onDropFiles = (files: Map<string, File>, targetFolderId: string) => {
-    // Find the target folder node from expandedNodes or check if it's the root
     const workspace = this.props.currentWorkspace;
     if (!workspace) return;
 
     let targetFolder: TreeNode<WorkspaceEntry> | null = null;
 
     if (targetFolderId !== workspace.rootNode.id) {
-      // Look for the folder in expanded nodes
-      const foundNode = this.props.expandedNodes.find(
-        (node) => node.id === targetFolderId,
-      );
+      // Search expanded nodes first (cheapest), then the full tree
+      const foundNode =
+        this.props.expandedNodes.find((node) => node.id === targetFolderId) ??
+        findNodeById(workspace.rootNode, targetFolderId);
+
       if (foundNode) {
         targetFolder = foundNode;
       }
     }
-    // If targetFolderId is root or not found in expanded nodes, targetFolder stays null (uploads to root)
+    // If targetFolderId is root or not found, targetFolder stays null (uploads to root)
 
     this.setState({
       droppedFiles: {

@@ -55,7 +55,6 @@ type State = {
   draggingColumn: string | null;
   initialX: number | null;
   hoveredOver: boolean;
-  readingDroppedFiles: boolean;
 };
 
 export default class TreeBrowser<T> extends React.Component<Props<T>, State> {
@@ -68,7 +67,6 @@ export default class TreeBrowser<T> extends React.Component<Props<T>, State> {
       draggingColumn: null,
       initialX: null,
       hoveredOver: false,
-      readingDroppedFiles: false,
     };
   }
 
@@ -187,14 +185,17 @@ export default class TreeBrowser<T> extends React.Component<Props<T>, State> {
       // Prevent React from reusing the event since readFilesFromDragEvent is asynchronous
       e.persist();
 
-      this.setState({ readingDroppedFiles: true, hoveredOver: false });
+      this.setState({ hoveredOver: false });
 
-      readFilesFromDragEvent(e).then((files) => {
-        if (files.size > 0 && this.props.onDropFiles) {
-          this.props.onDropFiles(files, idOfLocationToMoveTo);
-        }
-        this.setState({ readingDroppedFiles: false });
-      });
+      readFilesFromDragEvent(e)
+        .then((files) => {
+          if (files.size > 0 && this.props.onDropFiles) {
+            this.props.onDropFiles(files, idOfLocationToMoveTo);
+          }
+        })
+        .catch((error) => {
+          console.error("Failed to read dropped files:", error);
+        });
       return;
     }
 
