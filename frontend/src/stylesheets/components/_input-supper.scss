@@ -101,7 +101,8 @@
 }
 
 .input-supper__chip-body {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
   height: 100%;
   margin-left: 2px;
   margin-right: 2px;
@@ -116,8 +117,6 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  display: inline-block;
-  vertical-align: middle;
 
   &:after {
     content: ":";
