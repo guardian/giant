@@ -696,7 +696,17 @@ class ElasticsearchResources(override val client: ElasticClient, indexName: Stri
              |}
              |// Update collection array if the collection has changed
              |if(ctx._source.${IndexFields.collection} != null && !params.oldCollection.equals(params.newCollection)) {
-             |  ctx._source.${IndexFields.collection}.removeIf(col -> col.equals(params.oldCollection));
+             |  // Only remove old collection if no remaining ingestion references it
+             |  boolean stillReferencesOldCollection = false;
+             |  for (String ing : ctx._source.${IndexFields.ingestion}) {
+             |    if (ing.startsWith(params.oldCollection + "/")) {
+             |      stillReferencesOldCollection = true;
+             |      break;
+             |    }
+             |  }
+             |  if (!stillReferencesOldCollection) {
+             |    ctx._source.${IndexFields.collection}.removeIf(col -> col.equals(params.oldCollection));
+             |  }
              |  if(!ctx._source.${IndexFields.collection}.contains(params.newCollection)) {
              |    ctx._source.${IndexFields.collection}.add(params.newCollection);
              |  }

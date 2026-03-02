@@ -19,34 +19,40 @@ case class MoveIngestion(
     logger.info(s"Moving ingestion ${ingestionUri.value} to collection ${targetCollectionUri.value}")
 
     for {
-      // Validate that source ingestion exists
-      ingestion <- manifest.getIngestion(ingestionUri)
-      _ = logger.info(s"Found ingestion: ${ingestion.display}")
-
       // Validate that target collection exists
-      targetCollection <- manifest.getCollection(targetCollectionUri)
-      _ = logger.info(s"Found target collection: ${targetCollection.display}")
+      _ <- manifest.getCollection(targetCollectionUri)
 
-      // Extract the ingestion name from the URI (e.g., "old-collection/my-ingestion" -> "my-ingestion")
+      // Extract the ingestion name and build the new URI
       ingestionName = ingestionUri.value.split("/").last
-
-      // Build the new ingestion URI
       newIngestionUri = targetCollectionUri.chain(ingestionName)
-      _ = logger.info(s"New ingestion URI will be: ${newIngestionUri.value}")
 
-      // Check if an ingestion with the new URI already exists
-      existingCheck <- manifest.getIngestion(newIngestionUri).transform(
-        existing => Attempt.Left[Unit](IllegalStateFailure(s"An ingestion named '$ingestionName' already exists in collection '${targetCollectionUri.value}'")),
-        _ => Attempt.Right(())
+      // Determine if Neo4j needs updating or was already moved (e.g. retrying after an ES failure)
+      alreadyMoved <- manifest.getIngestion(newIngestionUri).transform(
+        _ => Attempt.Right(true),   // new URI exists — Neo4j was already updated
+        _ => Attempt.Right(false)   // new URI doesn't exist — need to move
       )
 
-      // Update Neo4j: move the ingestion to the new collection
-      _ <- manifest.moveIngestionToCollection(ingestionUri, targetCollectionUri, newIngestionUri)
-      _ = logger.info(s"Updated Neo4j relationships and properties")
+      _ <- if (alreadyMoved) {
+        logger.info(s"Ingestion already exists at ${newIngestionUri.value}, skipping Neo4j update (likely a retry)")
+        Attempt.Right(())
+      } else {
+        for {
+          // Validate that source ingestion exists
+          _ <- manifest.getIngestion(ingestionUri)
+          // Move in Neo4j
+          _ <- manifest.moveIngestionToCollection(ingestionUri, targetCollectionUri, newIngestionUri)
+          _ = logger.info(s"Updated Neo4j relationships and properties")
+        } yield ()
+      }
 
-      // Update Elasticsearch: Update all documents with the old ingestion path to the new one
-      _ <- index.updateIngestionPath(ingestionUri.value, newIngestionUri.value)
-      _ = logger.info(s"Updated Elasticsearch documents")
+      // Update Elasticsearch (idempotent — no-op if documents already have the new path)
+      _ <- index.updateIngestionPath(ingestionUri.value, newIngestionUri.value).recoverWith {
+        case failure =>
+          logger.error(s"MANUAL FIX REQUIRED: Neo4j updated but Elasticsearch failed. " +
+            s"Old ingestion path: ${ingestionUri.value}, new ingestion path: ${newIngestionUri.value}. " +
+            s"Re-run this command to retry the ES update. Error: ${failure.msg}")
+          Attempt.Left(failure)
+      }
 
       _ = logger.info(s"Successfully moved ingestion from ${ingestionUri.value} to ${newIngestionUri.value}")
     } yield newIngestionUri
