@@ -1392,56 +1392,36 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
         )
       ).map(_ => ())
     }.flatMap { _ =>
-      // Step 3: Update TODO relationship properties
-      logger.info(s"Updating TODO relationship properties")
-      tx.run(
-        """
-          |MATCH ()-[todo:TODO {ingestion: {oldIngestionPath}}]->()
-          |SET todo.ingestion = {newIngestionPath}
-          |RETURN count(todo) as count
-        """.stripMargin,
-        parameters(
-          "oldIngestionPath", ingestionUri.value,
-          "newIngestionPath", newIngestionUri.value
-        )
-      ).map { result =>
-        val count = result.single().get("count").asInt()
-        logger.info(s"Updated $count TODO relationships")
+      // Steps 3-5: Update ingestion path on all relationship types that store it
+      val relationshipTypes = List("TODO", "PROCESSED", "PROCESSING_EXTERNALLY")
+      relationshipTypes.foldLeft(Attempt.Right(()): Attempt[Unit]) { (acc, relType) =>
+        acc.flatMap { _ =>
+          updateRelationshipIngestionPath(tx, relType, ingestionUri.value, newIngestionUri.value)
+        }
       }
-    }.flatMap { _ =>
-      // Step 4: Update PROCESSED relationship properties
-      logger.info(s"Updating PROCESSED relationship properties")
-      tx.run(
-        """
-          |MATCH ()-[processed:PROCESSED {ingestion: {oldIngestionPath}}]->()
-          |SET processed.ingestion = {newIngestionPath}
-          |RETURN count(processed) as count
-        """.stripMargin,
-        parameters(
-          "oldIngestionPath", ingestionUri.value,
-          "newIngestionPath", newIngestionUri.value
-        )
-      ).map { result =>
-        val count = result.single().get("count").asInt()
-        logger.info(s"Updated $count PROCESSED relationships")
-      }
-    }.flatMap { _ =>
-      // Step 5: Update PROCESSING_EXTERNALLY relationship properties
-      logger.info(s"Updating PROCESSING_EXTERNALLY relationship properties")
-      tx.run(
-        """
-          |MATCH ()-[processing:PROCESSING_EXTERNALLY {ingestion: {oldIngestionPath}}]->()
-          |SET processing.ingestion = {newIngestionPath}
-          |RETURN count(processing) as count
-        """.stripMargin,
-        parameters(
-          "oldIngestionPath", ingestionUri.value,
-          "newIngestionPath", newIngestionUri.value
-        )
-      ).map { result =>
-        val count = result.single().get("count").asInt()
-        logger.info(s"Updated $count PROCESSING_EXTERNALLY relationships")
-      }
+    }
+  }
+
+  private def updateRelationshipIngestionPath(
+    tx: AttemptWrappedTransaction,
+    relationshipType: String,
+    oldIngestionPath: String,
+    newIngestionPath: String
+  ): Attempt[Unit] = {
+    logger.info(s"Updating $relationshipType relationship properties")
+    tx.run(
+      s"""
+        |MATCH ()-[r:${relationshipType} {ingestion: {oldIngestionPath}}]->()
+        |SET r.ingestion = {newIngestionPath}
+        |RETURN count(r) as count
+      """.stripMargin,
+      parameters(
+        "oldIngestionPath", oldIngestionPath,
+        "newIngestionPath", newIngestionPath
+      )
+    ).map { result =>
+      val count = result.single().get("count").asInt()
+      logger.info(s"Updated $count $relationshipType relationships")
     }
   }
 }
