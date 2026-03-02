@@ -17,32 +17,47 @@ import {
 export async function readFilesFromDragEvent(
   e: React.DragEvent,
 ): Promise<Map<string, File>> {
-  const files = new Map<string, File>();
+  // Collect all entries and fallback files synchronously before any async work.
+  // The browser clears the DataTransfer after the event handler returns,
+  // so awaiting inside the loop would lose items beyond the first.
+  const entries: FileSystemEntry[] = [];
+  const fallbackFiles: File[] = [];
 
   for (const item of e.dataTransfer.items) {
-    if (item.webkitGetAsEntry()) {
-      const entry: FileSystemEntry | null = item.webkitGetAsEntry();
+    const entry = item.webkitGetAsEntry();
 
-      if (entry && entry.isFile) {
-        const file = await readFileEntry(entry as FileSystemFileEntry);
-        files.set(file.name, file as File);
-      } else if (entry && entry.isDirectory) {
-        const directoryFiles = await readDirectoryEntry(
-          entry as FileSystemDirectoryEntry,
-        );
-
-        for (const [path, file] of directoryFiles) {
-          files.set(path, file as File);
-        }
-      }
+    if (entry) {
+      entries.push(entry);
     } else {
       // Fallback for browsers that don't support webkitGetAsEntry
       const file = item.getAsFile();
 
       if (file) {
-        files.set(file.name, file);
+        fallbackFiles.push(file);
       }
     }
+  }
+
+  // Now process collected entries asynchronously
+  const files = new Map<string, File>();
+
+  for (const entry of entries) {
+    if (entry.isFile) {
+      const file = await readFileEntry(entry as FileSystemFileEntry);
+      files.set(file.name, file as File);
+    } else if (entry.isDirectory) {
+      const directoryFiles = await readDirectoryEntry(
+        entry as FileSystemDirectoryEntry,
+      );
+
+      for (const [path, file] of directoryFiles) {
+        files.set(path, file as File);
+      }
+    }
+  }
+
+  for (const file of fallbackFiles) {
+    files.set(file.name, file);
   }
 
   return files;
