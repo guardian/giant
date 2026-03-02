@@ -100,8 +100,10 @@ object SearchContext {
       // Show the user just what they asked for. Example again (NB the 'AND' is performed by the `must` in the calling code)
       //   (collection == 'Panama' OR collection == 'Paradise') AND (workspace == 'Shared With Barry')
       List(
-        should(parameters.ingestionFilters.map(prefixQuery(IndexFields.ingestionRaw, _))),
-        should(parameters.workspaceFilters.map(buildWorkspaceFilter))
+        should(
+          parameters.ingestionFilters.map(prefixQuery(IndexFields.ingestionRaw, _)) ++
+          parameters.workspaceFilters.map(buildWorkspaceFilter)
+        )
       )
     }
   }
