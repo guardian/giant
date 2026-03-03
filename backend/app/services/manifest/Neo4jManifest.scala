@@ -1399,37 +1399,6 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
       } else {
         Attempt.Right(())
       }
-
-      // Steps 3-5: Update ingestion path on all relationship types that store it
-      relationshipTypes = List("TODO", "PROCESSED", "PROCESSING_EXTERNALLY")
-      _ <- relationshipTypes.foldLeft(Attempt.Right(()): Attempt[Unit]) { (acc, relType) =>
-        acc.flatMap { _ =>
-          updateRelationshipIngestionPath(tx, relType, ingestionUri.value, newIngestionUri.value)
-        }
-      }
     } yield ()
-  }
-
-  private def updateRelationshipIngestionPath(
-    tx: AttemptWrappedTransaction,
-    relationshipType: String,
-    oldIngestionPath: String,
-    newIngestionPath: String
-  ): Attempt[Unit] = {
-    logger.info(s"Updating $relationshipType relationship properties")
-    tx.run(
-      s"""
-        |MATCH ()-[r:${relationshipType} {ingestion: {oldIngestionPath}}]->()
-        |SET r.ingestion = {newIngestionPath}
-        |RETURN count(r) as count
-      """.stripMargin,
-      parameters(
-        "oldIngestionPath", oldIngestionPath,
-        "newIngestionPath", newIngestionPath
-      )
-    ).map { result =>
-      val count = result.single().get("count").asInt()
-      logger.info(s"Updated $count $relationshipType relationships")
-    }
   }
 }
