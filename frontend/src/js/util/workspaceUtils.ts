@@ -103,7 +103,10 @@ export function processingStageToString(
   }
 }
 
-export function workspaceEntryPath(workspaceId: string, entryId?: string): string {
+export function workspaceEntryPath(
+  workspaceId: string,
+  entryId?: string,
+): string {
   return entryId
     ? `/workspaces/${workspaceId}/${entryId}`
     : `/workspaces/${workspaceId}`;

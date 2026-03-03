@@ -824,7 +824,10 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
   }
 
   getEntryLink(workspace: Workspace, entry: TreeEntry<WorkspaceEntry>): string {
-    const basePath = workspaceEntryPath(workspace.id, entry.id === workspace.rootNode.id ? undefined : entry.id);
+    const basePath = workspaceEntryPath(
+      workspace.id,
+      entry.id === workspace.rootNode.id ? undefined : entry.id,
+    );
     const origin =
       typeof window !== "undefined" && window.location
         ? window.location.origin
