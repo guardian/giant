@@ -8,9 +8,7 @@ import SlideshowIcon from "react-icons/lib/md/slideshow";
 import ArchiveIcon from "react-icons/lib/md/archive";
 import WebIcon from "react-icons/lib/md/web";
 
-const PDF_MIMES = [
-  "application/pdf",
-];
+const PDF_MIMES = ["application/pdf"];
 
 const SPREADSHEET_MIMES = [
   "application/vnd.ms-excel",
@@ -41,10 +39,7 @@ const ARCHIVE_MIMES = [
   "application/java-archive",
 ];
 
-const WEB_MIMES = [
-  "text/html",
-  "application/xhtml+xml",
-];
+const WEB_MIMES = ["text/html", "application/xhtml+xml"];
 
 // Returns { icon, className } based on mimeTypes array
 export function getDocumentIconInfo(mimeTypes) {
@@ -63,19 +58,22 @@ export function getDocumentIconInfo(mimeTypes) {
   if (mime.startsWith("image/")) {
     return { icon: ImageIcon, className: "search-result__icon-image" };
   }
-  if (PDF_MIMES.some(m => mime.startsWith(m))) {
+  if (PDF_MIMES.some((m) => mime.startsWith(m))) {
     return { icon: PdfIcon, className: "search-result__icon-pdf" };
   }
-  if (SPREADSHEET_MIMES.some(m => mime.startsWith(m))) {
+  if (SPREADSHEET_MIMES.some((m) => mime.startsWith(m))) {
     return { icon: GridIcon, className: "search-result__icon-spreadsheet" };
   }
-  if (PRESENTATION_MIMES.some(m => mime.startsWith(m))) {
-    return { icon: SlideshowIcon, className: "search-result__icon-presentation" };
+  if (PRESENTATION_MIMES.some((m) => mime.startsWith(m))) {
+    return {
+      icon: SlideshowIcon,
+      className: "search-result__icon-presentation",
+    };
   }
-  if (ARCHIVE_MIMES.some(m => mime.startsWith(m))) {
+  if (ARCHIVE_MIMES.some((m) => mime.startsWith(m))) {
     return { icon: ArchiveIcon, className: "search-result__icon-archive" };
   }
-  if (WEB_MIMES.some(m => mime.startsWith(m))) {
+  if (WEB_MIMES.some((m) => mime.startsWith(m))) {
     return { icon: WebIcon, className: "search-result__icon-web" };
   }
 

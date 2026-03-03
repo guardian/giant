@@ -98,7 +98,7 @@ export class SearchResult extends React.Component {
       }
       case "document": {
         const { icon: DocIcon, className: iconClass } = getDocumentIconInfo(
-          this.props.searchResult.details.mimeTypes
+          this.props.searchResult.details.mimeTypes,
         );
         return (
           <React.Fragment>
@@ -143,21 +143,30 @@ export class SearchResult extends React.Component {
     const links = collections.map((collection, i) => (
       <React.Fragment key={collection}>
         {i > 0 && ", "}
-        <Link className="search-result__detail-link" to={`/collections/${encodeURIComponent(collection)}`}>
+        <Link
+          className="search-result__detail-link"
+          to={`/collections/${encodeURIComponent(collection)}`}
+        >
           {collection}
         </Link>
       </React.Fragment>
     ));
 
-    return this.renderProperty("Dataset", <React.Fragment>{links}</React.Fragment>);
+    return this.renderProperty(
+      "Dataset",
+      <React.Fragment>{links}</React.Fragment>,
+    );
   }
 
   renderAdditionalInfo() {
     switch (this.props.searchResult.details._type) {
       case "email": {
         const recipients = this.props.searchResult.details.recipients || [];
-        const toStr = recipients.map(r => r.displayName || r.email).join(", ");
-        const truncatedTo = toStr.length > 80 ? toStr.slice(0, 80) + "…" : toStr;
+        const toStr = recipients
+          .map((r) => r.displayName || r.email)
+          .join(", ");
+        const truncatedTo =
+          toStr.length > 80 ? toStr.slice(0, 80) + "…" : toStr;
         const attachments = this.props.searchResult.details.attachmentCount;
         return (
           <React.Fragment>
@@ -166,19 +175,19 @@ export class SearchResult extends React.Component {
               this.props.searchResult.details.from.email,
             )}
             {truncatedTo ? this.renderProperty("To", truncatedTo) : false}
-            {attachments > 0 ? this.renderProperty("Attachments", attachments) : false}
+            {attachments > 0
+              ? this.renderProperty("Attachments", attachments)
+              : false}
           </React.Fragment>
         );
       }
       case "document": {
         const displayTypes = this.props.searchResult.details.displayMimeTypes;
-        const types = displayTypes && displayTypes.length > 0
-          ? displayTypes
-          : this.props.searchResult.details.mimeTypes;
-        return this.renderProperty(
-          "File type",
-          types.join(", "),
-        );
+        const types =
+          displayTypes && displayTypes.length > 0
+            ? displayTypes
+            : this.props.searchResult.details.mimeTypes;
+        return this.renderProperty("File type", types.join(", "));
       }
       default: {
         return false;
