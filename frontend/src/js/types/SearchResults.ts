@@ -1,7 +1,13 @@
 import PropTypes from "prop-types";
 
 export type SearchResultDetails =
-  | { _type: "document"; mimeTypes: string[]; displayMimeTypes: string[]; fileUris: string[]; fileSize?: number }
+  | {
+      _type: "document";
+      mimeTypes: string[];
+      displayMimeTypes: string[];
+      fileUris: string[];
+      fileSize?: number;
+    }
   | {
       _type: "email";
       from: { email: string; displayName?: string };

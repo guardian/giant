@@ -47,7 +47,7 @@ export default class CompactResultsTable extends React.Component {
       }
       case "document": {
         const { icon: DocIcon, className: iconClass } = getDocumentIconInfo(
-          result.details.mimeTypes
+          result.details.mimeTypes,
         );
         return (
           <DocIcon className={`${iconClass} search-result__icon--small`} />
@@ -78,18 +78,28 @@ export default class CompactResultsTable extends React.Component {
             </SearchLink>
             <span className="search__compact-details">
               From: {result.details.from.email}
-              {result.details.recipients && result.details.recipients.length > 0 && (() => {
-                const toStr = result.details.recipients.map(r => r.displayName || r.email).join(", ");
-                const truncated = toStr.length > 60 ? toStr.slice(0, 60) + "…" : toStr;
-                return " · To: " + truncated;
-              })()}
+              {result.details.recipients &&
+                result.details.recipients.length > 0 &&
+                (() => {
+                  const toStr = result.details.recipients
+                    .map((r) => r.displayName || r.email)
+                    .join(", ");
+                  const truncated =
+                    toStr.length > 60 ? toStr.slice(0, 60) + "…" : toStr;
+                  return " · To: " + truncated;
+                })()}
               {collections.length > 0 && (
                 <React.Fragment>
                   {" · "}
                   {collections.map((c, i) => (
                     <React.Fragment key={c}>
                       {i > 0 && ", "}
-                      <Link className="search-result__detail-link" to={`/collections/${encodeURIComponent(c)}`}>{c}</Link>
+                      <Link
+                        className="search-result__detail-link"
+                        to={`/collections/${encodeURIComponent(c)}`}
+                      >
+                        {c}
+                      </Link>
                     </React.Fragment>
                   ))}
                 </React.Fragment>
@@ -103,9 +113,10 @@ export default class CompactResultsTable extends React.Component {
           R.last(uri.split("/")),
         )[0];
         const displayTypes = result.details.displayMimeTypes;
-        const typeLabel = displayTypes && displayTypes.length > 0
-          ? displayTypes.join(", ")
-          : filesize(result.details.fileSize);
+        const typeLabel =
+          displayTypes && displayTypes.length > 0
+            ? displayTypes.join(", ")
+            : filesize(result.details.fileSize);
         const collections = result.collections || [];
         return (
           <React.Fragment>
@@ -125,7 +136,12 @@ export default class CompactResultsTable extends React.Component {
                   {collections.map((c, i) => (
                     <React.Fragment key={c}>
                       {i > 0 && ", "}
-                      <Link className="search-result__detail-link" to={`/collections/${encodeURIComponent(c)}`}>{c}</Link>
+                      <Link
+                        className="search-result__detail-link"
+                        to={`/collections/${encodeURIComponent(c)}`}
+                      >
+                        {c}
+                      </Link>
                     </React.Fragment>
                   ))}
                 </React.Fragment>
