@@ -1358,29 +1358,31 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
   override def moveIngestionToCollection(ingestionUri: Uri, targetCollectionUri: Uri, newIngestionUri: Uri): Attempt[Unit] = attemptTransaction { tx =>
     logger.info(s"Moving ingestion ${ingestionUri.value} to collection ${targetCollectionUri.value}")
 
-    // Step 1: Update the PARENT relationship - delete old, create new
-    tx.run(
-      """
-        |MATCH (ingestion:Ingestion {uri: {oldUri}})-[oldParent:PARENT]->(oldCollection:Collection)
-        |MATCH (newCollection:Collection {uri: {newCollectionUri}})
-        |DELETE oldParent
-        |CREATE (ingestion)-[:PARENT]->(newCollection)
-        |RETURN ingestion, newCollection
-      """.stripMargin,
-      parameters(
-        "oldUri", ingestionUri.value,
-        "newCollectionUri", targetCollectionUri.value
+    for {
+      // Step 1: Update the PARENT relationship - delete old, create new
+      result <- tx.run(
+        """
+          |MATCH (ingestion:Ingestion {uri: {oldUri}})-[oldParent:PARENT]->(oldCollection:Collection)
+          |MATCH (newCollection:Collection {uri: {newCollectionUri}})
+          |DELETE oldParent
+          |CREATE (ingestion)-[:PARENT]->(newCollection)
+          |RETURN ingestion, newCollection
+        """.stripMargin,
+        parameters(
+          "oldUri", ingestionUri.value,
+          "newCollectionUri", targetCollectionUri.value
+        )
       )
-    ).flatMap { result =>
-      if (result.list().isEmpty) {
+
+      _ <- if (result.list().isEmpty) {
         Attempt.Left[Unit](NotFoundFailure(s"Could not find ingestion ${ingestionUri.value} or collection ${targetCollectionUri.value}"))
       } else {
         Attempt.Right(())
       }
-    }.flatMap { _ =>
+
       // Step 2: Update the ingestion node's URI property
-      logger.info(s"Updating ingestion URI from ${ingestionUri.value} to ${newIngestionUri.value}")
-      tx.run(
+      _ = logger.info(s"Updating ingestion URI from ${ingestionUri.value} to ${newIngestionUri.value}")
+      _ <- tx.run(
         """
           |MATCH (ingestion:Ingestion {uri: {oldUri}})
           |SET ingestion.uri = {newUri}
@@ -1390,16 +1392,16 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
           "oldUri", ingestionUri.value,
           "newUri", newIngestionUri.value
         )
-      ).map(_ => ())
-    }.flatMap { _ =>
+      )
+
       // Steps 3-5: Update ingestion path on all relationship types that store it
-      val relationshipTypes = List("TODO", "PROCESSED", "PROCESSING_EXTERNALLY")
-      relationshipTypes.foldLeft(Attempt.Right(()): Attempt[Unit]) { (acc, relType) =>
+      relationshipTypes = List("TODO", "PROCESSED", "PROCESSING_EXTERNALLY")
+      _ <- relationshipTypes.foldLeft(Attempt.Right(()): Attempt[Unit]) { (acc, relType) =>
         acc.flatMap { _ =>
           updateRelationshipIngestionPath(tx, relType, ingestionUri.value, newIngestionUri.value)
         }
       }
-    }
+    } yield ()
   }
 
   private def updateRelationshipIngestionPath(
