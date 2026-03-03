@@ -197,10 +197,10 @@ class Collections(override val controllerComponents: AuthControllerComponents, m
     }
   }
 
-  def moveIngestion(targetCollection: String) = ApiAction.attempt(parse.json) { req: UserIdentityRequest[JsValue] =>
+  def moveIngestion() = ApiAction.attempt(parse.json) { req: UserIdentityRequest[JsValue] =>
     checkPermission(CanPerformAdminOperations, req) {
       val ingestionUri = Uri((req.body \ "ingestionUri").as[String])
-      val targetCollectionUri = Uri(targetCollection)
+      val targetCollectionUri = Uri((req.body \ "targetCollection").as[String])
 
       MoveIngestion(ingestionUri, targetCollectionUri, manifest, index).process().map { newUri =>
         Ok(Json.obj("newUri" -> newUri.value))
