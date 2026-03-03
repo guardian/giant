@@ -58,6 +58,14 @@ export default class SearchBox extends React.Component {
           >
             Search
           </button>
+          <button
+            className="btn search__button search__button--clear"
+            title="Clear search query and filters"
+            onClick={this.props.resetQuery}
+            disabled={this.props.isSearchInProgress}
+          >
+            Clear
+          </button>
         </div>
       </div>
     );

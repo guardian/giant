@@ -76,9 +76,11 @@ class Search extends React.Component {
   clearSearch = (e) => {
     e.preventDefault();
 
-    this.props.updateVisibleText("");
+    this.updateVisibleText("");
     this.props.clearSearch();
+    this.props.updateSearchText("");
     this.props.updateSearchQueryFilters({});
+    this.props.updatePage("1");
     this.setState({ visibleText: "" });
     this.searchBox.select();
   };
