@@ -3,11 +3,12 @@ import PropTypes from "prop-types";
 import { searchResultsPropType } from "../../types/SearchResults";
 import EmailIcon from "react-icons/lib/md/email";
 import AttachmentIcon from "react-icons/lib/md/attach-file";
-import DocumentIcon from "react-icons/lib/ti/document";
-import hdate from "human-date";
 import * as R from "ramda";
 import md5 from "md5";
 import { SearchLink } from "../UtilComponents/SearchLink";
+import { Link } from "react-router-dom";
+import { formatDate } from "../../util/formatDate";
+import { getDocumentIconInfo } from "../../util/fileTypeIcon";
 import filesize from "filesize";
 
 export default class CompactResultsTable extends React.Component {
@@ -45,8 +46,11 @@ export default class CompactResultsTable extends React.Component {
         );
       }
       case "document": {
+        const { icon: DocIcon, className: iconClass } = getDocumentIconInfo(
+          result.details.mimeTypes
+        );
         return (
-          <DocumentIcon className="search-result__icon-document search-result__icon--small" />
+          <DocIcon className={`${iconClass} search-result__icon--small`} />
         );
       }
       default: {
@@ -61,6 +65,7 @@ export default class CompactResultsTable extends React.Component {
         const subject = result.details.subject
           ? result.details.subject
           : "<No Subject>";
+        const collections = result.collections || [];
         return (
           <React.Fragment>
             <SearchLink
@@ -73,6 +78,17 @@ export default class CompactResultsTable extends React.Component {
             </SearchLink>
             <span className="search__compact-details">
               From: {result.details.from.email}
+              {collections.length > 0 && (
+                <React.Fragment>
+                  {" · "}
+                  {collections.map((c, i) => (
+                    <React.Fragment key={c}>
+                      {i > 0 && ", "}
+                      <Link className="search-result__detail-link" to={`/collections/${encodeURIComponent(c)}`}>{c}</Link>
+                    </React.Fragment>
+                  ))}
+                </React.Fragment>
+              )}
             </span>
           </React.Fragment>
         );
@@ -81,6 +97,11 @@ export default class CompactResultsTable extends React.Component {
         const name = result.details.fileUris.map((uri) =>
           R.last(uri.split("/")),
         )[0];
+        const displayTypes = result.details.displayMimeTypes;
+        const typeLabel = displayTypes && displayTypes.length > 0
+          ? displayTypes.join(", ")
+          : filesize(result.details.fileSize);
+        const collections = result.collections || [];
         return (
           <React.Fragment>
             <SearchLink
@@ -92,7 +113,18 @@ export default class CompactResultsTable extends React.Component {
               </h3>
             </SearchLink>
             <span className="search__compact-details">
-              Size: {filesize(result.details.fileSize)}
+              {typeLabel}
+              {collections.length > 0 && (
+                <React.Fragment>
+                  {" · "}
+                  {collections.map((c, i) => (
+                    <React.Fragment key={c}>
+                      {i > 0 && ", "}
+                      <Link className="search-result__detail-link" to={`/collections/${encodeURIComponent(c)}`}>{c}</Link>
+                    </React.Fragment>
+                  ))}
+                </React.Fragment>
+              )}
             </span>
           </React.Fragment>
         );
@@ -105,7 +137,7 @@ export default class CompactResultsTable extends React.Component {
 
   renderResultRow = (result, index, lastUri) => {
     const createdAt = result.createdAt
-      ? hdate.prettyPrint(new Date(result.createdAt), { showTime: true })
+      ? formatDate(new Date(result.createdAt))
       : "Unknown date";
     const isLastUri = lastUri === result.uri;
     const targetId = isLastUri ? "jump-to-result" : "";
