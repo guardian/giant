@@ -986,6 +986,7 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
                     "*",
                   ]),
                   page: 1,
+                  filters: { workspace: [workspace.id] },
                 }),
               );
             }
