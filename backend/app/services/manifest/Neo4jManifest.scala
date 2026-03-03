@@ -1382,7 +1382,7 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
 
       // Step 2: Update the ingestion node's URI property
       _ = logger.info(s"Updating ingestion URI from ${ingestionUri.value} to ${newIngestionUri.value}")
-      _ <- tx.run(
+      uriUpdateResult <- tx.run(
         """
           |MATCH (ingestion:Ingestion {uri: {oldUri}})
           |SET ingestion.uri = {newUri}
@@ -1393,6 +1393,12 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
           "newUri", newIngestionUri.value
         )
       )
+
+      _ <- if (uriUpdateResult.list().isEmpty) {
+        Attempt.Left[Unit](NotFoundFailure(s"Could not find ingestion ${ingestionUri.value} to update URI"))
+      } else {
+        Attempt.Right(())
+      }
 
       // Steps 3-5: Update ingestion path on all relationship types that store it
       relationshipTypes = List("TODO", "PROCESSED", "PROCESSING_EXTERNALLY")
