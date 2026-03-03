@@ -117,6 +117,12 @@ type ContextMenuEntry = {
   icon: string;
 };
 
+function workspaceEntryPath(workspaceId: string, entryId?: string): string {
+  return entryId
+    ? `/workspaces/${workspaceId}/${entryId}`
+    : `/workspaces/${workspaceId}`;
+}
+
 class WorkspacesUnconnected extends React.Component<Props, State> {
   stringSort = (a: string, b: string) => {
     if (a && b) {
@@ -613,7 +619,7 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
   setSelectedEntry = (entry: TreeEntry<WorkspaceEntry>) => {
     this.props.setFocusedAndSelectedEntry(entry);
     this.props.history.push({
-      pathname: `/workspaces/${this.props.match.params.id}/${entry.id}`,
+      pathname: workspaceEntryPath(this.props.match.params.id, entry.id),
     });
 
     this.setState({ previousShiftClickSelectedEntries: [] });
@@ -823,10 +829,7 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
   }
 
   getEntryLink(workspace: Workspace, entry: TreeEntry<WorkspaceEntry>): string {
-    const basePath =
-      entry.id === workspace.rootNode.id
-        ? `/workspaces/${workspace.id}`
-        : `/workspaces/${workspace.id}/${entry.id}`;
+    const basePath = workspaceEntryPath(workspace.id, entry.id === workspace.rootNode.id ? undefined : entry.id);
     const origin =
       typeof window !== "undefined" && window.location
         ? window.location.origin
