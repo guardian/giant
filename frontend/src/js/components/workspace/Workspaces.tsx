@@ -54,6 +54,7 @@ import {
 import { setFocusedEntry } from "../../actions/workspaces/setFocusedEntry";
 import {
   processingStageToString,
+  workspaceEntryPath,
   workspaceHasProcessingFiles,
 } from "../../util/workspaceUtils";
 import { setWorkspaceIsPublic } from "../../actions/workspaces/setWorkspaceIsPublic";
@@ -116,12 +117,6 @@ type ContextMenuEntry = {
   content: string;
   icon: string;
 };
-
-function workspaceEntryPath(workspaceId: string, entryId?: string): string {
-  return entryId
-    ? `/workspaces/${workspaceId}/${entryId}`
-    : `/workspaces/${workspaceId}`;
-}
 
 class WorkspacesUnconnected extends React.Component<Props, State> {
   stringSort = (a: string, b: string) => {

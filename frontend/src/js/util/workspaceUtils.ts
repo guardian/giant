@@ -103,6 +103,12 @@ export function processingStageToString(
   }
 }
 
+export function workspaceEntryPath(workspaceId: string, entryId?: string): string {
+  return entryId
+    ? `/workspaces/${workspaceId}/${entryId}`
+    : `/workspaces/${workspaceId}`;
+}
+
 export function useWorkspaceId(): string | undefined {
   let match = useRouteMatch("/workspaces/:id");
   return (match?.params as any)?.id;
