@@ -97,8 +97,8 @@ object SearchContext {
         )
       )
     } else {
-      // Show the user just what they asked for. Example again (NB the 'AND' is performed by the `must` in the calling code)
-      //   (collection == 'Panama' OR collection == 'Paradise') AND (workspace == 'Shared With Barry')
+      // Show the user results from any of the selected collections/workspaces. Example:
+      //   (collection == 'Panama' OR collection == 'Paradise') OR (workspace == 'Shared With Barry')
       List(
         should(
           parameters.ingestionFilters.map(prefixQuery(IndexFields.ingestionRaw, _)) ++
