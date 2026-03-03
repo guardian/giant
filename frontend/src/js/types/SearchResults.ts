@@ -5,8 +5,8 @@ export type SearchResultDetails =
   | {
       _type: "email";
       from: { email: string; displayName?: string };
+      recipients: { email: string; displayName?: string }[];
       subject: string;
-      sentAt?: string;
       attachmentCount: number;
     };
 
