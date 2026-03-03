@@ -192,11 +192,11 @@ object HitReaders {
 
   private def readEmailResult(fields: FieldMap): EmailResultDetails = {
     val from = fields.optField(metadata.fromField).map(readRecipient).getOrElse(Recipient.unknown)
+    val recipients = fields.optField[List[FieldMap]](metadata.recipientsField).getOrElse(Nil).map(readRecipient)
     val subject = fields.optMultiLanguageField[String](metadata.subject).getOrElse("<Unknown Subject>")
-    val sentAt = fields.optField[String](metadata.sentAt)
     val attachmentCount = fields.optField[Int](metadata.attachmentCount).getOrElse(0)
 
-    EmailResultDetails(from, subject, sentAt, attachmentCount)
+    EmailResultDetails(from, recipients, subject, attachmentCount)
   }
 
   private def readDocumentResult(fields: FieldMap): DocumentResultDetails = {

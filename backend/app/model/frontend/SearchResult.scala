@@ -15,7 +15,7 @@ case class SearchResult(
 
 sealed trait ResultDetails
 case class DocumentResultDetails(mimeTypes: Seq[String], displayMimeTypes: Seq[String], fileUris: Seq[String], fileSize: Option[Long]) extends ResultDetails
-case class EmailResultDetails(from: Recipient, subject: String, sentAt: Option[String], attachmentCount: Int) extends ResultDetails
+case class EmailResultDetails(from: Recipient, recipients: List[Recipient], subject: String, attachmentCount: Int) extends ResultDetails
 
 object ResultDetails {
   val docFormat: OFormat[DocumentResultDetails] = Json.format[DocumentResultDetails]

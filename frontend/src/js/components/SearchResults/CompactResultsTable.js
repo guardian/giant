@@ -78,6 +78,11 @@ export default class CompactResultsTable extends React.Component {
             </SearchLink>
             <span className="search__compact-details">
               From: {result.details.from.email}
+              {result.details.recipients && result.details.recipients.length > 0 && (() => {
+                const toStr = result.details.recipients.map(r => r.displayName || r.email).join(", ");
+                const truncated = toStr.length > 60 ? toStr.slice(0, 60) + "…" : toStr;
+                return " · To: " + truncated;
+              })()}
               {collections.length > 0 && (
                 <React.Fragment>
                   {" · "}

@@ -155,16 +155,18 @@ export class SearchResult extends React.Component {
   renderAdditionalInfo() {
     switch (this.props.searchResult.details._type) {
       case "email": {
-        const sentAt = this.props.searchResult.details.sentAt
-          ? formatDate(new Date(this.props.searchResult.details.sentAt))
-          : undefined;
+        const recipients = this.props.searchResult.details.recipients || [];
+        const toStr = recipients.map(r => r.displayName || r.email).join(", ");
+        const truncatedTo = toStr.length > 80 ? toStr.slice(0, 80) + "…" : toStr;
+        const attachments = this.props.searchResult.details.attachmentCount;
         return (
           <React.Fragment>
             {this.renderProperty(
               "From",
               this.props.searchResult.details.from.email,
             )}
-            {sentAt ? this.renderProperty("Sent", sentAt) : false}
+            {truncatedTo ? this.renderProperty("To", truncatedTo) : false}
+            {attachments > 0 ? this.renderProperty("Attachments", attachments) : false}
           </React.Fragment>
         );
       }
