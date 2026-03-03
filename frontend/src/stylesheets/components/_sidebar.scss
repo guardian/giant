@@ -4,6 +4,7 @@
   flex-grow: 0;
   width: $sidebarWidth;
   overflow-x: hidden;
+  overflow-y: auto;
 
   &--collapsed {
     width: 0px;
