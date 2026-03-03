@@ -18,13 +18,13 @@ case class MoveIngestion(
   def process(): Attempt[Uri] = {
     logger.info(s"Moving ingestion ${ingestionUri.value} to collection ${targetCollectionUri.value}")
 
+    // Extract the ingestion name and build the new URI
+    val ingestionName = ingestionUri.value.split("/").last
+    val newIngestionUri = targetCollectionUri.chain(ingestionName)
+
     for {
       // Validate that target collection exists
       _ <- manifest.getCollection(targetCollectionUri)
-
-      // Extract the ingestion name and build the new URI
-      ingestionName = ingestionUri.value.split("/").last
-      newIngestionUri = targetCollectionUri.chain(ingestionName)
 
       // Determine if Neo4j needs updating or was already moved (e.g. retrying after an ES failure)
       alreadyMoved <- manifest.getIngestion(newIngestionUri).transform(
