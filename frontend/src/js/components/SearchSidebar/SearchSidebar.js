@@ -2,6 +2,7 @@ import React from "react";
 import PropTypes from "prop-types";
 import SearchFilter from "./SearchFilter";
 import FileTypeSidebarFilter from "./FileTypeSidebarFilter";
+import TriStateSidebarSection from "./TriStateSidebarSection";
 import { searchResultsPropType } from "../../types/SearchResults";
 
 import { connect } from "react-redux";
@@ -58,14 +59,14 @@ export class SearchSidebarUnconnected extends React.Component {
   };
 
   /** Called when workspace sidebar checkboxes are toggled */
-  onToggleWorkspace = (selectedValues) => {
-    const newQ = setWorkspacesInQ(this.props.q || "", selectedValues);
+  onToggleWorkspace = (values) => {
+    const newQ = setWorkspacesInQ(this.props.q || "", values);
     this.props.filterActions.updateSearchText(newQ);
   };
 
   /** Called when dataset/ingestion sidebar checkboxes are toggled */
-  onToggleDataset = (selectedValues) => {
-    const newQ = setDatasetsInQ(this.props.q || "", selectedValues);
+  onToggleDataset = (values) => {
+    const newQ = setDatasetsInQ(this.props.q || "", values);
     this.props.filterActions.updateSearchText(newQ);
   };
 
@@ -178,34 +179,42 @@ export class SearchSidebarUnconnected extends React.Component {
               }
             />
           ) : filter.key === WORKSPACE_FILTER_KEY ? (
-            <SearchFilter
-              filter={filter}
-              isExpanded={isFilterExpanded(filter)}
-              activeFilters={{ [WORKSPACE_FILTER_KEY]: chipWorkspaces }}
-              updateActiveFilters={(filters) =>
-                this.onToggleWorkspace(filters[WORKSPACE_FILTER_KEY] || [])
-              }
+            <TriStateSidebarSection
               key={filter.key}
+              title={filter.display || "Workspaces"}
+              filterKey={WORKSPACE_FILTER_KEY}
+              options={filter.options || []}
+              positiveValues={chipWorkspaces.positive}
+              negativeValues={chipWorkspaces.negative}
+              onToggle={this.onToggleWorkspace}
               agg={aggs.find((e) => e.key === filter.key)}
-              missingAggValue={""}
-              setFilterExpansionState={
-                this.props.filterActions.setFilterExpansionState
+              isExpanded={isFilterExpanded(filter)}
+              setExpanded={() =>
+                this.props.filterActions.setFilterExpansionState(
+                  filter.key,
+                  !isFilterExpanded(filter),
+                )
               }
+              missingAggValue={""}
             />
           ) : filter.key === INGESTION_FILTER_KEY ? (
-            <SearchFilter
-              filter={filter}
-              isExpanded={isFilterExpanded(filter)}
-              activeFilters={{ [INGESTION_FILTER_KEY]: chipDatasets }}
-              updateActiveFilters={(filters) =>
-                this.onToggleDataset(filters[INGESTION_FILTER_KEY] || [])
-              }
+            <TriStateSidebarSection
               key={filter.key}
+              title={filter.display || "Datasets"}
+              filterKey={INGESTION_FILTER_KEY}
+              options={filter.options || []}
+              positiveValues={chipDatasets.positive}
+              negativeValues={chipDatasets.negative}
+              onToggle={this.onToggleDataset}
               agg={aggs.find((e) => e.key === filter.key)}
-              missingAggValue={"0"}
-              setFilterExpansionState={
-                this.props.filterActions.setFilterExpansionState
+              isExpanded={isFilterExpanded(filter)}
+              setExpanded={() =>
+                this.props.filterActions.setFilterExpansionState(
+                  filter.key,
+                  !isFilterExpanded(filter),
+                )
               }
+              missingAggValue={"0"}
             />
           ) : (
             <SearchFilter

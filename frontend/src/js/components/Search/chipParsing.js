@@ -294,15 +294,26 @@ export function getFileTypeCategoriesFromQ(q) {
 }
 
 /**
+ * Strip contradictions: if a value appears in both positive and negative,
+ * positive wins and the value is removed from negative.
+ */
+function stripContradictions(positive, negative) {
+  const positiveSet = new Set(positive);
+  return negative.filter((v) => !positiveSet.has(v));
+}
+
+/**
  * Return a new q string with File Type chips set to the given categories.
  * Supports separate positive and negative (excluded) categories.
+ * Contradictions are resolved: positive wins.
  *
  * @param {string} q - current serialised q
  * @param {{ positive: string[], negative: string[] }} categories
  * @returns {string} updated q
  */
 export function setFileTypeCategoriesInQ(q, categories) {
-  const { positive = [], negative = [] } = categories || {};
+  const { positive = [], negative: rawNegative = [] } = categories || {};
+  const negative = stripContradictions(positive, rawNegative);
   const { definedChips, textOnlyQ } = parseChips(q, []);
 
   // Remove any existing File Type chip(s)
@@ -336,36 +347,41 @@ export function setFileTypeCategoriesInQ(q, categories) {
 // ── Workspace / Dataset chip ↔ sidebar helpers ──────────────────────
 
 /**
- * Extract Dataset/Workspace values from a q string.
+ * Extract Dataset/Workspace values from a q string, split by polarity.
  *
  * @param {string} chipName - CHIP_NAME_DATASET or CHIP_NAME_WORKSPACE
  * @param {string} q
- * @returns {string[]} selected values (empty = "all")
+ * @returns {{ positive: string[], negative: string[] }}
  */
 function getChipValuesFromQ(chipName, q) {
-  if (!q) return [];
+  const empty = { positive: [], negative: [] };
+  if (!q) return empty;
   try {
     const parsed = JSON.parse(q);
-    if (!Array.isArray(parsed)) return [];
-    const values = [];
+    if (!Array.isArray(parsed)) return empty;
+    const result = { positive: [], negative: [] };
     for (const el of parsed) {
-      if (_isObject(el) && el.n === chipName && el.op !== "-") {
+      if (_isObject(el) && el.n === chipName) {
         const vals = (el.v || "")
           .split(" OR ")
           .map((v) => v.trim())
           .filter(Boolean);
-        values.push(...vals);
+        if (el.op === "-") {
+          result.negative.push(...vals);
+        } else {
+          result.positive.push(...vals);
+        }
       }
     }
-    return values;
+    return result;
   } catch (e) {
-    return [];
+    return empty;
   }
 }
 
 /**
  * Get the currently-selected dataset (collection/ingestion) values from q.
- * Returns [] when no Dataset chip is active (= "all").
+ * Returns { positive: [], negative: [] } when no Dataset chip is active (= "all").
  */
 export function getDatasetsFromQ(q) {
   return getChipValuesFromQ(CHIP_NAME_DATASET, q);
@@ -373,7 +389,7 @@ export function getDatasetsFromQ(q) {
 
 /**
  * Get the currently-selected workspace IDs from q.
- * Returns [] when no Workspace chip is active (= "all").
+ * Returns { positive: [], negative: [] } when no Workspace chip is active (= "all").
  */
 export function getWorkspacesFromQ(q) {
   return getChipValuesFromQ(CHIP_NAME_WORKSPACE, q);
@@ -381,7 +397,7 @@ export function getWorkspacesFromQ(q) {
 
 /**
  * Return a new q string with Dataset chip values set.
- * Pass [] to remove the chip (= "all").
+ * Pass { positive: [], negative: [] } to remove the chip (= "all").
  */
 export function setDatasetsInQ(q, values) {
   return setMultiChipInQ(q, CHIP_NAME_DATASET, CHIP_TYPE_DATASET, values);
@@ -389,26 +405,43 @@ export function setDatasetsInQ(q, values) {
 
 /**
  * Return a new q string with Workspace chip values set.
- * Pass [] to remove the chip (= "all").
+ * Pass { positive: [], negative: [] } to remove the chip (= "all").
  */
 export function setWorkspacesInQ(q, values) {
   return setMultiChipInQ(q, CHIP_NAME_WORKSPACE, CHIP_TYPE_WORKSPACE, values);
 }
 
 /**
- * Generic helper: set a multi-value chip's values in q.
- * If values is empty, the chip is removed entirely.
+ * Generic helper: set a multi-value chip's positive and negative values in q.
+ * If both arrays are empty, the chip is removed entirely.
+ *
+ * @param {string} q
+ * @param {string} chipName
+ * @param {string} chipType
+ * @param {{ positive: string[], negative: string[] }} values
  */
 function setMultiChipInQ(q, chipName, chipType, values) {
+  const { positive = [], negative: rawNegative = [] } = values || {};
+  const negative = stripContradictions(positive, rawNegative);
   const { definedChips, textOnlyQ } = parseChips(q, []);
   const otherChips = definedChips.filter((c) => c.name !== chipName);
 
-  if (values.length > 0) {
+  if (positive.length > 0) {
     otherChips.push({
       kind: CHIP_KIND_MULTI,
       name: chipName,
-      values,
+      values: positive,
       negate: false,
+      chipType,
+    });
+  }
+
+  if (negative.length > 0) {
+    otherChips.push({
+      kind: CHIP_KIND_MULTI,
+      name: chipName,
+      values: negative,
+      negate: true,
       chipType,
     });
   }
@@ -419,11 +452,11 @@ function setMultiChipInQ(q, chipName, chipType, values) {
 /**
  * Extract Dataset and Workspace chip values from q, returning:
  *   - cleanedQ: q with Dataset/Workspace chips removed
- *   - chipFilters: { workspace: string[], ingestion: string[] }
+ *   - chipFilters: { workspace?, ingestion?, workspace_exclude?, ingestion_exclude? }
  *
  * Called at the API boundary so that chip-based filtering is sent as
- * workspace[]/ingestion[] query params (the backend doesn't handle
- * these as q-string chips).
+ * workspace[]/ingestion[] (include) and workspace_exclude[]/ingestion_exclude[]
+ * (exclude) query params — the backend doesn't handle these as q-string chips.
  */
 export function extractCollectionAndWorkspaceChips(q) {
   if (!q) return { cleanedQ: q, chipFilters: {} };
@@ -434,22 +467,38 @@ export function extractCollectionAndWorkspaceChips(q) {
     const kept = [];
     const workspaceValues = [];
     const ingestionValues = [];
+    const workspaceExcludeValues = [];
+    const ingestionExcludeValues = [];
 
     for (const el of parsed) {
-      if (_isObject(el) && el.n === CHIP_NAME_WORKSPACE && el.op !== "-") {
+      if (_isObject(el) && el.n === CHIP_NAME_WORKSPACE) {
         const vals = (el.v || "").split(" OR ").map((v) => v.trim()).filter(Boolean);
-        workspaceValues.push(...vals);
-      } else if (_isObject(el) && el.n === CHIP_NAME_DATASET && el.op !== "-") {
+        if (el.op === "-") {
+          workspaceExcludeValues.push(...vals);
+        } else {
+          workspaceValues.push(...vals);
+        }
+      } else if (_isObject(el) && el.n === CHIP_NAME_DATASET) {
         const vals = (el.v || "").split(" OR ").map((v) => v.trim()).filter(Boolean);
-        ingestionValues.push(...vals);
+        if (el.op === "-") {
+          ingestionExcludeValues.push(...vals);
+        } else {
+          ingestionValues.push(...vals);
+        }
       } else {
         kept.push(el);
       }
     }
 
+    // Strip contradictions at the API boundary — positive wins
+    const cleanWorkspaceExclude = stripContradictions(workspaceValues, workspaceExcludeValues);
+    const cleanIngestionExclude = stripContradictions(ingestionValues, ingestionExcludeValues);
+
     const chipFilters = {};
     if (workspaceValues.length > 0) chipFilters.workspace = workspaceValues;
     if (ingestionValues.length > 0) chipFilters.ingestion = ingestionValues;
+    if (cleanWorkspaceExclude.length > 0) chipFilters.workspace_exclude = cleanWorkspaceExclude;
+    if (cleanIngestionExclude.length > 0) chipFilters.ingestion_exclude = cleanIngestionExclude;
 
     return { cleanedQ: JSON.stringify(kept), chipFilters };
   } catch (e) {

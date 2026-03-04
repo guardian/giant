@@ -996,56 +996,76 @@ describe("setFileTypeCategoriesInQ", () => {
 });
 
 // =============================================================================
-// getDatasetsFromQ / setDatasetsInQ
+// getDatasetsFromQ / setDatasetsInQ (tri-state: positive/negative)
 // =============================================================================
 
 describe("getDatasetsFromQ", () => {
-  test("returns empty array for null/undefined/empty", () => {
-    expect(getDatasetsFromQ(null)).toEqual([]);
-    expect(getDatasetsFromQ(undefined)).toEqual([]);
-    expect(getDatasetsFromQ("")).toEqual([]);
+  test("returns empty for null/undefined/empty", () => {
+    expect(getDatasetsFromQ(null)).toEqual({ positive: [], negative: [] });
+    expect(getDatasetsFromQ(undefined)).toEqual({ positive: [], negative: [] });
+    expect(getDatasetsFromQ("")).toEqual({ positive: [], negative: [] });
   });
 
   test("returns empty when no Dataset chip is present", () => {
     const input = q("search text", chip("Has Field", "ocr", "+", "dropdown"));
-    expect(getDatasetsFromQ(input)).toEqual([]);
+    expect(getDatasetsFromQ(input)).toEqual({ positive: [], negative: [] });
   });
 
-  test("returns selected dataset values", () => {
+  test("returns positive dataset values", () => {
     const input = q(chip("Dataset", "panama-papers OR paradise-papers", "+", "dataset"));
-    expect(getDatasetsFromQ(input)).toEqual(["panama-papers", "paradise-papers"]);
+    expect(getDatasetsFromQ(input)).toEqual({ positive: ["panama-papers", "paradise-papers"], negative: [] });
   });
 
-  test("returns single dataset value", () => {
+  test("returns single positive dataset value", () => {
     const input = q(chip("Dataset", "panama-papers", "+", "dataset"));
-    expect(getDatasetsFromQ(input)).toEqual(["panama-papers"]);
+    expect(getDatasetsFromQ(input)).toEqual({ positive: ["panama-papers"], negative: [] });
   });
 
-  test("ignores negated Dataset chips", () => {
+  test("returns negative dataset values", () => {
     const input = q(chip("Dataset", "panama-papers", "-", "dataset"));
-    expect(getDatasetsFromQ(input)).toEqual([]);
+    expect(getDatasetsFromQ(input)).toEqual({ positive: [], negative: ["panama-papers"] });
+  });
+
+  test("returns both positive and negative dataset values", () => {
+    const input = q(
+      chip("Dataset", "panama-papers", "+", "dataset"),
+      chip("Dataset", "paradise-papers", "-", "dataset")
+    );
+    expect(getDatasetsFromQ(input)).toEqual({ positive: ["panama-papers"], negative: ["paradise-papers"] });
   });
 });
 
 describe("setDatasetsInQ", () => {
-  test("adds a Dataset chip to empty q", () => {
+  test("adds a positive Dataset chip to empty q", () => {
     const input = q("search text");
-    const result = setDatasetsInQ(input, ["panama-papers"]);
-    expect(getDatasetsFromQ(result)).toEqual(["panama-papers"]);
+    const result = setDatasetsInQ(input, { positive: ["panama-papers"], negative: [] });
+    expect(getDatasetsFromQ(result)).toEqual({ positive: ["panama-papers"], negative: [] });
     // Text preserved
     expect(JSON.parse(result).some((el) => el === "search text")).toBe(true);
   });
 
-  test("replaces existing Dataset chip", () => {
-    const input = q(chip("Dataset", "panama-papers", "+", "dataset"));
-    const result = setDatasetsInQ(input, ["paradise-papers", "pfizer-leaks"]);
-    expect(getDatasetsFromQ(result)).toEqual(["paradise-papers", "pfizer-leaks"]);
+  test("adds a negative Dataset chip", () => {
+    const input = q("search text");
+    const result = setDatasetsInQ(input, { positive: [], negative: ["panama-papers"] });
+    expect(getDatasetsFromQ(result)).toEqual({ positive: [], negative: ["panama-papers"] });
   });
 
-  test("removes Dataset chip when values are empty", () => {
+  test("adds both positive and negative Dataset chips", () => {
+    const input = q("search text");
+    const result = setDatasetsInQ(input, { positive: ["paradise-papers"], negative: ["panama-papers"] });
+    expect(getDatasetsFromQ(result)).toEqual({ positive: ["paradise-papers"], negative: ["panama-papers"] });
+  });
+
+  test("replaces existing Dataset chips", () => {
     const input = q(chip("Dataset", "panama-papers", "+", "dataset"));
-    const result = setDatasetsInQ(input, []);
-    expect(getDatasetsFromQ(result)).toEqual([]);
+    const result = setDatasetsInQ(input, { positive: ["paradise-papers", "pfizer-leaks"], negative: [] });
+    expect(getDatasetsFromQ(result)).toEqual({ positive: ["paradise-papers", "pfizer-leaks"], negative: [] });
+  });
+
+  test("removes Dataset chips when both arrays are empty", () => {
+    const input = q(chip("Dataset", "panama-papers", "+", "dataset"));
+    const result = setDatasetsInQ(input, { positive: [], negative: [] });
+    expect(getDatasetsFromQ(result)).toEqual({ positive: [], negative: [] });
   });
 
   test("preserves other chips", () => {
@@ -1054,47 +1074,58 @@ describe("setDatasetsInQ", () => {
       chip("Has Field", "ocr", "+", "dropdown"),
       chip("Dataset", "old-dataset", "+", "dataset")
     );
-    const result = setDatasetsInQ(input, ["new-dataset"]);
+    const result = setDatasetsInQ(input, { positive: ["new-dataset"], negative: [] });
     const parsed = JSON.parse(result);
     expect(parsed.find((el) => typeof el === "object" && el.n === "Has Field")).toBeTruthy();
-    expect(getDatasetsFromQ(result)).toEqual(["new-dataset"]);
+    expect(getDatasetsFromQ(result)).toEqual({ positive: ["new-dataset"], negative: [] });
   });
 });
 
 // =============================================================================
-// getWorkspacesFromQ / setWorkspacesInQ
+// getWorkspacesFromQ / setWorkspacesInQ (tri-state: positive/negative)
 // =============================================================================
 
 describe("getWorkspacesFromQ", () => {
-  test("returns empty array for null/undefined/empty", () => {
-    expect(getWorkspacesFromQ(null)).toEqual([]);
-    expect(getWorkspacesFromQ(undefined)).toEqual([]);
-    expect(getWorkspacesFromQ("")).toEqual([]);
+  test("returns empty for null/undefined/empty", () => {
+    expect(getWorkspacesFromQ(null)).toEqual({ positive: [], negative: [] });
+    expect(getWorkspacesFromQ(undefined)).toEqual({ positive: [], negative: [] });
+    expect(getWorkspacesFromQ("")).toEqual({ positive: [], negative: [] });
   });
 
-  test("returns selected workspace IDs", () => {
+  test("returns positive workspace IDs", () => {
     const input = q(chip("Workspace", "ws-id-1 OR ws-id-2", "+", "workspace"));
-    expect(getWorkspacesFromQ(input)).toEqual(["ws-id-1", "ws-id-2"]);
+    expect(getWorkspacesFromQ(input)).toEqual({ positive: ["ws-id-1", "ws-id-2"], negative: [] });
+  });
+
+  test("returns negative workspace IDs", () => {
+    const input = q(chip("Workspace", "ws-id-1", "-", "workspace"));
+    expect(getWorkspacesFromQ(input)).toEqual({ positive: [], negative: ["ws-id-1"] });
   });
 });
 
 describe("setWorkspacesInQ", () => {
-  test("adds a Workspace chip", () => {
+  test("adds a positive Workspace chip", () => {
     const input = q("search");
-    const result = setWorkspacesInQ(input, ["ws-1"]);
-    expect(getWorkspacesFromQ(result)).toEqual(["ws-1"]);
+    const result = setWorkspacesInQ(input, { positive: ["ws-1"], negative: [] });
+    expect(getWorkspacesFromQ(result)).toEqual({ positive: ["ws-1"], negative: [] });
   });
 
-  test("removes Workspace chip when empty", () => {
+  test("adds positive and negative Workspace chips", () => {
+    const input = q("search");
+    const result = setWorkspacesInQ(input, { positive: ["ws-1"], negative: ["ws-2"] });
+    expect(getWorkspacesFromQ(result)).toEqual({ positive: ["ws-1"], negative: ["ws-2"] });
+  });
+
+  test("removes Workspace chip when both empty", () => {
     const input = q(chip("Workspace", "ws-1", "+", "workspace"));
-    const result = setWorkspacesInQ(input, []);
-    expect(getWorkspacesFromQ(result)).toEqual([]);
+    const result = setWorkspacesInQ(input, { positive: [], negative: [] });
+    expect(getWorkspacesFromQ(result)).toEqual({ positive: [], negative: [] });
   });
 
   test("round-trips with get", () => {
-    const ids = ["ws-aaa", "ws-bbb", "ws-ccc"];
-    const result = setWorkspacesInQ(q("text"), ids);
-    expect(getWorkspacesFromQ(result)).toEqual(ids);
+    const values = { positive: ["ws-aaa", "ws-bbb"], negative: ["ws-ccc"] };
+    const result = setWorkspacesInQ(q("text"), values);
+    expect(getWorkspacesFromQ(result)).toEqual(values);
   });
 });
 
@@ -1108,7 +1139,7 @@ describe("extractCollectionAndWorkspaceChips", () => {
     expect(extractCollectionAndWorkspaceChips("")).toEqual({ cleanedQ: "", chipFilters: {} });
   });
 
-  test("extracts workspace chip into chipFilters", () => {
+  test("extracts positive workspace chip into chipFilters", () => {
     const input = q("search text", chip("Workspace", "ws-1 OR ws-2", "+", "workspace"));
     const { cleanedQ, chipFilters } = extractCollectionAndWorkspaceChips(input);
     expect(chipFilters.workspace).toEqual(["ws-1", "ws-2"]);
@@ -1118,23 +1149,41 @@ describe("extractCollectionAndWorkspaceChips", () => {
     expect(parsed).toContain("search text");
   });
 
-  test("extracts dataset chip into chipFilters", () => {
+  test("extracts negative workspace chip into chipFilters", () => {
+    const input = q("text", chip("Workspace", "ws-1", "-", "workspace"));
+    const { cleanedQ, chipFilters } = extractCollectionAndWorkspaceChips(input);
+    expect(chipFilters.workspace_exclude).toEqual(["ws-1"]);
+    expect(chipFilters.workspace).toBeUndefined();
+  });
+
+  test("extracts positive dataset chip into chipFilters", () => {
     const input = q(chip("Dataset", "panama-papers", "+", "dataset"));
     const { cleanedQ, chipFilters } = extractCollectionAndWorkspaceChips(input);
     expect(chipFilters.ingestion).toEqual(["panama-papers"]);
     expect(JSON.parse(cleanedQ)).toEqual([]);
   });
 
-  test("extracts both workspace and dataset chips", () => {
+  test("extracts negative dataset chip into chipFilters", () => {
+    const input = q(chip("Dataset", "panama-papers", "-", "dataset"));
+    const { cleanedQ, chipFilters } = extractCollectionAndWorkspaceChips(input);
+    expect(chipFilters.ingestion_exclude).toEqual(["panama-papers"]);
+    expect(chipFilters.ingestion).toBeUndefined();
+  });
+
+  test("extracts both positive and negative workspace/dataset chips", () => {
     const input = q(
       "text",
       chip("Dataset", "col1", "+", "dataset"),
+      chip("Dataset", "col2", "-", "dataset"),
       chip("Workspace", "ws-1", "+", "workspace"),
+      chip("Workspace", "ws-2", "-", "workspace"),
       chip("Has Field", "ocr", "+", "dropdown")
     );
     const { cleanedQ, chipFilters } = extractCollectionAndWorkspaceChips(input);
     expect(chipFilters.workspace).toEqual(["ws-1"]);
+    expect(chipFilters.workspace_exclude).toEqual(["ws-2"]);
     expect(chipFilters.ingestion).toEqual(["col1"]);
+    expect(chipFilters.ingestion_exclude).toEqual(["col2"]);
     // Other chips and text remain
     const parsed = JSON.parse(cleanedQ);
     expect(parsed).toContain("text");
@@ -1148,5 +1197,102 @@ describe("extractCollectionAndWorkspaceChips", () => {
     const { cleanedQ, chipFilters } = extractCollectionAndWorkspaceChips(input);
     expect(chipFilters).toEqual({});
     expect(JSON.parse(cleanedQ)).toEqual(JSON.parse(input));
+  });
+});
+
+// =============================================================================
+// Contradiction prevention — a value must not appear in both + and −
+// =============================================================================
+
+describe("contradiction prevention", () => {
+  describe("setFileTypeCategoriesInQ strips contradictions", () => {
+    test("value in both positive and negative is removed from negative", () => {
+      const result = setFileTypeCategoriesInQ(q("text"), {
+        positive: ["pdf", "web"],
+        negative: ["pdf", "image"],
+      });
+      const cats = getFileTypeCategoriesFromQ(result);
+      expect(cats.positive).toEqual(["pdf", "web"]);
+      // "pdf" stripped from negative because it's in positive
+      expect(cats.negative).toEqual(["image"]);
+    });
+
+    test("no contradiction leaves both sides intact", () => {
+      const result = setFileTypeCategoriesInQ(q("text"), {
+        positive: ["pdf"],
+        negative: ["image"],
+      });
+      const cats = getFileTypeCategoriesFromQ(result);
+      expect(cats.positive).toEqual(["pdf"]);
+      expect(cats.negative).toEqual(["image"]);
+    });
+
+    test("all values contradicted leaves empty result", () => {
+      const result = setFileTypeCategoriesInQ(q("text"), {
+        positive: ["pdf"],
+        negative: ["pdf"],
+      });
+      const cats = getFileTypeCategoriesFromQ(result);
+      // positive wins, negative discarded for that value
+      expect(cats.positive).toEqual(["pdf"]);
+      expect(cats.negative).toEqual([]);
+    });
+  });
+
+  describe("setDatasetsInQ strips contradictions", () => {
+    test("value in both positive and negative is removed from negative", () => {
+      const result = setDatasetsInQ(q("search"), {
+        positive: ["panama-papers"],
+        negative: ["panama-papers", "paradise-papers"],
+      });
+      const ds = getDatasetsFromQ(result);
+      expect(ds.positive).toEqual(["panama-papers"]);
+      expect(ds.negative).toEqual(["paradise-papers"]);
+    });
+  });
+
+  describe("setWorkspacesInQ strips contradictions", () => {
+    test("value in both positive and negative is removed from negative", () => {
+      const result = setWorkspacesInQ(q("search"), {
+        positive: ["ws-1", "ws-2"],
+        negative: ["ws-2", "ws-3"],
+      });
+      const ws = getWorkspacesFromQ(result);
+      expect(ws.positive).toEqual(["ws-1", "ws-2"]);
+      expect(ws.negative).toEqual(["ws-3"]);
+    });
+  });
+
+  describe("extractCollectionAndWorkspaceChips strips contradictions at API boundary", () => {
+    test("same workspace value in + and − keeps only the positive", () => {
+      const input = q(
+        chip("Workspace", "ws-1", "+", "workspace"),
+        chip("Workspace", "ws-1", "-", "workspace")
+      );
+      const { chipFilters } = extractCollectionAndWorkspaceChips(input);
+      expect(chipFilters.workspace).toEqual(["ws-1"]);
+      expect(chipFilters.workspace_exclude).toBeUndefined();
+    });
+
+    test("same dataset value in + and − keeps only the positive", () => {
+      const input = q(
+        chip("Dataset", "col1", "+", "dataset"),
+        chip("Dataset", "col1", "-", "dataset")
+      );
+      const { chipFilters } = extractCollectionAndWorkspaceChips(input);
+      expect(chipFilters.ingestion).toEqual(["col1"]);
+      expect(chipFilters.ingestion_exclude).toBeUndefined();
+    });
+
+    test("mixed contradicted and non-contradicted values are handled correctly", () => {
+      const input = q(
+        chip("Dataset", "col1 OR col2", "+", "dataset"),
+        chip("Dataset", "col2 OR col3", "-", "dataset")
+      );
+      const { chipFilters } = extractCollectionAndWorkspaceChips(input);
+      expect(chipFilters.ingestion).toEqual(["col1", "col2"]);
+      // col2 stripped from exclude; col3 remains
+      expect(chipFilters.ingestion_exclude).toEqual(["col3"]);
+    });
   });
 });

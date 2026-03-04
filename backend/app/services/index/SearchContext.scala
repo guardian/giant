@@ -80,14 +80,15 @@ object SearchContext {
   // not already refined their search further
   private def buildIngestionAndWorkspaceFilters(parameters: SearchParameters, context: DefaultSearchContext) = {
     val cannotSeeAnything = context.visibleCollections.isEmpty && context.visibleWorkspaces.isEmpty
-    val noFiltersSpecified = parameters.ingestionFilters.isEmpty && parameters.workspaceFilters.isEmpty
+    val noIncludeFiltersSpecified = parameters.ingestionFilters.isEmpty && parameters.workspaceFilters.isEmpty
+    val hasExcludeFilters = parameters.ingestionExcludeFilters.nonEmpty || parameters.workspaceExcludeFilters.nonEmpty
 
     if(cannotSeeAnything) {
       // This is a fail-safe, we should have checked permissions and returned an empty result set in the controller
       throw new IllegalStateException("No visible collections or workspaces")
     }
 
-    if(noFiltersSpecified) {
+    val includeFilters = if(noIncludeFiltersSpecified) {
       // Show the user results in any collection or workspace they can see. Example translated into boolean logic:
       //   (collection == 'Panama' OR collection == 'Paradise') OR (workspace == 'Shared With Barry')
       List(
@@ -106,6 +107,19 @@ object SearchContext {
         )
       )
     }
+
+    // Exclude filters remove specific collections/workspaces from results
+    val excludeFilters = if(hasExcludeFilters) {
+      val excludeQueries =
+        parameters.ingestionExcludeFilters.map(prefixQuery(IndexFields.ingestionRaw, _)) ++
+        parameters.workspaceExcludeFilters.map(buildWorkspaceFilter)
+      // Each excluded item becomes a must_not clause wrapped in a bool query
+      List(not(excludeQueries))
+    } else {
+      List.empty
+    }
+
+    includeFilters ++ excludeFilters
   }
 
   private def buildMimeFilter(parameters: SearchParameters) = {

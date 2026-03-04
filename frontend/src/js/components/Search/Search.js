@@ -124,9 +124,13 @@ class Search extends React.Component {
       // Remove any legacy sidebar workspace/ingestion values
       delete filters.workspace;
       delete filters.ingestion;
-      // Merge chip-derived filters
+      delete filters.workspace_exclude;
+      delete filters.ingestion_exclude;
+      // Merge chip-derived filters (include and exclude)
       if (chipFilters.workspace) filters.workspace = chipFilters.workspace;
       if (chipFilters.ingestion) filters.ingestion = chipFilters.ingestion;
+      if (chipFilters.workspace_exclude) filters.workspace_exclude = chipFilters.workspace_exclude;
+      if (chipFilters.ingestion_exclude) filters.ingestion_exclude = chipFilters.ingestion_exclude;
       this.props.performSearch({ ...query, q: cleanedQ, filters });
     }
   }
