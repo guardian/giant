@@ -169,6 +169,24 @@
     outline: none;
     color-scheme: dark;
 
+    // Tighten the gap between date text and calendar icon
+    &::-webkit-datetime-edit {
+      padding: 0;
+      margin: 0;
+      line-height: 1;
+    }
+
+    &::-webkit-calendar-picker-indicator {
+      margin-left: 1px;
+    }
+
+    // Hide the "dd/mm/yyyy" placeholder when the input has no value
+    &:not(:valid)::-webkit-datetime-edit {
+      color: transparent;
+      user-select: none;
+      width: 0;
+    }
+
     &:focus {
       background: rgba(255, 255, 255, 0.15);
       border-radius: 3px;

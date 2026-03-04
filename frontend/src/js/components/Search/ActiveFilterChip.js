@@ -514,7 +514,7 @@ export default class ActiveFilterChip extends React.Component {
           title="From date (exclusive — documents after this date)"
         />
         <span className="active-filter-chip__date-range-sep" aria-hidden="true">
-          —
+          to
         </span>
         <input
           className="active-filter-chip__date-input"
@@ -550,7 +550,7 @@ export default class ActiveFilterChip extends React.Component {
           title="Pick a start date"
         />
         <span className="active-filter-chip__date-range-sep" aria-hidden="true">
-          —
+          to
         </span>
         <input
           className="active-filter-chip__date-input active-filter-chip__date-input--dormant"
