@@ -62,8 +62,34 @@ export default class SearchBox extends React.Component {
 
   handleToggleNegate = (index) => {
     const { definedChips, textOnlyQ } = this.parseChips();
+    const chip = definedChips[index];
+    const targetNegate = !chip.negate;
+
+    if (chip.multiValue) {
+      // Check if there's already a chip of the same name with the target polarity
+      const targetIndex = definedChips.findIndex(
+        (c, i) => i !== index && c.name === chip.name && c.multiValue && c.negate === targetNegate
+      );
+      if (targetIndex !== -1) {
+        // Merge values into the existing target chip — then remove the source
+        const merged = { ...definedChips[targetIndex] };
+        const mergedValues = [...merged.values];
+        (chip.values || []).forEach((v) => {
+          if (!mergedValues.includes(v)) mergedValues.push(v);
+        });
+        merged.values = mergedValues;
+        const newChips = definedChips
+          .map((c, i) => (i === targetIndex ? merged : c))
+          .filter((_, i) => i !== index);
+        const newQ = this.rebuildQ(newChips, textOnlyQ);
+        this.props.updateVisibleText(newQ);
+        return;
+      }
+    }
+
+    // Simple flip for single-value chips or when no same-name target exists
     const newChips = definedChips.map((c, i) =>
-      i === index ? { ...c, negate: !c.negate } : c
+      i === index ? { ...c, negate: targetNegate } : c
     );
     const newQ = this.rebuildQ(newChips, textOnlyQ);
     this.props.updateVisibleText(newQ);
@@ -89,17 +115,44 @@ export default class SearchBox extends React.Component {
    * Activate a dormant default chip — creates a real chip in the query string.
    * Accepts either a single value (string) or multiple values (string[]).
    * negate: whether the user toggled exclude before committing.
+   *
+   * For multi-value chips, if there’s already an active chip of the same
+   * name+polarity, the new values are merged into it.
    */
   handleActivateDefault = (name, valueOrValues, chipType, negate = false) => {
     const { definedChips, textOnlyQ } = this.parseChips();
     const multi = isMultiValueChip(name);
+    const incomingValues = multi
+      ? (Array.isArray(valueOrValues) ? valueOrValues : [valueOrValues])
+      : null;
+
+    // Try to merge into an existing chip of the same name+polarity
+    if (multi) {
+      const existingIndex = definedChips.findIndex(
+        (c) => c.name === name && c.multiValue && c.negate === negate
+      );
+      if (existingIndex !== -1) {
+        const merged = { ...definedChips[existingIndex] };
+        const mergedValues = [...merged.values];
+        incomingValues.forEach((v) => {
+          if (!mergedValues.includes(v)) mergedValues.push(v);
+        });
+        merged.values = mergedValues;
+        const newChips = definedChips.map((c, i) => (i === existingIndex ? merged : c));
+        const newQ = this.rebuildQ(newChips, textOnlyQ);
+        this.props.updateVisibleText(newQ);
+        return;
+      }
+    }
+
+    // No existing chip to merge into — create a new one
     const newChip = {
       name,
       negate,
       chipType,
       multiValue: multi,
       ...(multi
-        ? { values: Array.isArray(valueOrValues) ? valueOrValues : [valueOrValues] }
+        ? { values: incomingValues }
         : { value: valueOrValues }),
     };
     const newChips = [...definedChips, newChip];

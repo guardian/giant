@@ -414,23 +414,34 @@ export default class ActiveFilterChip extends React.Component {
           .filter(Boolean)
           .join(" ")}
       >
-        {/* Include/Exclude toggle — left segment (static + on dormant chips) */}
+        {/* Include/Exclude toggle — left segment
+            Inert (always +) on: dormant chips with no pending values, workspace_folder (backend unsupported) */}
         <button
           className={[
             "active-filter-chip__negate-btn",
-            isDormant && !hasPending ? "active-filter-chip__negate-btn--inert" : "",
+            (isDormant && !hasPending) || isWorkspaceFolder ? "active-filter-chip__negate-btn--inert" : "",
           ].filter(Boolean).join(" ")}
-          onClick={isDormant && !hasPending ? undefined : isDormant ? this.togglePendingNegate : onToggleNegate}
+          onClick={
+            isWorkspaceFolder
+              ? undefined
+              : isDormant && !hasPending
+                ? undefined
+                : isDormant
+                  ? this.togglePendingNegate
+                  : onToggleNegate
+          }
           title={
-            isDormant && !hasPending
-              ? "Including"
-              : effectiveNegate
-                ? "Excluding (click to include)"
-                : "Including (click to exclude)"
+            isWorkspaceFolder
+              ? "Including (scope filter)"
+              : isDormant && !hasPending
+                ? "Including"
+                : effectiveNegate
+                  ? "Excluding (click to include)"
+                  : "Including (click to exclude)"
           }
         >
           <div className="active-filter-chip__button-icon">
-            {isDormant && !hasPending ? "+" : effectiveNegate ? "−" : "+"}
+            {isDormant && !hasPending || isWorkspaceFolder ? "+" : effectiveNegate ? "−" : "+"}
           </div>
         </button>
 

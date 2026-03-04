@@ -36,18 +36,21 @@ export function parseChips(q, suggestedFields) {
       }
     });
 
-    // Group multi-value chip types by name
+    // Group multi-value chip types by (name, polarity)
+    // e.g. +Mime Type and -Mime Type are separate UI chips
     const definedChips = [];
     const multiValueGroups = new Map();
 
     rawChips.forEach((element) => {
       const name = element.n;
+      const negate = element.op === "-";
+      const groupKey = `${name}|${negate ? "-" : "+"}`;
       const fieldDef = (suggestedFields || []).find(
         (f) => f.name === name
       );
 
       if (isMultiValueChip(name)) {
-        if (!multiValueGroups.has(name)) {
+        if (!multiValueGroups.has(groupKey)) {
           // Backend sends one chip with OR-joined values; split them back
           const values = element.v
             .split(" OR ")
@@ -56,17 +59,16 @@ export function parseChips(q, suggestedFields) {
           const uiChip = {
             name,
             values,
-            negate: element.op === "-",
+            negate,
             chipType: element.t,
             multiValue: true,
             options: fieldDef ? fieldDef.options : undefined,
           };
-          multiValueGroups.set(name, uiChip);
+          multiValueGroups.set(groupKey, uiChip);
           definedChips.push(uiChip);
         } else {
-          // If there are somehow multiple separate backend chips for the same
-          // multi-value type (e.g. from legacy queries), merge them
-          const existing = multiValueGroups.get(name);
+          // Merge into existing chip of the same name+polarity
+          const existing = multiValueGroups.get(groupKey);
           const extraValues = element.v
             .split(" OR ")
             .map((v) => v.trim())

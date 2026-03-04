@@ -50,11 +50,24 @@ export default class ActiveFiltersBar extends React.Component {
 
     // Show active chips if we have them
     if (chips.length > 0) {
-      // Figure out which default filters are already active (by name)
-      const activeNames = new Set(chips.map((c) => c.name));
-      const remainingDefaults = DEFAULT_FILTERS.filter(
-        (d) => !activeNames.has(d.name)
-      );
+      // Figure out which default filters are already active
+      // For multi-value: hide dormant only when BOTH polarities exist
+      // For single-value: hide dormant when ANY chip of that name exists
+      const activePolarities = new Map(); // name → Set of polarities
+      chips.forEach((c) => {
+        if (!activePolarities.has(c.name)) activePolarities.set(c.name, new Set());
+        activePolarities.get(c.name).add(c.negate ? "-" : "+");
+      });
+      const remainingDefaults = DEFAULT_FILTERS.filter((d) => {
+        const polarities = activePolarities.get(d.name);
+        if (!polarities) return true; // not active at all — show dormant
+        if (d.multiValue) {
+          // Hide only when both + and - chips exist
+          return !(polarities.has("+") && polarities.has("-"));
+        }
+        // Single-value: hide when any chip of this name exists
+        return false;
+      });
 
       return (
         <div className="active-filters-bar">

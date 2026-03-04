@@ -380,3 +380,90 @@ describe("round-trip", () => {
     expect(JSON.parse(reparsed.textOnlyQ)).toEqual(["keyword"]);
   });
 });
+
+// =============================================================================
+// Dual-polarity: same name, different negate → separate chips
+// =============================================================================
+
+describe("dual-polarity multi-value chips", () => {
+  test("positive and negative Mime Type chips are kept separate", () => {
+    const input = q(
+      chip("Mime Type", "application/pdf", "+", "text"),
+      chip("Mime Type", "image/jpeg", "-", "text")
+    );
+    const { definedChips } = parseChips(input, []);
+
+    expect(definedChips).toHaveLength(2);
+    expect(definedChips[0]).toMatchObject({
+      name: "Mime Type",
+      values: ["application/pdf"],
+      negate: false,
+      multiValue: true,
+    });
+    expect(definedChips[1]).toMatchObject({
+      name: "Mime Type",
+      values: ["image/jpeg"],
+      negate: true,
+      multiValue: true,
+    });
+  });
+
+  test("same-polarity chips still merge", () => {
+    const input = q(
+      chip("Mime Type", "application/pdf", "+", "text"),
+      chip("Mime Type", "text/html", "+", "text")
+    );
+    const { definedChips } = parseChips(input, []);
+
+    expect(definedChips).toHaveLength(1);
+    expect(definedChips[0].values).toEqual(["application/pdf", "text/html"]);
+    expect(definedChips[0].negate).toBe(false);
+  });
+
+  test("three chips: two positive merge, one negative stays separate", () => {
+    const input = q(
+      chip("Mime Type", "application/pdf", "+", "text"),
+      chip("Mime Type", "image/jpeg", "-", "text"),
+      chip("Mime Type", "text/html", "+", "text")
+    );
+    const { definedChips } = parseChips(input, []);
+
+    expect(definedChips).toHaveLength(2);
+    // Positive chip has both values
+    const pos = definedChips.find((c) => !c.negate);
+    expect(pos.values).toEqual(["application/pdf", "text/html"]);
+    // Negative chip has one value
+    const neg = definedChips.find((c) => c.negate);
+    expect(neg.values).toEqual(["image/jpeg"]);
+  });
+
+  test("dual-polarity multi-value chips survive a round-trip", () => {
+    const original = q(
+      chip("Mime Type", "application/pdf OR text/html", "+", "text"),
+      chip("Mime Type", "image/jpeg OR image/png", "-", "text")
+    );
+    const { definedChips, textOnlyQ } = parseChips(original, []);
+    expect(definedChips).toHaveLength(2);
+
+    const rebuilt = rebuildQ(definedChips, textOnlyQ);
+    const reparsed = parseChips(rebuilt, []);
+
+    expect(reparsed.definedChips).toHaveLength(2);
+    const pos = reparsed.definedChips.find((c) => !c.negate);
+    expect(pos.values).toEqual(["application/pdf", "text/html"]);
+    const neg = reparsed.definedChips.find((c) => c.negate);
+    expect(neg.values).toEqual(["image/jpeg", "image/png"]);
+  });
+
+  test("Has Field also supports dual polarity", () => {
+    const input = q(
+      chip("Has Field", "email", "+", "dropdown"),
+      chip("Has Field", "ocr", "-", "dropdown")
+    );
+    const { definedChips } = parseChips(input, []);
+
+    expect(definedChips).toHaveLength(2);
+    expect(definedChips[0]).toMatchObject({ negate: false, values: ["email"] });
+    expect(definedChips[1]).toMatchObject({ negate: true, values: ["ocr"] });
+  });
+});
