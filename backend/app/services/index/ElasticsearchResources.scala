@@ -694,7 +694,6 @@ class ElasticsearchResources(override val client: ElasticClient, indexName: Stri
              |  }
              |}
              |if(ctx._source.${IndexFields.collection} != null && !params.oldCollection.equals(params.newCollection)) {
-             |  // Only remove old collection if no remaining ingestion references it
              |  boolean stillReferencesOldCollection = false;
              |  for (String ing : ctx._source.${IndexFields.ingestion}) {
              |    if (ing.startsWith(params.oldCollection + "/")) {
