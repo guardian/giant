@@ -375,10 +375,11 @@ export default class SearchBox extends React.Component {
       extra.push({
         name: CHIP_NAME_DATASET,
         type: "dataset",
-        options: ingestionFilter.options.map((o) => ({
-          value: o.value,
-          label: o.display,
-        })),
+        options: ingestionFilter.options
+          .map((o) => ({ value: o.value, label: o.display }))
+          .sort((a, b) =>
+            a.label.localeCompare(b.label, undefined, { sensitivity: "base" }),
+          ),
       });
     }
 
@@ -388,10 +389,11 @@ export default class SearchBox extends React.Component {
       extra.push({
         name: CHIP_NAME_WORKSPACE,
         type: "workspace",
-        options: workspaceFilter.options.map((o) => ({
-          value: o.value,
-          label: o.display,
-        })),
+        options: workspaceFilter.options
+          .map((o) => ({ value: o.value, label: o.display }))
+          .sort((a, b) =>
+            a.label.localeCompare(b.label, undefined, { sensitivity: "base" }),
+          ),
       });
     }
 
