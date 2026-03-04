@@ -6,7 +6,7 @@ import {
   isWorkspaceNode,
 } from "../../types/Workspaces";
 import ModalAction from "../UtilComponents/ModalAction";
-import { Dropdown, Icon, Label, Popup } from "semantic-ui-react";
+import { Divider, Icon, Label, Menu, Popup } from "semantic-ui-react";
 import { PartialUser } from "../../types/User";
 import { setWorkspaceFollowers } from "../../actions/workspaces/setWorkspaceFollowers";
 import { setWorkspaceIsPublic } from "../../actions/workspaces/setWorkspaceIsPublic";
@@ -20,6 +20,7 @@ import ShareWorkspaceModal from "./ShareWorkspaceModal";
 import MdEdit from "react-icons/lib/md/edit";
 import MdDelete from "react-icons/lib/md/delete";
 import SearchIcon from "react-icons/lib/md/search";
+import MdFileDownload from "react-icons/lib/md/file-download";
 import TakeOwnershipOfWorkspaceModal from "./TakeOwnershipOfWorkspaceModal";
 import { takeOwnershipOfWorkspace } from "../../actions/workspaces/takeOwnershipOfWorkspace";
 import { CaptureFromUrl } from "../Uploads/CaptureFromUrl";
@@ -71,10 +72,7 @@ export default function WorkspaceSummary({
   droppedFiles,
   onClearDroppedFiles,
 }: Props) {
-  const [shareModalOpen, setShareModalOpen] = useState(false);
-  const [takeOwnershipModalOpen, setTakeOwnershipModalOpen] = useState(false);
-  const [renameModalOpen, setRenameModalOpen] = useState(false);
-  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const workspaceUsers = workspace.followers.filter(
     (follower) =>
@@ -89,6 +87,17 @@ export default function WorkspaceSummary({
     clearFocus();
     history.push(workspaceEntryPath(workspace.id));
   };
+
+  const closeMenu = () => setIsMenuOpen(false);
+
+  const isOwner = currentUser.username === workspace.owner.username;
+  const canDelete = isOwner || (isAdmin && workspace.isPublic);
+
+  const menuButton = (
+    <button className="btn workspace__button" aria-label="Workspace actions">
+      <Icon name="bars" />
+    </button>
+  );
 
   return (
     <div className="page-title workspace__header shrinkable-buttons">
@@ -166,107 +175,89 @@ export default function WorkspaceSummary({
         onClearDroppedFiles={onClearDroppedFiles}
       />
       <CaptureFromUrl maybePreSelectedWorkspace={workspace} withButton />
-      <Dropdown
-        icon={null}
-        trigger={
-          <Icon name="bars" size="large" style={{ cursor: "pointer" }} />
-        }
-        direction="left"
-        pointing="top right"
+      <Popup
+        trigger={menuButton}
+        open={isMenuOpen}
+        onOpen={() => setIsMenuOpen(true)}
+        onClose={closeMenu}
+        on="click"
+        position="bottom right"
+        basic
+        style={{ padding: 0 }}
       >
-        <Dropdown.Menu>
-          {isAdmin && currentUser.username !== workspace.owner.username && (
-            <Dropdown.Item
-              icon="user plus"
-              text="Take Ownership"
-              onClick={() => setTakeOwnershipModalOpen(true)}
-            />
-          )}
-          <Dropdown.Item
-            icon="share alternate"
-            text="Share Workspace"
-            disabled={currentUser.username !== workspace.owner.username}
-            onClick={() => setShareModalOpen(true)}
+        <Menu vertical compact style={{ minWidth: 200 }}>
+          {/* Sharing & ownership */}
+          <ShareWorkspaceModal
+            workspace={workspace}
+            workspaceUsers={workspaceUsers}
+            allUsers={users}
+            currentUser={currentUser}
+            setWorkspaceFollowers={setWorkspaceFollowers}
+            setWorkspaceIsPublic={setWorkspaceIsPublic}
           />
-          <Dropdown.Item
-            icon="edit"
-            text="Rename Workspace"
-            disabled={currentUser.username !== workspace.owner.username}
-            onClick={() => setRenameModalOpen(true)}
+          <TakeOwnershipOfWorkspaceModal
+            workspace={workspace}
+            isAdmin={isAdmin}
+            currentUser={currentUser}
+            takeOwnershipOfWorkspace={takeOwnershipOfWorkspace}
           />
-          <Dropdown.Item
-            icon="trash"
-            text="Delete Workspace"
-            disabled={
-              currentUser.username !== workspace.owner.username &&
-              !(isAdmin && workspace.isPublic)
-            }
-            onClick={() => setDeleteModalOpen(true)}
-          />
+
+          <Divider fitted style={{ margin: 0 }} />
+
+          {/* Edit actions */}
+          <ModalAction
+            actionType="edit"
+            className="item workspace-menu__item"
+            actionDescription="Rename"
+            title={`Rename workspace '${workspace.name}'`}
+            value={workspace.name}
+            onConfirm={(newName) => renameWorkspace(workspace.id, newName)}
+            disabled={!isOwner}
+          >
+            <MdEdit />
+            Rename Workspace
+          </ModalAction>
+          <ModalAction
+            actionType="confirm"
+            className="item workspace-menu__item workspace-menu__item--danger"
+            actionDescription="Delete"
+            title={`Delete workspace '${workspace.name}'?`}
+            onConfirm={() => deleteWorkspace(workspace.id)}
+            disabled={!canDelete}
+          >
+            <MdDelete />
+            Delete Workspace
+          </ModalAction>
+
           {isAdmin && (
             <>
-              <Dropdown.Item
-                icon="download"
-                text="Export as JSON"
-                onClick={() => exportWorkspaceInventory(workspace.id, "json")}
-              />
-              <Dropdown.Item
-                icon="download"
-                text="Export as CSV"
-                onClick={() => exportWorkspaceInventory(workspace.id, "csv")}
-              />
+              <Divider fitted style={{ margin: 0 }} />
+
+              {/* Admin export actions */}
+              <Menu.Item
+                className="workspace-menu__item"
+                onClick={() => {
+                  exportWorkspaceInventory(workspace.id, "json");
+                  closeMenu();
+                }}
+              >
+                <MdFileDownload />
+                Export Inventory as JSON
+              </Menu.Item>
+              <Menu.Item
+                className="workspace-menu__item"
+                onClick={() => {
+                  exportWorkspaceInventory(workspace.id, "csv");
+                  closeMenu();
+                }}
+              >
+                <MdFileDownload />
+                Export Inventory as CSV
+              </Menu.Item>
             </>
           )}
-        </Dropdown.Menu>
-      </Dropdown>
-      <TakeOwnershipOfWorkspaceModal
-        workspace={workspace}
-        isAdmin={isAdmin}
-        currentUser={currentUser}
-        takeOwnershipOfWorkspace={takeOwnershipOfWorkspace}
-        isOpen={takeOwnershipModalOpen}
-        onClose={() => setTakeOwnershipModalOpen(false)}
-      />
-      <ShareWorkspaceModal
-        workspace={workspace}
-        workspaceUsers={workspaceUsers}
-        allUsers={users}
-        currentUser={currentUser}
-        setWorkspaceFollowers={setWorkspaceFollowers}
-        setWorkspaceIsPublic={setWorkspaceIsPublic}
-        isOpen={shareModalOpen}
-        onClose={() => setShareModalOpen(false)}
-      />
-      <ModalAction
-        actionType="edit"
-        className="btn workspace__button"
-        actionDescription="Rename"
-        title={`Rename workspace '${workspace.name}'`}
-        value={workspace.name}
-        onConfirm={(newName) => renameWorkspace(workspace.id, newName)}
-        disabled={currentUser.username !== workspace.owner.username}
-        isOpen={renameModalOpen}
-        onClose={() => setRenameModalOpen(false)}
-      >
-        <MdEdit />
-        Rename Workspace
-      </ModalAction>
-      <ModalAction
-        actionType="confirm"
-        className="btn workspace__button"
-        actionDescription="Delete"
-        title={`Delete workspace '${workspace.name}'?`}
-        onConfirm={() => deleteWorkspace(workspace.id)}
-        disabled={
-          currentUser.username !== workspace.owner.username &&
-          !(isAdmin && workspace.isPublic)
-        }
-        isOpen={deleteModalOpen}
-        onClose={() => setDeleteModalOpen(false)}
-      >
-        <MdDelete />
-        Delete Workspace
-      </ModalAction>
+        </Menu>
+      </Popup>
     </div>
   );
 }

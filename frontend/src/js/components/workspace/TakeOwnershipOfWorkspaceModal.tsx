@@ -52,7 +52,7 @@ export default function TakeOwnershipOfWorkspaceModal(props: Props) {
       {/* The component that triggers the modal (pass-through rendering of children) */}
       {!controlled && (
         <button
-          className="btn workspace__button"
+          className="item workspace-menu__item"
           onClick={() => setOpen(true)}
           title="Take ownership"
         >
