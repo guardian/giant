@@ -166,7 +166,7 @@ export default function WorkspaceSummary({
             />
           )}
           <Dropdown.Item
-            icon="share"
+            icon="share alternate"
             text="Share Workspace"
             disabled={currentUser.username !== workspace.owner.username}
             onClick={() => setShareModalOpen(true)}
