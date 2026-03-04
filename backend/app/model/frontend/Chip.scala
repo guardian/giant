@@ -116,6 +116,7 @@ object Chips {
     DropdownChip("Has Field", List(
       DropdownOption("OCR", "ocr"),
       DropdownOption("Text", "text"),
+      DropdownOption("Transcription", "transcript"),
       DropdownOption("Author", "metadata.enrichedMetadata.author"),
     ), "_exists_:(_word_)")
   )
