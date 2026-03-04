@@ -118,6 +118,16 @@ object Chips {
       DropdownOption("Text", "text"),
       DropdownOption("Transcription", "transcript"),
       DropdownOption("Author", "metadata.enrichedMetadata.author"),
-    ), "_exists_:(_word_)")
+    ), "_exists_:(_word_)"),
+    DropdownChip("Language", List(
+      DropdownOption("Arabic", "arabic"),
+      DropdownOption("English", "english"),
+      DropdownOption("French", "french"),
+      DropdownOption("German", "german"),
+      DropdownOption("Persian", "persian"),
+      DropdownOption("Portuguese", "portuguese"),
+      DropdownOption("Russian", "russian"),
+      DropdownOption("Spanish", "spanish"),
+    ), "(_exists_:(text._word_) OR _exists_:(ocr._word_) OR _exists_:(transcript._word_))")
   )
 }
