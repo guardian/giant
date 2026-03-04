@@ -187,14 +187,14 @@ export function rebuildQ(definedChips, textOnlyQ) {
           break;
 
         case CHIP_KIND_MULTI:
-          (c.values || []).forEach((val) => {
+          if ((c.values || []).length > 0) {
             chipParts.push({
               n: c.name,
-              v: val,
+              v: c.values.join(" OR "),
               op,
               t: c.chipType,
             });
-          });
+          }
           break;
 
         case CHIP_KIND_SINGLE:
