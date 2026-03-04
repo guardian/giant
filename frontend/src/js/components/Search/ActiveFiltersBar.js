@@ -90,7 +90,13 @@ export default class ActiveFiltersBar extends React.Component {
 
       return (
         <div className="active-filters-bar" role="toolbar" aria-label="Active search filters">
-          {chips.map((chip, index) => (
+          {chips.map((chip, index) => {
+            // chip.options may be undefined for Dataset/Workspace chips since
+            // parseChips only attaches options from suggestedFields.  Fall back
+            // to the availableFilters list which includes sidebar-derived options.
+            const chipOptions = chip.options
+              || (availableFilters || []).find((f) => f.name === chip.name)?.options;
+            return (
             <ActiveFilterChip
               key={`active-${index}`}
               index={index}
@@ -102,12 +108,13 @@ export default class ActiveFiltersBar extends React.Component {
               kind={chip.kind}
               negate={chip.negate}
               chipType={chip.chipType}
-              options={chip.options}
+              options={chipOptions}
               onRemove={() => onRemoveChip(index)}
               onToggleNegate={() => onToggleNegate(index)}
               onEditValue={(newValue) => onEditChipValue(index, newValue)}
             />
-          ))}
+            );
+          })}
           {remainingDefaults.map((def) => {
             const fieldDef = (availableFilters || []).find((f) => f.name === def.name);
             return (

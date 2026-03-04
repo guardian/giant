@@ -46,8 +46,10 @@ const MIME_TYPE_OPTIONS = [
   { value: "video/mp4", label: "MP4 Video" },
 ];
 
-/** Number of values shown inline before truncation with "+N more" */
-const MAX_VISIBLE_VALUES = 2;
+/** Maximum character budget for display text in a multi-value chip.
+ *  Individual labels are ellipsis-truncated to fit, and a "+N more"
+ *  suffix is appended when not all values fit within the budget. */
+const MAX_DISPLAY_CHARS = 36;
 
 /**
  * Chip names that support multiple simultaneous values.
@@ -71,6 +73,71 @@ function getDisplayLabel(value, allOptions) {
   if (!allOptions) return value;
   const opt = allOptions.find((o) => o.value === value);
   return opt ? opt.label : value;
+}
+
+/**
+ * Build a character-budget-aware display string from an array of labels.
+ *
+ * Algorithm:
+ *   1. If all labels joined with ", " fit within `budget`, return them.
+ *   2. Otherwise greedily add labels while they fit. Each label after the
+ *      first costs an extra 2 chars for ", ".  Reserve space for the
+ *      " +N more" suffix (where N = remaining items).
+ *   3. A single label that exceeds the budget is ellipsis-truncated so
+ *      there's always at least one visible name.
+ *
+ * @param {string[]} labels - Display labels (already resolved from IDs)
+ * @param {number} budget - Maximum character count
+ * @returns {string}
+ */
+export function truncateChipDisplay(labels, budget) {
+  if (labels.length === 0) return "all";
+
+  const full = labels.join(", ");
+  if (full.length <= budget) return full;
+
+  const ELLIPSIS = "\u2026"; // …
+  const SEPARATOR = ", ";
+  const shown = [];
+  let used = 0;
+
+  for (let i = 0; i < labels.length; i++) {
+    const label = labels[i];
+    const remaining = labels.length - i - 1;
+    const sepCost = shown.length > 0 ? SEPARATOR.length : 0;
+    // When there are remaining items the suffix is ", +N more" if we already
+    // have shown items, or ", +N more" after a truncated first label.
+    // Use a consistent suffix cost that includes the separator.
+    const suffixStr = remaining > 0 ? `${SEPARATOR}+${remaining} more` : "";
+    const suffixCost = shown.length > 0 ? suffixStr.length : (remaining > 0 ? suffixStr.length : 0);
+    const available = budget - used - sepCost - suffixCost;
+
+    if (available <= 0 && shown.length > 0) break;
+
+    if (label.length <= available) {
+      shown.push(label);
+      used += sepCost + label.length;
+    } else if (shown.length === 0) {
+      // First label must always appear — truncate it with ellipsis
+      const truncLen = Math.max(1, budget - suffixCost - ELLIPSIS.length);
+      shown.push(label.slice(0, truncLen) + ELLIPSIS);
+      used = shown[0].length;
+      // Don't try to fit more after a truncated first label
+      const leftover = labels.length - 1;
+      if (leftover > 0) {
+        return `${shown[0]}${SEPARATOR}+${leftover} more`;
+      }
+      return shown[0];
+    } else {
+      break;
+    }
+  }
+
+  const leftover = labels.length - shown.length;
+  if (leftover > 0) {
+    return `${shown.join(SEPARATOR)}${SEPARATOR}+${leftover} more`;
+  }
+  return shown.join(SEPARATOR);
 }
 
 /** Resolve the options list for a multi-value chip. */
@@ -404,19 +471,17 @@ export default class ActiveFilterChip extends React.Component {
     // Dormant chips use local pending state; active chips use prop values
     const selectedValues = dormant ? pendingValues : (values || []);
 
-    // Build truncated display text
+    // Build truncated display text using a character budget.
+    // Labels are ellipsis-truncated individually, and a "+N more" suffix is
+    // shown when not all values can fit within MAX_DISPLAY_CHARS.
     let displayText;
     if (selectedValues.length === 0) {
       displayText = "all";
-    } else if (selectedValues.length <= MAX_VISIBLE_VALUES) {
-      displayText = selectedValues
-        .map((v) => getDisplayLabel(v, allOptions))
-        .join(", ");
     } else {
-      const visible = selectedValues
-        .slice(0, MAX_VISIBLE_VALUES)
-        .map((v) => getDisplayLabel(v, allOptions));
-      displayText = `${visible.join(", ")} +${selectedValues.length - MAX_VISIBLE_VALUES} more`;
+      displayText = truncateChipDisplay(
+        selectedValues.map((v) => getDisplayLabel(v, allOptions)),
+        MAX_DISPLAY_CHARS,
+      );
     }
 
     // Ensure refs array has the right length
