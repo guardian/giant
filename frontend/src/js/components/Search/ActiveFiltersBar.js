@@ -1,6 +1,7 @@
 import React from "react";
 import PropTypes from "prop-types";
 import ActiveFilterChip from "./ActiveFilterChip";
+import AddIcon from "react-icons/lib/md/add";
 import {
   CHIP_NAME_FILE_TYPE,
   CHIP_NAME_DATE_RANGE,
@@ -53,7 +54,23 @@ export default class ActiveFiltersBar extends React.Component {
     onEditChipValue: PropTypes.func.isRequired,
     /** Called with (name, value, chipType, negate) when a dormant default chip is activated */
     onActivateDefault: PropTypes.func.isRequired,
+    /** Open the "Add Filter" modal (no args = new, with chip+index = edit) */
+    onOpenAddFilter: PropTypes.func.isRequired,
   };
+
+  renderMoreFiltersButton() {
+    return (
+      <button
+        className="active-filters-bar__add-btn"
+        onClick={() => this.props.onOpenAddFilter()}
+        title="Add a filter"
+        aria-label="Add a filter"
+      >
+        <AddIcon className="active-filters-bar__add-icon" />
+        More filters
+      </button>
+    );
+  }
 
   render() {
     const { chips, availableFilters, onRemoveChip, onToggleNegate, onEditChipValue, onActivateDefault } = this.props;
@@ -107,6 +124,7 @@ export default class ActiveFiltersBar extends React.Component {
               />
             );
           })}
+          {this.renderMoreFiltersButton()}
         </div>
       );
     }
@@ -134,6 +152,7 @@ export default class ActiveFiltersBar extends React.Component {
             />
           );
         })}
+        {this.renderMoreFiltersButton()}
       </div>
     );
   }

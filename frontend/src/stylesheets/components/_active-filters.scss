@@ -6,6 +6,30 @@
   flex-wrap: wrap;
   gap: calc($baseSpacing / 2);
   margin-bottom: $baseSpacing;
+  align-items: center;
+
+  &__add-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: none;
+    border: 1px dashed rgba($primary, 0.4);
+    border-radius: $borderRadiusLarge;
+    color: $primary;
+    font-size: 13px;
+    padding: 4px 12px 4px 8px;
+    cursor: pointer;
+    transition: border-color 0.15s ease, color 0.15s ease;
+
+    &:hover {
+      border-color: $primary;
+      color: $primaryDark;
+    }
+  }
+
+  &__add-icon {
+    font-size: 16px;
+  }
 }
 
 // Individual active filter chip

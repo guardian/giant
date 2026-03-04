@@ -4,8 +4,8 @@ import PropTypes from "prop-types";
 import { ProgressAnimation } from "../UtilComponents/ProgressAnimation";
 import { suggestedFieldsPropType } from "../../types/SuggestedFields";
 
-import InputSupper from "../UtilComponents/InputSupper";
 import ActiveFiltersBar from "./ActiveFiltersBar";
+import AddFilterModal from "./AddFilterModal";
 import { isMultiValueChip } from "./ActiveFilterChip";
 import { parseChips, rebuildQ } from "./chipParsing";
 import {
@@ -15,6 +15,31 @@ import {
   CHIP_KIND_DATE_RANGE,
   CHIP_TYPE_DATE_RANGE,
 } from "./chipNames";
+
+/**
+ * Extract plain text from a JSON-encoded q string.
+ * Joins all string segments, ignoring chip objects.
+ */
+export function extractPlainText(q) {
+  if (!q) return "";
+  try {
+    const parsed = JSON.parse(q);
+    if (!Array.isArray(parsed)) return q;
+    return parsed
+      .filter((s) => typeof s === "string")
+      .join(" ")
+      .trim();
+  } catch (e) {
+    return q;
+  }
+}
+
+/**
+ * Wrap plain text into JSON-encoded q format.
+ */
+export function wrapPlainText(text) {
+  return JSON.stringify([text]);
+}
 
 export default class SearchBox extends React.Component {
   static propTypes = {
@@ -28,23 +53,21 @@ export default class SearchBox extends React.Component {
     updateSearchText: PropTypes.func.isRequired,
   };
 
+  state = {
+    modalOpen: false,
+    editingChip: null,
+    editingChipIndex: -1,
+  };
+
   focus = () => {
-    if (this.searchInput && this.searchInput.focus) {
-      try {
-        this.searchInput.focus();
-      } catch (e) {
-        // InputSupper's internal ref may not be ready yet
-      }
+    if (this.searchInput) {
+      this.searchInput.focus();
     }
   };
 
   select = () => {
-    if (this.searchInput && this.searchInput.select) {
-      try {
-        this.searchInput.select();
-      } catch (e) {
-        // InputSupper's internal ref may not be ready yet
-      }
+    if (this.searchInput) {
+      this.searchInput.select();
     }
   };
 
@@ -211,27 +234,87 @@ export default class SearchBox extends React.Component {
     this.props.onFilterChange(newQ);
   };
 
+  // ── Plain text search input helpers ────────────────────────────────
+
   /**
-   * Build the q value that InputSupper should display (text + in-progress chips only).
-   * Completed filter chips are shown in the ActiveFiltersBar instead.
+   * Get the plain text portion of the query (without filter chips).
    */
-  getInputSupperQ() {
-    const { definedChips, textOnlyQ } = this.parseChips();
-    return definedChips.length > 0 ? textOnlyQ : this.props.q;
+  getSearchText() {
+    const { textOnlyQ } = this.parseChips();
+    return extractPlainText(textOnlyQ);
   }
 
   /**
-   * When InputSupper edits its value (typing, adding inline chips, etc.),
-   * merge the completed filter chips back in so they aren't lost from q.
+   * When the user types in the plain text search input,
+   * merge it back with the existing filter chips.
    */
-  handleInputSupperChange = (newTextOnlyQ) => {
+  handleSearchTextChange = (e) => {
+    const newText = e.target.value;
     const { definedChips } = this.parseChips();
+    const newTextQ = wrapPlainText(newText);
     if (definedChips.length > 0) {
-      const merged = this.rebuildQ(definedChips, newTextOnlyQ);
+      const merged = this.rebuildQ(definedChips, newTextQ);
       this.props.updateVisibleText(merged);
     } else {
-      this.props.updateVisibleText(newTextOnlyQ);
+      this.props.updateVisibleText(newTextQ);
     }
+  };
+
+  handleSearchKeyDown = (e) => {
+    if (e.key === "Enter") {
+      this.props.updateSearchText();
+    }
+  };
+
+  // ── Modal handlers ───────────────────────────────────────────────
+
+  handleOpenAddFilter = (chip, chipIndex) => {
+    if (chip && chipIndex >= 0) {
+      // Edit mode
+      this.setState({ modalOpen: true, editingChip: chip, editingChipIndex: chipIndex });
+    } else {
+      // New filter mode
+      this.setState({ modalOpen: true, editingChip: null, editingChipIndex: -1 });
+    }
+  };
+
+  handleCloseModal = () => {
+    this.setState({ modalOpen: false, editingChip: null, editingChipIndex: -1 });
+  };
+
+  /**
+   * Called when the user confirms in the Add Filter modal.
+   * chip: the chip data from the modal form.
+   * editIndex: -1 for new, >= 0 for editing an existing chip.
+   */
+  handleModalConfirm = (chip, editIndex) => {
+    if (editIndex >= 0) {
+      // Editing an existing chip — replace it
+      const { definedChips, textOnlyQ } = this.parseChips();
+      const newChips = definedChips.map((c, i) => (i === editIndex ? chip : c));
+      const newQ = this.rebuildQ(newChips, textOnlyQ);
+      this.props.onFilterChange(newQ);
+    } else {
+      // Adding a new chip — delegate to handleActivateDefault for merge logic
+      switch (chip.kind) {
+        case CHIP_KIND_DATE_RANGE:
+          this.handleActivateDefault(
+            chip.name,
+            { from: chip.from, to: chip.to },
+            chip.chipType,
+            chip.negate
+          );
+          break;
+        case CHIP_KIND_MULTI:
+          this.handleActivateDefault(chip.name, chip.values, chip.chipType, chip.negate);
+          break;
+        case CHIP_KIND_SINGLE:
+        default:
+          this.handleActivateDefault(chip.name, chip.value, chip.chipType, chip.negate);
+          break;
+      }
+    }
+    this.handleCloseModal();
   };
 
   render() {
@@ -245,14 +328,18 @@ export default class SearchBox extends React.Component {
     return (
       <div>
         <div className="search-box">
-          <InputSupper
-            ref={(s) => (this.searchInput = s)}
-            className="search-box__input"
-            value={this.getInputSupperQ()}
-            chips={this.props.suggestedFields}
-            onChange={this.handleInputSupperChange}
-            updateSearchText={this.props.updateSearchText}
-          />
+          <div className="search-box__input">
+            <input
+              ref={(el) => (this.searchInput = el)}
+              className="search-box__text-input"
+              type="text"
+              value={this.getSearchText()}
+              onChange={this.handleSearchTextChange}
+              onKeyDown={this.handleSearchKeyDown}
+              placeholder="Search…"
+              aria-label="Search query"
+            />
+          </div>
           <div className="search__actions">{spinner}</div>
           <div className={"search__buttons"}>
             <button
@@ -280,6 +367,15 @@ export default class SearchBox extends React.Component {
           onToggleNegate={this.handleToggleNegate}
           onEditChipValue={this.handleEditChipValue}
           onActivateDefault={this.handleActivateDefault}
+          onOpenAddFilter={this.handleOpenAddFilter}
+        />
+        <AddFilterModal
+          isOpen={this.state.modalOpen}
+          editingChip={this.state.editingChip}
+          editingChipIndex={this.state.editingChipIndex}
+          availableFilters={this.props.suggestedFields}
+          onConfirm={this.handleModalConfirm}
+          onClose={this.handleCloseModal}
         />
       </div>
     );
