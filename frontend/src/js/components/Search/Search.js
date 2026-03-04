@@ -285,21 +285,23 @@ class Search extends React.Component {
   render() {
     return (
       <div className="app__main-content search">
-        <KeyboardShortcut
-          shortcut={keyboardShortcuts.focusSearchBox}
-          func={this.selectSearchBox}
-        />
-        <SearchBox
-          ref={(input) => (this.searchBox = input)}
-          updateVisibleText={this.updateVisibleText}
-          onFilterChange={this.onFilterChange}
-          resetQuery={this.clearSearch}
-          addQuery={this.addQuery}
-          q={this.state.visibleText}
-          isSearchInProgress={this.props.search.isSearchInProgress}
-          suggestedFields={this.props.search.suggestedFields}
-          updateSearchText={this.updateSearchText}
-        />
+        <div className="search__sticky-header">
+          <KeyboardShortcut
+            shortcut={keyboardShortcuts.focusSearchBox}
+            func={this.selectSearchBox}
+          />
+          <SearchBox
+            ref={(input) => (this.searchBox = input)}
+            updateVisibleText={this.updateVisibleText}
+            onFilterChange={this.onFilterChange}
+            resetQuery={this.clearSearch}
+            addQuery={this.addQuery}
+            q={this.state.visibleText}
+            isSearchInProgress={this.props.search.isSearchInProgress}
+            suggestedFields={this.props.search.suggestedFields}
+            updateSearchText={this.updateSearchText}
+          />
+        </div>
         <div className="search__underbar">
           <SearchStatus
             results={this.props.search.currentResults}
