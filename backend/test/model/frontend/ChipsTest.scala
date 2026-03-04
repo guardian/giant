@@ -3,11 +3,18 @@ package model.frontend
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.must.Matchers
 import play.api.libs.json.Json
+import services.index.WorkspaceSearchContextParams
 
 class ChipsTest extends AnyFunSuite with Matchers {
 
   private def chip(name: String, value: String, op: String, t: String): String =
     Json.stringify(Json.obj("n" -> name, "v" -> value, "op" -> op, "t" -> t))
+
+  private def workspaceFolderChip(workspaceId: String, folderId: String): String =
+    Json.stringify(Json.obj(
+      "n" -> "workspace_folder", "v" -> "", "op" -> "+",
+      "t" -> "workspace_folder", "workspaceId" -> workspaceId, "folderId" -> folderId
+    ))
 
   private def q(elements: String*): String = s"[${elements.mkString(",")}]"
 
@@ -117,5 +124,66 @@ class ChipsTest extends AnyFunSuite with Matchers {
     val input = q(chip("Body Text", "", "+", "text"))
     val result = Chips.parseQueryString(input)
     result.query must be("""+(text:("") OR metadata.html:(""))""")
+  }
+
+  // ── Date chips ────────────────────────────────────────────────────
+
+  test("Created Before chip") {
+    val input = q(chip("Created Before", "2025-12-31", "+", "date"))
+    val result = Chips.parseQueryString(input)
+    result.query must be("+createdAt:<2025-12-31")
+  }
+
+  test("Created After chip") {
+    val input = q(chip("Created After", "2025-01-01", "+", "date_ex"))
+    val result = Chips.parseQueryString(input)
+    result.query must be("+createdAt:>2025-01-01")
+  }
+
+  // ── Dangling operator stripping ───────────────────────────────────
+
+  test("dangling plus is stripped from plain text") {
+    val input = q(quoted("search text+"))
+    val result = Chips.parseQueryString(input)
+    result.query must be("search text")
+  }
+
+  test("dangling minus is stripped from plain text") {
+    val input = q(quoted("search text-"))
+    val result = Chips.parseQueryString(input)
+    result.query must be("search text")
+  }
+
+  test("plain text without dangling operator is unchanged") {
+    val input = q(quoted("search text"))
+    val result = Chips.parseQueryString(input)
+    result.query must be("search text")
+  }
+
+  // ── Workspace folder extraction ───────────────────────────────────
+
+  test("workspace_folder chip is extracted and excluded from query") {
+    val input = q(
+      quoted("search text"),
+      workspaceFolderChip("ws-1", "f-2")
+    )
+    val result = Chips.parseQueryString(input)
+    result.query must be("search text")
+    result.workspace mustBe Some(WorkspaceSearchContextParams("ws-1", "f-2"))
+  }
+
+  test("no workspace_folder returns None") {
+    val input = q(chip("Body Text", "hello", "+", "text"))
+    val result = Chips.parseQueryString(input)
+    result.workspace mustBe None
+  }
+
+  // ── Unknown chip name ─────────────────────────────────────────────
+
+  test("unknown chip name throws NoSuchElementException") {
+    val input = q(chip("Nonexistent Filter", "value", "+", "text"))
+    assertThrows[NoSuchElementException] {
+      Chips.parseQueryString(input)
+    }
   }
 }

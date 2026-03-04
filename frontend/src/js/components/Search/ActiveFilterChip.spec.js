@@ -17,6 +17,14 @@ describe("isMultiValueChip", () => {
     expect(isMultiValueChip("Language")).toBe(true);
   });
 
+  test("Dataset is multi-value", () => {
+    expect(isMultiValueChip("Dataset")).toBe(true);
+  });
+
+  test("Workspace is multi-value", () => {
+    expect(isMultiValueChip("Workspace")).toBe(true);
+  });
+
   test("Created After is not multi-value", () => {
     expect(isMultiValueChip("Created After")).toBe(false);
   });
