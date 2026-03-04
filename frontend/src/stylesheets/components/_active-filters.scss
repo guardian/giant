@@ -6,11 +6,11 @@
   flex-wrap: wrap;
   gap: calc($baseSpacing / 2);
   margin-bottom: $baseSpacing;
-  align-items: center;
 
   &__add-btn {
     display: inline-flex;
     align-items: center;
+    align-self: center;
     gap: 4px;
     background: none;
     border: 1px dashed rgba($primary, 0.4);
