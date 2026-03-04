@@ -3,8 +3,9 @@ package controllers.api
 import software.amazon.awssdk.services.sns.SnsClient
 import commands.DeleteResource
 import model.Uri
-import model.annotations.{ProcessingStage, Workspace, WorkspaceEntry, WorkspaceLeaf}
+import model.annotations.{ProcessingStage, Workspace, WorkspaceEntry, WorkspaceLeaf, WorkspaceNode}
 import model.frontend.{TreeEntry, TreeLeaf, TreeNode}
+import model.user.UserPermission.CanPerformAdminOperations
 import model.ingestion.{ RemoteIngest, RemoteIngestStatus}
 import net.logstash.logback.marker.LogstashMarker
 import net.logstash.logback.marker.Markers.append
@@ -412,8 +413,151 @@ class Workspaces(
     } map (_ => NoContent)
   }
 
+  def exportInventory(workspaceId: String, format: Option[String]) = ApiAction.attempt { req: UserIdentityRequest[_] =>
+    checkPermission(CanPerformAdminOperations, req) {
+      for {
+        metadata <- annotation.getWorkspaceMetadata(req.user.username, workspaceId)
+        contents <- annotation.getWorkspaceContents(req.user.username, workspaceId)
+      } yield {
+        val workspace = Workspace.fromMetadataAndRootNode(metadata, contents)
+        logAction(req.user, workspaceId, s"Exporting workspace inventory. Format: ${format.getOrElse("json")}")
+
+        format.getOrElse("json").toLowerCase match {
+          case "csv" =>
+            val csvContent = Workspaces.workspaceToCsv(workspace)
+            Ok(csvContent)
+              .as("text/csv")
+              .withHeaders("Content-Disposition" -> s"""attachment; filename="${workspace.name}-inventory.csv"""")
+
+          case _ =>
+            val jsonContent = Workspaces.workspaceToInventoryJson(workspace)
+            Ok(jsonContent)
+              .as("application/json")
+              .withHeaders("Content-Disposition" -> s"""attachment; filename="${workspace.name}-inventory.json"""")
+        }
+      }
+    }
+  }
+
   private def logAction(user: User, workspaceId: String, message: String) = {
     val markers: LogstashMarker = user.asLogMarker.and(append("workspaceId", workspaceId))
     logger.info(markers, message)
+  }
+}
+
+object Workspaces {
+  private def treeEntryToInventoryJson(entry: TreeEntry[WorkspaceEntry], path: String): JsValue = {
+    entry match {
+      case leaf: TreeLeaf[WorkspaceEntry] =>
+        leaf.data match {
+          case wl: WorkspaceLeaf =>
+            Json.obj(
+              "nodeId" -> leaf.id,
+              "name" -> leaf.name,
+              "type" -> "file",
+              "path" -> s"$path/${leaf.name}",
+              "uri" -> wl.uri,
+              "mimeType" -> wl.mimeType,
+              "size" -> wl.size,
+              "addedBy" -> wl.addedBy.displayName,
+              "addedOn" -> wl.addedOn,
+              "processingStage" -> Json.toJson(wl.processingStage)
+            )
+          case _ => Json.obj(
+              "nodeId" -> leaf.id,
+              "name" -> leaf.name,
+              "type" -> "unknown",
+              "path" -> s"$path/${leaf.name}"
+            )
+        }
+      case node: TreeNode[WorkspaceEntry] =>
+        val currentPath = s"$path/${node.name}"
+        val childrenJson = node.children.map(child => treeEntryToInventoryJson(child, currentPath))
+        node.data match {
+          case wn: WorkspaceNode =>
+            Json.obj(
+              "nodeId" -> node.id,
+              "name" -> node.name,
+              "type" -> "folder",
+              "path" -> currentPath,
+              "addedBy" -> wn.addedBy.displayName,
+              "addedOn" -> wn.addedOn,
+              "descendantsFileCount" -> wn.descendantsLeafCount,
+              "descendantsFolderCount" -> wn.descendantsNodeCount,
+              "children" -> JsArray(childrenJson)
+            )
+          case _ =>
+            Json.obj(
+              "nodeId" -> node.id,
+              "name" -> node.name,
+              "type" -> "folder",
+              "path" -> currentPath,
+              "children" -> JsArray(childrenJson)
+            )
+        }
+    }
+  }
+
+  def workspaceToInventoryJson(workspace: Workspace): JsValue = {
+    Json.obj(
+      "workspaceId" -> workspace.id,
+      "workspaceName" -> workspace.name,
+      "isPublic" -> workspace.isPublic,
+      "owner" -> workspace.owner.displayName,
+      "creator" -> workspace.creator.displayName,
+      "exportedAt" -> System.currentTimeMillis(),
+      "contents" -> treeEntryToInventoryJson(workspace.rootNode, "")
+    )
+  }
+
+  private def flattenTreeToCsvRows(entry: TreeEntry[WorkspaceEntry], path: String): List[List[String]] = {
+    entry match {
+      case leaf: TreeLeaf[WorkspaceEntry] =>
+        leaf.data match {
+          case wl: WorkspaceLeaf =>
+            val processingStatus = wl.processingStage match {
+              case ProcessingStage.Processing(n, _) => s"processing ($n remaining)"
+              case ProcessingStage.Processed => "processed"
+              case ProcessingStage.Failed => "failed"
+            }
+            List(List(
+              leaf.id,
+              leaf.name,
+              "file",
+              s"$path/${leaf.name}",
+              wl.uri,
+              wl.mimeType,
+              wl.size.map(_.toString).getOrElse(""),
+              wl.addedBy.displayName,
+              wl.addedOn.map(_.toString).getOrElse(""),
+              processingStatus
+            ))
+          case _ =>
+            List(List(leaf.id, leaf.name, "unknown", s"$path/${leaf.name}", "", "", "", "", "", ""))
+        }
+      case node: TreeNode[WorkspaceEntry] =>
+        val currentPath = s"$path/${node.name}"
+        val folderRow = node.data match {
+          case wn: WorkspaceNode =>
+            List(node.id, node.name, "folder", currentPath, "", "", "", wn.addedBy.displayName, wn.addedOn.map(_.toString).getOrElse(""), "")
+          case _ =>
+            List(node.id, node.name, "folder", currentPath, "", "", "", "", "", "")
+        }
+        folderRow :: node.children.flatMap(child => flattenTreeToCsvRows(child, currentPath))
+    }
+  }
+
+  private def escapeCsvField(field: String): String = {
+    if (field.contains(",") || field.contains("\"") || field.contains("\n")) {
+      "\"" + field.replace("\"", "\"\"") + "\""
+    } else {
+      field
+    }
+  }
+
+  def workspaceToCsv(workspace: Workspace): String = {
+    val header = List("Node ID", "Name", "Type", "Path", "URI", "MIME Type", "Size (bytes)", "Added By", "Added On (epoch ms)", "Processing Status")
+    val rows = flattenTreeToCsvRows(workspace.rootNode, "")
+    (header :: rows).map(_.map(escapeCsvField).mkString(",")).mkString("\n")
   }
 }

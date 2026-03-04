@@ -19,11 +19,13 @@ import { getWorkspace } from "../../actions/workspaces/getWorkspace";
 import ShareWorkspaceModal from "./ShareWorkspaceModal";
 import MdEdit from "react-icons/lib/md/edit";
 import MdDelete from "react-icons/lib/md/delete";
+import MdFileDownload from "react-icons/lib/md/file-download";
 import MdMore from "react-icons/lib/md/expand-more";
 import TakeOwnershipOfWorkspaceModal from "./TakeOwnershipOfWorkspaceModal";
 import { takeOwnershipOfWorkspace } from "../../actions/workspaces/takeOwnershipOfWorkspace";
 import { CaptureFromUrl } from "../Uploads/CaptureFromUrl";
 import { EuiText } from "@elastic/eui";
+import { exportWorkspaceInventory } from "../../services/WorkspaceApi";
 import { FileAndFolderCounts } from "../UtilComponents/TreeBrowser/FileAndFolderCounts";
 import history from "../../util/history";
 
@@ -200,6 +202,24 @@ export default function WorkspaceSummary({
             <MdDelete />
             Delete Workspace
           </ModalAction>
+          {isAdmin && (
+            <>
+              <button
+                className="btn workspace__button"
+                onClick={() => exportWorkspaceInventory(workspace.id, "json")}
+              >
+                <MdFileDownload />
+                Export as JSON
+              </button>
+              <button
+                className="btn workspace__button"
+                onClick={() => exportWorkspaceInventory(workspace.id, "csv")}
+              >
+                <MdFileDownload />
+                Export as CSV
+              </button>
+            </>
+          )}
         </div>
       </div>
     </div>
