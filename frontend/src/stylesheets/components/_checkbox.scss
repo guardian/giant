@@ -13,12 +13,14 @@
 
   .checkbox__icon {
     opacity: 1;
+    color: $primaryDark;
   }
 }
 
 .checkbox--negative {
   .checkbox__icon {
     opacity: 1;
+    color: $excludeColour;
   }
 }
 
@@ -29,6 +31,13 @@
 .checkbox:hover {
   .checkbox__icon {
     opacity: 1;
+    color: $primaryDark;
+  }
+}
+
+.checkbox--negative:hover {
+  .checkbox__icon {
+    color: $excludeColour;
   }
 }
 
@@ -37,6 +46,7 @@
   position: relative;
   margin-left: 5px;
   flex-shrink: 0;
+  color: $filterInactiveColour;
   opacity: 0.7;
   transition: opacity 0.1s ease;
   height: 25px;
