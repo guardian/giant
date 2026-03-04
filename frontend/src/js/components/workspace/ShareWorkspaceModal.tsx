@@ -75,7 +75,7 @@ export default function ShareWorkspaceModal(props: Props) {
     <React.Fragment>
       {/* The component that triggers the modal (pass-through rendering of children) */}
       <button
-        className="btn workspace__button"
+        className="item workspace-menu__item"
         disabled={props.currentUser.username !== props.workspace.owner.username}
         onClick={() => setOpen(true)}
         title="Share Workspace"

@@ -6,7 +6,7 @@ import {
   isWorkspaceNode,
 } from "../../types/Workspaces";
 import ModalAction from "../UtilComponents/ModalAction";
-import { Label, Popup } from "semantic-ui-react";
+import { Divider, Icon, Label, Menu, Popup } from "semantic-ui-react";
 import { PartialUser } from "../../types/User";
 import { setWorkspaceFollowers } from "../../actions/workspaces/setWorkspaceFollowers";
 import { setWorkspaceIsPublic } from "../../actions/workspaces/setWorkspaceIsPublic";
@@ -20,7 +20,6 @@ import ShareWorkspaceModal from "./ShareWorkspaceModal";
 import MdEdit from "react-icons/lib/md/edit";
 import MdDelete from "react-icons/lib/md/delete";
 import MdFileDownload from "react-icons/lib/md/file-download";
-import MdMore from "react-icons/lib/md/expand-more";
 import TakeOwnershipOfWorkspaceModal from "./TakeOwnershipOfWorkspaceModal";
 import { takeOwnershipOfWorkspace } from "../../actions/workspaces/takeOwnershipOfWorkspace";
 import { CaptureFromUrl } from "../Uploads/CaptureFromUrl";
@@ -64,7 +63,7 @@ export default function WorkspaceSummary({
   isAdmin,
   clearFocus,
 }: Props) {
-  const [isShowingMoreOptions, setIsShowingMoreOptions] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const workspaceUsers = workspace.followers.filter(
     (follower) =>
@@ -79,6 +78,17 @@ export default function WorkspaceSummary({
     clearFocus();
     history.push(`/workspaces/${workspace.id}`);
   };
+
+  const closeMenu = () => setIsMenuOpen(false);
+
+  const isOwner = currentUser.username === workspace.owner.username;
+  const canDelete = isOwner || (isAdmin && workspace.isPublic);
+
+  const menuButton = (
+    <button className="btn workspace__button" aria-label="Workspace actions">
+      <Icon name="bars" />
+    </button>
+  );
 
   return (
     <div className="page-title workspace__header shrinkable-buttons">
@@ -130,44 +140,18 @@ export default function WorkspaceSummary({
         isAdmin={isAdmin}
       />
       <CaptureFromUrl maybePreSelectedWorkspace={workspace} withButton />
-      <div>
-        <button
-          className="btn workspace__button"
-          onClick={() =>
-            setIsShowingMoreOptions((prev) => {
-              if (!prev) {
-                document.addEventListener(
-                  "click",
-                  () => {
-                    setIsShowingMoreOptions(false);
-                  },
-                  { once: true },
-                );
-              }
-              return !prev;
-            })
-          }
-        >
-          <MdMore />
-        </button>
-        <div
-          className={`workspace__header ${isShowingMoreOptions ? "" : "hide-direct-child-buttons"}`}
-          style={{
-            position: "absolute",
-            alignItems: "flex-end",
-            flexDirection: "column",
-            gap: "5px",
-            padding: "12px",
-            right: 0,
-            zIndex: 9999,
-          }}
-        >
-          <TakeOwnershipOfWorkspaceModal
-            workspace={workspace}
-            isAdmin={isAdmin}
-            currentUser={currentUser}
-            takeOwnershipOfWorkspace={takeOwnershipOfWorkspace}
-          />
+      <Popup
+        trigger={menuButton}
+        open={isMenuOpen}
+        onOpen={() => setIsMenuOpen(true)}
+        onClose={closeMenu}
+        on="click"
+        position="bottom right"
+        basic
+        style={{ padding: 0 }}
+      >
+        <Menu vertical compact style={{ minWidth: 200 }}>
+          {/* Sharing & ownership */}
           <ShareWorkspaceModal
             workspace={workspace}
             workspaceUsers={workspaceUsers}
@@ -176,52 +160,69 @@ export default function WorkspaceSummary({
             setWorkspaceFollowers={setWorkspaceFollowers}
             setWorkspaceIsPublic={setWorkspaceIsPublic}
           />
+          <TakeOwnershipOfWorkspaceModal
+            workspace={workspace}
+            isAdmin={isAdmin}
+            currentUser={currentUser}
+            takeOwnershipOfWorkspace={takeOwnershipOfWorkspace}
+          />
+
+          <Divider fitted style={{ margin: 0 }} />
+
+          {/* Edit actions */}
           <ModalAction
             actionType="edit"
-            className="btn workspace__button"
+            className="item workspace-menu__item"
             actionDescription="Rename"
             title={`Rename workspace '${workspace.name}'`}
             value={workspace.name}
             onConfirm={(newName) => renameWorkspace(workspace.id, newName)}
-            disabled={currentUser.username !== workspace.owner.username}
+            disabled={!isOwner}
           >
             <MdEdit />
             Rename Workspace
           </ModalAction>
           <ModalAction
             actionType="confirm"
-            className="btn workspace__button"
+            className="item workspace-menu__item workspace-menu__item--danger"
             actionDescription="Delete"
             title={`Delete workspace '${workspace.name}'?`}
             onConfirm={() => deleteWorkspace(workspace.id)}
-            disabled={
-              currentUser.username !== workspace.owner.username &&
-              !(isAdmin && workspace.isPublic)
-            }
+            disabled={!canDelete}
           >
             <MdDelete />
             Delete Workspace
           </ModalAction>
+
           {isAdmin && (
             <>
-              <button
-                className="btn workspace__button"
-                onClick={() => exportWorkspaceInventory(workspace.id, "json")}
+              <Divider fitted style={{ margin: 0 }} />
+
+              {/* Admin export actions */}
+              <Menu.Item
+                className="workspace-menu__item"
+                onClick={() => {
+                  exportWorkspaceInventory(workspace.id, "json");
+                  closeMenu();
+                }}
               >
                 <MdFileDownload />
-                Export as JSON
-              </button>
-              <button
-                className="btn workspace__button"
-                onClick={() => exportWorkspaceInventory(workspace.id, "csv")}
+                Export Inventory as JSON
+              </Menu.Item>
+              <Menu.Item
+                className="workspace-menu__item"
+                onClick={() => {
+                  exportWorkspaceInventory(workspace.id, "csv");
+                  closeMenu();
+                }}
               >
                 <MdFileDownload />
-                Export as CSV
-              </button>
+                Export Inventory as CSV
+              </Menu.Item>
             </>
           )}
-        </div>
-      </div>
+        </Menu>
+      </Popup>
     </div>
   );
 }

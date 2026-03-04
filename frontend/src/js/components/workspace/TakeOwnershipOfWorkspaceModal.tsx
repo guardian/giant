@@ -41,7 +41,7 @@ export default function TakeOwnershipOfWorkspaceModal(props: Props) {
     <React.Fragment>
       {/* The component that triggers the modal (pass-through rendering of children) */}
       <button
-        className="btn workspace__button"
+        className="item workspace-menu__item"
         onClick={() => setOpen(true)}
         title="Take ownership"
       >
