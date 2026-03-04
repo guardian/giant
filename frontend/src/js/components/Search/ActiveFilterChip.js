@@ -90,6 +90,10 @@ export default class ActiveFilterChip extends React.Component {
     editValue: this.props.value || "",
     // Multi-value dropdown state
     dropdownOpen: false,
+    // Index of keyboard-focused option in the multi-select dropdown (-1 = none)
+    focusedOptionIndex: -1,
+    // Computed positioning for the dropdown (set on open)
+    dropdownStyle: {},
     // Pending values for dormant multi-value chips (committed on dropdown close)
     pendingValues: [],
     // Pending negate for dormant chips (committed alongside values)
@@ -97,6 +101,8 @@ export default class ActiveFilterChip extends React.Component {
   };
 
   dropdownRef = React.createRef();
+  triggerRef = React.createRef();
+  optionRefs = [];
 
   componentDidMount() {
     document.addEventListener("mousedown", this.handleClickOutside);
@@ -117,12 +123,150 @@ export default class ActiveFilterChip extends React.Component {
       this.dropdownRef.current &&
       !this.dropdownRef.current.contains(e.target)
     ) {
-      this.setState({ dropdownOpen: false });
-      // Commit pending values on dormant multi-value chips
-      if (this.props.dormant && this.state.pendingValues.length > 0) {
-        this.props.onEditValue([...this.state.pendingValues], this.state.pendingNegate);
-        this.setState({ pendingValues: [], pendingNegate: false });
-      }
+      this.closeDropdown();
+    }
+  };
+
+  /** Close the multi-select dropdown and commit pending dormant values */
+  closeDropdown = () => {
+    this.setState({ dropdownOpen: false, focusedOptionIndex: -1 });
+    // Commit pending values on dormant multi-value chips
+    if (this.props.dormant && this.state.pendingValues.length > 0) {
+      this.props.onEditValue([...this.state.pendingValues], this.state.pendingNegate);
+      this.setState({ pendingValues: [], pendingNegate: false });
+    }
+  };
+
+  /** Open the dropdown, compute position, and focus the first option */
+  openDropdown = () => {
+    const style = this.computeDropdownPosition();
+    this.setState({ dropdownOpen: true, focusedOptionIndex: 0, dropdownStyle: style });
+  };
+
+  /**
+   * Measure the trigger element and decide whether to flip the dropdown
+   * upward or to the right so it stays within the viewport.
+   */
+  computeDropdownPosition = () => {
+    const style = { top: 'calc(100% + 4px)', left: '0' };
+    const trigger = this.triggerRef.current;
+    if (!trigger) return style;
+
+    const rect = trigger.getBoundingClientRect();
+    const dropdownMaxHeight = 280; // matches SCSS max-height
+    const dropdownMinWidth = 200;  // matches SCSS min-width
+    const gap = 4;
+    const margin = 8; // breathing room from viewport edge
+
+    // Flip upward if not enough room below
+    const spaceBelow = window.innerHeight - rect.bottom;
+    if (spaceBelow < dropdownMaxHeight + gap + margin && rect.top > spaceBelow) {
+      style.top = 'auto';
+      style.bottom = 'calc(100% + ' + gap + 'px)';
+    }
+
+    // Flip to open rightward-aligned if not enough room to the right
+    const spaceRight = window.innerWidth - rect.left;
+    if (spaceRight < dropdownMinWidth + margin) {
+      style.left = 'auto';
+      style.right = '0';
+    }
+
+    return style;
+  };
+
+  /** Toggle dropdown open/closed */
+  toggleDropdown = () => {
+    if (this.state.dropdownOpen) {
+      this.closeDropdown();
+    } else {
+      this.openDropdown();
+    }
+  };
+
+  /** Keyboard handler for the multi-select trigger button */
+  handleTriggerKeyDown = (e) => {
+    switch (e.key) {
+      case "Enter":
+      case " ":
+        e.preventDefault();
+        this.toggleDropdown();
+        break;
+      case "ArrowDown":
+        e.preventDefault();
+        if (!this.state.dropdownOpen) {
+          this.openDropdown();
+        }
+        break;
+      case "Escape":
+        if (this.state.dropdownOpen) {
+          e.preventDefault();
+          e.stopPropagation();
+          this.closeDropdown();
+          // Return focus to the trigger
+          if (this.triggerRef.current) this.triggerRef.current.focus();
+        }
+        break;
+      default:
+        break;
+    }
+  };
+
+  /** Keyboard handler for the multi-select dropdown options */
+  handleDropdownKeyDown = (e, allOptions) => {
+    const { focusedOptionIndex } = this.state;
+    const optionCount = allOptions.length;
+    if (optionCount === 0) return;
+
+    switch (e.key) {
+      case "ArrowDown":
+        e.preventDefault();
+        this.setState((prev) => {
+          const next = Math.min(prev.focusedOptionIndex + 1, optionCount - 1);
+          return { focusedOptionIndex: next };
+        }, () => this.scrollFocusedOptionIntoView());
+        break;
+      case "ArrowUp":
+        e.preventDefault();
+        this.setState((prev) => {
+          const next = Math.max(prev.focusedOptionIndex - 1, 0);
+          return { focusedOptionIndex: next };
+        }, () => this.scrollFocusedOptionIntoView());
+        break;
+      case "Home":
+        e.preventDefault();
+        this.setState({ focusedOptionIndex: 0 }, () => this.scrollFocusedOptionIntoView());
+        break;
+      case "End":
+        e.preventDefault();
+        this.setState({ focusedOptionIndex: optionCount - 1 }, () => this.scrollFocusedOptionIntoView());
+        break;
+      case " ":
+      case "Enter":
+        e.preventDefault();
+        if (focusedOptionIndex >= 0 && focusedOptionIndex < optionCount) {
+          this.toggleMultiValue(allOptions[focusedOptionIndex].value);
+        }
+        break;
+      case "Escape":
+        e.preventDefault();
+        e.stopPropagation();
+        this.closeDropdown();
+        if (this.triggerRef.current) this.triggerRef.current.focus();
+        break;
+      case "Tab":
+        this.closeDropdown();
+        break;
+      default:
+        break;
+    }
+  };
+
+  /** Scroll the keyboard-focused option into view within the dropdown */
+  scrollFocusedOptionIntoView = () => {
+    const ref = this.optionRefs[this.state.focusedOptionIndex];
+    if (ref) {
+      ref.scrollIntoView({ block: "nearest" });
     }
   };
 
@@ -201,6 +345,7 @@ export default class ActiveFilterChip extends React.Component {
           onKeyDown={this.onEditKeyDown}
           onBlur={this.commitEdit}
           autoFocus
+          aria-label={`Edit ${this.props.name} value`}
         />
       );
     }
@@ -208,7 +353,16 @@ export default class ActiveFilterChip extends React.Component {
     return (
       <span
         className="active-filter-chip__value-text active-filter-chip__value-text--editable"
+        role="button"
+        tabIndex={0}
         onClick={this.onStartEdit}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            this.onStartEdit();
+          }
+        }}
+        aria-label={`Edit value: ${value || 'empty'}`}
         title="Click to edit value"
       >
         {value || <em className="active-filter-chip__empty">empty</em>}
@@ -240,39 +394,75 @@ export default class ActiveFilterChip extends React.Component {
       displayText = `${visible.join(", ")} +${selectedValues.length - MAX_VISIBLE_VALUES} more`;
     }
 
+    // Ensure refs array has the right length
+    this.optionRefs = allOptions.map(() => null);
+
+    const dropdownId = `multi-select-dropdown-${name.replace(/\s+/g, "-").toLowerCase()}`;
+
     return (
       <span className="active-filter-chip__multi-select" ref={this.dropdownRef}>
-        <span
+        <button
+          ref={this.triggerRef}
+          type="button"
           className="active-filter-chip__multi-select-trigger"
-          onClick={() => this.setState({ dropdownOpen: !dropdownOpen })}
+          onClick={this.toggleDropdown}
+          onKeyDown={this.handleTriggerKeyDown}
+          aria-haspopup="listbox"
+          aria-expanded={dropdownOpen}
+          aria-controls={dropdownOpen ? dropdownId : undefined}
+          aria-label={`${name}: ${displayText}. Click to ${dropdownOpen ? 'close' : 'open'} options`}
           title="Click to select values"
         >
-          {displayText}
-          <span className="active-filter-chip__multi-select-arrow">▾</span>
-        </span>
+          <span aria-hidden="true">{displayText}</span>
+          <span className="active-filter-chip__multi-select-arrow" aria-hidden="true">▾</span>
+        </button>
         {dropdownOpen && (
-          <div className="active-filter-chip__multi-select-dropdown">
-            {allOptions.map((opt) => (
-              <label
-                key={opt.value}
-                className="active-filter-chip__multi-select-option"
-              >
-                <input
-                  type="checkbox"
-                  checked={selectedValues.includes(opt.value)}
-                  onChange={() => this.toggleMultiValue(opt.value)}
-                />
-                <span className="active-filter-chip__multi-select-option-label">
-                  {opt.label}
-                </span>
-              </label>
-            ))}
+          <ul
+            id={dropdownId}
+            className="active-filter-chip__multi-select-dropdown"
+            style={this.state.dropdownStyle}
+            role="listbox"
+            aria-label={`${name} options`}
+            aria-multiselectable="true"
+            tabIndex={-1}
+            onKeyDown={(e) => this.handleDropdownKeyDown(e, allOptions)}
+            ref={(el) => { if (el) el.focus(); }}
+          >
+            {allOptions.map((opt, idx) => {
+              const isSelected = selectedValues.includes(opt.value);
+              const isFocused = this.state.focusedOptionIndex === idx;
+              return (
+                <li
+                  key={opt.value}
+                  ref={(el) => { this.optionRefs[idx] = el; }}
+                  className={[
+                    "active-filter-chip__multi-select-option",
+                    isFocused ? "active-filter-chip__multi-select-option--focused" : "",
+                  ].filter(Boolean).join(" ")}
+                  role="option"
+                  aria-selected={isSelected}
+                  onClick={() => this.toggleMultiValue(opt.value)}
+                  onMouseEnter={() => this.setState({ focusedOptionIndex: idx })}
+                >
+                  <input
+                    type="checkbox"
+                    checked={isSelected}
+                    readOnly
+                    tabIndex={-1}
+                    aria-hidden="true"
+                  />
+                  <span className="active-filter-chip__multi-select-option-label">
+                    {opt.label}
+                  </span>
+                </li>
+              );
+            })}
             {allOptions.length === 0 && (
-              <div className="active-filter-chip__multi-select-empty">
+              <li className="active-filter-chip__multi-select-empty" role="option" aria-disabled="true">
                 No options available
-              </div>
+              </li>
             )}
-          </div>
+          </ul>
         )}
       </span>
     );
@@ -287,6 +477,7 @@ export default class ActiveFilterChip extends React.Component {
         type="date"
         value={value || ""}
         onChange={(e) => this.props.onEditValue(e.target.value)}
+        aria-label={`${this.props.name} date`}
         title={chipType === "date_ex" ? "Select date (exclusive)" : "Select date"}
       />
     );
@@ -321,6 +512,7 @@ export default class ActiveFilterChip extends React.Component {
                 this.props.onEditValue(e.target.value, this.state.pendingNegate);
               }
             }}
+            aria-label={`Pick a date for ${this.props.name}`}
             title="Pick a date to activate this filter"
           />
         </React.Fragment>
@@ -331,7 +523,16 @@ export default class ActiveFilterChip extends React.Component {
     return (
       <span
         className="active-filter-chip__dormant-label active-filter-chip__dormant-label--clickable"
+        role="button"
+        tabIndex={0}
         onClick={() => this.setState({ isEditingValue: true, editValue: "" })}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            this.setState({ isEditingValue: true, editValue: "" });
+          }
+        }}
+        aria-label={`Set a value for ${this.props.name}`}
         title="Click to set a filter value"
       >
         {this.state.isEditingValue ? this.renderDormantTextEditor() : "all"}
@@ -361,6 +562,7 @@ export default class ActiveFilterChip extends React.Component {
           this.setState({ isEditingValue: false, pendingNegate: false });
         }}
         autoFocus
+        aria-label={`Enter value for ${this.props.name}`}
         placeholder="Type a value..."
       />
     );
@@ -413,6 +615,8 @@ export default class ActiveFilterChip extends React.Component {
         ]
           .filter(Boolean)
           .join(" ")}
+        role="group"
+        aria-label={`${effectiveNegate ? "Exclude" : "Include"} ${name} filter${isDormant && !hasPending ? " (inactive)" : ""}`}
       >
         {/* Include/Exclude toggle — left segment
             Inert (always +) on: dormant chips with no pending values, workspace_folder (backend unsupported) */}
@@ -430,6 +634,16 @@ export default class ActiveFilterChip extends React.Component {
                   ? this.togglePendingNegate
                   : onToggleNegate
           }
+          aria-label={
+            isWorkspaceFolder
+              ? "Including (scope filter)"
+              : isDormant && !hasPending
+                ? "Including"
+                : effectiveNegate
+                  ? "Excluding — click to include"
+                  : "Including — click to exclude"
+          }
+          aria-pressed={effectiveNegate}
           title={
             isWorkspaceFolder
               ? "Including (scope filter)"
@@ -440,7 +654,7 @@ export default class ActiveFilterChip extends React.Component {
                   : "Including (click to exclude)"
           }
         >
-          <div className="active-filter-chip__button-icon">
+          <div className="active-filter-chip__button-icon" aria-hidden="true">
             {isDormant && !hasPending || isWorkspaceFolder ? "+" : effectiveNegate ? "−" : "+"}
           </div>
         </button>
@@ -455,7 +669,7 @@ export default class ActiveFilterChip extends React.Component {
 
         {/* Right cap — remove button when active/pending, empty cap when dormant */}
         {isDormant && !hasPending ? (
-          <span className="active-filter-chip__end-cap" />
+          <span className="active-filter-chip__end-cap" aria-hidden="true" />
         ) : (
           <button
             className="active-filter-chip__remove-btn"
@@ -464,9 +678,10 @@ export default class ActiveFilterChip extends React.Component {
                 ? () => this.setState({ pendingValues: [], pendingNegate: false, dropdownOpen: false })
                 : onRemove
             }
+            aria-label={hasPending ? `Clear ${name} selections` : `Remove ${name} filter`}
             title={hasPending ? "Clear selections" : "Remove filter"}
           >
-            <div className="active-filter-chip__button-icon">
+            <div className="active-filter-chip__button-icon" aria-hidden="true">
               ×
             </div>
           </button>

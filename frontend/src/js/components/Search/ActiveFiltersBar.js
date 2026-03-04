@@ -50,27 +50,15 @@ export default class ActiveFiltersBar extends React.Component {
 
     // Show active chips if we have them
     if (chips.length > 0) {
-      // Figure out which default filters are already active
-      // For multi-value: hide dormant only when BOTH polarities exist
-      // For single-value: hide dormant when ANY chip of that name exists
-      const activePolarities = new Map(); // name → Set of polarities
-      chips.forEach((c) => {
-        if (!activePolarities.has(c.name)) activePolarities.set(c.name, new Set());
-        activePolarities.get(c.name).add(c.negate ? "-" : "+");
-      });
-      const remainingDefaults = DEFAULT_FILTERS.filter((d) => {
-        const polarities = activePolarities.get(d.name);
-        if (!polarities) return true; // not active at all — show dormant
-        if (d.multiValue) {
-          // Hide only when both + and - chips exist
-          return !(polarities.has("+") && polarities.has("-"));
-        }
-        // Single-value: hide when any chip of this name exists
-        return false;
-      });
+      // Figure out which default filters are already active.
+      // Hide the dormant chip as soon as ANY active chip of that name exists.
+      const activeNames = new Set(chips.map((c) => c.name));
+      const remainingDefaults = DEFAULT_FILTERS.filter(
+        (d) => !activeNames.has(d.name)
+      );
 
       return (
-        <div className="active-filters-bar">
+        <div className="active-filters-bar" role="toolbar" aria-label="Active search filters">
           {chips.map((chip, index) => (
             <ActiveFilterChip
               key={`active-${index}`}
@@ -113,7 +101,7 @@ export default class ActiveFiltersBar extends React.Component {
 
     // No active chips — show all defaults as dormant prompts
     return (
-      <div className="active-filters-bar">
+      <div className="active-filters-bar" role="toolbar" aria-label="Search filters">
         {DEFAULT_FILTERS.map((def) => {
           const fieldDef = (availableFilters || []).find((f) => f.name === def.name);
           return (

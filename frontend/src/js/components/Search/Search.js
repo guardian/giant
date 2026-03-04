@@ -100,6 +100,16 @@ class Search extends React.Component {
     });
   };
 
+  /**
+   * Update visible text AND trigger a debounced search.
+   * Used by filter chip actions (remove, toggle, edit, activate) so that
+   * chip changes update the URL and fire a new search automatically.
+   */
+  onFilterChange = (text) => {
+    this.setState({ visibleText: text });
+    this.debouncedUpdate(text);
+  };
+
   triggerSearch(query) {
     if (query.q) {
       this.props.resetResource();
@@ -269,6 +279,7 @@ class Search extends React.Component {
         <SearchBox
           ref={(input) => (this.searchBox = input)}
           updateVisibleText={this.updateVisibleText}
+          onFilterChange={this.onFilterChange}
           resetQuery={this.clearSearch}
           addQuery={this.addQuery}
           q={this.state.visibleText}

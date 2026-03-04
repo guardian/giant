@@ -14,6 +14,8 @@ export default class SearchBox extends React.Component {
     q: PropTypes.string.isRequired,
     isSearchInProgress: PropTypes.bool.isRequired,
     updateVisibleText: PropTypes.func.isRequired,
+    /** Update visible text AND trigger debounced search (for chip actions) */
+    onFilterChange: PropTypes.func.isRequired,
     resetQuery: PropTypes.func.isRequired,
     suggestedFields: PropTypes.arrayOf(suggestedFieldsPropType),
     updateSearchText: PropTypes.func.isRequired,
@@ -57,7 +59,7 @@ export default class SearchBox extends React.Component {
     const { definedChips, textOnlyQ } = this.parseChips();
     const newChips = definedChips.filter((_, i) => i !== index);
     const newQ = this.rebuildQ(newChips, textOnlyQ);
-    this.props.updateVisibleText(newQ);
+    this.props.onFilterChange(newQ);
   };
 
   handleToggleNegate = (index) => {
@@ -82,7 +84,7 @@ export default class SearchBox extends React.Component {
           .map((c, i) => (i === targetIndex ? merged : c))
           .filter((_, i) => i !== index);
         const newQ = this.rebuildQ(newChips, textOnlyQ);
-        this.props.updateVisibleText(newQ);
+        this.props.onFilterChange(newQ);
         return;
       }
     }
@@ -92,7 +94,7 @@ export default class SearchBox extends React.Component {
       i === index ? { ...c, negate: targetNegate } : c
     );
     const newQ = this.rebuildQ(newChips, textOnlyQ);
-    this.props.updateVisibleText(newQ);
+    this.props.onFilterChange(newQ);
   };
 
   handleEditChipValue = (index, newValueOrValues) => {
@@ -108,7 +110,7 @@ export default class SearchBox extends React.Component {
     // Remove multi-value chips with no values left (reverts to dormant)
     newChips = newChips.filter((c) => !(c.multiValue && (c.values || []).length === 0));
     const newQ = this.rebuildQ(newChips, textOnlyQ);
-    this.props.updateVisibleText(newQ);
+    this.props.onFilterChange(newQ);
   };
 
   /**
@@ -140,7 +142,7 @@ export default class SearchBox extends React.Component {
         merged.values = mergedValues;
         const newChips = definedChips.map((c, i) => (i === existingIndex ? merged : c));
         const newQ = this.rebuildQ(newChips, textOnlyQ);
-        this.props.updateVisibleText(newQ);
+        this.props.onFilterChange(newQ);
         return;
       }
     }
@@ -157,7 +159,7 @@ export default class SearchBox extends React.Component {
     };
     const newChips = [...definedChips, newChip];
     const newQ = this.rebuildQ(newChips, textOnlyQ);
-    this.props.updateVisibleText(newQ);
+    this.props.onFilterChange(newQ);
   };
 
   /**

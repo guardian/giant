@@ -31,6 +31,11 @@
     vertical-align: top;
     color: white;
     cursor: pointer;
+
+    &:focus-visible {
+      outline: 2px solid white;
+      outline-offset: -2px;
+    }
   }
 
   &__button-icon {
@@ -116,6 +121,12 @@
 
       &:hover {
         border-bottom-color: white;
+      }
+
+      &:focus-visible {
+        outline: 2px solid white;
+        outline-offset: 1px;
+        border-radius: 2px;
       }
     }
   }
@@ -253,6 +264,12 @@
         opacity: 1;
         border-bottom-color: white;
       }
+
+      &:focus-visible {
+        outline: 2px solid white;
+        outline-offset: 1px;
+        border-radius: 2px;
+      }
     }
   }
 
@@ -294,6 +311,10 @@
     align-items: center;
     gap: 4px;
     padding: 4px 2px;
+    border: none;
+    background: none;
+    color: inherit;
+    font: inherit;
     border-bottom: 1px dashed rgba(255, 255, 255, 0.4);
     white-space: nowrap;
     max-width: 220px;
@@ -302,6 +323,12 @@
 
     &:hover {
       border-bottom-color: white;
+    }
+
+    &:focus-visible {
+      outline: 2px solid white;
+      outline-offset: 1px;
+      border-radius: 2px;
     }
   }
 
@@ -313,8 +340,7 @@
 
   &__multi-select-dropdown {
     position: absolute;
-    top: calc(100% + 4px);
-    left: 0;
+    // top/left/bottom/right set via inline style for viewport-aware positioning
     z-index: 100;
     min-width: 200px;
     max-height: 280px;
@@ -324,6 +350,12 @@
     border-radius: 4px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
     padding: 4px 0;
+    list-style: none;
+    margin: 0;
+
+    &:focus {
+      outline: none;
+    }
   }
 
   &__multi-select-option {
@@ -335,8 +367,14 @@
     font-size: 14px;
     white-space: nowrap;
 
-    &:hover {
+    &:hover,
+    &--focused {
       background: rgba(255, 255, 255, 0.1);
+    }
+
+    &--focused {
+      outline: 2px solid rgba(255, 255, 255, 0.6);
+      outline-offset: -2px;
     }
 
     input[type="checkbox"] {
