@@ -1,6 +1,16 @@
 import React from "react";
 import PropTypes from "prop-types";
 import { FILE_TYPE_CATEGORIES } from "./fileTypeCategories";
+import {
+  CHIP_NAME_MIME_TYPE,
+  CHIP_NAME_FILE_TYPE,
+  CHIP_KIND_SINGLE,
+  CHIP_KIND_MULTI,
+  CHIP_KIND_DATE_RANGE,
+  CHIP_TYPE_DATE,
+  CHIP_TYPE_DATE_EX,
+  CHIP_TYPE_WORKSPACE_FOLDER,
+} from "./chipNames";
 
 /**
  * A single filter chip in the active filters bar.
@@ -41,7 +51,7 @@ const MAX_VISIBLE_VALUES = 2;
  * Chip names that support multiple simultaneous values.
  * One UI chip ↔ N backend chips of the same name.
  */
-const MULTI_VALUE_CHIP_NAMES = new Set(["Mime Type", "Has Field", "File Type"]);
+const MULTI_VALUE_CHIP_NAMES = new Set([CHIP_NAME_MIME_TYPE, "Has Field", CHIP_NAME_FILE_TYPE]);
 
 /** Check whether a given chip name supports multi-value selection. */
 export function isMultiValueChip(name) {
@@ -57,8 +67,8 @@ function getDisplayLabel(value, allOptions) {
 
 /** Resolve the options list for a multi-value chip. */
 function getMultiSelectOptions(name, propOptions) {
-  if (name === "Mime Type") return MIME_TYPE_OPTIONS;
-  if (name === "File Type") return FILE_TYPE_CATEGORIES;
+  if (name === CHIP_NAME_MIME_TYPE) return MIME_TYPE_OPTIONS;
+  if (name === CHIP_NAME_FILE_TYPE) return FILE_TYPE_CATEGORIES;
   return propOptions || [];
 }
 
@@ -73,11 +83,10 @@ export default class ActiveFilterChip extends React.Component {
     /** Date Range chip — compound from/to */
     from: PropTypes.string,
     to: PropTypes.string,
-    dateRange: PropTypes.bool,
     negate: PropTypes.bool.isRequired,
     chipType: PropTypes.string.isRequired,
-    /** Whether this chip supports multi-value selection */
-    multiValue: PropTypes.bool,
+    /** Discriminated union tag: "single", "multi", or "dateRange" */
+    kind: PropTypes.oneOf([CHIP_KIND_SINGLE, CHIP_KIND_MULTI, CHIP_KIND_DATE_RANGE]).isRequired,
     options: PropTypes.array,
     /** When true, the chip is a dormant default showing "all" */
     dormant: PropTypes.bool,
@@ -484,7 +493,7 @@ export default class ActiveFilterChip extends React.Component {
         value={value || ""}
         onChange={(e) => this.props.onEditValue(e.target.value)}
         aria-label={`${this.props.name} date`}
-        title={chipType === "date_ex" ? "Select date (exclusive)" : "Select date"}
+        title={chipType === CHIP_TYPE_DATE_EX ? "Select date (exclusive)" : "Select date"}
       />
     );
   }
@@ -578,7 +587,7 @@ export default class ActiveFilterChip extends React.Component {
   renderDormantSingleValue() {
     const { chipType } = this.props;
 
-    if (chipType === "date" || chipType === "date_ex") {
+    if (chipType === CHIP_TYPE_DATE || chipType === CHIP_TYPE_DATE_EX) {
       return (
         <React.Fragment>
           <span className="active-filter-chip__dormant-label">all</span>
@@ -649,43 +658,42 @@ export default class ActiveFilterChip extends React.Component {
 
   /** Dispatch to the right renderer based on chip configuration */
   renderValueEditor() {
-    const { chipType, multiValue, dormant, dateRange } = this.props;
+    const { chipType, kind, dormant } = this.props;
 
-    // Date Range compound chip
-    if (dateRange) {
-      return dormant ? this.renderDormantDateRange() : this.renderDateRangeValue();
-    }
+    switch (kind) {
+      case CHIP_KIND_DATE_RANGE:
+        return dormant ? this.renderDormantDateRange() : this.renderDateRangeValue();
 
-    // Multi-value chips always use the multi-select dropdown
-    // (handles dormant "all" display internally)
-    if (multiValue) {
-      return this.renderMultiSelectValue();
-    }
+      case CHIP_KIND_MULTI:
+        // Multi-value chips always use the multi-select dropdown
+        // (handles dormant "all" display internally)
+        return this.renderMultiSelectValue();
 
-    // Dormant single-value chips
-    if (dormant) {
-      return this.renderDormantSingleValue();
-    }
-
-    // Active single-value chips
-    switch (chipType) {
-      case "date":
-      case "date_ex":
-        return this.renderDateValue();
-      case "workspace_folder":
-        return this.renderWorkspaceFolderValue();
-      case "text":
+      case CHIP_KIND_SINGLE:
       default:
-        return this.renderTextValue();
+        // Dormant single-value chips
+        if (dormant) {
+          return this.renderDormantSingleValue();
+        }
+        // Active single-value chips
+        switch (chipType) {
+          case CHIP_TYPE_DATE:
+          case CHIP_TYPE_DATE_EX:
+            return this.renderDateValue();
+          case CHIP_TYPE_WORKSPACE_FOLDER:
+            return this.renderWorkspaceFolderValue();
+          default:
+            return this.renderTextValue();
+        }
     }
   }
 
   render() {
-    const { name, negate, chipType, onRemove, onToggleNegate, dormant, multiValue } = this.props;
-    const isWorkspaceFolder = chipType === "workspace_folder";
+    const { name, negate, chipType, onRemove, onToggleNegate, dormant, kind } = this.props;
+    const isWorkspaceFolder = chipType === CHIP_TYPE_WORKSPACE_FOLDER;
     const isDormant = !!dormant;
     // A dormant multi-value chip with pending selections looks semi-active
-    const hasPending = isDormant && multiValue && this.state.pendingValues.length > 0;
+    const hasPending = isDormant && kind === CHIP_KIND_MULTI && this.state.pendingValues.length > 0;
 
     // Dormant chips use local pending negate; active chips use the prop
     const effectiveNegate = isDormant ? this.state.pendingNegate : negate;

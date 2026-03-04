@@ -3,15 +3,34 @@ import _isObject from "lodash/isObject";
 import { isMultiValueChip } from "./ActiveFilterChip";
 import {
   expandFileTypeValues,
-  collapseMimesToCategories,
 } from "./fileTypeCategories";
+import {
+  CHIP_NAME_MIME_TYPE,
+  CHIP_NAME_FILE_TYPE,
+  CHIP_NAME_CREATED_AFTER,
+  CHIP_NAME_CREATED_BEFORE,
+  CHIP_NAME_DATE_RANGE,
+  CHIP_KIND_SINGLE,
+  CHIP_KIND_MULTI,
+  CHIP_KIND_DATE_RANGE,
+  CHIP_TYPE_DATE_RANGE,
+  CHIP_TYPE_WORKSPACE_FOLDER,
+} from "./chipNames";
 
 /**
  * Parse a q value (JSON-encoded array of strings and chip objects)
  * into plain text elements and defined chip elements.
  *
- * Multi-value chip types (e.g. Mime Type, Has Field) are grouped:
+ * Each UI chip has a `kind` discriminant:
+ *   - "single":    { kind, name, value, negate, chipType }
+ *   - "multi":     { kind, name, values, negate, chipType }
+ *   - "dateRange": { kind, name, from, to, negate, chipType }
+ *
+ * Multi-value chip types (e.g. Mime Type, Has Field, File Type) are grouped:
  * multiple backend chips with the same name → one UI chip with values[].
+ *
+ * Date chips (Created After / Created Before) are consolidated into
+ * a single Date Range chip with from/to fields.
  *
  * @param {string} q - The serialized query string
  * @param {Array} suggestedFields - Available field definitions (for options)
@@ -34,66 +53,29 @@ export function parseChips(q, suggestedFields) {
         if (element.v !== "") {
           rawChips.push(element);
         } else {
-          // In-progress chips (no value yet) stay inline
           textParts.push(element);
         }
       }
     });
 
-    // Group multi-value chip types by (name, polarity)
-    // e.g. +Mime Type and -Mime Type are separate UI chips
     const definedChips = [];
     const multiValueGroups = new Map();
     // Accumulate date range halves by polarity, merge after loop
-    const dateRangeAccum = new Map(); // key: "+" or "-" → { from, to, negate }
+    const dateRangeAccum = new Map();
 
     rawChips.forEach((element) => {
       const negate = element.op === "-";
 
       // ── Date Range consolidation ──────────────────────────────
-      // Merge Created After / Created Before into a single Date Range chip
-      if (element.n === "Created After" || element.n === "Created Before") {
+      if (element.n === CHIP_NAME_CREATED_AFTER || element.n === CHIP_NAME_CREATED_BEFORE) {
         const polarityKey = negate ? "-" : "+";
         if (!dateRangeAccum.has(polarityKey)) {
           dateRangeAccum.set(polarityKey, { from: "", to: "", negate });
         }
         const acc = dateRangeAccum.get(polarityKey);
-        if (element.n === "Created After") acc.from = element.v;
-        if (element.n === "Created Before") acc.to = element.v;
-        return; // consumed — will be added after loop
-      }
-
-      // ── File Type reconstitution ──────────────────────────────
-      // Backend chip: { n: "Mime Type", v: "…OR…", t: "file_type" }
-      // UI chip:      { name: "File Type", values: ["pdf","spreadsheet"], … }
-      if (element.n === "Mime Type" && element.t === "file_type") {
-        const mimes = element.v
-          .split(" OR ")
-          .map((v) => v.trim())
-          .filter(Boolean);
-        const categoryKeys = collapseMimesToCategories(mimes);
-        if (categoryKeys.length > 0) {
-          const ftGroupKey = `File Type|${negate ? "-" : "+"}`;
-          if (!multiValueGroups.has(ftGroupKey)) {
-            const uiChip = {
-              name: "File Type",
-              values: categoryKeys,
-              negate,
-              chipType: "file_type",
-              multiValue: true,
-            };
-            multiValueGroups.set(ftGroupKey, uiChip);
-            definedChips.push(uiChip);
-          } else {
-            const existing = multiValueGroups.get(ftGroupKey);
-            categoryKeys.forEach((k) => {
-              if (!existing.values.includes(k)) {
-                existing.values.push(k);
-              }
-            });
-          }
-        }
-        return; // consumed — do not also create a Mime Type chip
+        if (element.n === CHIP_NAME_CREATED_AFTER) acc.from = element.v;
+        if (element.n === CHIP_NAME_CREATED_BEFORE) acc.to = element.v;
+        return;
       }
 
       // ── Normal chip handling ──────────────────────────────────
@@ -105,23 +87,21 @@ export function parseChips(q, suggestedFields) {
 
       if (isMultiValueChip(name)) {
         if (!multiValueGroups.has(groupKey)) {
-          // Backend sends one chip with OR-joined values; split them back
           const values = element.v
             .split(" OR ")
             .map((v) => v.trim())
             .filter(Boolean);
           const uiChip = {
+            kind: CHIP_KIND_MULTI,
             name,
             values,
             negate,
             chipType: element.t,
-            multiValue: true,
             options: fieldDef ? fieldDef.options : undefined,
           };
           multiValueGroups.set(groupKey, uiChip);
           definedChips.push(uiChip);
         } else {
-          // Merge into existing chip of the same name+polarity
           const existing = multiValueGroups.get(groupKey);
           const extraValues = element.v
             .split(" OR ")
@@ -135,11 +115,11 @@ export function parseChips(q, suggestedFields) {
         }
       } else {
         definedChips.push({
+          kind: CHIP_KIND_SINGLE,
           name,
           value: element.v,
-          negate: element.op === "-",
+          negate,
           chipType: element.t,
-          multiValue: false,
           options: fieldDef ? fieldDef.options : undefined,
           workspaceId: element.workspaceId,
           folderId: element.folderId,
@@ -151,13 +131,12 @@ export function parseChips(q, suggestedFields) {
     dateRangeAccum.forEach((acc) => {
       if (acc.from || acc.to) {
         definedChips.push({
-          name: "Date Range",
+          kind: CHIP_KIND_DATE_RANGE,
+          name: CHIP_NAME_DATE_RANGE,
           from: acc.from || "",
           to: acc.to || "",
           negate: acc.negate,
-          chipType: "date_range",
-          multiValue: false,
-          dateRange: true,
+          chipType: CHIP_TYPE_DATE_RANGE,
         });
       }
     });
@@ -171,9 +150,16 @@ export function parseChips(q, suggestedFields) {
 
 /**
  * Rebuild the full q value by combining text-only q with the defined chips.
- * Multi-value UI chips are serialized as a single backend chip with OR syntax.
  *
- * @param {Array} definedChips - UI chip objects
+ * Each chip's `kind` determines serialization:
+ *   - "multi":     single backend chip with OR-joined values
+ *   - "dateRange": expands to Created After + Created Before backend chips
+ *   - "single":    one backend chip
+ *
+ * File Type chips are serialized as { n: "File Type", v: "pdf OR web", ... }.
+ * Use toBackendQ() at the API boundary to expand them for the backend.
+ *
+ * @param {Array} definedChips - UI chip objects (with `kind` discriminant)
  * @param {string} textOnlyQ - JSON-encoded array of text + in-progress chips
  * @returns {string} - The full serialized q value
  */
@@ -183,57 +169,85 @@ export function rebuildQ(definedChips, textOnlyQ) {
     const chipParts = [];
 
     definedChips.forEach((c) => {
-      // ── File Type → Mime Type expansion ─────────────────────
-      if (c.name === "File Type" && c.multiValue) {
-        const mimes = expandFileTypeValues(c.values || []);
-        if (mimes.length > 0) {
-          chipParts.push({
-            n: "Mime Type",
-            v: mimes.join(" OR "),
-            op: c.negate ? "-" : "+",
-            t: "file_type", // marker so parseChips reconstitutes
-          });
-        }
-        return;
-      }
+      const op = c.negate ? "-" : "+";
 
-      // ── Date Range → Created After + Created Before ─────────
-      if (c.dateRange) {
-        const op = c.negate ? "-" : "+";
-        if (c.from) {
-          chipParts.push({ n: "Created After", v: c.from, op, t: "date_range" });
-        }
-        if (c.to) {
-          chipParts.push({ n: "Created Before", v: c.to, op, t: "date_range" });
-        }
-        return;
-      }
+      switch (c.kind) {
+        case CHIP_KIND_DATE_RANGE:
+          if (c.from) {
+            chipParts.push({ n: CHIP_NAME_CREATED_AFTER, v: c.from, op, t: CHIP_TYPE_DATE_RANGE });
+          }
+          if (c.to) {
+            chipParts.push({ n: CHIP_NAME_CREATED_BEFORE, v: c.to, op, t: CHIP_TYPE_DATE_RANGE });
+          }
+          break;
 
-      if (c.multiValue) {
-        // Combine all selected values into a single backend chip with OR syntax
-        if ((c.values || []).length > 0) {
-          chipParts.push({
-            n: c.name,
-            v: c.values.join(" OR "),
-            op: c.negate ? "-" : "+",
-            t: c.chipType,
-          });
+        case CHIP_KIND_MULTI:
+          if ((c.values || []).length > 0) {
+            chipParts.push({
+              n: c.name,
+              v: c.values.join(" OR "),
+              op,
+              t: c.chipType,
+            });
+          }
+          break;
+
+        case CHIP_KIND_SINGLE:
+        default: {
+          const chip = { n: c.name, v: c.value, op, t: c.chipType };
+          if (c.workspaceId) chip.workspaceId = c.workspaceId;
+          if (c.folderId) chip.folderId = c.folderId;
+          chipParts.push(chip);
+          break;
         }
-      } else {
-        const chip = {
-          n: c.name,
-          v: c.value,
-          op: c.negate ? "-" : "+",
-          t: c.chipType,
-        };
-        if (c.workspaceId) chip.workspaceId = c.workspaceId;
-        if (c.folderId) chip.folderId = c.folderId;
-        return chipParts.push(chip);
       }
     });
 
     return JSON.stringify([...textParts, ...chipParts]);
   } catch (e) {
     return textOnlyQ;
+  }
+}
+
+/**
+ * Transform a UI q string into one the backend can process.
+ *
+ * Currently this only expands File Type category chips:
+ *   { n: "File Type", v: "pdf OR web" }
+ *     → { n: "Mime Type", v: "application/pdf OR text/html OR ..." }
+ *
+ * Call this at the API boundary — NOT in rebuildQ — so that
+ * the URL-stored q value stays human-readable and round-trips cleanly.
+ *
+ * @param {string} q - The serialized q value (from rebuildQ or the URL)
+ * @returns {string} - Backend-ready q value
+ */
+export function toBackendQ(q) {
+  if (!q) return q;
+  try {
+    const parsed = JSON.parse(q);
+    if (!Array.isArray(parsed)) return q;
+
+    const transformed = parsed.map((element) => {
+      if (!_isObject(element) || element.n !== CHIP_NAME_FILE_TYPE) return element;
+
+      // Expand File Type category keys → concrete MIME types
+      const categoryKeys = (element.v || "")
+        .split(" OR ")
+        .map((v) => v.trim())
+        .filter(Boolean);
+      const mimes = expandFileTypeValues(categoryKeys);
+      if (mimes.length === 0) return element;
+
+      return {
+        ...element,
+        n: CHIP_NAME_MIME_TYPE,
+        v: mimes.join(" OR "),
+      };
+    });
+
+    return JSON.stringify(transformed);
+  } catch (e) {
+    return q;
   }
 }

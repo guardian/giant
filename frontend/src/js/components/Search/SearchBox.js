@@ -8,6 +8,13 @@ import InputSupper from "../UtilComponents/InputSupper";
 import ActiveFiltersBar from "./ActiveFiltersBar";
 import { isMultiValueChip } from "./ActiveFilterChip";
 import { parseChips, rebuildQ } from "./chipParsing";
+import {
+  CHIP_NAME_DATE_RANGE,
+  CHIP_KIND_SINGLE,
+  CHIP_KIND_MULTI,
+  CHIP_KIND_DATE_RANGE,
+  CHIP_TYPE_DATE_RANGE,
+} from "./chipNames";
 
 export default class SearchBox extends React.Component {
   static propTypes = {
@@ -67,10 +74,10 @@ export default class SearchBox extends React.Component {
     const chip = definedChips[index];
     const targetNegate = !chip.negate;
 
-    if (chip.multiValue) {
+    if (chip.kind === CHIP_KIND_MULTI) {
       // Check if there's already a chip of the same name with the target polarity
       const targetIndex = definedChips.findIndex(
-        (c, i) => i !== index && c.name === chip.name && c.multiValue && c.negate === targetNegate
+        (c, i) => i !== index && c.name === chip.name && c.kind === CHIP_KIND_MULTI && c.negate === targetNegate
       );
       if (targetIndex !== -1) {
         // Merge values into the existing target chip — then remove the source
@@ -101,20 +108,25 @@ export default class SearchBox extends React.Component {
     const { definedChips, textOnlyQ } = this.parseChips();
     let newChips = definedChips.map((c, i) => {
       if (i !== index) return c;
-      // Date Range compound chip — value is { from, to }
-      if (c.dateRange && newValueOrValues && typeof newValueOrValues === "object" && !Array.isArray(newValueOrValues)) {
-        return { ...c, from: newValueOrValues.from, to: newValueOrValues.to };
+      switch (c.kind) {
+        case CHIP_KIND_DATE_RANGE:
+          if (newValueOrValues && typeof newValueOrValues === "object" && !Array.isArray(newValueOrValues)) {
+            return { ...c, from: newValueOrValues.from, to: newValueOrValues.to };
+          }
+          return c;
+        case CHIP_KIND_MULTI: {
+          const values = Array.isArray(newValueOrValues) ? newValueOrValues : [newValueOrValues];
+          return { ...c, values };
+        }
+        case CHIP_KIND_SINGLE:
+        default:
+          return { ...c, value: newValueOrValues };
       }
-      if (c.multiValue) {
-        const values = Array.isArray(newValueOrValues) ? newValueOrValues : [newValueOrValues];
-        return { ...c, values };
-      }
-      return { ...c, value: newValueOrValues };
     });
     // Remove multi-value chips with no values left (reverts to dormant)
-    newChips = newChips.filter((c) => !(c.multiValue && (c.values || []).length === 0));
+    newChips = newChips.filter((c) => !(c.kind === CHIP_KIND_MULTI && (c.values || []).length === 0));
     // Remove date range chips with both dates cleared
-    newChips = newChips.filter((c) => !(c.dateRange && !c.from && !c.to));
+    newChips = newChips.filter((c) => !(c.kind === CHIP_KIND_DATE_RANGE && !c.from && !c.to));
     const newQ = this.rebuildQ(newChips, textOnlyQ);
     this.props.onFilterChange(newQ);
   };
@@ -131,10 +143,10 @@ export default class SearchBox extends React.Component {
     const { definedChips, textOnlyQ } = this.parseChips();
 
     // Date Range activation — valueOrValues is { from, to }
-    if (chipType === "date_range" && valueOrValues && typeof valueOrValues === "object" && !Array.isArray(valueOrValues)) {
+    if (chipType === CHIP_TYPE_DATE_RANGE && valueOrValues && typeof valueOrValues === "object" && !Array.isArray(valueOrValues)) {
       // Merge into an existing Date Range chip of the same polarity if present
       const existingIndex = definedChips.findIndex(
-        (c) => c.dateRange && c.negate === negate
+        (c) => c.kind === CHIP_KIND_DATE_RANGE && c.negate === negate
       );
       if (existingIndex !== -1) {
         const merged = { ...definedChips[existingIndex] };
@@ -146,11 +158,10 @@ export default class SearchBox extends React.Component {
         return;
       }
       const newChip = {
-        name: "Date Range",
+        kind: CHIP_KIND_DATE_RANGE,
+        name: CHIP_NAME_DATE_RANGE,
         negate,
-        chipType: "date_range",
-        multiValue: false,
-        dateRange: true,
+        chipType: CHIP_TYPE_DATE_RANGE,
         from: valueOrValues.from || "",
         to: valueOrValues.to || "",
       };
@@ -161,6 +172,7 @@ export default class SearchBox extends React.Component {
     }
 
     const multi = isMultiValueChip(name);
+    const kind = multi ? CHIP_KIND_MULTI : CHIP_KIND_SINGLE;
     const incomingValues = multi
       ? (Array.isArray(valueOrValues) ? valueOrValues : [valueOrValues])
       : null;
@@ -168,7 +180,7 @@ export default class SearchBox extends React.Component {
     // Try to merge into an existing chip of the same name+polarity
     if (multi) {
       const existingIndex = definedChips.findIndex(
-        (c) => c.name === name && c.multiValue && c.negate === negate
+        (c) => c.name === name && c.kind === CHIP_KIND_MULTI && c.negate === negate
       );
       if (existingIndex !== -1) {
         const merged = { ...definedChips[existingIndex] };
@@ -186,10 +198,10 @@ export default class SearchBox extends React.Component {
 
     // No existing chip to merge into — create a new one
     const newChip = {
+      kind,
       name,
       negate,
       chipType,
-      multiValue: multi,
       ...(multi
         ? { values: incomingValues }
         : { value: valueOrValues }),

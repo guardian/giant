@@ -3,6 +3,7 @@ import PropTypes from "prop-types";
 
 import _isEqual from "lodash/fp/isEqual";
 import SearchBox from "./SearchBox";
+import { toBackendQ } from "./chipParsing";
 
 import SearchResults from "../SearchResults/SearchResults";
 import SearchStatus from "./SearchStatus";
@@ -113,7 +114,8 @@ class Search extends React.Component {
   triggerSearch(query) {
     if (query.q) {
       this.props.resetResource();
-      this.props.performSearch(query);
+      // Expand File Type → Mime Type at the API boundary
+      this.props.performSearch({ ...query, q: toBackendQ(query.q) });
     }
   }
 

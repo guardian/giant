@@ -1,4 +1,4 @@
-import { parseChips, rebuildQ } from "./chipParsing";
+import { parseChips, rebuildQ, toBackendQ } from "./chipParsing";
 
 // --- Helper to build serialized q values ---
 
@@ -45,11 +45,11 @@ describe("parseChips", () => {
 
     expect(definedChips).toHaveLength(1);
     expect(definedChips[0]).toMatchObject({
+      kind: "single",
       name: "Email Subject",
       value: "hello",
       negate: false,
       chipType: "text",
-      multiValue: false,
     });
     expect(JSON.parse(textOnlyQ)).toEqual(["search text"]);
   });
@@ -83,6 +83,7 @@ describe("parseChips", () => {
     const { definedChips } = parseChips(input, []);
 
     expect(definedChips[0]).toMatchObject({
+      kind: "single",
       name: "workspace_folder",
       value: "My Folder",
       workspaceId: "ws-1",
@@ -98,8 +99,8 @@ describe("parseChips", () => {
 
     expect(definedChips).toHaveLength(1);
     expect(definedChips[0]).toMatchObject({
+      kind: "multi",
       name: "Mime Type",
-      multiValue: true,
       values: ["application/pdf", "text/plain"],
     });
   });
@@ -137,7 +138,7 @@ describe("parseChips", () => {
     const { definedChips } = parseChips(input, []);
 
     expect(definedChips[0]).toMatchObject({
-      multiValue: true,
+      kind: "multi",
       values: ["email", "ocr"],
     });
   });
@@ -166,16 +167,16 @@ describe("parseChips", () => {
     expect(definedChips).toHaveLength(2);
     // Mime Type comes first (processed in loop), Date Range is appended after
     expect(definedChips[0]).toMatchObject({
+      kind: "multi",
       name: "Mime Type",
       values: ["application/pdf", "text/html"],
       negate: true,
-      multiValue: true,
     });
     expect(definedChips[1]).toMatchObject({
+      kind: "dateRange",
       name: "Date Range",
       from: "2025-01-01",
       to: "",
-      dateRange: true,
     });
   });
 });
@@ -192,11 +193,11 @@ describe("rebuildQ", () => {
 
   test("rebuilds a single-value chip", () => {
     const chips = [{
+      kind: "single",
       name: "Email Subject",
       value: "hello",
       negate: false,
       chipType: "text",
-      multiValue: false,
     }];
     const result = rebuildQ(chips, '["text"]');
     const parsed = JSON.parse(result);
@@ -213,11 +214,11 @@ describe("rebuildQ", () => {
 
   test("rebuilds a negated chip with op '-'", () => {
     const chips = [{
+      kind: "single",
       name: "File Path",
       value: "/docs",
       negate: true,
       chipType: "text",
-      multiValue: false,
     }];
     const result = rebuildQ(chips, '[]');
     const parsed = JSON.parse(result);
@@ -226,11 +227,11 @@ describe("rebuildQ", () => {
 
   test("rebuilds a multi-value chip with OR syntax", () => {
     const chips = [{
+      kind: "multi",
       name: "Mime Type",
       values: ["application/pdf", "text/plain"],
       negate: false,
       chipType: "text",
-      multiValue: true,
     }];
     const result = rebuildQ(chips, '[]');
     const parsed = JSON.parse(result);
@@ -246,11 +247,11 @@ describe("rebuildQ", () => {
 
   test("omits multi-value chip with empty values array", () => {
     const chips = [{
+      kind: "multi",
       name: "Mime Type",
       values: [],
       negate: false,
       chipType: "text",
-      multiValue: true,
     }];
     const result = rebuildQ(chips, '["text"]');
     const parsed = JSON.parse(result);
@@ -259,11 +260,11 @@ describe("rebuildQ", () => {
 
   test("preserves workspace_folder extra fields", () => {
     const chips = [{
+      kind: "single",
       name: "workspace_folder",
       value: "My Folder",
       negate: false,
       chipType: "workspace_folder",
-      multiValue: false,
       workspaceId: "ws-1",
       folderId: "f-2",
     }];
@@ -278,11 +279,11 @@ describe("rebuildQ", () => {
 
   test("does not include workspaceId/folderId when absent", () => {
     const chips = [{
+      kind: "single",
       name: "Email Subject",
       value: "test",
       negate: false,
       chipType: "text",
-      multiValue: false,
     }];
     const result = rebuildQ(chips, '[]');
     const parsed = JSON.parse(result);
@@ -314,11 +315,13 @@ describe("round-trip", () => {
 
     expect(reparsed.definedChips).toHaveLength(2);
     expect(reparsed.definedChips[0]).toMatchObject({
+      kind: "single",
       name: "Email Subject",
       value: "hello",
       negate: false,
     });
     expect(reparsed.definedChips[1]).toMatchObject({
+      kind: "single",
       name: "File Path",
       value: "/secret",
       negate: true,
@@ -354,6 +357,7 @@ describe("round-trip", () => {
     const reparsed = parseChips(rebuilt, []);
 
     expect(reparsed.definedChips[0]).toMatchObject({
+      kind: "single",
       name: "workspace_folder",
       value: "Reports",
       workspaceId: "ws-42",
@@ -384,7 +388,7 @@ describe("round-trip", () => {
 
     // Verify Date Range reconstituted
     const dr = reparsed.definedChips.find((c) => c.name === "Date Range");
-    expect(dr).toMatchObject({ from: "2025-03-01", to: "", dateRange: true });
+    expect(dr).toMatchObject({ kind: "dateRange", from: "2025-03-01", to: "" });
   });
 });
 
@@ -402,16 +406,16 @@ describe("dual-polarity multi-value chips", () => {
 
     expect(definedChips).toHaveLength(2);
     expect(definedChips[0]).toMatchObject({
+      kind: "multi",
       name: "Mime Type",
       values: ["application/pdf"],
       negate: false,
-      multiValue: true,
     });
     expect(definedChips[1]).toMatchObject({
+      kind: "multi",
       name: "Mime Type",
       values: ["image/jpeg"],
       negate: true,
-      multiValue: true,
     });
   });
 
@@ -480,43 +484,36 @@ describe("dual-polarity multi-value chips", () => {
 // =============================================================================
 
 describe("File Type round-trip", () => {
-  test("rebuildQ expands File Type categories to Mime Type backend chips", () => {
+  test("rebuildQ serializes File Type as n:File Type (not Mime Type)", () => {
     const chips = [
-      { name: "File Type", values: ["pdf", "web"], negate: false, chipType: "file_type", multiValue: true },
+      { kind: "multi", name: "File Type", values: ["pdf", "web"], negate: false, chipType: "file_type" },
     ];
     const rebuilt = rebuildQ(chips, "[]");
     const parsed = JSON.parse(rebuilt);
 
-    // Should produce a single Mime Type backend chip
     expect(parsed).toHaveLength(1);
-    expect(parsed[0].n).toBe("Mime Type");
-    expect(parsed[0].t).toBe("file_type");
+    expect(parsed[0].n).toBe("File Type");
+    expect(parsed[0].v).toBe("pdf OR web");
     expect(parsed[0].op).toBe("+");
-    // Should contain all mimes from pdf + web
-    expect(parsed[0].v).toContain("application/pdf");
-    expect(parsed[0].v).toContain("text/html");
-    expect(parsed[0].v).toContain("application/xhtml+xml");
   });
 
-  test("parseChips reconstitutes File Type from t:file_type backend chip", () => {
-    const input = q(
-      chip("Mime Type", "application/pdf OR text/html OR application/xhtml+xml", "+", "file_type")
-    );
+  test("parseChips parses File Type chip directly (no reconstitution needed)", () => {
+    const input = q(chip("File Type", "pdf OR web", "+", "file_type"));
     const { definedChips } = parseChips(input, []);
 
     expect(definedChips).toHaveLength(1);
     expect(definedChips[0]).toMatchObject({
+      kind: "multi",
       name: "File Type",
       values: ["pdf", "web"],
       negate: false,
       chipType: "file_type",
-      multiValue: true,
     });
   });
 
   test("File Type chip survives a full round-trip", () => {
     const original = [
-      { name: "File Type", values: ["spreadsheet", "email"], negate: false, chipType: "file_type", multiValue: true },
+      { kind: "multi", name: "File Type", values: ["spreadsheet", "email"], negate: false, chipType: "file_type" },
     ];
     const rebuilt = rebuildQ(original, "[]");
     const { definedChips } = parseChips(rebuilt, []);
@@ -529,7 +526,7 @@ describe("File Type round-trip", () => {
 
   test("negated File Type chip round-trips", () => {
     const original = [
-      { name: "File Type", values: ["archive"], negate: true, chipType: "file_type", multiValue: true },
+      { kind: "multi", name: "File Type", values: ["archive"], negate: true, chipType: "file_type" },
     ];
     const rebuilt = rebuildQ(original, "[]");
     const { definedChips } = parseChips(rebuilt, []);
@@ -542,8 +539,8 @@ describe("File Type round-trip", () => {
 
   test("dual-polarity File Type chips round-trip independently", () => {
     const original = [
-      { name: "File Type", values: ["pdf"], negate: false, chipType: "file_type", multiValue: true },
-      { name: "File Type", values: ["image"], negate: true, chipType: "file_type", multiValue: true },
+      { kind: "multi", name: "File Type", values: ["pdf"], negate: false, chipType: "file_type" },
+      { kind: "multi", name: "File Type", values: ["image"], negate: true, chipType: "file_type" },
     ];
     const rebuilt = rebuildQ(original, "[]");
     const { definedChips } = parseChips(rebuilt, []);
@@ -557,70 +554,132 @@ describe("File Type round-trip", () => {
 
   test("File Type chip coexists with regular Mime Type chip", () => {
     const input = q(
-      chip("Mime Type", "application/pdf", "+", "file_type"),
+      chip("File Type", "pdf", "+", "file_type"),
       chip("Mime Type", "application/json", "+", "text")
     );
     const { definedChips } = parseChips(input, []);
 
     expect(definedChips).toHaveLength(2);
-    // First is reconstituted as File Type
     expect(definedChips[0]).toMatchObject({
+      kind: "multi",
       name: "File Type",
       values: ["pdf"],
-      multiValue: true,
     });
-    // Second stays as Mime Type
     expect(definedChips[1]).toMatchObject({
+      kind: "multi",
       name: "Mime Type",
       values: ["application/json"],
-      multiValue: true,
     });
   });
 
   test("File Type with empty values produces no backend chip", () => {
     const chips = [
-      { name: "File Type", values: [], negate: false, chipType: "file_type", multiValue: true },
+      { kind: "multi", name: "File Type", values: [], negate: false, chipType: "file_type" },
     ];
     const rebuilt = rebuildQ(chips, "[]");
     expect(JSON.parse(rebuilt)).toEqual([]);
-  });
-
-  test("File Type with unknown category keys produces no backend chip", () => {
-    const chips = [
-      { name: "File Type", values: ["nonexistent"], negate: false, chipType: "file_type", multiValue: true },
-    ];
-    const rebuilt = rebuildQ(chips, "[]");
-    expect(JSON.parse(rebuilt)).toEqual([]);
-  });
-
-  test("mimes not in any category are dropped during reconstitution", () => {
-    const input = q(
-      chip("Mime Type", "application/pdf OR application/x-unknown", "+", "file_type")
-    );
-    const { definedChips } = parseChips(input, []);
-
-    expect(definedChips).toHaveLength(1);
-    expect(definedChips[0].values).toEqual(["pdf"]);
-  });
-
-  test("all-unknown mimes in a file_type chip produce no UI chip", () => {
-    const input = q(
-      chip("Mime Type", "application/x-unknown", "+", "file_type")
-    );
-    const { definedChips } = parseChips(input, []);
-    expect(definedChips).toHaveLength(0);
   });
 
   test("File Type preserves text alongside chips", () => {
     const input = q(
       "search terms",
-      chip("Mime Type", "application/pdf OR text/html OR application/xhtml+xml", "+", "file_type")
+      chip("File Type", "pdf OR web", "+", "file_type")
     );
     const { definedChips, textOnlyQ } = parseChips(input, []);
 
     expect(JSON.parse(textOnlyQ)).toEqual(["search terms"]);
     expect(definedChips).toHaveLength(1);
     expect(definedChips[0].name).toBe("File Type");
+  });
+});
+
+// =============================================================================
+// toBackendQ — API boundary transform
+// =============================================================================
+
+describe("toBackendQ", () => {
+  test("returns null/empty unchanged", () => {
+    expect(toBackendQ(null)).toBe(null);
+    expect(toBackendQ(undefined)).toBe(undefined);
+    expect(toBackendQ("")).toBe("");
+  });
+
+  test("returns non-array JSON unchanged", () => {
+    const input = JSON.stringify({ foo: "bar" });
+    expect(toBackendQ(input)).toBe(input);
+  });
+
+  test("returns invalid JSON unchanged", () => {
+    expect(toBackendQ("not json")).toBe("not json");
+  });
+
+  test("passes through text elements unchanged", () => {
+    const input = q("hello", "world");
+    expect(toBackendQ(input)).toBe(input);
+  });
+
+  test("passes through non-File Type chips unchanged", () => {
+    const input = q(
+      chip("Mime Type", "application/pdf", "+", "text"),
+      chip("Email Subject", "hello", "+", "text")
+    );
+    expect(toBackendQ(input)).toBe(input);
+  });
+
+  test("expands File Type to Mime Type", () => {
+    const input = q(chip("File Type", "pdf", "+", "file_type"));
+    const result = JSON.parse(toBackendQ(input));
+
+    expect(result).toHaveLength(1);
+    expect(result[0].n).toBe("Mime Type");
+    expect(result[0].v).toContain("application/pdf");
+    expect(result[0].op).toBe("+");
+  });
+
+  test("expands multiple File Type categories", () => {
+    const input = q(chip("File Type", "pdf OR web", "+", "file_type"));
+    const result = JSON.parse(toBackendQ(input));
+
+    expect(result[0].n).toBe("Mime Type");
+    expect(result[0].v).toContain("application/pdf");
+    expect(result[0].v).toContain("text/html");
+    expect(result[0].v).toContain("application/xhtml+xml");
+  });
+
+  test("preserves op and other fields during expansion", () => {
+    const input = q(chip("File Type", "pdf", "-", "file_type"));
+    const result = JSON.parse(toBackendQ(input));
+
+    expect(result[0].op).toBe("-");
+    expect(result[0].n).toBe("Mime Type");
+  });
+
+  test("leaves non-File Type chips untouched alongside File Type", () => {
+    const input = q(
+      "text",
+      chip("File Type", "pdf", "+", "file_type"),
+      chip("Email Subject", "hello", "+", "text")
+    );
+    const result = JSON.parse(toBackendQ(input));
+
+    expect(result).toHaveLength(3);
+    expect(result[0]).toBe("text");
+    expect(result[1].n).toBe("Mime Type");
+    expect(result[2]).toMatchObject({ n: "Email Subject", v: "hello" });
+  });
+
+  test("full pipeline: rebuildQ → toBackendQ produces backend-ready chips", () => {
+    const chips = [
+      { kind: "multi", name: "File Type", values: ["pdf", "spreadsheet"], negate: false, chipType: "file_type" },
+    ];
+    const uiQ = rebuildQ(chips, "[]");
+    const backendQ = toBackendQ(uiQ);
+    const parsed = JSON.parse(backendQ);
+
+    expect(parsed).toHaveLength(1);
+    expect(parsed[0].n).toBe("Mime Type");
+    expect(parsed[0].v).toContain("application/pdf");
+    expect(parsed[0].v).toContain("application/vnd.ms-excel");
   });
 });
 
@@ -638,12 +697,12 @@ describe("Date Range round-trip", () => {
 
     expect(definedChips).toHaveLength(1);
     expect(definedChips[0]).toMatchObject({
+      kind: "dateRange",
       name: "Date Range",
       from: "2025-01-01",
       to: "2025-12-31",
       negate: false,
       chipType: "date_range",
-      dateRange: true,
     });
   });
 
@@ -653,10 +712,10 @@ describe("Date Range round-trip", () => {
 
     expect(definedChips).toHaveLength(1);
     expect(definedChips[0]).toMatchObject({
+      kind: "dateRange",
       name: "Date Range",
       from: "2025-06-01",
       to: "",
-      dateRange: true,
     });
   });
 
@@ -666,16 +725,16 @@ describe("Date Range round-trip", () => {
 
     expect(definedChips).toHaveLength(1);
     expect(definedChips[0]).toMatchObject({
+      kind: "dateRange",
       name: "Date Range",
       from: "",
       to: "2025-12-31",
-      dateRange: true,
     });
   });
 
   test("rebuildQ expands Date Range to separate backend chips", () => {
     const chips = [
-      { name: "Date Range", from: "2025-01-01", to: "2025-12-31", negate: false, chipType: "date_range", dateRange: true, multiValue: false },
+      { kind: "dateRange", name: "Date Range", from: "2025-01-01", to: "2025-12-31", negate: false, chipType: "date_range" },
     ];
     const rebuilt = rebuildQ(chips, "[]");
     const parsed = JSON.parse(rebuilt);
@@ -687,7 +746,7 @@ describe("Date Range round-trip", () => {
 
   test("rebuildQ omits empty from/to", () => {
     const fromOnly = [
-      { name: "Date Range", from: "2025-06-01", to: "", negate: false, chipType: "date_range", dateRange: true, multiValue: false },
+      { kind: "dateRange", name: "Date Range", from: "2025-06-01", to: "", negate: false, chipType: "date_range" },
     ];
     const rebuilt = rebuildQ(fromOnly, "[]");
     const parsed = JSON.parse(rebuilt);
@@ -698,7 +757,7 @@ describe("Date Range round-trip", () => {
 
   test("rebuildQ produces no chips when both dates are empty", () => {
     const chips = [
-      { name: "Date Range", from: "", to: "", negate: false, chipType: "date_range", dateRange: true, multiValue: false },
+      { kind: "dateRange", name: "Date Range", from: "", to: "", negate: false, chipType: "date_range" },
     ];
     const rebuilt = rebuildQ(chips, "[]");
     expect(JSON.parse(rebuilt)).toEqual([]);
@@ -706,24 +765,24 @@ describe("Date Range round-trip", () => {
 
   test("Date Range survives a full round-trip", () => {
     const original = [
-      { name: "Date Range", from: "2025-03-01", to: "2025-09-30", negate: false, chipType: "date_range", dateRange: true, multiValue: false },
+      { kind: "dateRange", name: "Date Range", from: "2025-03-01", to: "2025-09-30", negate: false, chipType: "date_range" },
     ];
     const rebuilt = rebuildQ(original, "[]");
     const { definedChips } = parseChips(rebuilt, []);
 
     expect(definedChips).toHaveLength(1);
     expect(definedChips[0]).toMatchObject({
+      kind: "dateRange",
       name: "Date Range",
       from: "2025-03-01",
       to: "2025-09-30",
       negate: false,
-      dateRange: true,
     });
   });
 
   test("negated Date Range round-trips", () => {
     const original = [
-      { name: "Date Range", from: "2025-01-01", to: "2025-06-30", negate: true, chipType: "date_range", dateRange: true, multiValue: false },
+      { kind: "dateRange", name: "Date Range", from: "2025-01-01", to: "2025-06-30", negate: true, chipType: "date_range" },
     ];
     const rebuilt = rebuildQ(original, "[]");
     const { definedChips } = parseChips(rebuilt, []);
@@ -761,6 +820,7 @@ describe("Date Range round-trip", () => {
     expect(JSON.parse(textOnlyQ)).toEqual(["search text"]);
     expect(definedChips).toHaveLength(2);
     expect(definedChips.find((c) => c.name === "Date Range")).toMatchObject({
+      kind: "dateRange",
       from: "2025-01-01",
       to: "",
     });
@@ -777,10 +837,10 @@ describe("Date Range round-trip", () => {
 
     expect(definedChips).toHaveLength(1);
     expect(definedChips[0]).toMatchObject({
+      kind: "dateRange",
       name: "Date Range",
       from: "2024-01-01",
       to: "2024-12-31",
-      dateRange: true,
     });
   });
 });

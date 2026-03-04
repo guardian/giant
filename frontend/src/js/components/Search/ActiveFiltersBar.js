@@ -1,6 +1,17 @@
 import React from "react";
 import PropTypes from "prop-types";
 import ActiveFilterChip from "./ActiveFilterChip";
+import {
+  CHIP_NAME_FILE_TYPE,
+  CHIP_NAME_DATE_RANGE,
+  CHIP_NAME_HAS_FIELD,
+  CHIP_KIND_SINGLE,
+  CHIP_KIND_MULTI,
+  CHIP_KIND_DATE_RANGE,
+  CHIP_TYPE_FILE_TYPE,
+  CHIP_TYPE_DATE_RANGE,
+  CHIP_TYPE_DROPDOWN,
+} from "./chipNames";
 
 /**
  * Default filter chips shown when no filters are active.
@@ -8,9 +19,9 @@ import ActiveFilterChip from "./ActiveFilterChip";
  * Each maps to a chip type with sensible defaults.
  */
 const DEFAULT_FILTERS = [
-  { name: "File Type", chipType: "file_type", label: "File Type", multiValue: true },
-  { name: "Date Range", chipType: "date_range", label: "Date Range", multiValue: false, dateRange: true },
-  { name: "Has Field", chipType: "dropdown", label: "Has Field", multiValue: true },
+  { name: CHIP_NAME_FILE_TYPE, chipType: CHIP_TYPE_FILE_TYPE, label: CHIP_NAME_FILE_TYPE, kind: CHIP_KIND_MULTI },
+  { name: CHIP_NAME_DATE_RANGE, chipType: CHIP_TYPE_DATE_RANGE, label: CHIP_NAME_DATE_RANGE, kind: CHIP_KIND_DATE_RANGE },
+  { name: CHIP_NAME_HAS_FIELD, chipType: CHIP_TYPE_DROPDOWN, label: CHIP_NAME_HAS_FIELD, kind: CHIP_KIND_MULTI },
 ];
 
 /**
@@ -29,7 +40,7 @@ export default class ActiveFiltersBar extends React.Component {
         values: PropTypes.arrayOf(PropTypes.string),
         negate: PropTypes.bool.isRequired,
         chipType: PropTypes.string.isRequired,
-        multiValue: PropTypes.bool,
+        kind: PropTypes.oneOf([CHIP_KIND_SINGLE, CHIP_KIND_MULTI, CHIP_KIND_DATE_RANGE]).isRequired,
         options: PropTypes.array,
         workspaceId: PropTypes.string,
         folderId: PropTypes.string,
@@ -67,10 +78,9 @@ export default class ActiveFiltersBar extends React.Component {
               values={chip.values}
               from={chip.from}
               to={chip.to}
-              dateRange={chip.dateRange}
+              kind={chip.kind}
               negate={chip.negate}
               chipType={chip.chipType}
-              multiValue={chip.multiValue}
               options={chip.options}
               onRemove={() => onRemoveChip(index)}
               onToggleNegate={() => onToggleNegate(index)}
@@ -84,12 +94,11 @@ export default class ActiveFiltersBar extends React.Component {
                 key={`default-${def.name}`}
                 index={-1}
                 name={def.label}
-                value={def.multiValue ? undefined : "all"}
-                values={def.multiValue ? [] : undefined}
-                dateRange={def.dateRange}
+                value={def.kind === CHIP_KIND_MULTI ? undefined : "all"}
+                values={def.kind === CHIP_KIND_MULTI ? [] : undefined}
+                kind={def.kind}
                 negate={false}
                 chipType={def.chipType}
-                multiValue={def.multiValue}
                 options={fieldDef ? fieldDef.options : undefined}
                 dormant
                 onRemove={() => {}}
@@ -112,12 +121,11 @@ export default class ActiveFiltersBar extends React.Component {
               key={`default-${def.name}`}
               index={-1}
               name={def.label}
-              value={def.multiValue ? undefined : "all"}
-              values={def.multiValue ? [] : undefined}
-              dateRange={def.dateRange}
+              value={def.kind === CHIP_KIND_MULTI ? undefined : "all"}
+              values={def.kind === CHIP_KIND_MULTI ? [] : undefined}
+              kind={def.kind}
               negate={false}
               chipType={def.chipType}
-              multiValue={def.multiValue}
               options={fieldDef ? fieldDef.options : undefined}
               dormant
               onRemove={() => {}}
