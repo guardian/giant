@@ -16,9 +16,9 @@ function chip(name, value, op = "+", type = "text", extra = {}) {
 
 describe("parseChips", () => {
   test("returns empty for null/undefined q", () => {
-    expect(parseChips(null, [])).toEqual({ definedChips: [], textOnlyQ: null });
-    expect(parseChips(undefined, [])).toEqual({ definedChips: [], textOnlyQ: undefined });
-    expect(parseChips("", [])).toEqual({ definedChips: [], textOnlyQ: "" });
+    expect(parseChips(null, [])).toEqual({ definedChips: [], textOnlyQ: "[]" });
+    expect(parseChips(undefined, [])).toEqual({ definedChips: [], textOnlyQ: "[]" });
+    expect(parseChips("", [])).toEqual({ definedChips: [], textOnlyQ: "[]" });
   });
 
   test("returns empty for non-array JSON", () => {

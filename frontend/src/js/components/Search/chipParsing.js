@@ -42,7 +42,7 @@ import {
  * @returns {{ definedChips: Array, textOnlyQ: string }}
  */
 export function parseChips(q, suggestedFields) {
-  if (!q) return { definedChips: [], textOnlyQ: q };
+  if (!q) return { definedChips: [], textOnlyQ: "[]" };
 
   try {
     const parsed = JSON.parse(q);
@@ -170,7 +170,7 @@ export function parseChips(q, suggestedFields) {
  */
 export function rebuildQ(definedChips, textOnlyQ) {
   try {
-    const textParts = JSON.parse(textOnlyQ);
+    const textParts = textOnlyQ ? JSON.parse(textOnlyQ) : [];
     const chipParts = [];
 
     definedChips.forEach((c) => {
