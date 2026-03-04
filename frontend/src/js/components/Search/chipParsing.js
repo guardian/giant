@@ -13,6 +13,7 @@ import {
   CHIP_KIND_SINGLE,
   CHIP_KIND_MULTI,
   CHIP_KIND_DATE_RANGE,
+  CHIP_TYPE_FILE_TYPE,
   CHIP_TYPE_DATE_RANGE,
   CHIP_TYPE_WORKSPACE_FOLDER,
 } from "./chipNames";
@@ -250,4 +251,62 @@ export function toBackendQ(q) {
   } catch (e) {
     return q;
   }
+}
+
+// ── Sidebar ↔ Chip bridging helpers ─────────────────────────────────
+
+/**
+ * Extract File Type category values from a q string.
+ * Returns an empty array if no File Type chip is present.
+ *
+ * @param {string} q
+ * @returns {string[]} e.g. ["pdf", "word"]
+ */
+export function getFileTypeCategoriesFromQ(q) {
+  if (!q) return [];
+  try {
+    const parsed = JSON.parse(q);
+    if (!Array.isArray(parsed)) return [];
+    for (const el of parsed) {
+      if (_isObject(el) && el.n === CHIP_NAME_FILE_TYPE) {
+        return (el.v || "")
+          .split(" OR ")
+          .map((v) => v.trim())
+          .filter(Boolean);
+      }
+    }
+    return [];
+  } catch (e) {
+    return [];
+  }
+}
+
+/**
+ * Return a new q string with the File Type chip set to the given categories.
+ * If categories is empty, the File Type chip is removed.
+ * If no File Type chip exists yet, one is created.
+ *
+ * @param {string} q            - current serialised q
+ * @param {string[]} categories - category keys, e.g. ["pdf", "word"]
+ * @returns {string} updated q
+ */
+export function setFileTypeCategoriesInQ(q, categories) {
+  const { definedChips, textOnlyQ } = parseChips(q, []);
+
+  // Remove any existing File Type chip(s)
+  const otherChips = definedChips.filter(
+    (c) => c.name !== CHIP_NAME_FILE_TYPE
+  );
+
+  if (categories.length > 0) {
+    otherChips.push({
+      kind: CHIP_KIND_MULTI,
+      name: CHIP_NAME_FILE_TYPE,
+      values: categories,
+      negate: false,
+      chipType: CHIP_TYPE_FILE_TYPE,
+    });
+  }
+
+  return rebuildQ(otherChips, textOnlyQ);
 }

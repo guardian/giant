@@ -2,6 +2,7 @@ import {
   FILE_TYPE_CATEGORIES,
   expandFileTypeValues,
   collapseMimesToCategories,
+  mimeToCategory,
 } from "./fileTypeCategories";
 
 describe("FILE_TYPE_CATEGORIES", () => {
@@ -114,5 +115,26 @@ describe("collapseMimesToCategories", () => {
     const mimes = expandFileTypeValues(categories);
     const back = collapseMimesToCategories(mimes);
     expect(back).toEqual(categories);
+  });
+});
+
+describe("mimeToCategory", () => {
+  test("returns category for a known MIME type", () => {
+    expect(mimeToCategory("application/pdf")).toBe("pdf");
+    expect(mimeToCategory("text/html")).toBe("web");
+    expect(mimeToCategory("message/rfc822")).toBe("email");
+  });
+
+  test("returns undefined for an unknown MIME type", () => {
+    expect(mimeToCategory("application/x-unknown")).toBeUndefined();
+    expect(mimeToCategory("")).toBeUndefined();
+  });
+
+  test("handles all categories", () => {
+    FILE_TYPE_CATEGORIES.forEach((cat) => {
+      cat.mimes.forEach((mime) => {
+        expect(mimeToCategory(mime)).toBe(cat.value);
+      });
+    });
   });
 });

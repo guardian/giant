@@ -150,6 +150,14 @@ export function expandFileTypeValues(categoryKeys) {
 }
 
 /**
+ * Look up the category key for a single MIME type.
+ * Returns undefined if the MIME doesn't belong to any category.
+ */
+export function mimeToCategory(mime) {
+  return _mimeToCategory.get(mime);
+}
+
+/**
  * Reverse-map an array of MIME types back to unique category keys,
  * preserving the order in which each category first appears.
  * MIMEs that don't match any category are silently dropped.

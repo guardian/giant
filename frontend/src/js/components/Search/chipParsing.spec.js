@@ -1,4 +1,4 @@
-import { parseChips, rebuildQ, toBackendQ } from "./chipParsing";
+import { parseChips, rebuildQ, toBackendQ, getFileTypeCategoriesFromQ, setFileTypeCategoriesInQ } from "./chipParsing";
 
 // --- Helper to build serialized q values ---
 
@@ -842,5 +842,118 @@ describe("Date Range round-trip", () => {
       from: "2024-01-01",
       to: "2024-12-31",
     });
+  });
+});
+
+// =============================================================================
+// getFileTypeCategoriesFromQ
+// =============================================================================
+
+describe("getFileTypeCategoriesFromQ", () => {
+  test("returns empty array for null/undefined/empty q", () => {
+    expect(getFileTypeCategoriesFromQ(null)).toEqual([]);
+    expect(getFileTypeCategoriesFromQ(undefined)).toEqual([]);
+    expect(getFileTypeCategoriesFromQ("")).toEqual([]);
+  });
+
+  test("returns empty array when no File Type chip exists", () => {
+    const input = q("search text", chip("Mime Type", "application/pdf"));
+    expect(getFileTypeCategoriesFromQ(input)).toEqual([]);
+  });
+
+  test("extracts single category", () => {
+    const input = q(chip("File Type", "pdf", "+", "file_type"));
+    expect(getFileTypeCategoriesFromQ(input)).toEqual(["pdf"]);
+  });
+
+  test("extracts multiple OR-joined categories", () => {
+    const input = q(chip("File Type", "pdf OR word OR email", "+", "file_type"));
+    expect(getFileTypeCategoriesFromQ(input)).toEqual(["pdf", "word", "email"]);
+  });
+
+  test("returns empty for invalid JSON", () => {
+    expect(getFileTypeCategoriesFromQ("not json")).toEqual([]);
+  });
+
+  test("finds File Type chip among other chips", () => {
+    const input = q(
+      "text",
+      chip("Has Field", "email-subject", "+", "dropdown"),
+      chip("File Type", "spreadsheet", "+", "file_type")
+    );
+    expect(getFileTypeCategoriesFromQ(input)).toEqual(["spreadsheet"]);
+  });
+});
+
+// =============================================================================
+// setFileTypeCategoriesInQ
+// =============================================================================
+
+describe("setFileTypeCategoriesInQ", () => {
+  test("creates a File Type chip when none exists", () => {
+    const input = q("search text");
+    const result = setFileTypeCategoriesInQ(input, ["pdf"]);
+    const parsed = JSON.parse(result);
+
+    const fileTypeChip = parsed.find((el) => typeof el === "object" && el.n === "File Type");
+    expect(fileTypeChip).toBeTruthy();
+    expect(fileTypeChip.v).toBe("pdf");
+    expect(fileTypeChip.t).toBe("file_type");
+  });
+
+  test("updates an existing File Type chip", () => {
+    const input = q("text", chip("File Type", "pdf", "+", "file_type"));
+    const result = setFileTypeCategoriesInQ(input, ["pdf", "word"]);
+    const parsed = JSON.parse(result);
+
+    const fileTypeChips = parsed.filter((el) => typeof el === "object" && el.n === "File Type");
+    expect(fileTypeChips).toHaveLength(1);
+    expect(fileTypeChips[0].v).toBe("pdf OR word");
+  });
+
+  test("removes File Type chip when categories is empty", () => {
+    const input = q("text", chip("File Type", "pdf", "+", "file_type"));
+    const result = setFileTypeCategoriesInQ(input, []);
+    const parsed = JSON.parse(result);
+
+    const fileTypeChip = parsed.find((el) => typeof el === "object" && el.n === "File Type");
+    expect(fileTypeChip).toBeUndefined();
+    expect(parsed).toContain("text");
+  });
+
+  test("preserves other chips when adding File Type", () => {
+    const input = q(
+      "text",
+      chip("Has Field", "email-subject", "+", "dropdown")
+    );
+    const result = setFileTypeCategoriesInQ(input, ["email"]);
+    const parsed = JSON.parse(result);
+
+    expect(parsed.find((el) => typeof el === "object" && el.n === "Has Field")).toBeTruthy();
+    expect(parsed.find((el) => typeof el === "object" && el.n === "File Type")).toBeTruthy();
+  });
+
+  test("round-trips through getFileTypeCategoriesFromQ", () => {
+    const input = q("hello");
+    const categories = ["pdf", "spreadsheet", "email"];
+    const updated = setFileTypeCategoriesInQ(input, categories);
+    expect(getFileTypeCategoriesFromQ(updated)).toEqual(categories);
+  });
+
+  test("preserves text and other chips through round-trip", () => {
+    const input = q(
+      "search terms",
+      chip("Created After", "2025-01-01", "+", "date_range"),
+      chip("Created Before", "2025-06-01", "+", "date_range")
+    );
+    const updated = setFileTypeCategoriesInQ(input, ["web"]);
+
+    // File Type was added
+    expect(getFileTypeCategoriesFromQ(updated)).toEqual(["web"]);
+
+    // Date Range chip and text survived
+    const { definedChips, textOnlyQ } = parseChips(updated, []);
+    expect(JSON.parse(textOnlyQ)).toContain("search terms");
+    expect(definedChips.find((c) => c.kind === "dateRange")).toBeTruthy();
   });
 });

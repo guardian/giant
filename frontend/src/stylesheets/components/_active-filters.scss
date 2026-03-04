@@ -23,7 +23,7 @@
   & > button {
     display: inline-flex;
     height: 100%;
-    width: 20px;
+    width: 26px;
     border: none;
     padding: 0;
     flex-direction: row;
@@ -31,6 +31,7 @@
     vertical-align: top;
     color: white;
     cursor: pointer;
+    font-size: 16px;
 
     &:focus-visible {
       outline: 2px solid white;
@@ -159,18 +160,18 @@
 
   // Native date input
   &__date-input {
-    background: rgba(255, 255, 255, 0.2);
-    border: 1px solid rgba(255, 255, 255, 0.5);
-    border-radius: 3px;
+    background: none;
+    border: none;
+    border-radius: 0;
     color: white;
-    font-size: 12px;
-    padding: 2px 4px;
+    font-size: 13px;
+    padding: 3px 4px;
     outline: none;
     color-scheme: dark;
 
     &:focus {
-      border-color: white;
-      background: rgba(255, 255, 255, 0.3);
+      background: rgba(255, 255, 255, 0.15);
+      border-radius: 3px;
     }
   }
 
@@ -183,8 +184,8 @@
 
   &__date-range-sep {
     color: rgba(255, 255, 255, 0.6);
-    font-size: 11px;
-    padding: 0 1px;
+    font-size: 13px;
+    padding: 0 2px;
     user-select: none;
   }
 
@@ -236,7 +237,7 @@
   // Right end-cap — visual bookend on dormant chips (same size as remove button, no icon)
   &__end-cap {
     display: inline-flex;
-    width: 20px;
+    width: 26px;
     height: 100%;
     vertical-align: top;
     border-radius: 0 $borderRadiusLarge $borderRadiusLarge 0;
@@ -289,7 +290,7 @@
 
   // Dormant date input — looks like a subtle pick button
   &__date-input--dormant {
-    width: 20px;
+    width: 26px;
     opacity: 0.5;
     cursor: pointer;
     margin-left: 4px;
@@ -347,7 +348,7 @@
   }
 
   &__multi-select-arrow {
-    font-size: 10px;
+    font-size: 16px;
     opacity: 0.7;
     flex-shrink: 0;
   }

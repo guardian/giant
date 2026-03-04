@@ -10,14 +10,29 @@ import * as getFilters from "../../actions/getFilters";
 import * as updateSearchFilters from "../../actions/urlParams/updateSearchQuery";
 import * as setFilterExpansionState from "../../actions/setFilterExpansionState";
 
+import {
+  getFileTypeCategoriesFromQ,
+  setFileTypeCategoriesInQ,
+} from "../Search/chipParsing";
+import {
+  expandFileTypeValues,
+  collapseMimesToCategories,
+} from "../Search/fileTypeCategories";
+
+/** Sidebar filter key for MIME types (from backend /api/filters) */
+const MIME_TYPE_FILTER_KEY = "mimeType";
+
 export class SearchSidebarUnconnected extends React.Component {
   static propTypes = {
     filters: PropTypes.array,
     activeFilters: PropTypes.object,
+    /** The raw q string from urlParams (used to derive mimeType state) */
+    q: PropTypes.string,
     currentResults: searchResultsPropType,
     filterActions: PropTypes.shape({
       getFilters: PropTypes.func.isRequired,
       updateSearchQueryFilters: PropTypes.func.isRequired,
+      updateSearchText: PropTypes.func.isRequired,
     }).isRequired,
   };
 
@@ -25,8 +40,37 @@ export class SearchSidebarUnconnected extends React.Component {
     this.props.filterActions.getFilters();
   }
 
-  updateSelectedFilters = (filters) => {
-    this.props.filterActions.updateSearchQueryFilters(filters);
+  /**
+   * Called by SearchFilter when the user ticks / unticks a sidebar checkbox.
+   *
+   * For the mimeType filter, we route changes through the File Type chip
+   * so that chip bar and sidebar always agree.
+   * All other filters continue to use the legacy `filters` URL param.
+   */
+  updateSelectedFilters = (newFilters) => {
+    const { [MIME_TYPE_FILTER_KEY]: newMimeSelections, ...otherFilters } =
+      newFilters;
+
+    // --- mimeType: route through the File Type chip ----
+    const oldMimes = this.deriveMimeSelections();
+    const mimeChanged =
+      (newMimeSelections || []).length !== oldMimes.length ||
+      (newMimeSelections || []).some((m) => !oldMimes.includes(m));
+
+    if (mimeChanged) {
+      const categories = collapseMimesToCategories(newMimeSelections || []);
+      const newQ = setFileTypeCategoriesInQ(this.props.q || "", categories);
+      this.props.filterActions.updateSearchText(newQ);
+    }
+
+    // --- everything else: legacy path (workspace, ingestion, …) ----
+    this.props.filterActions.updateSearchQueryFilters(otherFilters);
+  };
+
+  /** Expand the current File Type chip categories into individual MIME types */
+  deriveMimeSelections = () => {
+    const categories = getFileTypeCategoriesFromQ(this.props.q);
+    return expandFileTypeValues(categories);
   };
 
   sortByDisplay = (a, b) => {
@@ -138,9 +182,18 @@ export class SearchSidebarUnconnected extends React.Component {
 }
 
 function mapStateToProps(state) {
+  const q = (state.urlParams && state.urlParams.q) || "";
+  const baseFilters = (state.urlParams && state.urlParams.filters) || {};
+
+  // Derive mimeType selections from the File Type chip in q,
+  // so the sidebar checkboxes reflect chip state.
+  const categories = getFileTypeCategoriesFromQ(q);
+  const mimeFromChips = expandFileTypeValues(categories);
+
   return {
     filters: state.filters,
-    activeFilters: state.urlParams && state.urlParams.filters,
+    activeFilters: { ...baseFilters, [MIME_TYPE_FILTER_KEY]: mimeFromChips },
+    q,
     currentResults: state.search.currentResults,
     expandedFilters: state.expandedFilters,
   };

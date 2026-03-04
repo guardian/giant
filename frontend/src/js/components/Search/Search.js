@@ -144,6 +144,17 @@ class Search extends React.Component {
   }
 
   UNSAFE_componentWillReceiveProps(props) {
+    // Detect external q changes (e.g. sidebar updating File Type chip).
+    // Internal typing sets visibleText first, so the q will match;
+    // external changes won't match → we sync visibleText and trigger search.
+    const qChangedExternally =
+      props.urlParams.q !== this.props.urlParams.q &&
+      props.urlParams.q !== this.state.visibleText;
+
+    if (qChangedExternally) {
+      this.setState({ visibleText: props.urlParams.q });
+    }
+
     const before = {
       filters: props.urlParams.filters,
       page: props.urlParams.page,
@@ -158,7 +169,7 @@ class Search extends React.Component {
       sortBy: this.props.urlParams.sortBy,
     };
 
-    if (!_isEqual(before, after)) {
+    if (qChangedExternally || !_isEqual(before, after)) {
       this.triggerSearch(props.urlParams);
     }
   }
