@@ -9,6 +9,10 @@ describe("isMultiValueChip", () => {
     expect(isMultiValueChip("Has Field")).toBe(true);
   });
 
+  test("File Type is multi-value", () => {
+    expect(isMultiValueChip("File Type")).toBe(true);
+  });
+
   test("Created After is not multi-value", () => {
     expect(isMultiValueChip("Created After")).toBe(false);
   });

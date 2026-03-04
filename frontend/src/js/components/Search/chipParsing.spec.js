@@ -467,3 +467,152 @@ describe("dual-polarity multi-value chips", () => {
     expect(definedChips[1]).toMatchObject({ negate: true, values: ["ocr"] });
   });
 });
+
+// =============================================================================
+// File Type category chips
+// =============================================================================
+
+describe("File Type round-trip", () => {
+  test("rebuildQ expands File Type categories to Mime Type backend chips", () => {
+    const chips = [
+      { name: "File Type", values: ["pdf", "web"], negate: false, chipType: "file_type", multiValue: true },
+    ];
+    const rebuilt = rebuildQ(chips, "[]");
+    const parsed = JSON.parse(rebuilt);
+
+    // Should produce a single Mime Type backend chip
+    expect(parsed).toHaveLength(1);
+    expect(parsed[0].n).toBe("Mime Type");
+    expect(parsed[0].t).toBe("file_type");
+    expect(parsed[0].op).toBe("+");
+    // Should contain all mimes from pdf + web
+    expect(parsed[0].v).toContain("application/pdf");
+    expect(parsed[0].v).toContain("text/html");
+    expect(parsed[0].v).toContain("application/xhtml+xml");
+  });
+
+  test("parseChips reconstitutes File Type from t:file_type backend chip", () => {
+    const input = q(
+      chip("Mime Type", "application/pdf OR text/html OR application/xhtml+xml", "+", "file_type")
+    );
+    const { definedChips } = parseChips(input, []);
+
+    expect(definedChips).toHaveLength(1);
+    expect(definedChips[0]).toMatchObject({
+      name: "File Type",
+      values: ["pdf", "web"],
+      negate: false,
+      chipType: "file_type",
+      multiValue: true,
+    });
+  });
+
+  test("File Type chip survives a full round-trip", () => {
+    const original = [
+      { name: "File Type", values: ["spreadsheet", "email"], negate: false, chipType: "file_type", multiValue: true },
+    ];
+    const rebuilt = rebuildQ(original, "[]");
+    const { definedChips } = parseChips(rebuilt, []);
+
+    expect(definedChips).toHaveLength(1);
+    expect(definedChips[0].name).toBe("File Type");
+    expect(definedChips[0].values).toEqual(["spreadsheet", "email"]);
+    expect(definedChips[0].negate).toBe(false);
+  });
+
+  test("negated File Type chip round-trips", () => {
+    const original = [
+      { name: "File Type", values: ["archive"], negate: true, chipType: "file_type", multiValue: true },
+    ];
+    const rebuilt = rebuildQ(original, "[]");
+    const { definedChips } = parseChips(rebuilt, []);
+
+    expect(definedChips).toHaveLength(1);
+    expect(definedChips[0].name).toBe("File Type");
+    expect(definedChips[0].values).toEqual(["archive"]);
+    expect(definedChips[0].negate).toBe(true);
+  });
+
+  test("dual-polarity File Type chips round-trip independently", () => {
+    const original = [
+      { name: "File Type", values: ["pdf"], negate: false, chipType: "file_type", multiValue: true },
+      { name: "File Type", values: ["image"], negate: true, chipType: "file_type", multiValue: true },
+    ];
+    const rebuilt = rebuildQ(original, "[]");
+    const { definedChips } = parseChips(rebuilt, []);
+
+    expect(definedChips).toHaveLength(2);
+    const pos = definedChips.find((c) => !c.negate);
+    const neg = definedChips.find((c) => c.negate);
+    expect(pos.values).toEqual(["pdf"]);
+    expect(neg.values).toEqual(["image"]);
+  });
+
+  test("File Type chip coexists with regular Mime Type chip", () => {
+    const input = q(
+      chip("Mime Type", "application/pdf", "+", "file_type"),
+      chip("Mime Type", "application/json", "+", "text")
+    );
+    const { definedChips } = parseChips(input, []);
+
+    expect(definedChips).toHaveLength(2);
+    // First is reconstituted as File Type
+    expect(definedChips[0]).toMatchObject({
+      name: "File Type",
+      values: ["pdf"],
+      multiValue: true,
+    });
+    // Second stays as Mime Type
+    expect(definedChips[1]).toMatchObject({
+      name: "Mime Type",
+      values: ["application/json"],
+      multiValue: true,
+    });
+  });
+
+  test("File Type with empty values produces no backend chip", () => {
+    const chips = [
+      { name: "File Type", values: [], negate: false, chipType: "file_type", multiValue: true },
+    ];
+    const rebuilt = rebuildQ(chips, "[]");
+    expect(JSON.parse(rebuilt)).toEqual([]);
+  });
+
+  test("File Type with unknown category keys produces no backend chip", () => {
+    const chips = [
+      { name: "File Type", values: ["nonexistent"], negate: false, chipType: "file_type", multiValue: true },
+    ];
+    const rebuilt = rebuildQ(chips, "[]");
+    expect(JSON.parse(rebuilt)).toEqual([]);
+  });
+
+  test("mimes not in any category are dropped during reconstitution", () => {
+    const input = q(
+      chip("Mime Type", "application/pdf OR application/x-unknown", "+", "file_type")
+    );
+    const { definedChips } = parseChips(input, []);
+
+    expect(definedChips).toHaveLength(1);
+    expect(definedChips[0].values).toEqual(["pdf"]);
+  });
+
+  test("all-unknown mimes in a file_type chip produce no UI chip", () => {
+    const input = q(
+      chip("Mime Type", "application/x-unknown", "+", "file_type")
+    );
+    const { definedChips } = parseChips(input, []);
+    expect(definedChips).toHaveLength(0);
+  });
+
+  test("File Type preserves text alongside chips", () => {
+    const input = q(
+      "search terms",
+      chip("Mime Type", "application/pdf OR text/html OR application/xhtml+xml", "+", "file_type")
+    );
+    const { definedChips, textOnlyQ } = parseChips(input, []);
+
+    expect(JSON.parse(textOnlyQ)).toEqual(["search terms"]);
+    expect(definedChips).toHaveLength(1);
+    expect(definedChips[0].name).toBe("File Type");
+  });
+});

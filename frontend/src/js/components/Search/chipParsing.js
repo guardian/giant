@@ -1,6 +1,10 @@
 import _isString from "lodash/isString";
 import _isObject from "lodash/isObject";
 import { isMultiValueChip } from "./ActiveFilterChip";
+import {
+  expandFileTypeValues,
+  collapseMimesToCategories,
+} from "./fileTypeCategories";
 
 /**
  * Parse a q value (JSON-encoded array of strings and chip objects)
@@ -42,8 +46,43 @@ export function parseChips(q, suggestedFields) {
     const multiValueGroups = new Map();
 
     rawChips.forEach((element) => {
-      const name = element.n;
       const negate = element.op === "-";
+
+      // ── File Type reconstitution ──────────────────────────────
+      // Backend chip: { n: "Mime Type", v: "…OR…", t: "file_type" }
+      // UI chip:      { name: "File Type", values: ["pdf","spreadsheet"], … }
+      if (element.n === "Mime Type" && element.t === "file_type") {
+        const mimes = element.v
+          .split(" OR ")
+          .map((v) => v.trim())
+          .filter(Boolean);
+        const categoryKeys = collapseMimesToCategories(mimes);
+        if (categoryKeys.length > 0) {
+          const ftGroupKey = `File Type|${negate ? "-" : "+"}`;
+          if (!multiValueGroups.has(ftGroupKey)) {
+            const uiChip = {
+              name: "File Type",
+              values: categoryKeys,
+              negate,
+              chipType: "file_type",
+              multiValue: true,
+            };
+            multiValueGroups.set(ftGroupKey, uiChip);
+            definedChips.push(uiChip);
+          } else {
+            const existing = multiValueGroups.get(ftGroupKey);
+            categoryKeys.forEach((k) => {
+              if (!existing.values.includes(k)) {
+                existing.values.push(k);
+              }
+            });
+          }
+        }
+        return; // consumed — do not also create a Mime Type chip
+      }
+
+      // ── Normal chip handling ──────────────────────────────────
+      const name = element.n;
       const groupKey = `${name}|${negate ? "-" : "+"}`;
       const fieldDef = (suggestedFields || []).find(
         (f) => f.name === name
@@ -114,6 +153,20 @@ export function rebuildQ(definedChips, textOnlyQ) {
     const chipParts = [];
 
     definedChips.forEach((c) => {
+      // ── File Type → Mime Type expansion ─────────────────────
+      if (c.name === "File Type" && c.multiValue) {
+        const mimes = expandFileTypeValues(c.values || []);
+        if (mimes.length > 0) {
+          chipParts.push({
+            n: "Mime Type",
+            v: mimes.join(" OR "),
+            op: c.negate ? "-" : "+",
+            t: "file_type", // marker so parseChips reconstitutes
+          });
+        }
+        return;
+      }
+
       if (c.multiValue) {
         // Combine all selected values into a single backend chip with OR syntax
         if ((c.values || []).length > 0) {

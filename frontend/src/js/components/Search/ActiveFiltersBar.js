@@ -8,7 +8,7 @@ import ActiveFilterChip from "./ActiveFilterChip";
  * Each maps to a chip type with sensible defaults.
  */
 const DEFAULT_FILTERS = [
-  { name: "Mime Type", chipType: "text", label: "File Types", multiValue: true },
+  { name: "File Type", chipType: "file_type", label: "File Type", multiValue: true },
   { name: "Created After", chipType: "date_ex", label: "Created After", multiValue: false },
   { name: "Created Before", chipType: "date", label: "Created Before", multiValue: false },
   { name: "Has Field", chipType: "dropdown", label: "Has Field", multiValue: true },

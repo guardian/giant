@@ -1,5 +1,6 @@
 import React from "react";
 import PropTypes from "prop-types";
+import { FILE_TYPE_CATEGORIES } from "./fileTypeCategories";
 
 /**
  * A single filter chip in the active filters bar.
@@ -40,7 +41,7 @@ const MAX_VISIBLE_VALUES = 2;
  * Chip names that support multiple simultaneous values.
  * One UI chip ↔ N backend chips of the same name.
  */
-const MULTI_VALUE_CHIP_NAMES = new Set(["Mime Type", "Has Field"]);
+const MULTI_VALUE_CHIP_NAMES = new Set(["Mime Type", "Has Field", "File Type"]);
 
 /** Check whether a given chip name supports multi-value selection. */
 export function isMultiValueChip(name) {
@@ -57,6 +58,7 @@ function getDisplayLabel(value, allOptions) {
 /** Resolve the options list for a multi-value chip. */
 function getMultiSelectOptions(name, propOptions) {
   if (name === "Mime Type") return MIME_TYPE_OPTIONS;
+  if (name === "File Type") return FILE_TYPE_CATEGORIES;
   return propOptions || [];
 }
 
