@@ -14,10 +14,17 @@ import * as setFilterExpansionState from "../../actions/setFilterExpansionState"
 import {
   getFileTypeCategoriesFromQ,
   setFileTypeCategoriesInQ,
+  getWorkspacesFromQ,
+  setWorkspacesInQ,
+  getDatasetsFromQ,
+  setDatasetsInQ,
 } from "../Search/chipParsing";
 
 /** Sidebar filter key for MIME types (from backend /api/filters) */
 const MIME_TYPE_FILTER_KEY = "mimeType";
+/** Sidebar filter keys now driven by chips */
+const WORKSPACE_FILTER_KEY = "workspace";
+const INGESTION_FILTER_KEY = "ingestion";
 
 export class SearchSidebarUnconnected extends React.Component {
   static propTypes = {
@@ -37,14 +44,28 @@ export class SearchSidebarUnconnected extends React.Component {
     this.props.filterActions.getFilters();
   }
 
-  /** Called by non-mimeType SearchFilter instances */
+  /** Called by non-chip-driven SearchFilter instances */
   updateSelectedFilters = (filters) => {
-    this.props.filterActions.updateSearchQueryFilters(filters);
+    // Strip workspace/ingestion — those are now chip-driven
+    const { workspace, ingestion, ...otherFilters } = filters;
+    this.props.filterActions.updateSearchQueryFilters(otherFilters);
   };
 
   /** Called by FileTypeSidebarFilter when a category checkbox is toggled */
   onToggleFileTypeCategories = (categories) => {
     const newQ = setFileTypeCategoriesInQ(this.props.q || "", categories);
+    this.props.filterActions.updateSearchText(newQ);
+  };
+
+  /** Called when workspace sidebar checkboxes are toggled */
+  onToggleWorkspace = (selectedValues) => {
+    const newQ = setWorkspacesInQ(this.props.q || "", selectedValues);
+    this.props.filterActions.updateSearchText(newQ);
+  };
+
+  /** Called when dataset/ingestion sidebar checkboxes are toggled */
+  onToggleDataset = (selectedValues) => {
+    const newQ = setDatasetsInQ(this.props.q || "", selectedValues);
     this.props.filterActions.updateSearchText(newQ);
   };
 
@@ -134,6 +155,8 @@ export class SearchSidebarUnconnected extends React.Component {
         : true;
 
     const fileTypeCategories = getFileTypeCategoriesFromQ(this.props.q);
+    const chipWorkspaces = getWorkspacesFromQ(this.props.q);
+    const chipDatasets = getDatasetsFromQ(this.props.q);
 
     return (
       <div className="sidebar">
@@ -154,6 +177,36 @@ export class SearchSidebarUnconnected extends React.Component {
                 )
               }
             />
+          ) : filter.key === WORKSPACE_FILTER_KEY ? (
+            <SearchFilter
+              filter={filter}
+              isExpanded={isFilterExpanded(filter)}
+              activeFilters={{ [WORKSPACE_FILTER_KEY]: chipWorkspaces }}
+              updateActiveFilters={(filters) =>
+                this.onToggleWorkspace(filters[WORKSPACE_FILTER_KEY] || [])
+              }
+              key={filter.key}
+              agg={aggs.find((e) => e.key === filter.key)}
+              missingAggValue={""}
+              setFilterExpansionState={
+                this.props.filterActions.setFilterExpansionState
+              }
+            />
+          ) : filter.key === INGESTION_FILTER_KEY ? (
+            <SearchFilter
+              filter={filter}
+              isExpanded={isFilterExpanded(filter)}
+              activeFilters={{ [INGESTION_FILTER_KEY]: chipDatasets }}
+              updateActiveFilters={(filters) =>
+                this.onToggleDataset(filters[INGESTION_FILTER_KEY] || [])
+              }
+              key={filter.key}
+              agg={aggs.find((e) => e.key === filter.key)}
+              missingAggValue={"0"}
+              setFilterExpansionState={
+                this.props.filterActions.setFilterExpansionState
+              }
+            />
           ) : (
             <SearchFilter
               filter={filter}
@@ -162,8 +215,7 @@ export class SearchSidebarUnconnected extends React.Component {
               updateActiveFilters={this.updateSelectedFilters}
               key={filter.key}
               agg={aggs.find((e) => e.key === filter.key)}
-              // TODO MRB: remove this once workspace counts are fixed
-              missingAggValue={filter.key === "workspace" ? "" : "0"}
+              missingAggValue={"0"}
               setFilterExpansionState={
                 this.props.filterActions.setFilterExpansionState
               }

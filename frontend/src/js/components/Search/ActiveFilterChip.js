@@ -4,6 +4,8 @@ import { FILE_TYPE_CATEGORIES } from "./fileTypeCategories";
 import {
   CHIP_NAME_MIME_TYPE,
   CHIP_NAME_FILE_TYPE,
+  CHIP_NAME_DATASET,
+  CHIP_NAME_WORKSPACE,
   CHIP_KIND_SINGLE,
   CHIP_KIND_MULTI,
   CHIP_KIND_DATE_RANGE,
@@ -51,7 +53,13 @@ const MAX_VISIBLE_VALUES = 2;
  * Chip names that support multiple simultaneous values.
  * One UI chip ↔ N backend chips of the same name.
  */
-const MULTI_VALUE_CHIP_NAMES = new Set([CHIP_NAME_MIME_TYPE, "Has Field", CHIP_NAME_FILE_TYPE]);
+const MULTI_VALUE_CHIP_NAMES = new Set([
+  CHIP_NAME_MIME_TYPE,
+  "Has Field",
+  CHIP_NAME_FILE_TYPE,
+  CHIP_NAME_DATASET,
+  CHIP_NAME_WORKSPACE,
+]);
 
 /** Check whether a given chip name supports multi-value selection. */
 export function isMultiValueChip(name) {
@@ -69,6 +77,8 @@ function getDisplayLabel(value, allOptions) {
 function getMultiSelectOptions(name, propOptions) {
   if (name === CHIP_NAME_MIME_TYPE) return MIME_TYPE_OPTIONS;
   if (name === CHIP_NAME_FILE_TYPE) return FILE_TYPE_CATEGORIES;
+  // Dataset and Workspace options are dynamic (user-specific)
+  // and passed through from the sidebar filters API
   return propOptions || [];
 }
 

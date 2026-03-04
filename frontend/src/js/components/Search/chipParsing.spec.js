@@ -1,4 +1,4 @@
-import { parseChips, rebuildQ, toBackendQ, getFileTypeCategoriesFromQ, setFileTypeCategoriesInQ } from "./chipParsing";
+import { parseChips, rebuildQ, toBackendQ, getFileTypeCategoriesFromQ, setFileTypeCategoriesInQ, getDatasetsFromQ, setDatasetsInQ, getWorkspacesFromQ, setWorkspacesInQ, extractCollectionAndWorkspaceChips } from "./chipParsing";
 
 // --- Helper to build serialized q values ---
 
@@ -992,5 +992,161 @@ describe("setFileTypeCategoriesInQ", () => {
     const { definedChips, textOnlyQ } = parseChips(updated, []);
     expect(JSON.parse(textOnlyQ)).toContain("search terms");
     expect(definedChips.find((c) => c.kind === "dateRange")).toBeTruthy();
+  });
+});
+
+// =============================================================================
+// getDatasetsFromQ / setDatasetsInQ
+// =============================================================================
+
+describe("getDatasetsFromQ", () => {
+  test("returns empty array for null/undefined/empty", () => {
+    expect(getDatasetsFromQ(null)).toEqual([]);
+    expect(getDatasetsFromQ(undefined)).toEqual([]);
+    expect(getDatasetsFromQ("")).toEqual([]);
+  });
+
+  test("returns empty when no Dataset chip is present", () => {
+    const input = q("search text", chip("Has Field", "ocr", "+", "dropdown"));
+    expect(getDatasetsFromQ(input)).toEqual([]);
+  });
+
+  test("returns selected dataset values", () => {
+    const input = q(chip("Dataset", "panama-papers OR paradise-papers", "+", "dataset"));
+    expect(getDatasetsFromQ(input)).toEqual(["panama-papers", "paradise-papers"]);
+  });
+
+  test("returns single dataset value", () => {
+    const input = q(chip("Dataset", "panama-papers", "+", "dataset"));
+    expect(getDatasetsFromQ(input)).toEqual(["panama-papers"]);
+  });
+
+  test("ignores negated Dataset chips", () => {
+    const input = q(chip("Dataset", "panama-papers", "-", "dataset"));
+    expect(getDatasetsFromQ(input)).toEqual([]);
+  });
+});
+
+describe("setDatasetsInQ", () => {
+  test("adds a Dataset chip to empty q", () => {
+    const input = q("search text");
+    const result = setDatasetsInQ(input, ["panama-papers"]);
+    expect(getDatasetsFromQ(result)).toEqual(["panama-papers"]);
+    // Text preserved
+    expect(JSON.parse(result).some((el) => el === "search text")).toBe(true);
+  });
+
+  test("replaces existing Dataset chip", () => {
+    const input = q(chip("Dataset", "panama-papers", "+", "dataset"));
+    const result = setDatasetsInQ(input, ["paradise-papers", "pfizer-leaks"]);
+    expect(getDatasetsFromQ(result)).toEqual(["paradise-papers", "pfizer-leaks"]);
+  });
+
+  test("removes Dataset chip when values are empty", () => {
+    const input = q(chip("Dataset", "panama-papers", "+", "dataset"));
+    const result = setDatasetsInQ(input, []);
+    expect(getDatasetsFromQ(result)).toEqual([]);
+  });
+
+  test("preserves other chips", () => {
+    const input = q(
+      "text",
+      chip("Has Field", "ocr", "+", "dropdown"),
+      chip("Dataset", "old-dataset", "+", "dataset")
+    );
+    const result = setDatasetsInQ(input, ["new-dataset"]);
+    const parsed = JSON.parse(result);
+    expect(parsed.find((el) => typeof el === "object" && el.n === "Has Field")).toBeTruthy();
+    expect(getDatasetsFromQ(result)).toEqual(["new-dataset"]);
+  });
+});
+
+// =============================================================================
+// getWorkspacesFromQ / setWorkspacesInQ
+// =============================================================================
+
+describe("getWorkspacesFromQ", () => {
+  test("returns empty array for null/undefined/empty", () => {
+    expect(getWorkspacesFromQ(null)).toEqual([]);
+    expect(getWorkspacesFromQ(undefined)).toEqual([]);
+    expect(getWorkspacesFromQ("")).toEqual([]);
+  });
+
+  test("returns selected workspace IDs", () => {
+    const input = q(chip("Workspace", "ws-id-1 OR ws-id-2", "+", "workspace"));
+    expect(getWorkspacesFromQ(input)).toEqual(["ws-id-1", "ws-id-2"]);
+  });
+});
+
+describe("setWorkspacesInQ", () => {
+  test("adds a Workspace chip", () => {
+    const input = q("search");
+    const result = setWorkspacesInQ(input, ["ws-1"]);
+    expect(getWorkspacesFromQ(result)).toEqual(["ws-1"]);
+  });
+
+  test("removes Workspace chip when empty", () => {
+    const input = q(chip("Workspace", "ws-1", "+", "workspace"));
+    const result = setWorkspacesInQ(input, []);
+    expect(getWorkspacesFromQ(result)).toEqual([]);
+  });
+
+  test("round-trips with get", () => {
+    const ids = ["ws-aaa", "ws-bbb", "ws-ccc"];
+    const result = setWorkspacesInQ(q("text"), ids);
+    expect(getWorkspacesFromQ(result)).toEqual(ids);
+  });
+});
+
+// =============================================================================
+// extractCollectionAndWorkspaceChips
+// =============================================================================
+
+describe("extractCollectionAndWorkspaceChips", () => {
+  test("returns empty for null/undefined", () => {
+    expect(extractCollectionAndWorkspaceChips(null)).toEqual({ cleanedQ: null, chipFilters: {} });
+    expect(extractCollectionAndWorkspaceChips("")).toEqual({ cleanedQ: "", chipFilters: {} });
+  });
+
+  test("extracts workspace chip into chipFilters", () => {
+    const input = q("search text", chip("Workspace", "ws-1 OR ws-2", "+", "workspace"));
+    const { cleanedQ, chipFilters } = extractCollectionAndWorkspaceChips(input);
+    expect(chipFilters.workspace).toEqual(["ws-1", "ws-2"]);
+    // Workspace chip removed from q
+    const parsed = JSON.parse(cleanedQ);
+    expect(parsed.every((el) => typeof el === "string")).toBe(true);
+    expect(parsed).toContain("search text");
+  });
+
+  test("extracts dataset chip into chipFilters", () => {
+    const input = q(chip("Dataset", "panama-papers", "+", "dataset"));
+    const { cleanedQ, chipFilters } = extractCollectionAndWorkspaceChips(input);
+    expect(chipFilters.ingestion).toEqual(["panama-papers"]);
+    expect(JSON.parse(cleanedQ)).toEqual([]);
+  });
+
+  test("extracts both workspace and dataset chips", () => {
+    const input = q(
+      "text",
+      chip("Dataset", "col1", "+", "dataset"),
+      chip("Workspace", "ws-1", "+", "workspace"),
+      chip("Has Field", "ocr", "+", "dropdown")
+    );
+    const { cleanedQ, chipFilters } = extractCollectionAndWorkspaceChips(input);
+    expect(chipFilters.workspace).toEqual(["ws-1"]);
+    expect(chipFilters.ingestion).toEqual(["col1"]);
+    // Other chips and text remain
+    const parsed = JSON.parse(cleanedQ);
+    expect(parsed).toContain("text");
+    expect(parsed.find((el) => typeof el === "object" && el.n === "Has Field")).toBeTruthy();
+    expect(parsed.find((el) => typeof el === "object" && el.n === "Dataset")).toBeUndefined();
+    expect(parsed.find((el) => typeof el === "object" && el.n === "Workspace")).toBeUndefined();
+  });
+
+  test("returns no chipFilters when no dataset/workspace chips present", () => {
+    const input = q("search text", chip("Has Field", "ocr", "+", "dropdown"));
+    const { cleanedQ, chipFilters } = extractCollectionAndWorkspaceChips(input);
+    expect(chipFilters).toEqual({});
+    expect(JSON.parse(cleanedQ)).toEqual(JSON.parse(input));
   });
 });

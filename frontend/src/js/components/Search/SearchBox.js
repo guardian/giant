@@ -9,6 +9,10 @@ import AddFilterModal from "./AddFilterModal";
 import { isMultiValueChip } from "./ActiveFilterChip";
 import { parseChips, rebuildQ } from "./chipParsing";
 import {
+  CHIP_NAME_DATASET,
+  CHIP_NAME_WORKSPACE,
+} from "./chipNames";
+import {
   CHIP_NAME_DATE_RANGE,
   CHIP_KIND_SINGLE,
   CHIP_KIND_MULTI,
@@ -50,6 +54,8 @@ export default class SearchBox extends React.Component {
     onFilterChange: PropTypes.func.isRequired,
     resetQuery: PropTypes.func.isRequired,
     suggestedFields: PropTypes.arrayOf(suggestedFieldsPropType),
+    /** Sidebar filter definitions from /api/filters (for workspace/dataset options) */
+    sidebarFilters: PropTypes.array,
     updateSearchText: PropTypes.func.isRequired,
   };
 
@@ -317,8 +323,48 @@ export default class SearchBox extends React.Component {
     this.handleCloseModal();
   };
 
+  /**
+   * Build the available filters list, augmenting suggestedFields with
+   * Dataset and Workspace options derived from the sidebar /api/filters data.
+   */
+  getAvailableFilters() {
+    const base = this.props.suggestedFields || [];
+    const sidebarFilters = this.props.sidebarFilters || [];
+
+    const extra = [];
+
+    // "ingestion" filter key → Dataset chip options
+    const ingestionFilter = sidebarFilters.find((f) => f.key === "ingestion");
+    if (ingestionFilter) {
+      extra.push({
+        name: CHIP_NAME_DATASET,
+        type: "dataset",
+        options: ingestionFilter.options.map((o) => ({
+          value: o.value,
+          label: o.display,
+        })),
+      });
+    }
+
+    // "workspace" filter key → Workspace chip options
+    const workspaceFilter = sidebarFilters.find((f) => f.key === "workspace");
+    if (workspaceFilter) {
+      extra.push({
+        name: CHIP_NAME_WORKSPACE,
+        type: "workspace",
+        options: workspaceFilter.options.map((o) => ({
+          value: o.value,
+          label: o.display,
+        })),
+      });
+    }
+
+    return [...base, ...extra];
+  }
+
   render() {
     const { definedChips } = this.parseChips();
+    const availableFilters = this.getAvailableFilters();
 
     const spinner = this.props.isSearchInProgress ? (
       <ProgressAnimation />
@@ -362,7 +408,7 @@ export default class SearchBox extends React.Component {
         </div>
         <ActiveFiltersBar
           chips={definedChips}
-          availableFilters={this.props.suggestedFields}
+          availableFilters={availableFilters}
           onRemoveChip={this.handleRemoveChip}
           onToggleNegate={this.handleToggleNegate}
           onEditChipValue={this.handleEditChipValue}
@@ -373,7 +419,7 @@ export default class SearchBox extends React.Component {
           isOpen={this.state.modalOpen}
           editingChip={this.state.editingChip}
           editingChipIndex={this.state.editingChipIndex}
-          availableFilters={this.props.suggestedFields}
+          availableFilters={availableFilters}
           onConfirm={this.handleModalConfirm}
           onClose={this.handleCloseModal}
         />

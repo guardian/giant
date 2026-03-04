@@ -7,6 +7,8 @@ import {
 import {
   CHIP_NAME_MIME_TYPE,
   CHIP_NAME_FILE_TYPE,
+  CHIP_NAME_DATASET,
+  CHIP_NAME_WORKSPACE,
   CHIP_NAME_CREATED_AFTER,
   CHIP_NAME_CREATED_BEFORE,
   CHIP_NAME_DATE_RANGE,
@@ -15,6 +17,8 @@ import {
   CHIP_KIND_DATE_RANGE,
   CHIP_TYPE_FILE_TYPE,
   CHIP_TYPE_DATE_RANGE,
+  CHIP_TYPE_DATASET,
+  CHIP_TYPE_WORKSPACE,
   CHIP_TYPE_WORKSPACE_FOLDER,
 } from "./chipNames";
 
@@ -327,4 +331,128 @@ export function setFileTypeCategoriesInQ(q, categories) {
   }
 
   return rebuildQ(otherChips, textOnlyQ);
+}
+
+// ── Workspace / Dataset chip ↔ sidebar helpers ──────────────────────
+
+/**
+ * Extract Dataset/Workspace values from a q string.
+ *
+ * @param {string} chipName - CHIP_NAME_DATASET or CHIP_NAME_WORKSPACE
+ * @param {string} q
+ * @returns {string[]} selected values (empty = "all")
+ */
+function getChipValuesFromQ(chipName, q) {
+  if (!q) return [];
+  try {
+    const parsed = JSON.parse(q);
+    if (!Array.isArray(parsed)) return [];
+    const values = [];
+    for (const el of parsed) {
+      if (_isObject(el) && el.n === chipName && el.op !== "-") {
+        const vals = (el.v || "")
+          .split(" OR ")
+          .map((v) => v.trim())
+          .filter(Boolean);
+        values.push(...vals);
+      }
+    }
+    return values;
+  } catch (e) {
+    return [];
+  }
+}
+
+/**
+ * Get the currently-selected dataset (collection/ingestion) values from q.
+ * Returns [] when no Dataset chip is active (= "all").
+ */
+export function getDatasetsFromQ(q) {
+  return getChipValuesFromQ(CHIP_NAME_DATASET, q);
+}
+
+/**
+ * Get the currently-selected workspace IDs from q.
+ * Returns [] when no Workspace chip is active (= "all").
+ */
+export function getWorkspacesFromQ(q) {
+  return getChipValuesFromQ(CHIP_NAME_WORKSPACE, q);
+}
+
+/**
+ * Return a new q string with Dataset chip values set.
+ * Pass [] to remove the chip (= "all").
+ */
+export function setDatasetsInQ(q, values) {
+  return setMultiChipInQ(q, CHIP_NAME_DATASET, CHIP_TYPE_DATASET, values);
+}
+
+/**
+ * Return a new q string with Workspace chip values set.
+ * Pass [] to remove the chip (= "all").
+ */
+export function setWorkspacesInQ(q, values) {
+  return setMultiChipInQ(q, CHIP_NAME_WORKSPACE, CHIP_TYPE_WORKSPACE, values);
+}
+
+/**
+ * Generic helper: set a multi-value chip's values in q.
+ * If values is empty, the chip is removed entirely.
+ */
+function setMultiChipInQ(q, chipName, chipType, values) {
+  const { definedChips, textOnlyQ } = parseChips(q, []);
+  const otherChips = definedChips.filter((c) => c.name !== chipName);
+
+  if (values.length > 0) {
+    otherChips.push({
+      kind: CHIP_KIND_MULTI,
+      name: chipName,
+      values,
+      negate: false,
+      chipType,
+    });
+  }
+
+  return rebuildQ(otherChips, textOnlyQ);
+}
+
+/**
+ * Extract Dataset and Workspace chip values from q, returning:
+ *   - cleanedQ: q with Dataset/Workspace chips removed
+ *   - chipFilters: { workspace: string[], ingestion: string[] }
+ *
+ * Called at the API boundary so that chip-based filtering is sent as
+ * workspace[]/ingestion[] query params (the backend doesn't handle
+ * these as q-string chips).
+ */
+export function extractCollectionAndWorkspaceChips(q) {
+  if (!q) return { cleanedQ: q, chipFilters: {} };
+  try {
+    const parsed = JSON.parse(q);
+    if (!Array.isArray(parsed)) return { cleanedQ: q, chipFilters: {} };
+
+    const kept = [];
+    const workspaceValues = [];
+    const ingestionValues = [];
+
+    for (const el of parsed) {
+      if (_isObject(el) && el.n === CHIP_NAME_WORKSPACE && el.op !== "-") {
+        const vals = (el.v || "").split(" OR ").map((v) => v.trim()).filter(Boolean);
+        workspaceValues.push(...vals);
+      } else if (_isObject(el) && el.n === CHIP_NAME_DATASET && el.op !== "-") {
+        const vals = (el.v || "").split(" OR ").map((v) => v.trim()).filter(Boolean);
+        ingestionValues.push(...vals);
+      } else {
+        kept.push(el);
+      }
+    }
+
+    const chipFilters = {};
+    if (workspaceValues.length > 0) chipFilters.workspace = workspaceValues;
+    if (ingestionValues.length > 0) chipFilters.ingestion = ingestionValues;
+
+    return { cleanedQ: JSON.stringify(kept), chipFilters };
+  } catch (e) {
+    return { cleanedQ: q, chipFilters: {} };
+  }
 }

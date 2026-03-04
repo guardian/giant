@@ -14,6 +14,8 @@ export const CHIP_NAME_CREATED_AFTER = "Created After";
 export const CHIP_NAME_CREATED_BEFORE = "Created Before";
 export const CHIP_NAME_DATE_RANGE = "Date Range";
 export const CHIP_NAME_WORKSPACE_FOLDER = "workspace_folder";
+export const CHIP_NAME_DATASET = "Dataset";
+export const CHIP_NAME_WORKSPACE = "Workspace";
 
 // ── Chip kinds (discriminated union tag for UI chip shape) ───────────
 
@@ -33,3 +35,5 @@ export const CHIP_TYPE_DROPDOWN = "dropdown";
 export const CHIP_TYPE_FILE_TYPE = "file_type";
 export const CHIP_TYPE_DATE_RANGE = "date_range";
 export const CHIP_TYPE_WORKSPACE_FOLDER = "workspace_folder";
+export const CHIP_TYPE_DATASET = "dataset";
+export const CHIP_TYPE_WORKSPACE = "workspace";

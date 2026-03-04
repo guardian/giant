@@ -3,7 +3,7 @@ import PropTypes from "prop-types";
 
 import _isEqual from "lodash/fp/isEqual";
 import SearchBox from "./SearchBox";
-import { toBackendQ } from "./chipParsing";
+import { toBackendQ, extractCollectionAndWorkspaceChips } from "./chipParsing";
 
 import SearchResults from "../SearchResults/SearchResults";
 import SearchStatus from "./SearchStatus";
@@ -56,6 +56,8 @@ class Search extends React.Component {
     getSuggestedFields: PropTypes.func.isRequired,
     updatePreference: PropTypes.func.isRequired,
     preferences: PropTypes.object,
+    /** Sidebar filter definitions from /api/filters (workspace + collection options) */
+    sidebarFilters: PropTypes.array,
     search: PropTypes.shape({
       isSearchInProgress: PropTypes.bool.isRequired,
       currentQuery: PropTypes.object,
@@ -115,7 +117,17 @@ class Search extends React.Component {
     if (query.q) {
       this.props.resetResource();
       // Expand File Type → Mime Type at the API boundary
-      this.props.performSearch({ ...query, q: toBackendQ(query.q) });
+      let backendQ = toBackendQ(query.q);
+      // Extract Dataset/Workspace chips → workspace[]/ingestion[] params
+      const { cleanedQ, chipFilters } = extractCollectionAndWorkspaceChips(backendQ);
+      const filters = { ...(query.filters || {}) };
+      // Remove any legacy sidebar workspace/ingestion values
+      delete filters.workspace;
+      delete filters.ingestion;
+      // Merge chip-derived filters
+      if (chipFilters.workspace) filters.workspace = chipFilters.workspace;
+      if (chipFilters.ingestion) filters.ingestion = chipFilters.ingestion;
+      this.props.performSearch({ ...query, q: cleanedQ, filters });
     }
   }
 
@@ -299,6 +311,7 @@ class Search extends React.Component {
             q={this.state.visibleText}
             isSearchInProgress={this.props.search.isSearchInProgress}
             suggestedFields={this.props.search.suggestedFields}
+            sidebarFilters={this.props.sidebarFilters}
             updateSearchText={this.updateSearchText}
           />
         </div>
@@ -342,6 +355,7 @@ function mapStateToProps(state) {
     search: state.search,
     lastUri: state.resource ? state.resource.uri : undefined,
     preferences: state.app.preferences,
+    sidebarFilters: state.filters,
   };
 }
 
