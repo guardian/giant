@@ -632,7 +632,8 @@ describe("toBackendQ", () => {
 
     expect(result).toHaveLength(1);
     expect(result[0].n).toBe("Mime Type");
-    expect(result[0].v).toContain("application/pdf");
+    // Values are double-quoted so ES query-string doesn't treat / as regex
+    expect(result[0].v).toContain('"application/pdf"');
     expect(result[0].op).toBe("+");
   });
 
@@ -641,9 +642,9 @@ describe("toBackendQ", () => {
     const result = JSON.parse(toBackendQ(input));
 
     expect(result[0].n).toBe("Mime Type");
-    expect(result[0].v).toContain("application/pdf");
-    expect(result[0].v).toContain("text/html");
-    expect(result[0].v).toContain("application/xhtml+xml");
+    expect(result[0].v).toContain('"application/pdf"');
+    expect(result[0].v).toContain('"text/html"');
+    expect(result[0].v).toContain('"application/xhtml+xml"');
   });
 
   test("preserves op and other fields during expansion", () => {
@@ -678,8 +679,8 @@ describe("toBackendQ", () => {
 
     expect(parsed).toHaveLength(1);
     expect(parsed[0].n).toBe("Mime Type");
-    expect(parsed[0].v).toContain("application/pdf");
-    expect(parsed[0].v).toContain("application/vnd.ms-excel");
+    expect(parsed[0].v).toContain('"application/pdf"');
+    expect(parsed[0].v).toContain('"application/vnd.ms-excel"');
   });
 });
 

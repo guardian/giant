@@ -240,10 +240,12 @@ export function toBackendQ(q) {
       const mimes = expandFileTypeValues(categoryKeys);
       if (mimes.length === 0) return element;
 
+      // Quote each MIME type so that forward slashes (e.g. image/jpeg) are not
+      // interpreted as regex delimiters in the ES query-string syntax.
       return {
         ...element,
         n: CHIP_NAME_MIME_TYPE,
-        v: mimes.join(" OR "),
+        v: mimes.map((m) => `"${m}"`).join(" OR "),
       };
     });
 
