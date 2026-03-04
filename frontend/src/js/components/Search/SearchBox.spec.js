@@ -17,16 +17,17 @@ import {
 // The instance never touches the DOM — we only call its handler methods.
 // ---------------------------------------------------------------------------
 
-function createInstance(q, suggestedFields = []) {
+function createInstance(q, suggestedFields = [], searchText = "") {
   const onFilterChange = jest.fn();
   const inst = new SearchBox({
     q,
+    searchText,
     suggestedFields,
     onFilterChange,
     isSearchInProgress: false,
-    updateVisibleText: jest.fn(),
+    onSearchTextChange: jest.fn(),
     resetQuery: jest.fn(),
-    updateSearchText: jest.fn(),
+    onSubmit: jest.fn(),
   });
   return { inst, onFilterChange };
 }
@@ -81,7 +82,11 @@ describe("SearchBox.handleRemoveChip", () => {
       "search terms",
       chip("Email Subject", "hello", "+", "text"),
     );
-    const { inst, onFilterChange } = createInstance(initial);
+    const { inst, onFilterChange } = createInstance(
+      initial,
+      [],
+      "search terms",
+    );
     inst.handleRemoveChip(0);
 
     const newQ = onFilterChange.mock.calls[0][0];

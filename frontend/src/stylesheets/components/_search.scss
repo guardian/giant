@@ -48,6 +48,10 @@
     font-weight: 500;
     color: $primaryDark;
     padding: 0 $baseSpacing;
+    resize: none;
+    overflow: hidden;
+    font-family: inherit;
+    line-height: 1.4;
 
     &::placeholder {
       color: $borderColour;

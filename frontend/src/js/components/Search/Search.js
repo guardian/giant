@@ -2,8 +2,14 @@ import React from "react";
 import PropTypes from "prop-types";
 
 import _isEqual from "lodash/fp/isEqual";
-import SearchBox from "./SearchBox";
-import { toBackendQ, extractCollectionAndWorkspaceChips } from "./chipParsing";
+import SearchBox, { extractPlainText } from "./SearchBox";
+import {
+  toBackendQ,
+  extractCollectionAndWorkspaceChips,
+  parseChips,
+  rebuildQ,
+} from "./chipParsing";
+import { wrapPlainText } from "./SearchBox";
 
 import SearchResults from "../SearchResults/SearchResults";
 import SearchStatus from "./SearchStatus";
@@ -68,7 +74,7 @@ class Search extends React.Component {
   };
 
   state = {
-    visibleText: "",
+    searchText: "",
   };
 
   selectSearchBox = (e) => {
@@ -79,12 +85,11 @@ class Search extends React.Component {
   clearSearch = (e) => {
     e.preventDefault();
 
-    this.updateVisibleText("");
     this.props.clearSearch();
     this.props.updateSearchText("");
     this.props.updateSearchQueryFilters({});
     this.props.updatePage("1");
-    this.setState({ visibleText: "" });
+    this.setState({ searchText: "" });
     this.searchBox.select();
   };
 
@@ -97,20 +102,16 @@ class Search extends React.Component {
     this.triggerSearch(this.props.urlParams);
   }, 500);
 
-  updateVisibleText = (text) => {
-    this.setState({
-      visibleText: text,
-    });
+  updateSearchInputText = (text) => {
+    this.setState({ searchText: text });
   };
 
   /**
-   * Update visible text AND trigger a debounced search.
-   * Used by filter chip actions (remove, toggle, edit, activate) so that
-   * chip changes update the URL and fire a new search automatically.
+   * Called by chip operations. Receives the new full q (JSON with chips),
+   * updates Redux and triggers a search.
    */
-  onFilterChange = (text) => {
-    this.setState({ visibleText: text });
-    this.debouncedUpdate(text);
+  onFilterChange = (fullQ) => {
+    this.debouncedUpdate(fullQ);
   };
 
   triggerSearch(query) {
@@ -138,8 +139,23 @@ class Search extends React.Component {
     }
   }
 
-  updateSearchText = () => {
-    this.debouncedUpdate(this.state.visibleText);
+  /**
+   * Build the full q from current searchText + chips and submit.
+   */
+  buildFullQ = () => {
+    const { definedChips } = parseChips(
+      this.props.urlParams.q,
+      this.props.search.suggestedFields,
+    );
+    const textQ = wrapPlainText(this.state.searchText);
+    if (definedChips.length > 0) {
+      return rebuildQ(definedChips, textQ);
+    }
+    return textQ;
+  };
+
+  submitSearch = () => {
+    this.debouncedUpdate(this.buildFullQ());
   };
 
   componentDidMount() {
@@ -147,7 +163,7 @@ class Search extends React.Component {
 
     const search = this.props.urlParams.q || "";
     this.setState({
-      visibleText: search,
+      searchText: extractPlainText(search),
     });
 
     const currentQuery = _get(this.props.search, "currentQuery.q");
@@ -166,12 +182,10 @@ class Search extends React.Component {
     // Detect external q changes (e.g. sidebar updating File Type chip).
     // Internal typing sets visibleText first, so the q will match;
     // external changes won't match → we sync visibleText and trigger search.
-    const qChangedExternally =
-      props.urlParams.q !== this.props.urlParams.q &&
-      props.urlParams.q !== this.state.visibleText;
+    const qChangedExternally = props.urlParams.q !== this.props.urlParams.q;
 
     if (qChangedExternally) {
-      this.setState({ visibleText: props.urlParams.q });
+      this.setState({ searchText: extractPlainText(props.urlParams.q) });
     }
 
     const before = {
@@ -311,15 +325,15 @@ class Search extends React.Component {
           />
           <SearchBox
             ref={(input) => (this.searchBox = input)}
-            updateVisibleText={this.updateVisibleText}
+            searchText={this.state.searchText}
+            onSearchTextChange={this.updateSearchInputText}
+            q={this.props.urlParams.q || ""}
             onFilterChange={this.onFilterChange}
             resetQuery={this.clearSearch}
-            addQuery={this.addQuery}
-            q={this.state.visibleText}
             isSearchInProgress={this.props.search.isSearchInProgress}
             suggestedFields={this.props.search.suggestedFields}
             sidebarFilters={this.props.sidebarFilters}
-            updateSearchText={this.updateSearchText}
+            onSubmit={this.submitSearch}
           />
         </div>
         <div className="search__results-scroll">
@@ -337,7 +351,7 @@ class Search extends React.Component {
             <SearchVisualizations
               q={this.props.urlParams.q}
               results={this.props.search.currentResults}
-              updateSearchText={this.updateSearchText}
+              updateSearchText={this.onFilterChange}
             />
           ) : (
             false

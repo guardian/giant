@@ -27,10 +27,7 @@ export function extractPlainText(q) {
   try {
     const parsed = JSON.parse(q);
     if (!Array.isArray(parsed)) return q;
-    return parsed
-      .filter((s) => typeof s === "string")
-      .join(" ")
-      .trim();
+    return parsed.filter((s) => typeof s === "string").join(" ");
   } catch (e) {
     return q;
   }
@@ -45,16 +42,17 @@ export function wrapPlainText(text) {
 
 export default class SearchBox extends React.Component {
   static propTypes = {
+    searchText: PropTypes.string.isRequired,
+    onSearchTextChange: PropTypes.func.isRequired,
     q: PropTypes.string.isRequired,
     isSearchInProgress: PropTypes.bool.isRequired,
-    updateVisibleText: PropTypes.func.isRequired,
-    /** Update visible text AND trigger debounced search (for chip actions) */
+    /** Update Redux q AND trigger debounced search (for chip actions) */
     onFilterChange: PropTypes.func.isRequired,
     resetQuery: PropTypes.func.isRequired,
     suggestedFields: PropTypes.arrayOf(suggestedFieldsPropType),
     /** Sidebar filter definitions from /api/filters (for workspace/dataset options) */
     sidebarFilters: PropTypes.array,
-    updateSearchText: PropTypes.func.isRequired,
+    onSubmit: PropTypes.func.isRequired,
   };
 
   state = {
@@ -76,28 +74,28 @@ export default class SearchBox extends React.Component {
   };
 
   /**
-   * Parse the current q value — delegates to the standalone parseChips().
+   * Parse the chips from the Redux q value.
    */
   parseChips() {
     return parseChips(this.props.q, this.props.suggestedFields);
   }
 
   /**
-   * Rebuild the full q value — delegates to the standalone rebuildQ().
+   * Rebuild the full q value, using the current searchText prop for the text portion.
    */
-  rebuildQ(definedChips, textOnlyQ) {
-    return rebuildQ(definedChips, textOnlyQ);
+  rebuildQWithCurrentText(definedChips) {
+    return rebuildQ(definedChips, wrapPlainText(this.props.searchText));
   }
 
   handleRemoveChip = (index) => {
-    const { definedChips, textOnlyQ } = this.parseChips();
+    const { definedChips } = this.parseChips();
     const newChips = definedChips.filter((_, i) => i !== index);
-    const newQ = this.rebuildQ(newChips, textOnlyQ);
+    const newQ = this.rebuildQWithCurrentText(newChips);
     this.props.onFilterChange(newQ);
   };
 
   handleToggleNegate = (index) => {
-    const { definedChips, textOnlyQ } = this.parseChips();
+    const { definedChips } = this.parseChips();
     const chip = definedChips[index];
     const targetNegate = !chip.negate;
 
@@ -121,7 +119,7 @@ export default class SearchBox extends React.Component {
         const newChips = definedChips
           .map((c, i) => (i === targetIndex ? merged : c))
           .filter((_, i) => i !== index);
-        const newQ = this.rebuildQ(newChips, textOnlyQ);
+        const newQ = this.rebuildQWithCurrentText(newChips);
         this.props.onFilterChange(newQ);
         return;
       }
@@ -131,12 +129,12 @@ export default class SearchBox extends React.Component {
     const newChips = definedChips.map((c, i) =>
       i === index ? { ...c, negate: targetNegate } : c,
     );
-    const newQ = this.rebuildQ(newChips, textOnlyQ);
+    const newQ = this.rebuildQWithCurrentText(newChips);
     this.props.onFilterChange(newQ);
   };
 
   handleEditChipValue = (index, newValueOrValues) => {
-    const { definedChips, textOnlyQ } = this.parseChips();
+    const { definedChips } = this.parseChips();
     let newChips = definedChips.map((c, i) => {
       if (i !== index) return c;
       switch (c.kind) {
@@ -172,7 +170,7 @@ export default class SearchBox extends React.Component {
     newChips = newChips.filter(
       (c) => !(c.kind === CHIP_KIND_DATE_RANGE && !c.from && !c.to),
     );
-    const newQ = this.rebuildQ(newChips, textOnlyQ);
+    const newQ = this.rebuildQWithCurrentText(newChips);
     this.props.onFilterChange(newQ);
   };
 
@@ -185,7 +183,7 @@ export default class SearchBox extends React.Component {
    * name+polarity, the new values are merged into it.
    */
   handleActivateDefault = (name, valueOrValues, chipType, negate = false) => {
-    const { definedChips, textOnlyQ } = this.parseChips();
+    const { definedChips } = this.parseChips();
 
     // Date Range activation — valueOrValues is { from, to }
     if (
@@ -205,7 +203,7 @@ export default class SearchBox extends React.Component {
         const newChips = definedChips.map((c, i) =>
           i === existingIndex ? merged : c,
         );
-        const newQ = this.rebuildQ(newChips, textOnlyQ);
+        const newQ = this.rebuildQWithCurrentText(newChips);
         this.props.onFilterChange(newQ);
         return;
       }
@@ -218,7 +216,7 @@ export default class SearchBox extends React.Component {
         to: valueOrValues.to || "",
       };
       const newChips = [...definedChips, newChip];
-      const newQ = this.rebuildQ(newChips, textOnlyQ);
+      const newQ = this.rebuildQWithCurrentText(newChips);
       this.props.onFilterChange(newQ);
       return;
     }
@@ -247,7 +245,7 @@ export default class SearchBox extends React.Component {
         const newChips = definedChips.map((c, i) =>
           i === existingIndex ? merged : c,
         );
-        const newQ = this.rebuildQ(newChips, textOnlyQ);
+        const newQ = this.rebuildQWithCurrentText(newChips);
         this.props.onFilterChange(newQ);
         return;
       }
@@ -262,39 +260,29 @@ export default class SearchBox extends React.Component {
       ...(multi ? { values: incomingValues } : { value: valueOrValues }),
     };
     const newChips = [...definedChips, newChip];
-    const newQ = this.rebuildQ(newChips, textOnlyQ);
+    const newQ = this.rebuildQWithCurrentText(newChips);
     this.props.onFilterChange(newQ);
   };
 
   // ── Plain text search input helpers ────────────────────────────────
 
-  /**
-   * Get the plain text portion of the query (without filter chips).
-   */
-  getSearchText() {
-    const { textOnlyQ } = this.parseChips();
-    return extractPlainText(textOnlyQ);
-  }
-
-  /**
-   * When the user types in the plain text search input,
-   * merge it back with the existing filter chips.
-   */
   handleSearchTextChange = (e) => {
-    const newText = e.target.value;
-    const { definedChips } = this.parseChips();
-    const newTextQ = wrapPlainText(newText);
-    if (definedChips.length > 0) {
-      const merged = this.rebuildQ(definedChips, newTextQ);
-      this.props.updateVisibleText(merged);
-    } else {
-      this.props.updateVisibleText(newTextQ);
-    }
+    this.props.onSearchTextChange(e.target.value);
+    this.autoResizeTextarea();
   };
 
   handleSearchKeyDown = (e) => {
-    if (e.key === "Enter") {
-      this.props.updateSearchText();
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      this.props.onSubmit();
+    }
+  };
+
+  autoResizeTextarea = () => {
+    const el = this.searchInput;
+    if (el) {
+      el.style.height = "auto";
+      el.style.height = el.scrollHeight + "px";
     }
   };
 
@@ -334,9 +322,9 @@ export default class SearchBox extends React.Component {
   handleModalConfirm = (chip, editIndex) => {
     if (editIndex >= 0) {
       // Editing an existing chip — replace it
-      const { definedChips, textOnlyQ } = this.parseChips();
+      const { definedChips } = this.parseChips();
       const newChips = definedChips.map((c, i) => (i === editIndex ? chip : c));
-      const newQ = this.rebuildQ(newChips, textOnlyQ);
+      const newQ = this.rebuildQWithCurrentText(newChips);
       this.props.onFilterChange(newQ);
     } else {
       // Adding a new chip — delegate to handleActivateDefault for merge logic
@@ -423,11 +411,11 @@ export default class SearchBox extends React.Component {
       <div>
         <div className="search-box">
           <div className="search-box__input">
-            <input
+            <textarea
               ref={(el) => (this.searchInput = el)}
               className="search-box__text-input"
-              type="text"
-              value={this.getSearchText()}
+              rows={1}
+              value={this.props.searchText}
               onChange={this.handleSearchTextChange}
               onKeyDown={this.handleSearchKeyDown}
               placeholder="Search…"
@@ -437,15 +425,15 @@ export default class SearchBox extends React.Component {
           <div className="search__actions">{spinner}</div>
           <div className={"search__buttons"}>
             <button
-              className="btn"
+              className="btn search__button"
               title="Search"
-              onClick={this.props.updateSearchText}
+              onClick={this.props.onSubmit}
               disabled={this.props.isSearchInProgress}
             >
               Search
             </button>
             <button
-              className="btn"
+              className="btn search__button search__button--clear"
               title="Clear search query and filters"
               onClick={this.props.resetQuery}
               disabled={this.props.isSearchInProgress}

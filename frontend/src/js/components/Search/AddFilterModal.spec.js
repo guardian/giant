@@ -55,8 +55,10 @@ describe("extractPlainText", () => {
     expect(extractPlainText("not json")).toBe("not json");
   });
 
-  test("trims whitespace", () => {
-    expect(extractPlainText(JSON.stringify(["  hello  ", "  "]))).toBe("hello");
+  test("preserves whitespace", () => {
+    expect(extractPlainText(JSON.stringify(["  hello  ", "  "]))).toBe(
+      "  hello     ",
+    );
   });
 });
 
