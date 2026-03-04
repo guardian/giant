@@ -687,14 +687,12 @@ class ElasticsearchResources(override val client: ElasticClient, indexName: Stri
       ).script(
         Script(
           s"""
-             |// Update ingestion array - remove old path and add new path
              |if(ctx._source.${IndexFields.ingestion} != null) {
              |  ctx._source.${IndexFields.ingestion}.removeIf(ing -> ing.equals(params.oldIngestionPath));
              |  if(!ctx._source.${IndexFields.ingestion}.contains(params.newIngestionPath)) {
              |    ctx._source.${IndexFields.ingestion}.add(params.newIngestionPath);
              |  }
              |}
-             |// Update collection array if the collection has changed
              |if(ctx._source.${IndexFields.collection} != null && !params.oldCollection.equals(params.newCollection)) {
              |  // Only remove old collection if no remaining ingestion references it
              |  boolean stillReferencesOldCollection = false;
