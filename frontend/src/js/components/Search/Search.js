@@ -285,7 +285,7 @@ class Search extends React.Component {
   render() {
     return (
       <div className="app__main-content search">
-        <div className="search__sticky-header">
+        <div className="search__header">
           <KeyboardShortcut
             shortcut={keyboardShortcuts.focusSearchBox}
             func={this.selectSearchBox}
@@ -302,6 +302,7 @@ class Search extends React.Component {
             updateSearchText={this.updateSearchText}
           />
         </div>
+        <div className="search__results-scroll">
         <div className="search__underbar">
           <SearchStatus
             results={this.props.search.currentResults}
@@ -329,6 +330,7 @@ class Search extends React.Component {
           searchResults={this.props.search.currentResults}
         />
         {this.renderPageNav()}
+        </div>
       </div>
     );
   }

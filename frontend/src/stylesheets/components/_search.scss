@@ -1,16 +1,17 @@
 .search {
-  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - #{$headerHeight} - #{$baseSpacing * 4});
 
-  &__sticky-header {
-    position: sticky;
-    top: 0;
-    z-index: 10;
-    background: $secondaryLight;
-    // Extend background to cover the parent's margin area
-    margin: -($baseSpacing * 2);
-    margin-bottom: 0;
-    padding: $baseSpacing * 2;
-    padding-bottom: 0;
+  &__header {
+    flex-shrink: 0;
+    padding-bottom: calc($baseSpacing / 2);
+  }
+
+  &__results-scroll {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
   }
 }
 
