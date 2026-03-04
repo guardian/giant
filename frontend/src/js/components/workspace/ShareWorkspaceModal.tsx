@@ -19,6 +19,8 @@ type Props = {
   currentUser: PartialUser;
   setWorkspaceFollowers: typeof setWorkspaceFollowers;
   setWorkspaceIsPublic: typeof setWorkspaceIsPublic;
+  isOpen?: boolean;
+  onClose?: () => void;
 };
 
 export default function ShareWorkspaceModal(props: Props) {
@@ -26,7 +28,15 @@ export default function ShareWorkspaceModal(props: Props) {
     (u) => u.username,
   );
   const currentIsPublic = props.workspace.isPublic;
-  const [open, setOpen] = useState(false);
+  const controlled = props.isOpen !== undefined;
+  const [internalOpen, setInternalOpen] = useState(false);
+  const open = controlled ? props.isOpen! : internalOpen;
+  const setOpen = controlled
+    ? (v: boolean) => {
+        if (!v && props.onClose) props.onClose();
+        if (v) setInternalOpen(v);
+      }
+    : setInternalOpen;
 
   // These should be undefined when the modal is closed.
   // This stops us preserving state across different openings of the modal,
@@ -74,15 +84,19 @@ export default function ShareWorkspaceModal(props: Props) {
   return (
     <React.Fragment>
       {/* The component that triggers the modal (pass-through rendering of children) */}
-      <button
-        className="btn workspace__button"
-        disabled={props.currentUser.username !== props.workspace.owner.username}
-        onClick={() => setOpen(true)}
-        title="Share Workspace"
-      >
-        <MdShare />
-        Share Workspace
-      </button>
+      {!controlled && (
+        <button
+          className="btn workspace__button"
+          disabled={
+            props.currentUser.username !== props.workspace.owner.username
+          }
+          onClick={() => setOpen(true)}
+          title="Share Workspace"
+        >
+          <MdShare />
+          Share Workspace
+        </button>
+      )}
 
       <Modal
         isOpen={open}

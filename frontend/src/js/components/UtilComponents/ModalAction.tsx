@@ -10,6 +10,8 @@ type BaseProps = {
   title: string;
   text?: string;
   disabled?: boolean;
+  isOpen?: boolean;
+  onClose?: () => void;
 };
 
 type ConfirmProps = BaseProps & {
@@ -35,7 +37,15 @@ export default function ModalAction(
     ConfirmProps | EditProps | SelectMultipleProps
   >,
 ) {
-  const [open, setOpen] = useState(false);
+  const controlled = props.isOpen !== undefined;
+  const [internalOpen, setInternalOpen] = useState(false);
+  const open = controlled ? props.isOpen! : internalOpen;
+  const setOpen = controlled
+    ? (v: boolean) => {
+        if (!v && props.onClose) props.onClose();
+        if (v) setInternalOpen(v);
+      }
+    : setInternalOpen;
   const [value, setValue] = useState<string | string[] | undefined>(undefined);
 
   function onSubmit(e?: React.FormEvent) {
@@ -77,14 +87,16 @@ export default function ModalAction(
   return (
     <React.Fragment>
       {/* The component that triggers the modal (pass-through rendering of children) */}
-      <button
-        className={props.className}
-        disabled={props.disabled}
-        onClick={() => setOpen(true)}
-        title={props.title}
-      >
-        {props.children}
-      </button>
+      {!controlled && (
+        <button
+          className={props.className}
+          disabled={props.disabled}
+          onClick={() => setOpen(true)}
+          title={props.title}
+        >
+          {props.children}
+        </button>
+      )}
 
       <Modal
         isOpen={open}
