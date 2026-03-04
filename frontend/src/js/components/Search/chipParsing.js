@@ -258,41 +258,47 @@ export function toBackendQ(q) {
 // ── Sidebar ↔ Chip bridging helpers ─────────────────────────────────
 
 /**
- * Extract File Type category values from a q string.
- * Returns an empty array if no File Type chip is present.
+ * Extract File Type category values from a q string, split by polarity.
  *
  * @param {string} q
- * @returns {string[]} e.g. ["pdf", "word"]
+ * @returns {{ positive: string[], negative: string[] }}
  */
 export function getFileTypeCategoriesFromQ(q) {
-  if (!q) return [];
+  const empty = { positive: [], negative: [] };
+  if (!q) return empty;
   try {
     const parsed = JSON.parse(q);
-    if (!Array.isArray(parsed)) return [];
+    if (!Array.isArray(parsed)) return empty;
+    const result = { positive: [], negative: [] };
     for (const el of parsed) {
       if (_isObject(el) && el.n === CHIP_NAME_FILE_TYPE) {
-        return (el.v || "")
+        const values = (el.v || "")
           .split(" OR ")
           .map((v) => v.trim())
           .filter(Boolean);
+        if (el.op === "-") {
+          result.negative.push(...values);
+        } else {
+          result.positive.push(...values);
+        }
       }
     }
-    return [];
+    return result;
   } catch (e) {
-    return [];
+    return empty;
   }
 }
 
 /**
- * Return a new q string with the File Type chip set to the given categories.
- * If categories is empty, the File Type chip is removed.
- * If no File Type chip exists yet, one is created.
+ * Return a new q string with File Type chips set to the given categories.
+ * Supports separate positive and negative (excluded) categories.
  *
- * @param {string} q            - current serialised q
- * @param {string[]} categories - category keys, e.g. ["pdf", "word"]
+ * @param {string} q - current serialised q
+ * @param {{ positive: string[], negative: string[] }} categories
  * @returns {string} updated q
  */
 export function setFileTypeCategoriesInQ(q, categories) {
+  const { positive = [], negative = [] } = categories || {};
   const { definedChips, textOnlyQ } = parseChips(q, []);
 
   // Remove any existing File Type chip(s)
@@ -300,12 +306,22 @@ export function setFileTypeCategoriesInQ(q, categories) {
     (c) => c.name !== CHIP_NAME_FILE_TYPE
   );
 
-  if (categories.length > 0) {
+  if (positive.length > 0) {
     otherChips.push({
       kind: CHIP_KIND_MULTI,
       name: CHIP_NAME_FILE_TYPE,
-      values: categories,
+      values: positive,
       negate: false,
+      chipType: CHIP_TYPE_FILE_TYPE,
+    });
+  }
+
+  if (negative.length > 0) {
+    otherChips.push({
+      kind: CHIP_KIND_MULTI,
+      name: CHIP_NAME_FILE_TYPE,
+      values: negative,
+      negate: true,
       chipType: CHIP_TYPE_FILE_TYPE,
     });
   }

@@ -22,7 +22,8 @@ function buildAgg(bucketsByPrefix) {
  */
 function createInstance(props = {}) {
   const defaults = {
-    selectedCategories: [],
+    positiveCategories: [],
+    negativeCategories: [],
     onToggleCategory: jest.fn(),
     agg: undefined,
     isExpanded: true,
@@ -107,25 +108,47 @@ describe("FileTypeSidebarFilter", () => {
     });
   });
 
-  describe("toggleCategory", () => {
-    test("adds a category when not selected", () => {
+  describe("toggleCategory (tri-state)", () => {
+    test("off → positive: adds to positive", () => {
       const onToggle = jest.fn();
       const inst = createInstance({
-        selectedCategories: ["pdf"],
+        positiveCategories: ["pdf"],
+        negativeCategories: [],
         onToggleCategory: onToggle,
       });
       inst.toggleCategory("image", { stopPropagation: jest.fn() });
-      expect(onToggle).toHaveBeenCalledWith(["pdf", "image"]);
+      expect(onToggle).toHaveBeenCalledWith({
+        positive: ["pdf", "image"],
+        negative: [],
+      });
     });
 
-    test("removes a category when already selected", () => {
+    test("positive → negative: moves from positive to negative", () => {
       const onToggle = jest.fn();
       const inst = createInstance({
-        selectedCategories: ["pdf", "image"],
+        positiveCategories: ["pdf", "image"],
+        negativeCategories: [],
         onToggleCategory: onToggle,
       });
       inst.toggleCategory("pdf", { stopPropagation: jest.fn() });
-      expect(onToggle).toHaveBeenCalledWith(["image"]);
+      expect(onToggle).toHaveBeenCalledWith({
+        positive: ["image"],
+        negative: ["pdf"],
+      });
+    });
+
+    test("negative → off: removes from negative", () => {
+      const onToggle = jest.fn();
+      const inst = createInstance({
+        positiveCategories: [],
+        negativeCategories: ["pdf"],
+        onToggleCategory: onToggle,
+      });
+      inst.toggleCategory("pdf", { stopPropagation: jest.fn() });
+      expect(onToggle).toHaveBeenCalledWith({
+        positive: [],
+        negative: [],
+      });
     });
 
     test("stopPropagation is called", () => {
@@ -133,6 +156,23 @@ describe("FileTypeSidebarFilter", () => {
       const inst = createInstance({ onToggleCategory: jest.fn() });
       inst.toggleCategory("pdf", { stopPropagation: stopProp });
       expect(stopProp).toHaveBeenCalled();
+    });
+  });
+
+  describe("getCategoryState", () => {
+    test("returns 'positive' for positive categories", () => {
+      const inst = createInstance({ positiveCategories: ["pdf"] });
+      expect(inst.getCategoryState("pdf")).toBe("positive");
+    });
+
+    test("returns 'negative' for negative categories", () => {
+      const inst = createInstance({ negativeCategories: ["image"] });
+      expect(inst.getCategoryState("image")).toBe("negative");
+    });
+
+    test("returns 'off' for unselected categories", () => {
+      const inst = createInstance();
+      expect(inst.getCategoryState("pdf")).toBe("off");
     });
   });
 

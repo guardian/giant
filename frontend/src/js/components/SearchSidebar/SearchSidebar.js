@@ -133,7 +133,7 @@ export class SearchSidebarUnconnected extends React.Component {
         ? this.props.expandedFilters[filter.key]
         : true;
 
-    const selectedCategories = getFileTypeCategoriesFromQ(this.props.q);
+    const fileTypeCategories = getFileTypeCategoriesFromQ(this.props.q);
 
     return (
       <div className="sidebar">
@@ -142,7 +142,8 @@ export class SearchSidebarUnconnected extends React.Component {
           filter.key === MIME_TYPE_FILTER_KEY ? (
             <FileTypeSidebarFilter
               key={filter.key}
-              selectedCategories={selectedCategories}
+              positiveCategories={fileTypeCategories.positive}
+              negativeCategories={fileTypeCategories.negative}
               onToggleCategory={this.onToggleFileTypeCategories}
               agg={aggs.find((e) => e.key === MIME_TYPE_FILTER_KEY)}
               isExpanded={isFilterExpanded(filter)}

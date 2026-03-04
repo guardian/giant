@@ -2,16 +2,23 @@ import React from "react";
 import PropTypes from "prop-types";
 
 import { MenuChevron } from "../UtilComponents/MenuChevron";
-import { Checkbox } from "../UtilComponents/Checkbox";
+import { TriStateCheckbox } from "../UtilComponents/TriStateCheckbox";
 import {
   FILE_TYPE_CATEGORIES,
   mimeToCategory,
 } from "../Search/fileTypeCategories";
 
+/** Tri-state values: unchecked → included → excluded → unchecked */
+const STATE_OFF = "off";
+const STATE_POSITIVE = "positive";
+const STATE_NEGATIVE = "negative";
+
 /**
  * Sidebar filter for file types, operating at category level.
  *
- * Categories (PDF, Images, Spreadsheets …) get checkboxes.
+ * Categories (PDF, Images, Spreadsheets …) get tri-state checkboxes:
+ *   off → positive (include) → negative (exclude) → off
+ *
  * Individual MIME types are shown beneath each category with
  * counts only — no checkbox — purely informational.
  *
@@ -19,9 +26,11 @@ import {
  */
 export default class FileTypeSidebarFilter extends React.Component {
   static propTypes = {
-    /** Currently-selected category keys (from the File Type chip) */
-    selectedCategories: PropTypes.arrayOf(PropTypes.string).isRequired,
-    /** Called with the new array of category keys after a toggle */
+    /** Currently-selected positive category keys */
+    positiveCategories: PropTypes.arrayOf(PropTypes.string).isRequired,
+    /** Currently-selected negative (excluded) category keys */
+    negativeCategories: PropTypes.arrayOf(PropTypes.string).isRequired,
+    /** Called with { positive: string[], negative: string[] } after a toggle */
     onToggleCategory: PropTypes.func.isRequired,
     /** mimeTypes agg bucket from the search response (may be undefined) */
     agg: PropTypes.shape({
@@ -48,15 +57,38 @@ export default class FileTypeSidebarFilter extends React.Component {
     });
   };
 
+  /**
+   * Cycle a category through: off → positive → negative → off
+   */
   toggleCategory = (catKey, e) => {
     e.stopPropagation();
-    const { selectedCategories, onToggleCategory } = this.props;
-    if (selectedCategories.includes(catKey)) {
-      onToggleCategory(selectedCategories.filter((k) => k !== catKey));
+    const { positiveCategories, negativeCategories, onToggleCategory } = this.props;
+    const state = this.getCategoryState(catKey);
+
+    let nextPositive = [...positiveCategories];
+    let nextNegative = [...negativeCategories];
+
+    if (state === STATE_OFF) {
+      // off → positive
+      nextPositive.push(catKey);
+    } else if (state === STATE_POSITIVE) {
+      // positive → negative
+      nextPositive = nextPositive.filter((k) => k !== catKey);
+      nextNegative.push(catKey);
     } else {
-      onToggleCategory([...selectedCategories, catKey]);
+      // negative → off
+      nextNegative = nextNegative.filter((k) => k !== catKey);
     }
+
+    onToggleCategory({ positive: nextPositive, negative: nextNegative });
   };
+
+  /** Return the tri-state for a given category key */
+  getCategoryState(catKey) {
+    if (this.props.positiveCategories.includes(catKey)) return STATE_POSITIVE;
+    if (this.props.negativeCategories.includes(catKey)) return STATE_NEGATIVE;
+    return STATE_OFF;
+  }
 
   /**
    * Build a map: categoryKey → totalCount from the ES agg buckets.
@@ -148,10 +180,11 @@ export default class FileTypeSidebarFilter extends React.Component {
 
     const rows = FILE_TYPE_CATEGORIES.map((cat) => {
       const count = counts.get(cat.value) || 0;
-      const isSelected = this.props.selectedCategories.includes(cat.value);
+      const catState = this.getCategoryState(cat.value);
+      const isActive = catState !== STATE_OFF;
 
-      // Hide categories with zero results (unless selected)
-      if (hasResults && count === 0 && !isSelected) return null;
+      // Hide categories with zero results (unless active)
+      if (hasResults && count === 0 && !isActive) return null;
 
       const hasMimeSubs = cat.mimes.some((m) => mimeCounts.has(m));
       const isExpanded = this.state.expandedCategories.has(cat.value);
@@ -168,8 +201,8 @@ export default class FileTypeSidebarFilter extends React.Component {
               </div>
               <div className="sidebar__item__text">{cat.label}</div>
               {hasResults && <div className="sidebar__count">{count}</div>}
-              <Checkbox
-                selected={isSelected}
+              <TriStateCheckbox
+                state={catState}
                 onClick={(e) => this.toggleCategory(cat.value, e)}
               />
             </div>

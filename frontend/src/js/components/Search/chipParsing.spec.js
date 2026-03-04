@@ -851,29 +851,42 @@ describe("Date Range round-trip", () => {
 // =============================================================================
 
 describe("getFileTypeCategoriesFromQ", () => {
-  test("returns empty array for null/undefined/empty q", () => {
-    expect(getFileTypeCategoriesFromQ(null)).toEqual([]);
-    expect(getFileTypeCategoriesFromQ(undefined)).toEqual([]);
-    expect(getFileTypeCategoriesFromQ("")).toEqual([]);
+  test("returns empty arrays for null/undefined/empty q", () => {
+    expect(getFileTypeCategoriesFromQ(null)).toEqual({ positive: [], negative: [] });
+    expect(getFileTypeCategoriesFromQ(undefined)).toEqual({ positive: [], negative: [] });
+    expect(getFileTypeCategoriesFromQ("")).toEqual({ positive: [], negative: [] });
   });
 
-  test("returns empty array when no File Type chip exists", () => {
+  test("returns empty arrays when no File Type chip exists", () => {
     const input = q("search text", chip("Mime Type", "application/pdf"));
-    expect(getFileTypeCategoriesFromQ(input)).toEqual([]);
+    expect(getFileTypeCategoriesFromQ(input)).toEqual({ positive: [], negative: [] });
   });
 
-  test("extracts single category", () => {
+  test("extracts single positive category", () => {
     const input = q(chip("File Type", "pdf", "+", "file_type"));
-    expect(getFileTypeCategoriesFromQ(input)).toEqual(["pdf"]);
+    expect(getFileTypeCategoriesFromQ(input)).toEqual({ positive: ["pdf"], negative: [] });
   });
 
-  test("extracts multiple OR-joined categories", () => {
+  test("extracts multiple OR-joined positive categories", () => {
     const input = q(chip("File Type", "pdf OR word OR email", "+", "file_type"));
-    expect(getFileTypeCategoriesFromQ(input)).toEqual(["pdf", "word", "email"]);
+    expect(getFileTypeCategoriesFromQ(input)).toEqual({ positive: ["pdf", "word", "email"], negative: [] });
+  });
+
+  test("extracts negative categories", () => {
+    const input = q(chip("File Type", "image", "-", "file_type"));
+    expect(getFileTypeCategoriesFromQ(input)).toEqual({ positive: [], negative: ["image"] });
+  });
+
+  test("extracts dual-polarity categories", () => {
+    const input = q(
+      chip("File Type", "pdf", "+", "file_type"),
+      chip("File Type", "image", "-", "file_type")
+    );
+    expect(getFileTypeCategoriesFromQ(input)).toEqual({ positive: ["pdf"], negative: ["image"] });
   });
 
   test("returns empty for invalid JSON", () => {
-    expect(getFileTypeCategoriesFromQ("not json")).toEqual([]);
+    expect(getFileTypeCategoriesFromQ("not json")).toEqual({ positive: [], negative: [] });
   });
 
   test("finds File Type chip among other chips", () => {
@@ -882,7 +895,7 @@ describe("getFileTypeCategoriesFromQ", () => {
       chip("Has Field", "email-subject", "+", "dropdown"),
       chip("File Type", "spreadsheet", "+", "file_type")
     );
-    expect(getFileTypeCategoriesFromQ(input)).toEqual(["spreadsheet"]);
+    expect(getFileTypeCategoriesFromQ(input)).toEqual({ positive: ["spreadsheet"], negative: [] });
   });
 });
 
@@ -893,18 +906,41 @@ describe("getFileTypeCategoriesFromQ", () => {
 describe("setFileTypeCategoriesInQ", () => {
   test("creates a File Type chip when none exists", () => {
     const input = q("search text");
-    const result = setFileTypeCategoriesInQ(input, ["pdf"]);
+    const result = setFileTypeCategoriesInQ(input, { positive: ["pdf"], negative: [] });
     const parsed = JSON.parse(result);
 
     const fileTypeChip = parsed.find((el) => typeof el === "object" && el.n === "File Type");
     expect(fileTypeChip).toBeTruthy();
     expect(fileTypeChip.v).toBe("pdf");
     expect(fileTypeChip.t).toBe("file_type");
+    expect(fileTypeChip.op).toBe("+");
+  });
+
+  test("creates a negative File Type chip", () => {
+    const input = q("search text");
+    const result = setFileTypeCategoriesInQ(input, { positive: [], negative: ["image"] });
+    const parsed = JSON.parse(result);
+
+    const fileTypeChip = parsed.find((el) => typeof el === "object" && el.n === "File Type");
+    expect(fileTypeChip).toBeTruthy();
+    expect(fileTypeChip.v).toBe("image");
+    expect(fileTypeChip.op).toBe("-");
+  });
+
+  test("creates dual-polarity File Type chips", () => {
+    const input = q("search text");
+    const result = setFileTypeCategoriesInQ(input, { positive: ["pdf"], negative: ["image"] });
+    const parsed = JSON.parse(result);
+
+    const fileTypeChips = parsed.filter((el) => typeof el === "object" && el.n === "File Type");
+    expect(fileTypeChips).toHaveLength(2);
+    expect(fileTypeChips.find((c) => c.op === "+").v).toBe("pdf");
+    expect(fileTypeChips.find((c) => c.op === "-").v).toBe("image");
   });
 
   test("updates an existing File Type chip", () => {
     const input = q("text", chip("File Type", "pdf", "+", "file_type"));
-    const result = setFileTypeCategoriesInQ(input, ["pdf", "word"]);
+    const result = setFileTypeCategoriesInQ(input, { positive: ["pdf", "word"], negative: [] });
     const parsed = JSON.parse(result);
 
     const fileTypeChips = parsed.filter((el) => typeof el === "object" && el.n === "File Type");
@@ -912,9 +948,9 @@ describe("setFileTypeCategoriesInQ", () => {
     expect(fileTypeChips[0].v).toBe("pdf OR word");
   });
 
-  test("removes File Type chip when categories is empty", () => {
+  test("removes File Type chip when both arrays are empty", () => {
     const input = q("text", chip("File Type", "pdf", "+", "file_type"));
-    const result = setFileTypeCategoriesInQ(input, []);
+    const result = setFileTypeCategoriesInQ(input, { positive: [], negative: [] });
     const parsed = JSON.parse(result);
 
     const fileTypeChip = parsed.find((el) => typeof el === "object" && el.n === "File Type");
@@ -927,7 +963,7 @@ describe("setFileTypeCategoriesInQ", () => {
       "text",
       chip("Has Field", "email-subject", "+", "dropdown")
     );
-    const result = setFileTypeCategoriesInQ(input, ["email"]);
+    const result = setFileTypeCategoriesInQ(input, { positive: ["email"], negative: [] });
     const parsed = JSON.parse(result);
 
     expect(parsed.find((el) => typeof el === "object" && el.n === "Has Field")).toBeTruthy();
@@ -936,7 +972,7 @@ describe("setFileTypeCategoriesInQ", () => {
 
   test("round-trips through getFileTypeCategoriesFromQ", () => {
     const input = q("hello");
-    const categories = ["pdf", "spreadsheet", "email"];
+    const categories = { positive: ["pdf", "spreadsheet"], negative: ["email"] };
     const updated = setFileTypeCategoriesInQ(input, categories);
     expect(getFileTypeCategoriesFromQ(updated)).toEqual(categories);
   });
@@ -947,10 +983,10 @@ describe("setFileTypeCategoriesInQ", () => {
       chip("Created After", "2025-01-01", "+", "date_range"),
       chip("Created Before", "2025-06-01", "+", "date_range")
     );
-    const updated = setFileTypeCategoriesInQ(input, ["web"]);
+    const updated = setFileTypeCategoriesInQ(input, { positive: ["web"], negative: [] });
 
     // File Type was added
-    expect(getFileTypeCategoriesFromQ(updated)).toEqual(["web"]);
+    expect(getFileTypeCategoriesFromQ(updated)).toEqual({ positive: ["web"], negative: [] });
 
     // Date Range chip and text survived
     const { definedChips, textOnlyQ } = parseChips(updated, []);
