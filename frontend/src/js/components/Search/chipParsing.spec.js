@@ -319,12 +319,14 @@ describe("round-trip", () => {
       name: "Email Subject",
       value: "hello",
       negate: false,
+      chipType: "text",
     });
     expect(reparsed.definedChips[1]).toMatchObject({
       kind: "single",
       name: "File Path",
       value: "/secret",
       negate: true,
+      chipType: "text",
     });
     expect(JSON.parse(reparsed.textOnlyQ)).toEqual(["search terms"]);
   });
@@ -338,6 +340,12 @@ describe("round-trip", () => {
     const reparsed = parseChips(rebuilt, []);
 
     expect(reparsed.definedChips).toHaveLength(1);
+    expect(reparsed.definedChips[0]).toMatchObject({
+      kind: "multi",
+      name: "Mime Type",
+      chipType: "text",
+      negate: false,
+    });
     expect(reparsed.definedChips[0].values).toEqual([
       "application/pdf",
       "text/html",
@@ -360,6 +368,7 @@ describe("round-trip", () => {
       kind: "single",
       name: "workspace_folder",
       value: "Reports",
+      chipType: "workspace_folder",
       workspaceId: "ws-42",
       folderId: "f-7",
     });
@@ -388,7 +397,30 @@ describe("round-trip", () => {
 
     // Verify Date Range reconstituted
     const dr = reparsed.definedChips.find((c) => c.name === "Date Range");
-    expect(dr).toMatchObject({ kind: "dateRange", from: "2025-03-01", to: "" });
+    expect(dr).toMatchObject({ kind: "dateRange", from: "2025-03-01", to: "", chipType: "date_range" });
+
+    // Verify chipType preserved on other chips
+    const mime = reparsed.definedChips.find((c) => c.name === "Mime Type");
+    expect(mime.chipType).toBe("text");
+    const hasField = reparsed.definedChips.find((c) => c.name === "Has Field");
+    expect(hasField.chipType).toBe("dropdown");
+    const wf = reparsed.definedChips.find((c) => c.name === "workspace_folder");
+    expect(wf.chipType).toBe("workspace_folder");
+  });
+
+  test("chipType/t field is preserved through round-trip for all chip types", () => {
+    const original = q(
+      chip("File Type", "pdf", "+", "file_type"),
+      chip("Dataset", "col-1", "+", "dataset"),
+      chip("Workspace", "ws-1", "+", "workspace")
+    );
+    const { definedChips, textOnlyQ } = parseChips(original, []);
+    const rebuilt = rebuildQ(definedChips, textOnlyQ);
+    const reparsed = parseChips(rebuilt, []);
+
+    expect(reparsed.definedChips.find((c) => c.name === "File Type").chipType).toBe("file_type");
+    expect(reparsed.definedChips.find((c) => c.name === "Dataset").chipType).toBe("dataset");
+    expect(reparsed.definedChips.find((c) => c.name === "Workspace").chipType).toBe("workspace");
   });
 });
 
@@ -681,6 +713,26 @@ describe("toBackendQ", () => {
     expect(parsed[0].n).toBe("Mime Type");
     expect(parsed[0].v).toContain('"application/pdf"');
     expect(parsed[0].v).toContain('"application/vnd.ms-excel"');
+  });
+
+  test("returns File Type chip unchanged when all categories are unknown", () => {
+    const input = q(chip("File Type", "nonexistent OR alsoFake", "+", "file_type"));
+    const result = JSON.parse(toBackendQ(input));
+
+    // expandFileTypeValues returns [] for unknown keys → element returned as-is
+    expect(result).toHaveLength(1);
+    expect(result[0].n).toBe("File Type");
+    expect(result[0].v).toBe("nonexistent OR alsoFake");
+  });
+
+  test("expands only known categories, drops unknown ones from MIME list", () => {
+    const input = q(chip("File Type", "pdf OR nonexistent", "+", "file_type"));
+    const result = JSON.parse(toBackendQ(input));
+
+    // "pdf" expands; "nonexistent" silently skipped by expandFileTypeValues
+    expect(result[0].n).toBe("Mime Type");
+    expect(result[0].v).toContain('"application/pdf"');
+    expect(result[0].v).not.toContain("nonexistent");
   });
 });
 
