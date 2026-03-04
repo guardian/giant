@@ -1,0 +1,360 @@
+// Active filters bar — shown below the search box
+// Displays committed filter chips with type-appropriate value editors
+
+.active-filters-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: calc($baseSpacing / 2);
+  margin-bottom: $baseSpacing;
+}
+
+// Individual active filter chip
+// Segmented visual style matching InputSupper chips:
+// [+/−] 2px [Name: value] 2px [×] — three separate $primaryDark blocks
+.active-filter-chip {
+  display: inline-block;
+  width: fit-content;
+  color: white;
+  font-size: 16px;
+  overflow: visible;
+  position: relative;
+
+  // Shared button style (negate + remove)
+  & > button {
+    display: inline-flex;
+    height: 100%;
+    width: 20px;
+    border: none;
+    padding: 0;
+    flex-direction: row;
+    justify-content: center;
+    vertical-align: top;
+    color: white;
+    cursor: pointer;
+  }
+
+  &__button-icon {
+    align-self: center;
+  }
+
+  // +/- toggle button — left segment with left-rounded corners
+  &__negate-btn {
+    border-radius: $borderRadiusLarge 0 0 $borderRadiusLarge;
+    background-color: $primaryDark;
+
+    &:hover {
+      background: lighten($primaryDark, 10%);
+    }
+  }
+
+  &--negate &__negate-btn {
+    background-color: $accessibleRed;
+
+    &:hover {
+      background: darken($accessibleRed, 8%);
+    }
+  }
+
+  // Inert negate button on dormant chips — looks present but not interactive
+  &__negate-btn--inert {
+    cursor: default;
+
+    &:hover {
+      background-color: $primaryDark;
+    }
+  }
+
+  // Body — middle segment containing name + value
+  // Separated from negate and remove by 2px margins
+  &__body {
+    display: inline-flex;
+    align-items: center;
+    height: 100%;
+    margin-left: 2px;
+    margin-right: 2px;
+    padding: 0 5px;
+    font-size: 13px;
+    background-color: $primaryDark;
+  }
+
+  &--negate &__body {
+    background-color: $accessibleRed;
+  }
+
+  // Filter name — with colon via ::after (matches InputSupper)
+  &__name {
+    margin-right: 2px;
+    font-size: 13px;
+    max-width: 150px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    user-select: none;
+
+    &::after {
+      content: ":";
+    }
+  }
+
+  // Value area — contains the type-appropriate editor
+  &__value {
+    display: inline-flex;
+    align-items: center;
+    max-width: 300px;
+  }
+
+  // Click-to-edit text display
+  &__value-text {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    padding: 4px 2px;
+
+    &--editable {
+      cursor: pointer;
+      border-bottom: 1px dashed rgba(255, 255, 255, 0.4);
+
+      &:hover {
+        border-bottom-color: white;
+      }
+    }
+  }
+
+  // Free text input (for text chips and mime type combobox)
+  &__value-input {
+    background: rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    border-radius: 3px;
+    color: white;
+    font-size: 16px;
+    padding: 2px 4px;
+    width: 140px;
+    outline: none;
+
+    &:focus {
+      border-color: white;
+      background: rgba(255, 255, 255, 0.3);
+    }
+
+    // Wider variant for mime types with longer values
+    &--wide {
+      width: 220px;
+    }
+
+    &::placeholder {
+      color: rgba(255, 255, 255, 0.5);
+    }
+  }
+
+  // Native date input
+  &__date-input {
+    background: rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    border-radius: 3px;
+    color: white;
+    font-size: 12px;
+    padding: 2px 4px;
+    outline: none;
+    color-scheme: dark;
+
+    &:focus {
+      border-color: white;
+      background: rgba(255, 255, 255, 0.3);
+    }
+  }
+
+  // Select dropdown (for dropdown-type chips like "Has Field")
+  &__select {
+    background: rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    border-radius: 3px;
+    color: white;
+    font-size: 13px;
+    padding: 2px 4px;
+    outline: none;
+    cursor: pointer;
+
+    option {
+      background: $primaryDark;
+      color: white;
+    }
+
+    &:focus {
+      border-color: white;
+      background: rgba(255, 255, 255, 0.3);
+    }
+  }
+
+  &__empty {
+    opacity: 0.5;
+    font-style: italic;
+  }
+
+  // × remove button — right segment with right-rounded corners
+  &__remove-btn {
+    border-radius: 0 $borderRadiusLarge $borderRadiusLarge 0;
+    background-color: $primaryDark;
+
+    &:hover {
+      background: lighten($primaryDark, 10%);
+    }
+  }
+
+  &--negate &__remove-btn {
+    background-color: $accessibleRed;
+
+    &:hover {
+      background: darken($accessibleRed, 8%);
+    }
+  }
+
+  // Right end-cap — visual bookend on dormant chips (same size as remove button, no icon)
+  &__end-cap {
+    display: inline-flex;
+    width: 20px;
+    height: 100%;
+    vertical-align: top;
+    border-radius: 0 $borderRadiusLarge $borderRadiusLarge 0;
+    background-color: $primaryDark;
+  }
+
+  &--negate &__end-cap {
+    background-color: $accessibleRed;
+  }
+
+  // --- Dormant (default / placeholder) chip variant ---
+  &--dormant {
+    opacity: 0.75;
+    transition: opacity 0.15s ease, box-shadow 0.15s ease;
+
+    &:hover {
+      opacity: 1;
+    }
+
+    .active-filter-chip__body {
+      background-color: lighten($primaryDark, 25%);
+    }
+
+    .active-filter-chip__name {
+      font-weight: 500;
+    }
+  }
+
+  &__dormant-label {
+    padding: 4px 2px;
+    font-style: italic;
+    opacity: 0.7;
+
+    &--clickable {
+      cursor: pointer;
+      border-bottom: 1px dashed rgba(255, 255, 255, 0.3);
+
+      &:hover {
+        opacity: 1;
+        border-bottom-color: white;
+      }
+    }
+  }
+
+  // Dormant date input — looks like a subtle pick button
+  &__date-input--dormant {
+    width: 20px;
+    opacity: 0.5;
+    cursor: pointer;
+    margin-left: 4px;
+
+    &:hover {
+      opacity: 1;
+    }
+  }
+
+  // Dormant select — styled as a subtle trigger
+  &__select--dormant {
+    background: transparent;
+    border-color: rgba(255, 255, 255, 0.3);
+    opacity: 0.8;
+
+    &:hover {
+      opacity: 1;
+      border-color: rgba(255, 255, 255, 0.5);
+    }
+  }
+
+  // --- Multi-select checkbox dropdown ---
+
+  &__multi-select {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+  }
+
+  &__multi-select-trigger {
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 2px;
+    border-bottom: 1px dashed rgba(255, 255, 255, 0.4);
+    white-space: nowrap;
+    max-width: 220px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+
+    &:hover {
+      border-bottom-color: white;
+    }
+  }
+
+  &__multi-select-arrow {
+    font-size: 10px;
+    opacity: 0.7;
+    flex-shrink: 0;
+  }
+
+  &__multi-select-dropdown {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    z-index: 100;
+    min-width: 200px;
+    max-height: 280px;
+    overflow-y: auto;
+    background: $primaryDark;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 4px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    padding: 4px 0;
+  }
+
+  &__multi-select-option {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    cursor: pointer;
+    font-size: 14px;
+    white-space: nowrap;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    input[type="checkbox"] {
+      accent-color: white;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+  }
+
+  &__multi-select-option-label {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  &__multi-select-empty {
+    padding: 8px 12px;
+    font-style: italic;
+    opacity: 0.5;
+  }
+}

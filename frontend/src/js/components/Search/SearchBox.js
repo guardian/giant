@@ -5,6 +5,9 @@ import { ProgressAnimation } from "../UtilComponents/ProgressAnimation";
 import { suggestedFieldsPropType } from "../../types/SuggestedFields";
 
 import InputSupper from "../UtilComponents/InputSupper";
+import ActiveFiltersBar from "./ActiveFiltersBar";
+import { isMultiValueChip } from "./ActiveFilterChip";
+import { parseChips, rebuildQ } from "./chipParsing";
 
 export default class SearchBox extends React.Component {
   static propTypes = {
@@ -17,22 +20,119 @@ export default class SearchBox extends React.Component {
   };
 
   focus = () => {
-    if (this.searchInput !== document.activeElement) {
-      this.searchInput.focus();
-      // If you previously did select and didn't type anything the input box 'remembers' it was selected
-      // so we need this hack to reset that...
-      const value = this.searchInput.value;
-      this.searchInput.value = value;
+    if (this.searchInput && this.searchInput.focus) {
+      try {
+        this.searchInput.focus();
+      } catch (e) {
+        // InputSupper's internal ref may not be ready yet
+      }
     }
   };
 
   select = () => {
-    if (this.searchInput !== document.activeElement) {
-      this.searchInput.select();
+    if (this.searchInput && this.searchInput.select) {
+      try {
+        this.searchInput.select();
+      } catch (e) {
+        // InputSupper's internal ref may not be ready yet
+      }
+    }
+  };
+
+  /**
+   * Parse the current q value — delegates to the standalone parseChips().
+   */
+  parseChips() {
+    return parseChips(this.props.q, this.props.suggestedFields);
+  }
+
+  /**
+   * Rebuild the full q value — delegates to the standalone rebuildQ().
+   */
+  rebuildQ(definedChips, textOnlyQ) {
+    return rebuildQ(definedChips, textOnlyQ);
+  }
+
+  handleRemoveChip = (index) => {
+    const { definedChips, textOnlyQ } = this.parseChips();
+    const newChips = definedChips.filter((_, i) => i !== index);
+    const newQ = this.rebuildQ(newChips, textOnlyQ);
+    this.props.updateVisibleText(newQ);
+  };
+
+  handleToggleNegate = (index) => {
+    const { definedChips, textOnlyQ } = this.parseChips();
+    const newChips = definedChips.map((c, i) =>
+      i === index ? { ...c, negate: !c.negate } : c
+    );
+    const newQ = this.rebuildQ(newChips, textOnlyQ);
+    this.props.updateVisibleText(newQ);
+  };
+
+  handleEditChipValue = (index, newValueOrValues) => {
+    const { definedChips, textOnlyQ } = this.parseChips();
+    let newChips = definedChips.map((c, i) => {
+      if (i !== index) return c;
+      if (c.multiValue) {
+        const values = Array.isArray(newValueOrValues) ? newValueOrValues : [newValueOrValues];
+        return { ...c, values };
+      }
+      return { ...c, value: newValueOrValues };
+    });
+    // Remove multi-value chips with no values left (reverts to dormant)
+    newChips = newChips.filter((c) => !(c.multiValue && (c.values || []).length === 0));
+    const newQ = this.rebuildQ(newChips, textOnlyQ);
+    this.props.updateVisibleText(newQ);
+  };
+
+  /**
+   * Activate a dormant default chip — creates a real chip in the query string.
+   * Accepts either a single value (string) or multiple values (string[]).
+   * negate: whether the user toggled exclude before committing.
+   */
+  handleActivateDefault = (name, valueOrValues, chipType, negate = false) => {
+    const { definedChips, textOnlyQ } = this.parseChips();
+    const multi = isMultiValueChip(name);
+    const newChip = {
+      name,
+      negate,
+      chipType,
+      multiValue: multi,
+      ...(multi
+        ? { values: Array.isArray(valueOrValues) ? valueOrValues : [valueOrValues] }
+        : { value: valueOrValues }),
+    };
+    const newChips = [...definedChips, newChip];
+    const newQ = this.rebuildQ(newChips, textOnlyQ);
+    this.props.updateVisibleText(newQ);
+  };
+
+  /**
+   * Build the q value that InputSupper should display (text + in-progress chips only).
+   * Completed filter chips are shown in the ActiveFiltersBar instead.
+   */
+  getInputSupperQ() {
+    const { definedChips, textOnlyQ } = this.parseChips();
+    return definedChips.length > 0 ? textOnlyQ : this.props.q;
+  }
+
+  /**
+   * When InputSupper edits its value (typing, adding inline chips, etc.),
+   * merge the completed filter chips back in so they aren't lost from q.
+   */
+  handleInputSupperChange = (newTextOnlyQ) => {
+    const { definedChips } = this.parseChips();
+    if (definedChips.length > 0) {
+      const merged = this.rebuildQ(definedChips, newTextOnlyQ);
+      this.props.updateVisibleText(merged);
+    } else {
+      this.props.updateVisibleText(newTextOnlyQ);
     }
   };
 
   render() {
+    const { definedChips } = this.parseChips();
+
     const spinner = this.props.isSearchInProgress ? (
       <ProgressAnimation />
     ) : (
@@ -44,9 +144,9 @@ export default class SearchBox extends React.Component {
           <InputSupper
             ref={(s) => (this.searchInput = s)}
             className="search-box__input"
-            value={this.props.q}
+            value={this.getInputSupperQ()}
             chips={this.props.suggestedFields}
-            onChange={this.props.updateVisibleText}
+            onChange={this.handleInputSupperChange}
             updateSearchText={this.props.updateSearchText}
           />
           <div className="search__actions">{spinner}</div>
@@ -69,6 +169,14 @@ export default class SearchBox extends React.Component {
             </button>
           </div>
         </div>
+        <ActiveFiltersBar
+          chips={definedChips}
+          availableFilters={this.props.suggestedFields}
+          onRemoveChip={this.handleRemoveChip}
+          onToggleNegate={this.handleToggleNegate}
+          onEditChipValue={this.handleEditChipValue}
+          onActivateDefault={this.handleActivateDefault}
+        />
       </div>
     );
   }
