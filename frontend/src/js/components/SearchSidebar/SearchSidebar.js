@@ -1,6 +1,7 @@
 import React from "react";
 import PropTypes from "prop-types";
 import SearchFilter from "./SearchFilter";
+import FileTypeSidebarFilter from "./FileTypeSidebarFilter";
 import { searchResultsPropType } from "../../types/SearchResults";
 
 import { connect } from "react-redux";
@@ -14,10 +15,6 @@ import {
   getFileTypeCategoriesFromQ,
   setFileTypeCategoriesInQ,
 } from "../Search/chipParsing";
-import {
-  expandFileTypeValues,
-  collapseMimesToCategories,
-} from "../Search/fileTypeCategories";
 
 /** Sidebar filter key for MIME types (from backend /api/filters) */
 const MIME_TYPE_FILTER_KEY = "mimeType";
@@ -40,37 +37,15 @@ export class SearchSidebarUnconnected extends React.Component {
     this.props.filterActions.getFilters();
   }
 
-  /**
-   * Called by SearchFilter when the user ticks / unticks a sidebar checkbox.
-   *
-   * For the mimeType filter, we route changes through the File Type chip
-   * so that chip bar and sidebar always agree.
-   * All other filters continue to use the legacy `filters` URL param.
-   */
-  updateSelectedFilters = (newFilters) => {
-    const { [MIME_TYPE_FILTER_KEY]: newMimeSelections, ...otherFilters } =
-      newFilters;
-
-    // --- mimeType: route through the File Type chip ----
-    const oldMimes = this.deriveMimeSelections();
-    const mimeChanged =
-      (newMimeSelections || []).length !== oldMimes.length ||
-      (newMimeSelections || []).some((m) => !oldMimes.includes(m));
-
-    if (mimeChanged) {
-      const categories = collapseMimesToCategories(newMimeSelections || []);
-      const newQ = setFileTypeCategoriesInQ(this.props.q || "", categories);
-      this.props.filterActions.updateSearchText(newQ);
-    }
-
-    // --- everything else: legacy path (workspace, ingestion, …) ----
-    this.props.filterActions.updateSearchQueryFilters(otherFilters);
+  /** Called by non-mimeType SearchFilter instances */
+  updateSelectedFilters = (filters) => {
+    this.props.filterActions.updateSearchQueryFilters(filters);
   };
 
-  /** Expand the current File Type chip categories into individual MIME types */
-  deriveMimeSelections = () => {
-    const categories = getFileTypeCategoriesFromQ(this.props.q);
-    return expandFileTypeValues(categories);
+  /** Called by FileTypeSidebarFilter when a category checkbox is toggled */
+  onToggleFileTypeCategories = (categories) => {
+    const newQ = setFileTypeCategoriesInQ(this.props.q || "", categories);
+    this.props.filterActions.updateSearchText(newQ);
   };
 
   sortByDisplay = (a, b) => {
@@ -158,42 +133,52 @@ export class SearchSidebarUnconnected extends React.Component {
         ? this.props.expandedFilters[filter.key]
         : true;
 
+    const selectedCategories = getFileTypeCategoriesFromQ(this.props.q);
+
     return (
       <div className="sidebar">
         <div className="sidebar__title">Search Filters</div>
-        {sortedFilters.map((filter) => (
-          <SearchFilter
-            filter={filter}
-            isExpanded={isFilterExpanded(filter)}
-            activeFilters={this.props.activeFilters || {}}
-            updateActiveFilters={this.updateSelectedFilters}
-            key={filter.key}
-            agg={aggs.find((e) => e.key === filter.key)}
-            // TODO MRB: remove this once workspace counts are fixed
-            missingAggValue={filter.key === "workspace" ? "" : "0"}
-            setFilterExpansionState={
-              this.props.filterActions.setFilterExpansionState
-            }
-          />
-        ))}
+        {sortedFilters.map((filter) =>
+          filter.key === MIME_TYPE_FILTER_KEY ? (
+            <FileTypeSidebarFilter
+              key={filter.key}
+              selectedCategories={selectedCategories}
+              onToggleCategory={this.onToggleFileTypeCategories}
+              agg={aggs.find((e) => e.key === MIME_TYPE_FILTER_KEY)}
+              isExpanded={isFilterExpanded(filter)}
+              setExpanded={() =>
+                this.props.filterActions.setFilterExpansionState(
+                  filter.key,
+                  !isFilterExpanded(filter),
+                )
+              }
+            />
+          ) : (
+            <SearchFilter
+              filter={filter}
+              isExpanded={isFilterExpanded(filter)}
+              activeFilters={this.props.activeFilters || {}}
+              updateActiveFilters={this.updateSelectedFilters}
+              key={filter.key}
+              agg={aggs.find((e) => e.key === filter.key)}
+              // TODO MRB: remove this once workspace counts are fixed
+              missingAggValue={filter.key === "workspace" ? "" : "0"}
+              setFilterExpansionState={
+                this.props.filterActions.setFilterExpansionState
+              }
+            />
+          ),
+        )}
       </div>
     );
   }
 }
 
 function mapStateToProps(state) {
-  const q = (state.urlParams && state.urlParams.q) || "";
-  const baseFilters = (state.urlParams && state.urlParams.filters) || {};
-
-  // Derive mimeType selections from the File Type chip in q,
-  // so the sidebar checkboxes reflect chip state.
-  const categories = getFileTypeCategoriesFromQ(q);
-  const mimeFromChips = expandFileTypeValues(categories);
-
   return {
     filters: state.filters,
-    activeFilters: { ...baseFilters, [MIME_TYPE_FILTER_KEY]: mimeFromChips },
-    q,
+    activeFilters: (state.urlParams && state.urlParams.filters) || {},
+    q: (state.urlParams && state.urlParams.q) || "",
     currentResults: state.search.currentResults,
     expandedFilters: state.expandedFilters,
   };
