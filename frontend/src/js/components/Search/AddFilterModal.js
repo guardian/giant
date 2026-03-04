@@ -5,7 +5,6 @@ import { isMultiValueChip } from "./ActiveFilterChip";
 import {
   CHIP_NAME_FILE_TYPE,
   CHIP_NAME_DATE_RANGE,
-  CHIP_NAME_HAS_FIELD,
   CHIP_NAME_CREATED_AFTER,
   CHIP_NAME_CREATED_BEFORE,
   CHIP_NAME_MIME_TYPE,
@@ -44,15 +43,31 @@ const BUILT_IN_FILTERS = [
  */
 function resolveFilterMeta(name, backendType) {
   if (name === CHIP_NAME_DATE_RANGE) {
-    return { kind: CHIP_KIND_DATE_RANGE, chipType: CHIP_TYPE_DATE_RANGE, multi: false };
+    return {
+      kind: CHIP_KIND_DATE_RANGE,
+      chipType: CHIP_TYPE_DATE_RANGE,
+      multi: false,
+    };
   }
   if (name === CHIP_NAME_FILE_TYPE) {
-    return { kind: CHIP_KIND_MULTI, chipType: CHIP_TYPE_FILE_TYPE, multi: true };
+    return {
+      kind: CHIP_KIND_MULTI,
+      chipType: CHIP_TYPE_FILE_TYPE,
+      multi: true,
+    };
   }
   if (isMultiValueChip(name)) {
-    return { kind: CHIP_KIND_MULTI, chipType: backendType || CHIP_TYPE_DROPDOWN, multi: true };
+    return {
+      kind: CHIP_KIND_MULTI,
+      chipType: backendType || CHIP_TYPE_DROPDOWN,
+      multi: true,
+    };
   }
-  return { kind: CHIP_KIND_SINGLE, chipType: backendType || CHIP_TYPE_TEXT, multi: false };
+  return {
+    kind: CHIP_KIND_SINGLE,
+    chipType: backendType || CHIP_TYPE_TEXT,
+    multi: false,
+  };
 }
 
 /**
@@ -116,8 +131,9 @@ export default class AddFilterModal extends React.Component {
 
   /** Build the merged list of available filter names. */
   getFilterList() {
-    const backendFilters = (this.props.availableFilters || [])
-      .filter((f) => !HIDDEN_FILTER_NAMES.has(f.name));
+    const backendFilters = (this.props.availableFilters || []).filter(
+      (f) => !HIDDEN_FILTER_NAMES.has(f.name),
+    );
     const backendNames = new Set(backendFilters.map((f) => f.name));
 
     // Add built-ins that aren't already in the backend list
@@ -180,7 +196,8 @@ export default class AddFilterModal extends React.Component {
   };
 
   isValid() {
-    const { selectedFilter, textValue, multiValues, dateFrom, dateTo } = this.state;
+    const { selectedFilter, textValue, multiValues, dateFrom, dateTo } =
+      this.state;
     if (!selectedFilter) return false;
 
     const def = this.getFilterDef(selectedFilter);
@@ -200,7 +217,14 @@ export default class AddFilterModal extends React.Component {
   handleConfirm = () => {
     if (!this.isValid()) return;
 
-    const { selectedFilter, polarity, textValue, multiValues, dateFrom, dateTo } = this.state;
+    const {
+      selectedFilter,
+      polarity,
+      textValue,
+      multiValues,
+      dateFrom,
+      dateTo,
+    } = this.state;
     const negate = polarity === "exclude";
     const def = this.getFilterDef(selectedFilter);
     const meta = resolveFilterMeta(selectedFilter, def ? def.type : null);
@@ -300,7 +324,11 @@ export default class AddFilterModal extends React.Component {
   renderMultiSelectInput(options) {
     const { multiValues } = this.state;
     return (
-      <div className="add-filter-modal__multi-select" role="group" aria-label="Select values">
+      <div
+        className="add-filter-modal__multi-select"
+        role="group"
+        aria-label="Select values"
+      >
         {options.map((opt) => {
           const checked = multiValues.includes(opt.value);
           return (
@@ -310,7 +338,9 @@ export default class AddFilterModal extends React.Component {
                 checked={checked}
                 onChange={() => this.toggleMultiValue(opt.value)}
               />
-              <span className="add-filter-modal__option-label">{opt.label}</span>
+              <span className="add-filter-modal__option-label">
+                {opt.label}
+              </span>
             </label>
           );
         })}
@@ -331,18 +361,24 @@ export default class AddFilterModal extends React.Component {
 
       case CHIP_KIND_MULTI: {
         // For File Type, use FILE_TYPE_CATEGORIES; for others, use backend options
-        const options = selectedFilter === CHIP_NAME_FILE_TYPE
-          ? FILE_TYPE_CATEGORIES
-          : (def && def.options ? def.options.map((o) =>
-              typeof o === "string" ? { value: o, label: o } : o
-            ) : []);
+        const options =
+          selectedFilter === CHIP_NAME_FILE_TYPE
+            ? FILE_TYPE_CATEGORIES
+            : def && def.options
+              ? def.options.map((o) =>
+                  typeof o === "string" ? { value: o, label: o } : o,
+                )
+              : [];
         return this.renderMultiSelectInput(options);
       }
 
       case CHIP_KIND_SINGLE:
       default: {
         const backendType = def ? def.type : CHIP_TYPE_TEXT;
-        if (backendType === CHIP_TYPE_DATE || backendType === CHIP_TYPE_DATE_EX) {
+        if (
+          backendType === CHIP_TYPE_DATE ||
+          backendType === CHIP_TYPE_DATE_EX
+        ) {
           return this.renderDateInput();
         }
         return this.renderTextInput();
@@ -381,9 +417,13 @@ export default class AddFilterModal extends React.Component {
               disabled={isEditing}
               autoFocus={!isEditing}
             >
-              <option value="" disabled>Select a filter…</option>
+              <option value="" disabled>
+                Select a filter…
+              </option>
               {filterList.map((f) => (
-                <option key={f.name} value={f.name}>{f.name}</option>
+                <option key={f.name} value={f.name}>
+                  {f.name}
+                </option>
               ))}
             </select>
           </div>
