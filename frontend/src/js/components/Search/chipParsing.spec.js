@@ -225,7 +225,7 @@ describe("rebuildQ", () => {
     expect(parsed[0].op).toBe("-");
   });
 
-  test("rebuilds a multi-value chip with OR syntax", () => {
+  test("rebuilds a multi-value chip as one chip per value", () => {
     const chips = [{
       kind: "multi",
       name: "Mime Type",
@@ -236,10 +236,16 @@ describe("rebuildQ", () => {
     const result = rebuildQ(chips, '[]');
     const parsed = JSON.parse(result);
 
-    expect(parsed).toHaveLength(1);
+    expect(parsed).toHaveLength(2);
     expect(parsed[0]).toMatchObject({
       n: "Mime Type",
-      v: "application/pdf OR text/plain",
+      v: "application/pdf",
+      op: "+",
+      t: "text",
+    });
+    expect(parsed[1]).toMatchObject({
+      n: "Mime Type",
+      v: "text/plain",
       op: "+",
       t: "text",
     });
@@ -491,10 +497,9 @@ describe("File Type round-trip", () => {
     const rebuilt = rebuildQ(chips, "[]");
     const parsed = JSON.parse(rebuilt);
 
-    expect(parsed).toHaveLength(1);
-    expect(parsed[0].n).toBe("File Type");
-    expect(parsed[0].v).toBe("pdf OR web");
-    expect(parsed[0].op).toBe("+");
+    expect(parsed).toHaveLength(2);
+    expect(parsed[0]).toMatchObject({ n: "File Type", v: "pdf", op: "+" });
+    expect(parsed[1]).toMatchObject({ n: "File Type", v: "web", op: "+" });
   });
 
   test("parseChips parses File Type chip directly (no reconstitution needed)", () => {
@@ -677,10 +682,12 @@ describe("toBackendQ", () => {
     const backendQ = toBackendQ(uiQ);
     const parsed = JSON.parse(backendQ);
 
-    expect(parsed).toHaveLength(1);
+    // One chip per value after rebuildQ, each expanded to Mime Type by toBackendQ
+    expect(parsed).toHaveLength(2);
     expect(parsed[0].n).toBe("Mime Type");
     expect(parsed[0].v).toContain('"application/pdf"');
-    expect(parsed[0].v).toContain('"application/vnd.ms-excel"');
+    expect(parsed[1].n).toBe("Mime Type");
+    expect(parsed[1].v).toContain('"application/vnd.ms-excel"');
   });
 });
 
@@ -944,8 +951,9 @@ describe("setFileTypeCategoriesInQ", () => {
     const parsed = JSON.parse(result);
 
     const fileTypeChips = parsed.filter((el) => typeof el === "object" && el.n === "File Type");
-    expect(fileTypeChips).toHaveLength(1);
-    expect(fileTypeChips[0].v).toBe("pdf OR word");
+    expect(fileTypeChips).toHaveLength(2);
+    expect(fileTypeChips[0].v).toBe("pdf");
+    expect(fileTypeChips[1].v).toBe("word");
   });
 
   test("removes File Type chip when both arrays are empty", () => {

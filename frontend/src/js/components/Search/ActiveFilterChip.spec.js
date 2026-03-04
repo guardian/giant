@@ -13,6 +13,10 @@ describe("isMultiValueChip", () => {
     expect(isMultiValueChip("File Type")).toBe(true);
   });
 
+  test("Language is multi-value", () => {
+    expect(isMultiValueChip("Language")).toBe(true);
+  });
+
   test("Created After is not multi-value", () => {
     expect(isMultiValueChip("Created After")).toBe(false);
   });

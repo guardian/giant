@@ -4,8 +4,10 @@ import { FILE_TYPE_CATEGORIES } from "./fileTypeCategories";
 import {
   CHIP_NAME_MIME_TYPE,
   CHIP_NAME_FILE_TYPE,
+  CHIP_NAME_HAS_FIELD,
   CHIP_NAME_DATASET,
   CHIP_NAME_WORKSPACE,
+  CHIP_NAME_LANGUAGE,
   CHIP_KIND_SINGLE,
   CHIP_KIND_MULTI,
   CHIP_KIND_DATE_RANGE,
@@ -57,10 +59,11 @@ const MAX_DISPLAY_CHARS = 36;
  */
 const MULTI_VALUE_CHIP_NAMES = new Set([
   CHIP_NAME_MIME_TYPE,
-  "Has Field",
+  CHIP_NAME_HAS_FIELD,
   CHIP_NAME_FILE_TYPE,
   CHIP_NAME_DATASET,
   CHIP_NAME_WORKSPACE,
+  CHIP_NAME_LANGUAGE,
 ]);
 
 /** Check whether a given chip name supports multi-value selection. */

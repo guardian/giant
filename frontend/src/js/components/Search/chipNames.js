@@ -16,6 +16,7 @@ export const CHIP_NAME_DATE_RANGE = "Date Range";
 export const CHIP_NAME_WORKSPACE_FOLDER = "workspace_folder";
 export const CHIP_NAME_DATASET = "Dataset";
 export const CHIP_NAME_WORKSPACE = "Workspace";
+export const CHIP_NAME_LANGUAGE = "Language";
 
 // ── Chip kinds (discriminated union tag for UI chip shape) ───────────
 
