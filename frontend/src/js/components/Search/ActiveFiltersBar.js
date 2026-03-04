@@ -9,8 +9,7 @@ import ActiveFilterChip from "./ActiveFilterChip";
  */
 const DEFAULT_FILTERS = [
   { name: "File Type", chipType: "file_type", label: "File Type", multiValue: true },
-  { name: "Created After", chipType: "date_ex", label: "Created After", multiValue: false },
-  { name: "Created Before", chipType: "date", label: "Created Before", multiValue: false },
+  { name: "Date Range", chipType: "date_range", label: "Date Range", multiValue: false, dateRange: true },
   { name: "Has Field", chipType: "dropdown", label: "Has Field", multiValue: true },
 ];
 
@@ -66,6 +65,9 @@ export default class ActiveFiltersBar extends React.Component {
               name={chip.name}
               value={chip.value}
               values={chip.values}
+              from={chip.from}
+              to={chip.to}
+              dateRange={chip.dateRange}
               negate={chip.negate}
               chipType={chip.chipType}
               multiValue={chip.multiValue}
@@ -84,6 +86,7 @@ export default class ActiveFiltersBar extends React.Component {
                 name={def.label}
                 value={def.multiValue ? undefined : "all"}
                 values={def.multiValue ? [] : undefined}
+                dateRange={def.dateRange}
                 negate={false}
                 chipType={def.chipType}
                 multiValue={def.multiValue}
@@ -111,6 +114,7 @@ export default class ActiveFiltersBar extends React.Component {
               name={def.label}
               value={def.multiValue ? undefined : "all"}
               values={def.multiValue ? [] : undefined}
+              dateRange={def.dateRange}
               negate={false}
               chipType={def.chipType}
               multiValue={def.multiValue}

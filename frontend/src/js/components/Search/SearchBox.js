@@ -101,6 +101,10 @@ export default class SearchBox extends React.Component {
     const { definedChips, textOnlyQ } = this.parseChips();
     let newChips = definedChips.map((c, i) => {
       if (i !== index) return c;
+      // Date Range compound chip — value is { from, to }
+      if (c.dateRange && newValueOrValues && typeof newValueOrValues === "object" && !Array.isArray(newValueOrValues)) {
+        return { ...c, from: newValueOrValues.from, to: newValueOrValues.to };
+      }
       if (c.multiValue) {
         const values = Array.isArray(newValueOrValues) ? newValueOrValues : [newValueOrValues];
         return { ...c, values };
@@ -109,6 +113,8 @@ export default class SearchBox extends React.Component {
     });
     // Remove multi-value chips with no values left (reverts to dormant)
     newChips = newChips.filter((c) => !(c.multiValue && (c.values || []).length === 0));
+    // Remove date range chips with both dates cleared
+    newChips = newChips.filter((c) => !(c.dateRange && !c.from && !c.to));
     const newQ = this.rebuildQ(newChips, textOnlyQ);
     this.props.onFilterChange(newQ);
   };
@@ -123,6 +129,37 @@ export default class SearchBox extends React.Component {
    */
   handleActivateDefault = (name, valueOrValues, chipType, negate = false) => {
     const { definedChips, textOnlyQ } = this.parseChips();
+
+    // Date Range activation — valueOrValues is { from, to }
+    if (chipType === "date_range" && valueOrValues && typeof valueOrValues === "object" && !Array.isArray(valueOrValues)) {
+      // Merge into an existing Date Range chip of the same polarity if present
+      const existingIndex = definedChips.findIndex(
+        (c) => c.dateRange && c.negate === negate
+      );
+      if (existingIndex !== -1) {
+        const merged = { ...definedChips[existingIndex] };
+        if (valueOrValues.from) merged.from = valueOrValues.from;
+        if (valueOrValues.to) merged.to = valueOrValues.to;
+        const newChips = definedChips.map((c, i) => (i === existingIndex ? merged : c));
+        const newQ = this.rebuildQ(newChips, textOnlyQ);
+        this.props.onFilterChange(newQ);
+        return;
+      }
+      const newChip = {
+        name: "Date Range",
+        negate,
+        chipType: "date_range",
+        multiValue: false,
+        dateRange: true,
+        from: valueOrValues.from || "",
+        to: valueOrValues.to || "",
+      };
+      const newChips = [...definedChips, newChip];
+      const newQ = this.rebuildQ(newChips, textOnlyQ);
+      this.props.onFilterChange(newQ);
+      return;
+    }
+
     const multi = isMultiValueChip(name);
     const incomingValues = multi
       ? (Array.isArray(valueOrValues) ? valueOrValues : [valueOrValues])

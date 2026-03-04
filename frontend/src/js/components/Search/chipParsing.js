@@ -44,9 +44,24 @@ export function parseChips(q, suggestedFields) {
     // e.g. +Mime Type and -Mime Type are separate UI chips
     const definedChips = [];
     const multiValueGroups = new Map();
+    // Accumulate date range halves by polarity, merge after loop
+    const dateRangeAccum = new Map(); // key: "+" or "-" → { from, to, negate }
 
     rawChips.forEach((element) => {
       const negate = element.op === "-";
+
+      // ── Date Range consolidation ──────────────────────────────
+      // Merge Created After / Created Before into a single Date Range chip
+      if (element.n === "Created After" || element.n === "Created Before") {
+        const polarityKey = negate ? "-" : "+";
+        if (!dateRangeAccum.has(polarityKey)) {
+          dateRangeAccum.set(polarityKey, { from: "", to: "", negate });
+        }
+        const acc = dateRangeAccum.get(polarityKey);
+        if (element.n === "Created After") acc.from = element.v;
+        if (element.n === "Created Before") acc.to = element.v;
+        return; // consumed — will be added after loop
+      }
 
       // ── File Type reconstitution ──────────────────────────────
       // Backend chip: { n: "Mime Type", v: "…OR…", t: "file_type" }
@@ -132,6 +147,21 @@ export function parseChips(q, suggestedFields) {
       }
     });
 
+    // Materialise accumulated date range chips
+    dateRangeAccum.forEach((acc) => {
+      if (acc.from || acc.to) {
+        definedChips.push({
+          name: "Date Range",
+          from: acc.from || "",
+          to: acc.to || "",
+          negate: acc.negate,
+          chipType: "date_range",
+          multiValue: false,
+          dateRange: true,
+        });
+      }
+    });
+
     const textOnlyQ = JSON.stringify(textParts);
     return { definedChips, textOnlyQ };
   } catch (e) {
@@ -163,6 +193,18 @@ export function rebuildQ(definedChips, textOnlyQ) {
             op: c.negate ? "-" : "+",
             t: "file_type", // marker so parseChips reconstitutes
           });
+        }
+        return;
+      }
+
+      // ── Date Range → Created After + Created Before ─────────
+      if (c.dateRange) {
+        const op = c.negate ? "-" : "+";
+        if (c.from) {
+          chipParts.push({ n: "Created After", v: c.from, op, t: "date_range" });
+        }
+        if (c.to) {
+          chipParts.push({ n: "Created Before", v: c.to, op, t: "date_range" });
         }
         return;
       }

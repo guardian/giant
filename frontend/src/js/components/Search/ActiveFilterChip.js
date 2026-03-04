@@ -70,6 +70,10 @@ export default class ActiveFilterChip extends React.Component {
     value: PropTypes.string,
     /** Multi-value chips — one UI chip holds N backend chips */
     values: PropTypes.arrayOf(PropTypes.string),
+    /** Date Range chip — compound from/to */
+    from: PropTypes.string,
+    to: PropTypes.string,
+    dateRange: PropTypes.bool,
     negate: PropTypes.bool.isRequired,
     chipType: PropTypes.string.isRequired,
     /** Whether this chip supports multi-value selection */
@@ -485,6 +489,79 @@ export default class ActiveFilterChip extends React.Component {
     );
   }
 
+  renderDateRangeValue() {
+    const { from, to } = this.props;
+
+    return (
+      <span className="active-filter-chip__date-range">
+        <input
+          className="active-filter-chip__date-input"
+          type="date"
+          value={from || ""}
+          onChange={(e) =>
+            this.props.onEditValue({ from: e.target.value, to: to || "" })
+          }
+          aria-label="Date range start"
+          title="From date (exclusive — documents after this date)"
+        />
+        <span className="active-filter-chip__date-range-sep" aria-hidden="true">
+          —
+        </span>
+        <input
+          className="active-filter-chip__date-input"
+          type="date"
+          value={to || ""}
+          onChange={(e) =>
+            this.props.onEditValue({ from: from || "", to: e.target.value })
+          }
+          aria-label="Date range end"
+          title="To date (documents before this date)"
+        />
+      </span>
+    );
+  }
+
+  renderDormantDateRange() {
+    return (
+      <span className="active-filter-chip__date-range">
+        <span className="active-filter-chip__dormant-label">all</span>
+        <input
+          className="active-filter-chip__date-input active-filter-chip__date-input--dormant"
+          type="date"
+          value=""
+          onChange={(e) => {
+            if (e.target.value) {
+              this.props.onEditValue(
+                { from: e.target.value, to: "" },
+                this.state.pendingNegate
+              );
+            }
+          }}
+          aria-label="Pick a start date to activate this filter"
+          title="Pick a start date"
+        />
+        <span className="active-filter-chip__date-range-sep" aria-hidden="true">
+          —
+        </span>
+        <input
+          className="active-filter-chip__date-input active-filter-chip__date-input--dormant"
+          type="date"
+          value=""
+          onChange={(e) => {
+            if (e.target.value) {
+              this.props.onEditValue(
+                { from: "", to: e.target.value },
+                this.state.pendingNegate
+              );
+            }
+          }}
+          aria-label="Pick an end date to activate this filter"
+          title="Pick an end date"
+        />
+      </span>
+    );
+  }
+
   renderWorkspaceFolderValue() {
     const { value } = this.props;
     return (
@@ -572,7 +649,12 @@ export default class ActiveFilterChip extends React.Component {
 
   /** Dispatch to the right renderer based on chip configuration */
   renderValueEditor() {
-    const { chipType, multiValue, dormant } = this.props;
+    const { chipType, multiValue, dormant, dateRange } = this.props;
+
+    // Date Range compound chip
+    if (dateRange) {
+      return dormant ? this.renderDormantDateRange() : this.renderDateRangeValue();
+    }
 
     // Multi-value chips always use the multi-select dropdown
     // (handles dormant "all" display internally)

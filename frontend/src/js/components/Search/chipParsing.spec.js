@@ -40,22 +40,22 @@ describe("parseChips", () => {
   });
 
   test("extracts a single-value chip", () => {
-    const input = q("search text", chip("Created After", "2025-01-01", "+", "date_ex"));
+    const input = q("search text", chip("Email Subject", "hello", "+", "text"));
     const { definedChips, textOnlyQ } = parseChips(input, []);
 
     expect(definedChips).toHaveLength(1);
     expect(definedChips[0]).toMatchObject({
-      name: "Created After",
-      value: "2025-01-01",
+      name: "Email Subject",
+      value: "hello",
       negate: false,
-      chipType: "date_ex",
+      chipType: "text",
       multiValue: false,
     });
     expect(JSON.parse(textOnlyQ)).toEqual(["search text"]);
   });
 
   test("recognises negated chips (op = '-')", () => {
-    const input = q(chip("Created After", "2025-01-01", "-", "date_ex"));
+    const input = q(chip("Email Subject", "test", "-", "text"));
     const { definedChips } = parseChips(input, []);
 
     expect(definedChips[0].negate).toBe(true);
@@ -154,7 +154,7 @@ describe("parseChips", () => {
 
   // --- Mixed content ---
 
-  test("handles mixed text + single-value + multi-value chips", () => {
+  test("handles mixed text + date range + multi-value chips", () => {
     const input = q(
       "free text",
       chip("Created After", "2025-01-01", "+", "date_ex"),
@@ -164,16 +164,18 @@ describe("parseChips", () => {
 
     expect(JSON.parse(textOnlyQ)).toEqual(["free text"]);
     expect(definedChips).toHaveLength(2);
+    // Mime Type comes first (processed in loop), Date Range is appended after
     expect(definedChips[0]).toMatchObject({
-      name: "Created After",
-      value: "2025-01-01",
-      multiValue: false,
-    });
-    expect(definedChips[1]).toMatchObject({
       name: "Mime Type",
       values: ["application/pdf", "text/html"],
       negate: true,
       multiValue: true,
+    });
+    expect(definedChips[1]).toMatchObject({
+      name: "Date Range",
+      from: "2025-01-01",
+      to: "",
+      dateRange: true,
     });
   });
 });
@@ -190,10 +192,10 @@ describe("rebuildQ", () => {
 
   test("rebuilds a single-value chip", () => {
     const chips = [{
-      name: "Created After",
-      value: "2025-06-01",
+      name: "Email Subject",
+      value: "hello",
       negate: false,
-      chipType: "date_ex",
+      chipType: "text",
       multiValue: false,
     }];
     const result = rebuildQ(chips, '["text"]');
@@ -202,19 +204,19 @@ describe("rebuildQ", () => {
     expect(parsed).toHaveLength(2);
     expect(parsed[0]).toBe("text");
     expect(parsed[1]).toMatchObject({
-      n: "Created After",
-      v: "2025-06-01",
+      n: "Email Subject",
+      v: "hello",
       op: "+",
-      t: "date_ex",
+      t: "text",
     });
   });
 
   test("rebuilds a negated chip with op '-'", () => {
     const chips = [{
-      name: "Created Before",
-      value: "2025-12-31",
+      name: "File Path",
+      value: "/docs",
       negate: true,
-      chipType: "date",
+      chipType: "text",
       multiValue: false,
     }];
     const result = rebuildQ(chips, '[]');
@@ -276,10 +278,10 @@ describe("rebuildQ", () => {
 
   test("does not include workspaceId/folderId when absent", () => {
     const chips = [{
-      name: "Created After",
-      value: "2025-01-01",
+      name: "Email Subject",
+      value: "test",
       negate: false,
-      chipType: "date_ex",
+      chipType: "text",
       multiValue: false,
     }];
     const result = rebuildQ(chips, '[]');
@@ -303,8 +305,8 @@ describe("round-trip", () => {
   test("single-value chips survive a round-trip", () => {
     const original = q(
       "search terms",
-      chip("Created After", "2025-01-01", "+", "date_ex"),
-      chip("Created Before", "2025-12-31", "-", "date")
+      chip("Email Subject", "hello", "+", "text"),
+      chip("File Path", "/secret", "-", "text")
     );
     const { definedChips, textOnlyQ } = parseChips(original, []);
     const rebuilt = rebuildQ(definedChips, textOnlyQ);
@@ -312,13 +314,13 @@ describe("round-trip", () => {
 
     expect(reparsed.definedChips).toHaveLength(2);
     expect(reparsed.definedChips[0]).toMatchObject({
-      name: "Created After",
-      value: "2025-01-01",
+      name: "Email Subject",
+      value: "hello",
       negate: false,
     });
     expect(reparsed.definedChips[1]).toMatchObject({
-      name: "Created Before",
-      value: "2025-12-31",
+      name: "File Path",
+      value: "/secret",
       negate: true,
     });
     expect(JSON.parse(reparsed.textOnlyQ)).toEqual(["search terms"]);
@@ -371,6 +373,7 @@ describe("round-trip", () => {
       })
     );
     const { definedChips, textOnlyQ } = parseChips(original, []);
+    // Date chips consolidate: Created After → Date Range, so 4 raw → still 4 UI chips
     expect(definedChips).toHaveLength(4);
 
     const rebuilt = rebuildQ(definedChips, textOnlyQ);
@@ -378,6 +381,10 @@ describe("round-trip", () => {
 
     expect(reparsed.definedChips).toHaveLength(4);
     expect(JSON.parse(reparsed.textOnlyQ)).toEqual(["keyword"]);
+
+    // Verify Date Range reconstituted
+    const dr = reparsed.definedChips.find((c) => c.name === "Date Range");
+    expect(dr).toMatchObject({ from: "2025-03-01", to: "", dateRange: true });
   });
 });
 
@@ -614,5 +621,166 @@ describe("File Type round-trip", () => {
     expect(JSON.parse(textOnlyQ)).toEqual(["search terms"]);
     expect(definedChips).toHaveLength(1);
     expect(definedChips[0].name).toBe("File Type");
+  });
+});
+
+// =============================================================================
+// Date Range consolidation
+// =============================================================================
+
+describe("Date Range round-trip", () => {
+  test("parseChips merges Created After + Created Before into one Date Range chip", () => {
+    const input = q(
+      chip("Created After", "2025-01-01", "+", "date_ex"),
+      chip("Created Before", "2025-12-31", "+", "date")
+    );
+    const { definedChips } = parseChips(input, []);
+
+    expect(definedChips).toHaveLength(1);
+    expect(definedChips[0]).toMatchObject({
+      name: "Date Range",
+      from: "2025-01-01",
+      to: "2025-12-31",
+      negate: false,
+      chipType: "date_range",
+      dateRange: true,
+    });
+  });
+
+  test("parseChips handles Created After alone", () => {
+    const input = q(chip("Created After", "2025-06-01", "+", "date_ex"));
+    const { definedChips } = parseChips(input, []);
+
+    expect(definedChips).toHaveLength(1);
+    expect(definedChips[0]).toMatchObject({
+      name: "Date Range",
+      from: "2025-06-01",
+      to: "",
+      dateRange: true,
+    });
+  });
+
+  test("parseChips handles Created Before alone", () => {
+    const input = q(chip("Created Before", "2025-12-31", "+", "date"));
+    const { definedChips } = parseChips(input, []);
+
+    expect(definedChips).toHaveLength(1);
+    expect(definedChips[0]).toMatchObject({
+      name: "Date Range",
+      from: "",
+      to: "2025-12-31",
+      dateRange: true,
+    });
+  });
+
+  test("rebuildQ expands Date Range to separate backend chips", () => {
+    const chips = [
+      { name: "Date Range", from: "2025-01-01", to: "2025-12-31", negate: false, chipType: "date_range", dateRange: true, multiValue: false },
+    ];
+    const rebuilt = rebuildQ(chips, "[]");
+    const parsed = JSON.parse(rebuilt);
+
+    expect(parsed).toHaveLength(2);
+    expect(parsed[0]).toMatchObject({ n: "Created After", v: "2025-01-01", op: "+" });
+    expect(parsed[1]).toMatchObject({ n: "Created Before", v: "2025-12-31", op: "+" });
+  });
+
+  test("rebuildQ omits empty from/to", () => {
+    const fromOnly = [
+      { name: "Date Range", from: "2025-06-01", to: "", negate: false, chipType: "date_range", dateRange: true, multiValue: false },
+    ];
+    const rebuilt = rebuildQ(fromOnly, "[]");
+    const parsed = JSON.parse(rebuilt);
+
+    expect(parsed).toHaveLength(1);
+    expect(parsed[0]).toMatchObject({ n: "Created After", v: "2025-06-01" });
+  });
+
+  test("rebuildQ produces no chips when both dates are empty", () => {
+    const chips = [
+      { name: "Date Range", from: "", to: "", negate: false, chipType: "date_range", dateRange: true, multiValue: false },
+    ];
+    const rebuilt = rebuildQ(chips, "[]");
+    expect(JSON.parse(rebuilt)).toEqual([]);
+  });
+
+  test("Date Range survives a full round-trip", () => {
+    const original = [
+      { name: "Date Range", from: "2025-03-01", to: "2025-09-30", negate: false, chipType: "date_range", dateRange: true, multiValue: false },
+    ];
+    const rebuilt = rebuildQ(original, "[]");
+    const { definedChips } = parseChips(rebuilt, []);
+
+    expect(definedChips).toHaveLength(1);
+    expect(definedChips[0]).toMatchObject({
+      name: "Date Range",
+      from: "2025-03-01",
+      to: "2025-09-30",
+      negate: false,
+      dateRange: true,
+    });
+  });
+
+  test("negated Date Range round-trips", () => {
+    const original = [
+      { name: "Date Range", from: "2025-01-01", to: "2025-06-30", negate: true, chipType: "date_range", dateRange: true, multiValue: false },
+    ];
+    const rebuilt = rebuildQ(original, "[]");
+    const { definedChips } = parseChips(rebuilt, []);
+
+    expect(definedChips).toHaveLength(1);
+    expect(definedChips[0].negate).toBe(true);
+    expect(definedChips[0].from).toBe("2025-01-01");
+    expect(definedChips[0].to).toBe("2025-06-30");
+  });
+
+  test("dual-polarity Date Range chips stay separate", () => {
+    const input = q(
+      chip("Created After", "2025-01-01", "+", "date_ex"),
+      chip("Created Before", "2025-12-31", "+", "date"),
+      chip("Created After", "2024-01-01", "-", "date_ex"),
+      chip("Created Before", "2024-06-30", "-", "date")
+    );
+    const { definedChips } = parseChips(input, []);
+
+    expect(definedChips).toHaveLength(2);
+    const pos = definedChips.find((c) => !c.negate);
+    const neg = definedChips.find((c) => c.negate);
+    expect(pos).toMatchObject({ from: "2025-01-01", to: "2025-12-31" });
+    expect(neg).toMatchObject({ from: "2024-01-01", to: "2024-06-30" });
+  });
+
+  test("Date Range coexists with other chips", () => {
+    const input = q(
+      "search text",
+      chip("Created After", "2025-01-01", "+", "date_ex"),
+      chip("Mime Type", "application/pdf", "+", "text")
+    );
+    const { definedChips, textOnlyQ } = parseChips(input, []);
+
+    expect(JSON.parse(textOnlyQ)).toEqual(["search text"]);
+    expect(definedChips).toHaveLength(2);
+    expect(definedChips.find((c) => c.name === "Date Range")).toMatchObject({
+      from: "2025-01-01",
+      to: "",
+    });
+    expect(definedChips.find((c) => c.name === "Mime Type")).toBeTruthy();
+  });
+
+  test("backwards compat: old-style separate date chips get consolidated", () => {
+    // Old URLs might have t: "date_ex" / t: "date" — should still merge
+    const input = q(
+      chip("Created After", "2024-01-01", "+", "date_ex"),
+      chip("Created Before", "2024-12-31", "+", "date")
+    );
+    const { definedChips } = parseChips(input, []);
+
+    expect(definedChips).toHaveLength(1);
+    expect(definedChips[0]).toMatchObject({
+      name: "Date Range",
+      from: "2024-01-01",
+      to: "2024-12-31",
+      dateRange: true,
+    });
   });
 });
