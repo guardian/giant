@@ -18,7 +18,6 @@ import {
   CHIP_TYPE_DROPDOWN,
   CHIP_TYPE_FILE_TYPE,
   CHIP_TYPE_DATE_RANGE,
-  CHIP_TYPE_WORKSPACE_FOLDER,
 } from "./chipNames";
 
 /**

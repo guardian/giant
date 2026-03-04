@@ -303,6 +303,18 @@
       background-color: $filterInactiveColour;
     }
 
+    .active-filter-chip__negate-btn {
+      background-color: $filterInactiveColour;
+    }
+
+    .active-filter-chip__negate-btn--inert:hover {
+      background-color: $filterInactiveColour;
+    }
+
+    .active-filter-chip__end-cap {
+      background-color: $filterInactiveColour;
+    }
+
     .active-filter-chip__name {
       font-weight: 500;
     }

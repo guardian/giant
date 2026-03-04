@@ -19,7 +19,6 @@ import {
   CHIP_TYPE_DATE_RANGE,
   CHIP_TYPE_DATASET,
   CHIP_TYPE_WORKSPACE,
-  CHIP_TYPE_WORKSPACE_FOLDER,
 } from "./chipNames";
 
 /**

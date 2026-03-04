@@ -11,8 +11,6 @@ import { parseChips, rebuildQ } from "./chipParsing";
 import {
   CHIP_NAME_DATASET,
   CHIP_NAME_WORKSPACE,
-} from "./chipNames";
-import {
   CHIP_NAME_DATE_RANGE,
   CHIP_KIND_SINGLE,
   CHIP_KIND_MULTI,
