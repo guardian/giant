@@ -80,10 +80,7 @@ describe("collapseMimesToCategories", () => {
   });
 
   test("maps mimes from different categories to multiple keys", () => {
-    const keys = collapseMimesToCategories([
-      "application/pdf",
-      "text/html",
-    ]);
+    const keys = collapseMimesToCategories(["application/pdf", "text/html"]);
     expect(keys).toEqual(["pdf", "web"]);
   });
 

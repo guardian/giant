@@ -25,20 +25,30 @@ describe("extractPlainText", () => {
   });
 
   test("extracts text from a single-element JSON array", () => {
-    expect(extractPlainText(JSON.stringify(["hello world"]))).toBe("hello world");
+    expect(extractPlainText(JSON.stringify(["hello world"]))).toBe(
+      "hello world",
+    );
   });
 
   test("joins multiple text segments", () => {
-    expect(extractPlainText(JSON.stringify(["hello", "world"]))).toBe("hello world");
+    expect(extractPlainText(JSON.stringify(["hello", "world"]))).toBe(
+      "hello world",
+    );
   });
 
   test("ignores chip objects in the array", () => {
-    const q = JSON.stringify(["search", { n: "Mime Type", v: "application/pdf", op: "+", t: "text" }, "more"]);
+    const q = JSON.stringify([
+      "search",
+      { n: "Mime Type", v: "application/pdf", op: "+", t: "text" },
+      "more",
+    ]);
     expect(extractPlainText(q)).toBe("search more");
   });
 
   test("returns the raw string for non-array JSON", () => {
-    expect(extractPlainText(JSON.stringify({ foo: "bar" }))).toBe('{"foo":"bar"}');
+    expect(extractPlainText(JSON.stringify({ foo: "bar" }))).toBe(
+      '{"foo":"bar"}',
+    );
   });
 
   test("returns the raw string for invalid JSON", () => {
@@ -126,7 +136,9 @@ describe("AddFilterModal", () => {
         availableFilters: [{ name: CHIP_NAME_FILE_TYPE, type: "file_type" }],
       });
       const list = modal.getFilterList();
-      const fileTypeCount = list.filter((f) => f.name === CHIP_NAME_FILE_TYPE).length;
+      const fileTypeCount = list.filter(
+        (f) => f.name === CHIP_NAME_FILE_TYPE,
+      ).length;
       expect(fileTypeCount).toBe(1);
     });
   });
@@ -193,43 +205,85 @@ describe("AddFilterModal", () => {
   describe("isValid", () => {
     test("returns false when no filter is selected", () => {
       const modal = createModal();
-      modal.state = { selectedFilter: "", textValue: "", multiValues: [], dateFrom: "", dateTo: "" };
+      modal.state = {
+        selectedFilter: "",
+        textValue: "",
+        multiValues: [],
+        dateFrom: "",
+        dateTo: "",
+      };
       expect(modal.isValid()).toBe(false);
     });
 
     test("returns false for single-value with empty text", () => {
       const modal = createModal();
-      modal.state = { selectedFilter: "Email Subject", textValue: "   ", multiValues: [], dateFrom: "", dateTo: "" };
+      modal.state = {
+        selectedFilter: "Email Subject",
+        textValue: "   ",
+        multiValues: [],
+        dateFrom: "",
+        dateTo: "",
+      };
       expect(modal.isValid()).toBe(false);
     });
 
     test("returns true for single-value with non-empty text", () => {
       const modal = createModal();
-      modal.state = { selectedFilter: "Email Subject", textValue: "hello", multiValues: [], dateFrom: "", dateTo: "" };
+      modal.state = {
+        selectedFilter: "Email Subject",
+        textValue: "hello",
+        multiValues: [],
+        dateFrom: "",
+        dateTo: "",
+      };
       expect(modal.isValid()).toBe(true);
     });
 
     test("returns false for multi-value with no selections", () => {
       const modal = createModal();
-      modal.state = { selectedFilter: CHIP_NAME_FILE_TYPE, textValue: "", multiValues: [], dateFrom: "", dateTo: "" };
+      modal.state = {
+        selectedFilter: CHIP_NAME_FILE_TYPE,
+        textValue: "",
+        multiValues: [],
+        dateFrom: "",
+        dateTo: "",
+      };
       expect(modal.isValid()).toBe(false);
     });
 
     test("returns true for multi-value with selections", () => {
       const modal = createModal();
-      modal.state = { selectedFilter: CHIP_NAME_FILE_TYPE, textValue: "", multiValues: ["pdf"], dateFrom: "", dateTo: "" };
+      modal.state = {
+        selectedFilter: CHIP_NAME_FILE_TYPE,
+        textValue: "",
+        multiValues: ["pdf"],
+        dateFrom: "",
+        dateTo: "",
+      };
       expect(modal.isValid()).toBe(true);
     });
 
     test("returns false for date range with no dates", () => {
       const modal = createModal();
-      modal.state = { selectedFilter: CHIP_NAME_DATE_RANGE, textValue: "", multiValues: [], dateFrom: "", dateTo: "" };
+      modal.state = {
+        selectedFilter: CHIP_NAME_DATE_RANGE,
+        textValue: "",
+        multiValues: [],
+        dateFrom: "",
+        dateTo: "",
+      };
       expect(modal.isValid()).toBe(false);
     });
 
     test("returns true for date range with at least one date", () => {
       const modal = createModal();
-      modal.state = { selectedFilter: CHIP_NAME_DATE_RANGE, textValue: "", multiValues: [], dateFrom: "2025-01-01", dateTo: "" };
+      modal.state = {
+        selectedFilter: CHIP_NAME_DATE_RANGE,
+        textValue: "",
+        multiValues: [],
+        dateFrom: "2025-01-01",
+        dateTo: "",
+      };
       expect(modal.isValid()).toBe(true);
     });
   });
@@ -255,7 +309,7 @@ describe("AddFilterModal", () => {
           negate: false,
           chipType: CHIP_TYPE_TEXT,
         }),
-        -1
+        -1,
       );
     });
 
@@ -279,7 +333,7 @@ describe("AddFilterModal", () => {
           negate: true,
           chipType: CHIP_TYPE_FILE_TYPE,
         }),
-        -1
+        -1,
       );
     });
 
@@ -304,7 +358,7 @@ describe("AddFilterModal", () => {
           negate: false,
           chipType: CHIP_TYPE_DATE_RANGE,
         }),
-        -1
+        -1,
       );
     });
 
@@ -336,8 +390,12 @@ describe("AddFilterModal", () => {
       };
       modal.handleConfirm();
       expect(onConfirm).toHaveBeenCalledWith(
-        expect.objectContaining({ name: "Email Subject", value: "changed", negate: true }),
-        2
+        expect.objectContaining({
+          name: "Email Subject",
+          value: "changed",
+          negate: true,
+        }),
+        2,
       );
     });
   });

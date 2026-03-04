@@ -29,10 +29,7 @@ export const TriStateCheckbox = (props) => {
         : BlankCheckboxIcon;
 
   return (
-    <div
-      className={`checkbox ${stateClass}`}
-      onClick={(e) => props.onClick(e)}
-    >
+    <div className={`checkbox ${stateClass}`} onClick={(e) => props.onClick(e)}>
       <div className="checkbox__icon">
         <Icon />
       </div>

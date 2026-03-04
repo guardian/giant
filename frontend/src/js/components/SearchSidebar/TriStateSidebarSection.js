@@ -34,7 +34,7 @@ export default class TriStateSidebarSection extends React.Component {
         value: PropTypes.string.isRequired,
         display: PropTypes.string,
         suboptions: PropTypes.array,
-      })
+      }),
     ).isRequired,
     /** Currently-included values */
     positiveValues: PropTypes.arrayOf(PropTypes.string).isRequired,
@@ -139,12 +139,8 @@ export default class TriStateSidebarSection extends React.Component {
       return (
         <div key={sub.value} className="sidebar__item sidebar__mime-info">
           <div className="sidebar__chevron-container" />
-          <div className="sidebar__item__text">
-            {sub.display || sub.value}
-          </div>
-          {subBucket && (
-            <div className="sidebar__count">{subBucket.count}</div>
-          )}
+          <div className="sidebar__item__text">{sub.display || sub.value}</div>
+          {subBucket && <div className="sidebar__count">{subBucket.count}</div>}
         </div>
       );
     });
@@ -163,8 +159,7 @@ export default class TriStateSidebarSection extends React.Component {
     return this.props.options.map((option) => {
       const optState = this.getOptionState(option.value);
       const isActive = optState !== STATE_OFF;
-      const hasSuboptions =
-        option.suboptions && option.suboptions.length > 0;
+      const hasSuboptions = option.suboptions && option.suboptions.length > 0;
       const isSubExpanded = this.state.expandedOptions.has(option.value);
 
       return (

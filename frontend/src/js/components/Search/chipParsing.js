@@ -1,9 +1,7 @@
 import _isString from "lodash/isString";
 import _isObject from "lodash/isObject";
 import { isMultiValueChip } from "./ActiveFilterChip";
-import {
-  expandFileTypeValues,
-} from "./fileTypeCategories";
+import { expandFileTypeValues } from "./fileTypeCategories";
 import {
   CHIP_NAME_MIME_TYPE,
   CHIP_NAME_FILE_TYPE,
@@ -71,7 +69,10 @@ export function parseChips(q, suggestedFields) {
       const negate = element.op === "-";
 
       // ── Date Range consolidation ──────────────────────────────
-      if (element.n === CHIP_NAME_CREATED_AFTER || element.n === CHIP_NAME_CREATED_BEFORE) {
+      if (
+        element.n === CHIP_NAME_CREATED_AFTER ||
+        element.n === CHIP_NAME_CREATED_BEFORE
+      ) {
         const polarityKey = negate ? "-" : "+";
         if (!dateRangeAccum.has(polarityKey)) {
           dateRangeAccum.set(polarityKey, { from: "", to: "", negate });
@@ -85,9 +86,7 @@ export function parseChips(q, suggestedFields) {
       // ── Normal chip handling ──────────────────────────────────
       const name = element.n;
       const groupKey = `${name}|${negate ? "-" : "+"}`;
-      const fieldDef = (suggestedFields || []).find(
-        (f) => f.name === name
-      );
+      const fieldDef = (suggestedFields || []).find((f) => f.name === name);
 
       if (isMultiValueChip(name)) {
         if (!multiValueGroups.has(groupKey)) {
@@ -178,10 +177,20 @@ export function rebuildQ(definedChips, textOnlyQ) {
       switch (c.kind) {
         case CHIP_KIND_DATE_RANGE:
           if (c.from) {
-            chipParts.push({ n: CHIP_NAME_CREATED_AFTER, v: c.from, op, t: CHIP_TYPE_DATE_RANGE });
+            chipParts.push({
+              n: CHIP_NAME_CREATED_AFTER,
+              v: c.from,
+              op,
+              t: CHIP_TYPE_DATE_RANGE,
+            });
           }
           if (c.to) {
-            chipParts.push({ n: CHIP_NAME_CREATED_BEFORE, v: c.to, op, t: CHIP_TYPE_DATE_RANGE });
+            chipParts.push({
+              n: CHIP_NAME_CREATED_BEFORE,
+              v: c.to,
+              op,
+              t: CHIP_TYPE_DATE_RANGE,
+            });
           }
           break;
 
@@ -233,7 +242,8 @@ export function toBackendQ(q) {
     if (!Array.isArray(parsed)) return q;
 
     const transformed = parsed.map((element) => {
-      if (!_isObject(element) || element.n !== CHIP_NAME_FILE_TYPE) return element;
+      if (!_isObject(element) || element.n !== CHIP_NAME_FILE_TYPE)
+        return element;
 
       // Expand File Type category keys → concrete MIME types
       const categoryKeys = (element.v || "")
@@ -316,9 +326,7 @@ export function setFileTypeCategoriesInQ(q, categories) {
   const { definedChips, textOnlyQ } = parseChips(q, []);
 
   // Remove any existing File Type chip(s)
-  const otherChips = definedChips.filter(
-    (c) => c.name !== CHIP_NAME_FILE_TYPE
-  );
+  const otherChips = definedChips.filter((c) => c.name !== CHIP_NAME_FILE_TYPE);
 
   if (positive.length > 0) {
     otherChips.push({
@@ -471,14 +479,20 @@ export function extractCollectionAndWorkspaceChips(q) {
 
     for (const el of parsed) {
       if (_isObject(el) && el.n === CHIP_NAME_WORKSPACE) {
-        const vals = (el.v || "").split(" OR ").map((v) => v.trim()).filter(Boolean);
+        const vals = (el.v || "")
+          .split(" OR ")
+          .map((v) => v.trim())
+          .filter(Boolean);
         if (el.op === "-") {
           workspaceExcludeValues.push(...vals);
         } else {
           workspaceValues.push(...vals);
         }
       } else if (_isObject(el) && el.n === CHIP_NAME_DATASET) {
-        const vals = (el.v || "").split(" OR ").map((v) => v.trim()).filter(Boolean);
+        const vals = (el.v || "")
+          .split(" OR ")
+          .map((v) => v.trim())
+          .filter(Boolean);
         if (el.op === "-") {
           ingestionExcludeValues.push(...vals);
         } else {
@@ -490,14 +504,22 @@ export function extractCollectionAndWorkspaceChips(q) {
     }
 
     // Strip contradictions at the API boundary — positive wins
-    const cleanWorkspaceExclude = stripContradictions(workspaceValues, workspaceExcludeValues);
-    const cleanIngestionExclude = stripContradictions(ingestionValues, ingestionExcludeValues);
+    const cleanWorkspaceExclude = stripContradictions(
+      workspaceValues,
+      workspaceExcludeValues,
+    );
+    const cleanIngestionExclude = stripContradictions(
+      ingestionValues,
+      ingestionExcludeValues,
+    );
 
     const chipFilters = {};
     if (workspaceValues.length > 0) chipFilters.workspace = workspaceValues;
     if (ingestionValues.length > 0) chipFilters.ingestion = ingestionValues;
-    if (cleanWorkspaceExclude.length > 0) chipFilters.workspace_exclude = cleanWorkspaceExclude;
-    if (cleanIngestionExclude.length > 0) chipFilters.ingestion_exclude = cleanIngestionExclude;
+    if (cleanWorkspaceExclude.length > 0)
+      chipFilters.workspace_exclude = cleanWorkspaceExclude;
+    if (cleanIngestionExclude.length > 0)
+      chipFilters.ingestion_exclude = cleanIngestionExclude;
 
     return { cleanedQ: JSON.stringify(kept), chipFilters };
   } catch (e) {

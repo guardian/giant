@@ -74,13 +74,7 @@ export const FILE_TYPE_CATEGORIES = [
   {
     value: "audio",
     label: "Audio",
-    mimes: [
-      "audio/mpeg",
-      "audio/wav",
-      "audio/ogg",
-      "audio/flac",
-      "audio/aac",
-    ],
+    mimes: ["audio/mpeg", "audio/wav", "audio/ogg", "audio/flac", "audio/aac"],
   },
   {
     value: "video",
@@ -123,7 +117,7 @@ export const FILE_TYPE_CATEGORIES = [
 
 /** Map: category key → array of MIME types */
 const _categoryToMimes = new Map(
-  FILE_TYPE_CATEGORIES.map((c) => [c.value, c.mimes])
+  FILE_TYPE_CATEGORIES.map((c) => [c.value, c.mimes]),
 );
 
 /** Map: MIME type → category key (first match wins) */

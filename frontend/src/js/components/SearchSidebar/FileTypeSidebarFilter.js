@@ -62,7 +62,8 @@ export default class FileTypeSidebarFilter extends React.Component {
    */
   toggleCategory = (catKey, e) => {
     e.stopPropagation();
-    const { positiveCategories, negativeCategories, onToggleCategory } = this.props;
+    const { positiveCategories, negativeCategories, onToggleCategory } =
+      this.props;
     const state = this.getCategoryState(catKey);
 
     let nextPositive = [...positiveCategories];
@@ -104,7 +105,8 @@ export default class FileTypeSidebarFilter extends React.Component {
     let uncategorisedCount = 0;
     const uncategorisedMimes = []; // [{key, count}]
     const agg = this.props.agg;
-    if (!agg || !agg.buckets) return { counts, mimeCounts, uncategorisedCount, uncategorisedMimes };
+    if (!agg || !agg.buckets)
+      return { counts, mimeCounts, uncategorisedCount, uncategorisedMimes };
 
     agg.buckets.forEach((parentBucket) => {
       const subBuckets = parentBucket.buckets || [];

@@ -60,14 +60,20 @@ describe("truncateChipDisplay", () => {
   });
 
   test("truncates a single very long label with ellipsis", () => {
-    const longName = "This is the workspace in which we have all the details about John Smith";
+    const longName =
+      "This is the workspace in which we have all the details about John Smith";
     const result = truncateChipDisplay([longName], 36);
     expect(result.length).toBeLessThanOrEqual(36);
     expect(result).toContain("\u2026"); // contains …
   });
 
   test("shows +N more when not all labels fit", () => {
-    const labels = ["Alpha Workspace", "Beta Workspace", "Gamma Workspace", "Delta Workspace"];
+    const labels = [
+      "Alpha Workspace",
+      "Beta Workspace",
+      "Gamma Workspace",
+      "Delta Workspace",
+    ];
     const result = truncateChipDisplay(labels, 36);
     expect(result).toMatch(/\+\d+ more/);
     expect(result.length).toBeLessThanOrEqual(36);

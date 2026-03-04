@@ -104,7 +104,11 @@ export default class SearchBox extends React.Component {
     if (chip.kind === CHIP_KIND_MULTI) {
       // Check if there's already a chip of the same name with the target polarity
       const targetIndex = definedChips.findIndex(
-        (c, i) => i !== index && c.name === chip.name && c.kind === CHIP_KIND_MULTI && c.negate === targetNegate
+        (c, i) =>
+          i !== index &&
+          c.name === chip.name &&
+          c.kind === CHIP_KIND_MULTI &&
+          c.negate === targetNegate,
       );
       if (targetIndex !== -1) {
         // Merge values into the existing target chip — then remove the source
@@ -125,7 +129,7 @@ export default class SearchBox extends React.Component {
 
     // Simple flip for single-value chips or when no same-name target exists
     const newChips = definedChips.map((c, i) =>
-      i === index ? { ...c, negate: targetNegate } : c
+      i === index ? { ...c, negate: targetNegate } : c,
     );
     const newQ = this.rebuildQ(newChips, textOnlyQ);
     this.props.onFilterChange(newQ);
@@ -137,12 +141,22 @@ export default class SearchBox extends React.Component {
       if (i !== index) return c;
       switch (c.kind) {
         case CHIP_KIND_DATE_RANGE:
-          if (newValueOrValues && typeof newValueOrValues === "object" && !Array.isArray(newValueOrValues)) {
-            return { ...c, from: newValueOrValues.from, to: newValueOrValues.to };
+          if (
+            newValueOrValues &&
+            typeof newValueOrValues === "object" &&
+            !Array.isArray(newValueOrValues)
+          ) {
+            return {
+              ...c,
+              from: newValueOrValues.from,
+              to: newValueOrValues.to,
+            };
           }
           return c;
         case CHIP_KIND_MULTI: {
-          const values = Array.isArray(newValueOrValues) ? newValueOrValues : [newValueOrValues];
+          const values = Array.isArray(newValueOrValues)
+            ? newValueOrValues
+            : [newValueOrValues];
           return { ...c, values };
         }
         case CHIP_KIND_SINGLE:
@@ -151,9 +165,13 @@ export default class SearchBox extends React.Component {
       }
     });
     // Remove multi-value chips with no values left (reverts to dormant)
-    newChips = newChips.filter((c) => !(c.kind === CHIP_KIND_MULTI && (c.values || []).length === 0));
+    newChips = newChips.filter(
+      (c) => !(c.kind === CHIP_KIND_MULTI && (c.values || []).length === 0),
+    );
     // Remove date range chips with both dates cleared
-    newChips = newChips.filter((c) => !(c.kind === CHIP_KIND_DATE_RANGE && !c.from && !c.to));
+    newChips = newChips.filter(
+      (c) => !(c.kind === CHIP_KIND_DATE_RANGE && !c.from && !c.to),
+    );
     const newQ = this.rebuildQ(newChips, textOnlyQ);
     this.props.onFilterChange(newQ);
   };
@@ -170,16 +188,23 @@ export default class SearchBox extends React.Component {
     const { definedChips, textOnlyQ } = this.parseChips();
 
     // Date Range activation — valueOrValues is { from, to }
-    if (chipType === CHIP_TYPE_DATE_RANGE && valueOrValues && typeof valueOrValues === "object" && !Array.isArray(valueOrValues)) {
+    if (
+      chipType === CHIP_TYPE_DATE_RANGE &&
+      valueOrValues &&
+      typeof valueOrValues === "object" &&
+      !Array.isArray(valueOrValues)
+    ) {
       // Merge into an existing Date Range chip of the same polarity if present
       const existingIndex = definedChips.findIndex(
-        (c) => c.kind === CHIP_KIND_DATE_RANGE && c.negate === negate
+        (c) => c.kind === CHIP_KIND_DATE_RANGE && c.negate === negate,
       );
       if (existingIndex !== -1) {
         const merged = { ...definedChips[existingIndex] };
         if (valueOrValues.from) merged.from = valueOrValues.from;
         if (valueOrValues.to) merged.to = valueOrValues.to;
-        const newChips = definedChips.map((c, i) => (i === existingIndex ? merged : c));
+        const newChips = definedChips.map((c, i) =>
+          i === existingIndex ? merged : c,
+        );
         const newQ = this.rebuildQ(newChips, textOnlyQ);
         this.props.onFilterChange(newQ);
         return;
@@ -201,13 +226,16 @@ export default class SearchBox extends React.Component {
     const multi = isMultiValueChip(name);
     const kind = multi ? CHIP_KIND_MULTI : CHIP_KIND_SINGLE;
     const incomingValues = multi
-      ? (Array.isArray(valueOrValues) ? valueOrValues : [valueOrValues])
+      ? Array.isArray(valueOrValues)
+        ? valueOrValues
+        : [valueOrValues]
       : null;
 
     // Try to merge into an existing chip of the same name+polarity
     if (multi) {
       const existingIndex = definedChips.findIndex(
-        (c) => c.name === name && c.kind === CHIP_KIND_MULTI && c.negate === negate
+        (c) =>
+          c.name === name && c.kind === CHIP_KIND_MULTI && c.negate === negate,
       );
       if (existingIndex !== -1) {
         const merged = { ...definedChips[existingIndex] };
@@ -216,7 +244,9 @@ export default class SearchBox extends React.Component {
           if (!mergedValues.includes(v)) mergedValues.push(v);
         });
         merged.values = mergedValues;
-        const newChips = definedChips.map((c, i) => (i === existingIndex ? merged : c));
+        const newChips = definedChips.map((c, i) =>
+          i === existingIndex ? merged : c,
+        );
         const newQ = this.rebuildQ(newChips, textOnlyQ);
         this.props.onFilterChange(newQ);
         return;
@@ -229,9 +259,7 @@ export default class SearchBox extends React.Component {
       name,
       negate,
       chipType,
-      ...(multi
-        ? { values: incomingValues }
-        : { value: valueOrValues }),
+      ...(multi ? { values: incomingValues } : { value: valueOrValues }),
     };
     const newChips = [...definedChips, newChip];
     const newQ = this.rebuildQ(newChips, textOnlyQ);
@@ -275,15 +303,27 @@ export default class SearchBox extends React.Component {
   handleOpenAddFilter = (chip, chipIndex) => {
     if (chip && chipIndex >= 0) {
       // Edit mode
-      this.setState({ modalOpen: true, editingChip: chip, editingChipIndex: chipIndex });
+      this.setState({
+        modalOpen: true,
+        editingChip: chip,
+        editingChipIndex: chipIndex,
+      });
     } else {
       // New filter mode
-      this.setState({ modalOpen: true, editingChip: null, editingChipIndex: -1 });
+      this.setState({
+        modalOpen: true,
+        editingChip: null,
+        editingChipIndex: -1,
+      });
     }
   };
 
   handleCloseModal = () => {
-    this.setState({ modalOpen: false, editingChip: null, editingChipIndex: -1 });
+    this.setState({
+      modalOpen: false,
+      editingChip: null,
+      editingChipIndex: -1,
+    });
   };
 
   /**
@@ -306,15 +346,25 @@ export default class SearchBox extends React.Component {
             chip.name,
             { from: chip.from, to: chip.to },
             chip.chipType,
-            chip.negate
+            chip.negate,
           );
           break;
         case CHIP_KIND_MULTI:
-          this.handleActivateDefault(chip.name, chip.values, chip.chipType, chip.negate);
+          this.handleActivateDefault(
+            chip.name,
+            chip.values,
+            chip.chipType,
+            chip.negate,
+          );
           break;
         case CHIP_KIND_SINGLE:
         default:
-          this.handleActivateDefault(chip.name, chip.value, chip.chipType, chip.negate);
+          this.handleActivateDefault(
+            chip.name,
+            chip.value,
+            chip.chipType,
+            chip.negate,
+          );
           break;
       }
     }

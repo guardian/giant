@@ -19,7 +19,9 @@
     font-size: 13px;
     padding: 4px 12px 4px 8px;
     cursor: pointer;
-    transition: border-color 0.15s ease, color 0.15s ease;
+    transition:
+      border-color 0.15s ease,
+      color 0.15s ease;
 
     &:hover {
       border-color: $primary;
@@ -293,7 +295,9 @@
   // --- Dormant (default / placeholder) chip variant ---
   &--dormant {
     opacity: 0.75;
-    transition: opacity 0.15s ease, box-shadow 0.15s ease;
+    transition:
+      opacity 0.15s ease,
+      box-shadow 0.15s ease;
 
     &:hover {
       opacity: 1;

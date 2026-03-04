@@ -1,6 +1,9 @@
 import React from "react";
 import FileTypeSidebarFilter from "./FileTypeSidebarFilter";
-import { FILE_TYPE_CATEGORIES, mimeToCategory } from "../Search/fileTypeCategories";
+import {
+  FILE_TYPE_CATEGORIES,
+  mimeToCategory,
+} from "../Search/fileTypeCategories";
 
 // ── helpers ──────────────────────────────────────────────────────────
 
@@ -51,9 +54,7 @@ describe("FileTypeSidebarFilter", () => {
 
     test("sums counts per category across prefixes", () => {
       const agg = buildAgg({
-        "application/": [
-          { key: "application/vnd.ms-excel", count: 10 },
-        ],
+        "application/": [{ key: "application/vnd.ms-excel", count: 10 }],
         "text/": [{ key: "text/csv", count: 5 }],
       });
       const inst = createInstance({ agg });
@@ -181,7 +182,9 @@ describe("FileTypeSidebarFilter", () => {
       const inst = createInstance();
       // Simulate setState
       let newState;
-      inst.setState = (fn) => { newState = fn(inst.state); };
+      inst.setState = (fn) => {
+        newState = fn(inst.state);
+      };
       inst.toggleCategoryExpanded("pdf");
       expect(newState.expandedCategories.has("pdf")).toBe(true);
     });
@@ -190,7 +193,9 @@ describe("FileTypeSidebarFilter", () => {
       const inst = createInstance();
       inst.state.expandedCategories.add("pdf");
       let newState;
-      inst.setState = (fn) => { newState = fn(inst.state); };
+      inst.setState = (fn) => {
+        newState = fn(inst.state);
+      };
       inst.toggleCategoryExpanded("pdf");
       expect(newState.expandedCategories.has("pdf")).toBe(false);
     });

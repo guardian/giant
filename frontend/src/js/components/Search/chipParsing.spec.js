@@ -1,4 +1,15 @@
-import { parseChips, rebuildQ, toBackendQ, getFileTypeCategoriesFromQ, setFileTypeCategoriesInQ, getDatasetsFromQ, setDatasetsInQ, getWorkspacesFromQ, setWorkspacesInQ, extractCollectionAndWorkspaceChips } from "./chipParsing";
+import {
+  parseChips,
+  rebuildQ,
+  toBackendQ,
+  getFileTypeCategoriesFromQ,
+  setFileTypeCategoriesInQ,
+  getDatasetsFromQ,
+  setDatasetsInQ,
+  getWorkspacesFromQ,
+  setWorkspacesInQ,
+  extractCollectionAndWorkspaceChips,
+} from "./chipParsing";
 
 // --- Helper to build serialized q values ---
 
@@ -17,7 +28,10 @@ function chip(name, value, op = "+", type = "text", extra = {}) {
 describe("parseChips", () => {
   test("returns empty for null/undefined q", () => {
     expect(parseChips(null, [])).toEqual({ definedChips: [], textOnlyQ: "[]" });
-    expect(parseChips(undefined, [])).toEqual({ definedChips: [], textOnlyQ: "[]" });
+    expect(parseChips(undefined, [])).toEqual({
+      definedChips: [],
+      textOnlyQ: "[]",
+    });
     expect(parseChips("", [])).toEqual({ definedChips: [], textOnlyQ: "[]" });
   });
 
@@ -94,7 +108,9 @@ describe("parseChips", () => {
   // --- Multi-value chips ---
 
   test("parses multi-value Mime Type chip with OR syntax", () => {
-    const input = q(chip("Mime Type", "application/pdf OR text/plain", "+", "text"));
+    const input = q(
+      chip("Mime Type", "application/pdf OR text/plain", "+", "text"),
+    );
     const { definedChips } = parseChips(input, []);
 
     expect(definedChips).toHaveLength(1);
@@ -115,7 +131,7 @@ describe("parseChips", () => {
   test("merges duplicate multi-value chip names (legacy queries)", () => {
     const input = q(
       chip("Mime Type", "application/pdf", "+", "text"),
-      chip("Mime Type", "text/plain", "+", "text")
+      chip("Mime Type", "text/plain", "+", "text"),
     );
     const { definedChips } = parseChips(input, []);
 
@@ -126,7 +142,7 @@ describe("parseChips", () => {
   test("deduplicates values when merging legacy chips", () => {
     const input = q(
       chip("Mime Type", "application/pdf", "+", "text"),
-      chip("Mime Type", "application/pdf OR text/plain", "+", "text")
+      chip("Mime Type", "application/pdf OR text/plain", "+", "text"),
     );
     const { definedChips } = parseChips(input, []);
 
@@ -145,7 +161,11 @@ describe("parseChips", () => {
 
   test("attaches options from suggestedFields", () => {
     const fields = [
-      { name: "Has Field", type: "dropdown", options: ["email", "ocr", "translation"] },
+      {
+        name: "Has Field",
+        type: "dropdown",
+        options: ["email", "ocr", "translation"],
+      },
     ];
     const input = q(chip("Has Field", "email", "+", "dropdown"));
     const { definedChips } = parseChips(input, fields);
@@ -159,7 +179,7 @@ describe("parseChips", () => {
     const input = q(
       "free text",
       chip("Created After", "2025-01-01", "+", "date_ex"),
-      chip("Mime Type", "application/pdf OR text/html", "-", "text")
+      chip("Mime Type", "application/pdf OR text/html", "-", "text"),
     );
     const { definedChips, textOnlyQ } = parseChips(input, []);
 
@@ -192,13 +212,15 @@ describe("rebuildQ", () => {
   });
 
   test("rebuilds a single-value chip", () => {
-    const chips = [{
-      kind: "single",
-      name: "Email Subject",
-      value: "hello",
-      negate: false,
-      chipType: "text",
-    }];
+    const chips = [
+      {
+        kind: "single",
+        name: "Email Subject",
+        value: "hello",
+        negate: false,
+        chipType: "text",
+      },
+    ];
     const result = rebuildQ(chips, '["text"]');
     const parsed = JSON.parse(result);
 
@@ -213,27 +235,31 @@ describe("rebuildQ", () => {
   });
 
   test("rebuilds a negated chip with op '-'", () => {
-    const chips = [{
-      kind: "single",
-      name: "File Path",
-      value: "/docs",
-      negate: true,
-      chipType: "text",
-    }];
-    const result = rebuildQ(chips, '[]');
+    const chips = [
+      {
+        kind: "single",
+        name: "File Path",
+        value: "/docs",
+        negate: true,
+        chipType: "text",
+      },
+    ];
+    const result = rebuildQ(chips, "[]");
     const parsed = JSON.parse(result);
     expect(parsed[0].op).toBe("-");
   });
 
   test("rebuilds a multi-value chip with OR syntax", () => {
-    const chips = [{
-      kind: "multi",
-      name: "Mime Type",
-      values: ["application/pdf", "text/plain"],
-      negate: false,
-      chipType: "text",
-    }];
-    const result = rebuildQ(chips, '[]');
+    const chips = [
+      {
+        kind: "multi",
+        name: "Mime Type",
+        values: ["application/pdf", "text/plain"],
+        negate: false,
+        chipType: "text",
+      },
+    ];
+    const result = rebuildQ(chips, "[]");
     const parsed = JSON.parse(result);
 
     expect(parsed).toHaveLength(1);
@@ -246,29 +272,33 @@ describe("rebuildQ", () => {
   });
 
   test("omits multi-value chip with empty values array", () => {
-    const chips = [{
-      kind: "multi",
-      name: "Mime Type",
-      values: [],
-      negate: false,
-      chipType: "text",
-    }];
+    const chips = [
+      {
+        kind: "multi",
+        name: "Mime Type",
+        values: [],
+        negate: false,
+        chipType: "text",
+      },
+    ];
     const result = rebuildQ(chips, '["text"]');
     const parsed = JSON.parse(result);
     expect(parsed).toEqual(["text"]);
   });
 
   test("preserves workspace_folder extra fields", () => {
-    const chips = [{
-      kind: "single",
-      name: "workspace_folder",
-      value: "My Folder",
-      negate: false,
-      chipType: "workspace_folder",
-      workspaceId: "ws-1",
-      folderId: "f-2",
-    }];
-    const result = rebuildQ(chips, '[]');
+    const chips = [
+      {
+        kind: "single",
+        name: "workspace_folder",
+        value: "My Folder",
+        negate: false,
+        chipType: "workspace_folder",
+        workspaceId: "ws-1",
+        folderId: "f-2",
+      },
+    ];
+    const result = rebuildQ(chips, "[]");
     const parsed = JSON.parse(result);
 
     expect(parsed[0]).toMatchObject({
@@ -278,14 +308,16 @@ describe("rebuildQ", () => {
   });
 
   test("does not include workspaceId/folderId when absent", () => {
-    const chips = [{
-      kind: "single",
-      name: "Email Subject",
-      value: "test",
-      negate: false,
-      chipType: "text",
-    }];
-    const result = rebuildQ(chips, '[]');
+    const chips = [
+      {
+        kind: "single",
+        name: "Email Subject",
+        value: "test",
+        negate: false,
+        chipType: "text",
+      },
+    ];
+    const result = rebuildQ(chips, "[]");
     const parsed = JSON.parse(result);
 
     expect(parsed[0]).not.toHaveProperty("workspaceId");
@@ -307,7 +339,7 @@ describe("round-trip", () => {
     const original = q(
       "search terms",
       chip("Email Subject", "hello", "+", "text"),
-      chip("File Path", "/secret", "-", "text")
+      chip("File Path", "/secret", "-", "text"),
     );
     const { definedChips, textOnlyQ } = parseChips(original, []);
     const rebuilt = rebuildQ(definedChips, textOnlyQ);
@@ -333,7 +365,12 @@ describe("round-trip", () => {
 
   test("multi-value chips survive a round-trip", () => {
     const original = q(
-      chip("Mime Type", "application/pdf OR text/html OR text/plain", "+", "text")
+      chip(
+        "Mime Type",
+        "application/pdf OR text/html OR text/plain",
+        "+",
+        "text",
+      ),
     );
     const { definedChips, textOnlyQ } = parseChips(original, []);
     const rebuilt = rebuildQ(definedChips, textOnlyQ);
@@ -358,7 +395,7 @@ describe("round-trip", () => {
       chip("workspace_folder", "Reports", "+", "workspace_folder", {
         workspaceId: "ws-42",
         folderId: "f-7",
-      })
+      }),
     );
     const { definedChips, textOnlyQ } = parseChips(original, []);
     const rebuilt = rebuildQ(definedChips, textOnlyQ);
@@ -383,7 +420,7 @@ describe("round-trip", () => {
       chip("workspace_folder", "Inbox", "+", "workspace_folder", {
         workspaceId: "ws-1",
         folderId: "f-1",
-      })
+      }),
     );
     const { definedChips, textOnlyQ } = parseChips(original, []);
     // Date chips consolidate: Created After → Date Range, so 4 raw → still 4 UI chips
@@ -397,7 +434,12 @@ describe("round-trip", () => {
 
     // Verify Date Range reconstituted
     const dr = reparsed.definedChips.find((c) => c.name === "Date Range");
-    expect(dr).toMatchObject({ kind: "dateRange", from: "2025-03-01", to: "", chipType: "date_range" });
+    expect(dr).toMatchObject({
+      kind: "dateRange",
+      from: "2025-03-01",
+      to: "",
+      chipType: "date_range",
+    });
 
     // Verify chipType preserved on other chips
     const mime = reparsed.definedChips.find((c) => c.name === "Mime Type");
@@ -412,15 +454,21 @@ describe("round-trip", () => {
     const original = q(
       chip("File Type", "pdf", "+", "file_type"),
       chip("Dataset", "col-1", "+", "dataset"),
-      chip("Workspace", "ws-1", "+", "workspace")
+      chip("Workspace", "ws-1", "+", "workspace"),
     );
     const { definedChips, textOnlyQ } = parseChips(original, []);
     const rebuilt = rebuildQ(definedChips, textOnlyQ);
     const reparsed = parseChips(rebuilt, []);
 
-    expect(reparsed.definedChips.find((c) => c.name === "File Type").chipType).toBe("file_type");
-    expect(reparsed.definedChips.find((c) => c.name === "Dataset").chipType).toBe("dataset");
-    expect(reparsed.definedChips.find((c) => c.name === "Workspace").chipType).toBe("workspace");
+    expect(
+      reparsed.definedChips.find((c) => c.name === "File Type").chipType,
+    ).toBe("file_type");
+    expect(
+      reparsed.definedChips.find((c) => c.name === "Dataset").chipType,
+    ).toBe("dataset");
+    expect(
+      reparsed.definedChips.find((c) => c.name === "Workspace").chipType,
+    ).toBe("workspace");
   });
 });
 
@@ -432,7 +480,7 @@ describe("dual-polarity multi-value chips", () => {
   test("positive and negative Mime Type chips are kept separate", () => {
     const input = q(
       chip("Mime Type", "application/pdf", "+", "text"),
-      chip("Mime Type", "image/jpeg", "-", "text")
+      chip("Mime Type", "image/jpeg", "-", "text"),
     );
     const { definedChips } = parseChips(input, []);
 
@@ -454,7 +502,7 @@ describe("dual-polarity multi-value chips", () => {
   test("same-polarity chips still merge", () => {
     const input = q(
       chip("Mime Type", "application/pdf", "+", "text"),
-      chip("Mime Type", "text/html", "+", "text")
+      chip("Mime Type", "text/html", "+", "text"),
     );
     const { definedChips } = parseChips(input, []);
 
@@ -467,7 +515,7 @@ describe("dual-polarity multi-value chips", () => {
     const input = q(
       chip("Mime Type", "application/pdf", "+", "text"),
       chip("Mime Type", "image/jpeg", "-", "text"),
-      chip("Mime Type", "text/html", "+", "text")
+      chip("Mime Type", "text/html", "+", "text"),
     );
     const { definedChips } = parseChips(input, []);
 
@@ -483,7 +531,7 @@ describe("dual-polarity multi-value chips", () => {
   test("dual-polarity multi-value chips survive a round-trip", () => {
     const original = q(
       chip("Mime Type", "application/pdf OR text/html", "+", "text"),
-      chip("Mime Type", "image/jpeg OR image/png", "-", "text")
+      chip("Mime Type", "image/jpeg OR image/png", "-", "text"),
     );
     const { definedChips, textOnlyQ } = parseChips(original, []);
     expect(definedChips).toHaveLength(2);
@@ -501,7 +549,7 @@ describe("dual-polarity multi-value chips", () => {
   test("Has Field also supports dual polarity", () => {
     const input = q(
       chip("Has Field", "email", "+", "dropdown"),
-      chip("Has Field", "ocr", "-", "dropdown")
+      chip("Has Field", "ocr", "-", "dropdown"),
     );
     const { definedChips } = parseChips(input, []);
 
@@ -518,7 +566,13 @@ describe("dual-polarity multi-value chips", () => {
 describe("File Type round-trip", () => {
   test("rebuildQ serializes File Type as n:File Type (not Mime Type)", () => {
     const chips = [
-      { kind: "multi", name: "File Type", values: ["pdf", "web"], negate: false, chipType: "file_type" },
+      {
+        kind: "multi",
+        name: "File Type",
+        values: ["pdf", "web"],
+        negate: false,
+        chipType: "file_type",
+      },
     ];
     const rebuilt = rebuildQ(chips, "[]");
     const parsed = JSON.parse(rebuilt);
@@ -545,7 +599,13 @@ describe("File Type round-trip", () => {
 
   test("File Type chip survives a full round-trip", () => {
     const original = [
-      { kind: "multi", name: "File Type", values: ["spreadsheet", "email"], negate: false, chipType: "file_type" },
+      {
+        kind: "multi",
+        name: "File Type",
+        values: ["spreadsheet", "email"],
+        negate: false,
+        chipType: "file_type",
+      },
     ];
     const rebuilt = rebuildQ(original, "[]");
     const { definedChips } = parseChips(rebuilt, []);
@@ -558,7 +618,13 @@ describe("File Type round-trip", () => {
 
   test("negated File Type chip round-trips", () => {
     const original = [
-      { kind: "multi", name: "File Type", values: ["archive"], negate: true, chipType: "file_type" },
+      {
+        kind: "multi",
+        name: "File Type",
+        values: ["archive"],
+        negate: true,
+        chipType: "file_type",
+      },
     ];
     const rebuilt = rebuildQ(original, "[]");
     const { definedChips } = parseChips(rebuilt, []);
@@ -571,8 +637,20 @@ describe("File Type round-trip", () => {
 
   test("dual-polarity File Type chips round-trip independently", () => {
     const original = [
-      { kind: "multi", name: "File Type", values: ["pdf"], negate: false, chipType: "file_type" },
-      { kind: "multi", name: "File Type", values: ["image"], negate: true, chipType: "file_type" },
+      {
+        kind: "multi",
+        name: "File Type",
+        values: ["pdf"],
+        negate: false,
+        chipType: "file_type",
+      },
+      {
+        kind: "multi",
+        name: "File Type",
+        values: ["image"],
+        negate: true,
+        chipType: "file_type",
+      },
     ];
     const rebuilt = rebuildQ(original, "[]");
     const { definedChips } = parseChips(rebuilt, []);
@@ -587,7 +665,7 @@ describe("File Type round-trip", () => {
   test("File Type chip coexists with regular Mime Type chip", () => {
     const input = q(
       chip("File Type", "pdf", "+", "file_type"),
-      chip("Mime Type", "application/json", "+", "text")
+      chip("Mime Type", "application/json", "+", "text"),
     );
     const { definedChips } = parseChips(input, []);
 
@@ -606,7 +684,13 @@ describe("File Type round-trip", () => {
 
   test("File Type with empty values produces no backend chip", () => {
     const chips = [
-      { kind: "multi", name: "File Type", values: [], negate: false, chipType: "file_type" },
+      {
+        kind: "multi",
+        name: "File Type",
+        values: [],
+        negate: false,
+        chipType: "file_type",
+      },
     ];
     const rebuilt = rebuildQ(chips, "[]");
     expect(JSON.parse(rebuilt)).toEqual([]);
@@ -615,7 +699,7 @@ describe("File Type round-trip", () => {
   test("File Type preserves text alongside chips", () => {
     const input = q(
       "search terms",
-      chip("File Type", "pdf OR web", "+", "file_type")
+      chip("File Type", "pdf OR web", "+", "file_type"),
     );
     const { definedChips, textOnlyQ } = parseChips(input, []);
 
@@ -653,7 +737,7 @@ describe("toBackendQ", () => {
   test("passes through non-File Type chips unchanged", () => {
     const input = q(
       chip("Mime Type", "application/pdf", "+", "text"),
-      chip("Email Subject", "hello", "+", "text")
+      chip("Email Subject", "hello", "+", "text"),
     );
     expect(toBackendQ(input)).toBe(input);
   });
@@ -691,7 +775,7 @@ describe("toBackendQ", () => {
     const input = q(
       "text",
       chip("File Type", "pdf", "+", "file_type"),
-      chip("Email Subject", "hello", "+", "text")
+      chip("Email Subject", "hello", "+", "text"),
     );
     const result = JSON.parse(toBackendQ(input));
 
@@ -703,7 +787,13 @@ describe("toBackendQ", () => {
 
   test("full pipeline: rebuildQ → toBackendQ produces backend-ready chips", () => {
     const chips = [
-      { kind: "multi", name: "File Type", values: ["pdf", "spreadsheet"], negate: false, chipType: "file_type" },
+      {
+        kind: "multi",
+        name: "File Type",
+        values: ["pdf", "spreadsheet"],
+        negate: false,
+        chipType: "file_type",
+      },
     ];
     const uiQ = rebuildQ(chips, "[]");
     const backendQ = toBackendQ(uiQ);
@@ -716,7 +806,9 @@ describe("toBackendQ", () => {
   });
 
   test("returns File Type chip unchanged when all categories are unknown", () => {
-    const input = q(chip("File Type", "nonexistent OR alsoFake", "+", "file_type"));
+    const input = q(
+      chip("File Type", "nonexistent OR alsoFake", "+", "file_type"),
+    );
     const result = JSON.parse(toBackendQ(input));
 
     // expandFileTypeValues returns [] for unknown keys → element returned as-is
@@ -744,7 +836,7 @@ describe("Date Range round-trip", () => {
   test("parseChips merges Created After + Created Before into one Date Range chip", () => {
     const input = q(
       chip("Created After", "2025-01-01", "+", "date_ex"),
-      chip("Created Before", "2025-12-31", "+", "date")
+      chip("Created Before", "2025-12-31", "+", "date"),
     );
     const { definedChips } = parseChips(input, []);
 
@@ -787,19 +879,41 @@ describe("Date Range round-trip", () => {
 
   test("rebuildQ expands Date Range to separate backend chips", () => {
     const chips = [
-      { kind: "dateRange", name: "Date Range", from: "2025-01-01", to: "2025-12-31", negate: false, chipType: "date_range" },
+      {
+        kind: "dateRange",
+        name: "Date Range",
+        from: "2025-01-01",
+        to: "2025-12-31",
+        negate: false,
+        chipType: "date_range",
+      },
     ];
     const rebuilt = rebuildQ(chips, "[]");
     const parsed = JSON.parse(rebuilt);
 
     expect(parsed).toHaveLength(2);
-    expect(parsed[0]).toMatchObject({ n: "Created After", v: "2025-01-01", op: "+" });
-    expect(parsed[1]).toMatchObject({ n: "Created Before", v: "2025-12-31", op: "+" });
+    expect(parsed[0]).toMatchObject({
+      n: "Created After",
+      v: "2025-01-01",
+      op: "+",
+    });
+    expect(parsed[1]).toMatchObject({
+      n: "Created Before",
+      v: "2025-12-31",
+      op: "+",
+    });
   });
 
   test("rebuildQ omits empty from/to", () => {
     const fromOnly = [
-      { kind: "dateRange", name: "Date Range", from: "2025-06-01", to: "", negate: false, chipType: "date_range" },
+      {
+        kind: "dateRange",
+        name: "Date Range",
+        from: "2025-06-01",
+        to: "",
+        negate: false,
+        chipType: "date_range",
+      },
     ];
     const rebuilt = rebuildQ(fromOnly, "[]");
     const parsed = JSON.parse(rebuilt);
@@ -810,7 +924,14 @@ describe("Date Range round-trip", () => {
 
   test("rebuildQ produces no chips when both dates are empty", () => {
     const chips = [
-      { kind: "dateRange", name: "Date Range", from: "", to: "", negate: false, chipType: "date_range" },
+      {
+        kind: "dateRange",
+        name: "Date Range",
+        from: "",
+        to: "",
+        negate: false,
+        chipType: "date_range",
+      },
     ];
     const rebuilt = rebuildQ(chips, "[]");
     expect(JSON.parse(rebuilt)).toEqual([]);
@@ -818,7 +939,14 @@ describe("Date Range round-trip", () => {
 
   test("Date Range survives a full round-trip", () => {
     const original = [
-      { kind: "dateRange", name: "Date Range", from: "2025-03-01", to: "2025-09-30", negate: false, chipType: "date_range" },
+      {
+        kind: "dateRange",
+        name: "Date Range",
+        from: "2025-03-01",
+        to: "2025-09-30",
+        negate: false,
+        chipType: "date_range",
+      },
     ];
     const rebuilt = rebuildQ(original, "[]");
     const { definedChips } = parseChips(rebuilt, []);
@@ -835,7 +963,14 @@ describe("Date Range round-trip", () => {
 
   test("negated Date Range round-trips", () => {
     const original = [
-      { kind: "dateRange", name: "Date Range", from: "2025-01-01", to: "2025-06-30", negate: true, chipType: "date_range" },
+      {
+        kind: "dateRange",
+        name: "Date Range",
+        from: "2025-01-01",
+        to: "2025-06-30",
+        negate: true,
+        chipType: "date_range",
+      },
     ];
     const rebuilt = rebuildQ(original, "[]");
     const { definedChips } = parseChips(rebuilt, []);
@@ -851,7 +986,7 @@ describe("Date Range round-trip", () => {
       chip("Created After", "2025-01-01", "+", "date_ex"),
       chip("Created Before", "2025-12-31", "+", "date"),
       chip("Created After", "2024-01-01", "-", "date_ex"),
-      chip("Created Before", "2024-06-30", "-", "date")
+      chip("Created Before", "2024-06-30", "-", "date"),
     );
     const { definedChips } = parseChips(input, []);
 
@@ -866,7 +1001,7 @@ describe("Date Range round-trip", () => {
     const input = q(
       "search text",
       chip("Created After", "2025-01-01", "+", "date_ex"),
-      chip("Mime Type", "application/pdf", "+", "text")
+      chip("Mime Type", "application/pdf", "+", "text"),
     );
     const { definedChips, textOnlyQ } = parseChips(input, []);
 
@@ -884,7 +1019,7 @@ describe("Date Range round-trip", () => {
     // Old URLs might have t: "date_ex" / t: "date" — should still merge
     const input = q(
       chip("Created After", "2024-01-01", "+", "date_ex"),
-      chip("Created Before", "2024-12-31", "+", "date")
+      chip("Created Before", "2024-12-31", "+", "date"),
     );
     const { definedChips } = parseChips(input, []);
 
@@ -904,50 +1039,82 @@ describe("Date Range round-trip", () => {
 
 describe("getFileTypeCategoriesFromQ", () => {
   test("returns empty arrays for null/undefined/empty q", () => {
-    expect(getFileTypeCategoriesFromQ(null)).toEqual({ positive: [], negative: [] });
-    expect(getFileTypeCategoriesFromQ(undefined)).toEqual({ positive: [], negative: [] });
-    expect(getFileTypeCategoriesFromQ("")).toEqual({ positive: [], negative: [] });
+    expect(getFileTypeCategoriesFromQ(null)).toEqual({
+      positive: [],
+      negative: [],
+    });
+    expect(getFileTypeCategoriesFromQ(undefined)).toEqual({
+      positive: [],
+      negative: [],
+    });
+    expect(getFileTypeCategoriesFromQ("")).toEqual({
+      positive: [],
+      negative: [],
+    });
   });
 
   test("returns empty arrays when no File Type chip exists", () => {
     const input = q("search text", chip("Mime Type", "application/pdf"));
-    expect(getFileTypeCategoriesFromQ(input)).toEqual({ positive: [], negative: [] });
+    expect(getFileTypeCategoriesFromQ(input)).toEqual({
+      positive: [],
+      negative: [],
+    });
   });
 
   test("extracts single positive category", () => {
     const input = q(chip("File Type", "pdf", "+", "file_type"));
-    expect(getFileTypeCategoriesFromQ(input)).toEqual({ positive: ["pdf"], negative: [] });
+    expect(getFileTypeCategoriesFromQ(input)).toEqual({
+      positive: ["pdf"],
+      negative: [],
+    });
   });
 
   test("extracts multiple OR-joined positive categories", () => {
-    const input = q(chip("File Type", "pdf OR word OR email", "+", "file_type"));
-    expect(getFileTypeCategoriesFromQ(input)).toEqual({ positive: ["pdf", "word", "email"], negative: [] });
+    const input = q(
+      chip("File Type", "pdf OR word OR email", "+", "file_type"),
+    );
+    expect(getFileTypeCategoriesFromQ(input)).toEqual({
+      positive: ["pdf", "word", "email"],
+      negative: [],
+    });
   });
 
   test("extracts negative categories", () => {
     const input = q(chip("File Type", "image", "-", "file_type"));
-    expect(getFileTypeCategoriesFromQ(input)).toEqual({ positive: [], negative: ["image"] });
+    expect(getFileTypeCategoriesFromQ(input)).toEqual({
+      positive: [],
+      negative: ["image"],
+    });
   });
 
   test("extracts dual-polarity categories", () => {
     const input = q(
       chip("File Type", "pdf", "+", "file_type"),
-      chip("File Type", "image", "-", "file_type")
+      chip("File Type", "image", "-", "file_type"),
     );
-    expect(getFileTypeCategoriesFromQ(input)).toEqual({ positive: ["pdf"], negative: ["image"] });
+    expect(getFileTypeCategoriesFromQ(input)).toEqual({
+      positive: ["pdf"],
+      negative: ["image"],
+    });
   });
 
   test("returns empty for invalid JSON", () => {
-    expect(getFileTypeCategoriesFromQ("not json")).toEqual({ positive: [], negative: [] });
+    expect(getFileTypeCategoriesFromQ("not json")).toEqual({
+      positive: [],
+      negative: [],
+    });
   });
 
   test("finds File Type chip among other chips", () => {
     const input = q(
       "text",
       chip("Has Field", "email-subject", "+", "dropdown"),
-      chip("File Type", "spreadsheet", "+", "file_type")
+      chip("File Type", "spreadsheet", "+", "file_type"),
     );
-    expect(getFileTypeCategoriesFromQ(input)).toEqual({ positive: ["spreadsheet"], negative: [] });
+    expect(getFileTypeCategoriesFromQ(input)).toEqual({
+      positive: ["spreadsheet"],
+      negative: [],
+    });
   });
 });
 
@@ -958,10 +1125,15 @@ describe("getFileTypeCategoriesFromQ", () => {
 describe("setFileTypeCategoriesInQ", () => {
   test("creates a File Type chip when none exists", () => {
     const input = q("search text");
-    const result = setFileTypeCategoriesInQ(input, { positive: ["pdf"], negative: [] });
+    const result = setFileTypeCategoriesInQ(input, {
+      positive: ["pdf"],
+      negative: [],
+    });
     const parsed = JSON.parse(result);
 
-    const fileTypeChip = parsed.find((el) => typeof el === "object" && el.n === "File Type");
+    const fileTypeChip = parsed.find(
+      (el) => typeof el === "object" && el.n === "File Type",
+    );
     expect(fileTypeChip).toBeTruthy();
     expect(fileTypeChip.v).toBe("pdf");
     expect(fileTypeChip.t).toBe("file_type");
@@ -970,10 +1142,15 @@ describe("setFileTypeCategoriesInQ", () => {
 
   test("creates a negative File Type chip", () => {
     const input = q("search text");
-    const result = setFileTypeCategoriesInQ(input, { positive: [], negative: ["image"] });
+    const result = setFileTypeCategoriesInQ(input, {
+      positive: [],
+      negative: ["image"],
+    });
     const parsed = JSON.parse(result);
 
-    const fileTypeChip = parsed.find((el) => typeof el === "object" && el.n === "File Type");
+    const fileTypeChip = parsed.find(
+      (el) => typeof el === "object" && el.n === "File Type",
+    );
     expect(fileTypeChip).toBeTruthy();
     expect(fileTypeChip.v).toBe("image");
     expect(fileTypeChip.op).toBe("-");
@@ -981,10 +1158,15 @@ describe("setFileTypeCategoriesInQ", () => {
 
   test("creates dual-polarity File Type chips", () => {
     const input = q("search text");
-    const result = setFileTypeCategoriesInQ(input, { positive: ["pdf"], negative: ["image"] });
+    const result = setFileTypeCategoriesInQ(input, {
+      positive: ["pdf"],
+      negative: ["image"],
+    });
     const parsed = JSON.parse(result);
 
-    const fileTypeChips = parsed.filter((el) => typeof el === "object" && el.n === "File Type");
+    const fileTypeChips = parsed.filter(
+      (el) => typeof el === "object" && el.n === "File Type",
+    );
     expect(fileTypeChips).toHaveLength(2);
     expect(fileTypeChips.find((c) => c.op === "+").v).toBe("pdf");
     expect(fileTypeChips.find((c) => c.op === "-").v).toBe("image");
@@ -992,20 +1174,30 @@ describe("setFileTypeCategoriesInQ", () => {
 
   test("updates an existing File Type chip", () => {
     const input = q("text", chip("File Type", "pdf", "+", "file_type"));
-    const result = setFileTypeCategoriesInQ(input, { positive: ["pdf", "word"], negative: [] });
+    const result = setFileTypeCategoriesInQ(input, {
+      positive: ["pdf", "word"],
+      negative: [],
+    });
     const parsed = JSON.parse(result);
 
-    const fileTypeChips = parsed.filter((el) => typeof el === "object" && el.n === "File Type");
+    const fileTypeChips = parsed.filter(
+      (el) => typeof el === "object" && el.n === "File Type",
+    );
     expect(fileTypeChips).toHaveLength(1);
     expect(fileTypeChips[0].v).toBe("pdf OR word");
   });
 
   test("removes File Type chip when both arrays are empty", () => {
     const input = q("text", chip("File Type", "pdf", "+", "file_type"));
-    const result = setFileTypeCategoriesInQ(input, { positive: [], negative: [] });
+    const result = setFileTypeCategoriesInQ(input, {
+      positive: [],
+      negative: [],
+    });
     const parsed = JSON.parse(result);
 
-    const fileTypeChip = parsed.find((el) => typeof el === "object" && el.n === "File Type");
+    const fileTypeChip = parsed.find(
+      (el) => typeof el === "object" && el.n === "File Type",
+    );
     expect(fileTypeChip).toBeUndefined();
     expect(parsed).toContain("text");
   });
@@ -1013,18 +1205,28 @@ describe("setFileTypeCategoriesInQ", () => {
   test("preserves other chips when adding File Type", () => {
     const input = q(
       "text",
-      chip("Has Field", "email-subject", "+", "dropdown")
+      chip("Has Field", "email-subject", "+", "dropdown"),
     );
-    const result = setFileTypeCategoriesInQ(input, { positive: ["email"], negative: [] });
+    const result = setFileTypeCategoriesInQ(input, {
+      positive: ["email"],
+      negative: [],
+    });
     const parsed = JSON.parse(result);
 
-    expect(parsed.find((el) => typeof el === "object" && el.n === "Has Field")).toBeTruthy();
-    expect(parsed.find((el) => typeof el === "object" && el.n === "File Type")).toBeTruthy();
+    expect(
+      parsed.find((el) => typeof el === "object" && el.n === "Has Field"),
+    ).toBeTruthy();
+    expect(
+      parsed.find((el) => typeof el === "object" && el.n === "File Type"),
+    ).toBeTruthy();
   });
 
   test("round-trips through getFileTypeCategoriesFromQ", () => {
     const input = q("hello");
-    const categories = { positive: ["pdf", "spreadsheet"], negative: ["email"] };
+    const categories = {
+      positive: ["pdf", "spreadsheet"],
+      negative: ["email"],
+    };
     const updated = setFileTypeCategoriesInQ(input, categories);
     expect(getFileTypeCategoriesFromQ(updated)).toEqual(categories);
   });
@@ -1033,12 +1235,18 @@ describe("setFileTypeCategoriesInQ", () => {
     const input = q(
       "search terms",
       chip("Created After", "2025-01-01", "+", "date_range"),
-      chip("Created Before", "2025-06-01", "+", "date_range")
+      chip("Created Before", "2025-06-01", "+", "date_range"),
     );
-    const updated = setFileTypeCategoriesInQ(input, { positive: ["web"], negative: [] });
+    const updated = setFileTypeCategoriesInQ(input, {
+      positive: ["web"],
+      negative: [],
+    });
 
     // File Type was added
-    expect(getFileTypeCategoriesFromQ(updated)).toEqual({ positive: ["web"], negative: [] });
+    expect(getFileTypeCategoriesFromQ(updated)).toEqual({
+      positive: ["web"],
+      negative: [],
+    });
 
     // Date Range chip and text survived
     const { definedChips, textOnlyQ } = parseChips(updated, []);
@@ -1064,54 +1272,92 @@ describe("getDatasetsFromQ", () => {
   });
 
   test("returns positive dataset values", () => {
-    const input = q(chip("Dataset", "panama-papers OR paradise-papers", "+", "dataset"));
-    expect(getDatasetsFromQ(input)).toEqual({ positive: ["panama-papers", "paradise-papers"], negative: [] });
+    const input = q(
+      chip("Dataset", "panama-papers OR paradise-papers", "+", "dataset"),
+    );
+    expect(getDatasetsFromQ(input)).toEqual({
+      positive: ["panama-papers", "paradise-papers"],
+      negative: [],
+    });
   });
 
   test("returns single positive dataset value", () => {
     const input = q(chip("Dataset", "panama-papers", "+", "dataset"));
-    expect(getDatasetsFromQ(input)).toEqual({ positive: ["panama-papers"], negative: [] });
+    expect(getDatasetsFromQ(input)).toEqual({
+      positive: ["panama-papers"],
+      negative: [],
+    });
   });
 
   test("returns negative dataset values", () => {
     const input = q(chip("Dataset", "panama-papers", "-", "dataset"));
-    expect(getDatasetsFromQ(input)).toEqual({ positive: [], negative: ["panama-papers"] });
+    expect(getDatasetsFromQ(input)).toEqual({
+      positive: [],
+      negative: ["panama-papers"],
+    });
   });
 
   test("returns both positive and negative dataset values", () => {
     const input = q(
       chip("Dataset", "panama-papers", "+", "dataset"),
-      chip("Dataset", "paradise-papers", "-", "dataset")
+      chip("Dataset", "paradise-papers", "-", "dataset"),
     );
-    expect(getDatasetsFromQ(input)).toEqual({ positive: ["panama-papers"], negative: ["paradise-papers"] });
+    expect(getDatasetsFromQ(input)).toEqual({
+      positive: ["panama-papers"],
+      negative: ["paradise-papers"],
+    });
   });
 });
 
 describe("setDatasetsInQ", () => {
   test("adds a positive Dataset chip to empty q", () => {
     const input = q("search text");
-    const result = setDatasetsInQ(input, { positive: ["panama-papers"], negative: [] });
-    expect(getDatasetsFromQ(result)).toEqual({ positive: ["panama-papers"], negative: [] });
+    const result = setDatasetsInQ(input, {
+      positive: ["panama-papers"],
+      negative: [],
+    });
+    expect(getDatasetsFromQ(result)).toEqual({
+      positive: ["panama-papers"],
+      negative: [],
+    });
     // Text preserved
     expect(JSON.parse(result).some((el) => el === "search text")).toBe(true);
   });
 
   test("adds a negative Dataset chip", () => {
     const input = q("search text");
-    const result = setDatasetsInQ(input, { positive: [], negative: ["panama-papers"] });
-    expect(getDatasetsFromQ(result)).toEqual({ positive: [], negative: ["panama-papers"] });
+    const result = setDatasetsInQ(input, {
+      positive: [],
+      negative: ["panama-papers"],
+    });
+    expect(getDatasetsFromQ(result)).toEqual({
+      positive: [],
+      negative: ["panama-papers"],
+    });
   });
 
   test("adds both positive and negative Dataset chips", () => {
     const input = q("search text");
-    const result = setDatasetsInQ(input, { positive: ["paradise-papers"], negative: ["panama-papers"] });
-    expect(getDatasetsFromQ(result)).toEqual({ positive: ["paradise-papers"], negative: ["panama-papers"] });
+    const result = setDatasetsInQ(input, {
+      positive: ["paradise-papers"],
+      negative: ["panama-papers"],
+    });
+    expect(getDatasetsFromQ(result)).toEqual({
+      positive: ["paradise-papers"],
+      negative: ["panama-papers"],
+    });
   });
 
   test("replaces existing Dataset chips", () => {
     const input = q(chip("Dataset", "panama-papers", "+", "dataset"));
-    const result = setDatasetsInQ(input, { positive: ["paradise-papers", "pfizer-leaks"], negative: [] });
-    expect(getDatasetsFromQ(result)).toEqual({ positive: ["paradise-papers", "pfizer-leaks"], negative: [] });
+    const result = setDatasetsInQ(input, {
+      positive: ["paradise-papers", "pfizer-leaks"],
+      negative: [],
+    });
+    expect(getDatasetsFromQ(result)).toEqual({
+      positive: ["paradise-papers", "pfizer-leaks"],
+      negative: [],
+    });
   });
 
   test("removes Dataset chips when both arrays are empty", () => {
@@ -1124,12 +1370,20 @@ describe("setDatasetsInQ", () => {
     const input = q(
       "text",
       chip("Has Field", "ocr", "+", "dropdown"),
-      chip("Dataset", "old-dataset", "+", "dataset")
+      chip("Dataset", "old-dataset", "+", "dataset"),
     );
-    const result = setDatasetsInQ(input, { positive: ["new-dataset"], negative: [] });
+    const result = setDatasetsInQ(input, {
+      positive: ["new-dataset"],
+      negative: [],
+    });
     const parsed = JSON.parse(result);
-    expect(parsed.find((el) => typeof el === "object" && el.n === "Has Field")).toBeTruthy();
-    expect(getDatasetsFromQ(result)).toEqual({ positive: ["new-dataset"], negative: [] });
+    expect(
+      parsed.find((el) => typeof el === "object" && el.n === "Has Field"),
+    ).toBeTruthy();
+    expect(getDatasetsFromQ(result)).toEqual({
+      positive: ["new-dataset"],
+      negative: [],
+    });
   });
 });
 
@@ -1140,32 +1394,53 @@ describe("setDatasetsInQ", () => {
 describe("getWorkspacesFromQ", () => {
   test("returns empty for null/undefined/empty", () => {
     expect(getWorkspacesFromQ(null)).toEqual({ positive: [], negative: [] });
-    expect(getWorkspacesFromQ(undefined)).toEqual({ positive: [], negative: [] });
+    expect(getWorkspacesFromQ(undefined)).toEqual({
+      positive: [],
+      negative: [],
+    });
     expect(getWorkspacesFromQ("")).toEqual({ positive: [], negative: [] });
   });
 
   test("returns positive workspace IDs", () => {
     const input = q(chip("Workspace", "ws-id-1 OR ws-id-2", "+", "workspace"));
-    expect(getWorkspacesFromQ(input)).toEqual({ positive: ["ws-id-1", "ws-id-2"], negative: [] });
+    expect(getWorkspacesFromQ(input)).toEqual({
+      positive: ["ws-id-1", "ws-id-2"],
+      negative: [],
+    });
   });
 
   test("returns negative workspace IDs", () => {
     const input = q(chip("Workspace", "ws-id-1", "-", "workspace"));
-    expect(getWorkspacesFromQ(input)).toEqual({ positive: [], negative: ["ws-id-1"] });
+    expect(getWorkspacesFromQ(input)).toEqual({
+      positive: [],
+      negative: ["ws-id-1"],
+    });
   });
 });
 
 describe("setWorkspacesInQ", () => {
   test("adds a positive Workspace chip", () => {
     const input = q("search");
-    const result = setWorkspacesInQ(input, { positive: ["ws-1"], negative: [] });
-    expect(getWorkspacesFromQ(result)).toEqual({ positive: ["ws-1"], negative: [] });
+    const result = setWorkspacesInQ(input, {
+      positive: ["ws-1"],
+      negative: [],
+    });
+    expect(getWorkspacesFromQ(result)).toEqual({
+      positive: ["ws-1"],
+      negative: [],
+    });
   });
 
   test("adds positive and negative Workspace chips", () => {
     const input = q("search");
-    const result = setWorkspacesInQ(input, { positive: ["ws-1"], negative: ["ws-2"] });
-    expect(getWorkspacesFromQ(result)).toEqual({ positive: ["ws-1"], negative: ["ws-2"] });
+    const result = setWorkspacesInQ(input, {
+      positive: ["ws-1"],
+      negative: ["ws-2"],
+    });
+    expect(getWorkspacesFromQ(result)).toEqual({
+      positive: ["ws-1"],
+      negative: ["ws-2"],
+    });
   });
 
   test("removes Workspace chip when both empty", () => {
@@ -1187,12 +1462,21 @@ describe("setWorkspacesInQ", () => {
 
 describe("extractCollectionAndWorkspaceChips", () => {
   test("returns empty for null/undefined", () => {
-    expect(extractCollectionAndWorkspaceChips(null)).toEqual({ cleanedQ: null, chipFilters: {} });
-    expect(extractCollectionAndWorkspaceChips("")).toEqual({ cleanedQ: "", chipFilters: {} });
+    expect(extractCollectionAndWorkspaceChips(null)).toEqual({
+      cleanedQ: null,
+      chipFilters: {},
+    });
+    expect(extractCollectionAndWorkspaceChips("")).toEqual({
+      cleanedQ: "",
+      chipFilters: {},
+    });
   });
 
   test("extracts positive workspace chip into chipFilters", () => {
-    const input = q("search text", chip("Workspace", "ws-1 OR ws-2", "+", "workspace"));
+    const input = q(
+      "search text",
+      chip("Workspace", "ws-1 OR ws-2", "+", "workspace"),
+    );
     const { cleanedQ, chipFilters } = extractCollectionAndWorkspaceChips(input);
     expect(chipFilters.workspace).toEqual(["ws-1", "ws-2"]);
     // Workspace chip removed from q
@@ -1229,7 +1513,7 @@ describe("extractCollectionAndWorkspaceChips", () => {
       chip("Dataset", "col2", "-", "dataset"),
       chip("Workspace", "ws-1", "+", "workspace"),
       chip("Workspace", "ws-2", "-", "workspace"),
-      chip("Has Field", "ocr", "+", "dropdown")
+      chip("Has Field", "ocr", "+", "dropdown"),
     );
     const { cleanedQ, chipFilters } = extractCollectionAndWorkspaceChips(input);
     expect(chipFilters.workspace).toEqual(["ws-1"]);
@@ -1239,9 +1523,15 @@ describe("extractCollectionAndWorkspaceChips", () => {
     // Other chips and text remain
     const parsed = JSON.parse(cleanedQ);
     expect(parsed).toContain("text");
-    expect(parsed.find((el) => typeof el === "object" && el.n === "Has Field")).toBeTruthy();
-    expect(parsed.find((el) => typeof el === "object" && el.n === "Dataset")).toBeUndefined();
-    expect(parsed.find((el) => typeof el === "object" && el.n === "Workspace")).toBeUndefined();
+    expect(
+      parsed.find((el) => typeof el === "object" && el.n === "Has Field"),
+    ).toBeTruthy();
+    expect(
+      parsed.find((el) => typeof el === "object" && el.n === "Dataset"),
+    ).toBeUndefined();
+    expect(
+      parsed.find((el) => typeof el === "object" && el.n === "Workspace"),
+    ).toBeUndefined();
   });
 
   test("returns no chipFilters when no dataset/workspace chips present", () => {
@@ -1319,7 +1609,7 @@ describe("contradiction prevention", () => {
     test("same workspace value in + and − keeps only the positive", () => {
       const input = q(
         chip("Workspace", "ws-1", "+", "workspace"),
-        chip("Workspace", "ws-1", "-", "workspace")
+        chip("Workspace", "ws-1", "-", "workspace"),
       );
       const { chipFilters } = extractCollectionAndWorkspaceChips(input);
       expect(chipFilters.workspace).toEqual(["ws-1"]);
@@ -1329,7 +1619,7 @@ describe("contradiction prevention", () => {
     test("same dataset value in + and − keeps only the positive", () => {
       const input = q(
         chip("Dataset", "col1", "+", "dataset"),
-        chip("Dataset", "col1", "-", "dataset")
+        chip("Dataset", "col1", "-", "dataset"),
       );
       const { chipFilters } = extractCollectionAndWorkspaceChips(input);
       expect(chipFilters.ingestion).toEqual(["col1"]);
@@ -1339,7 +1629,7 @@ describe("contradiction prevention", () => {
     test("mixed contradicted and non-contradicted values are handled correctly", () => {
       const input = q(
         chip("Dataset", "col1 OR col2", "+", "dataset"),
-        chip("Dataset", "col2 OR col3", "-", "dataset")
+        chip("Dataset", "col2 OR col3", "-", "dataset"),
       );
       const { chipFilters } = extractCollectionAndWorkspaceChips(input);
       expect(chipFilters.ingestion).toEqual(["col1", "col2"]);

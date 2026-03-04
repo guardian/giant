@@ -22,10 +22,30 @@ import {
  * Each maps to a chip type with sensible defaults.
  */
 const DEFAULT_FILTERS = [
-  { name: CHIP_NAME_DATASET, chipType: CHIP_TYPE_DATASET, label: CHIP_NAME_DATASET, kind: CHIP_KIND_MULTI },
-  { name: CHIP_NAME_WORKSPACE, chipType: CHIP_TYPE_WORKSPACE, label: CHIP_NAME_WORKSPACE, kind: CHIP_KIND_MULTI },
-  { name: CHIP_NAME_DATE_RANGE, chipType: CHIP_TYPE_DATE_RANGE, label: CHIP_NAME_DATE_RANGE, kind: CHIP_KIND_DATE_RANGE },
-  { name: CHIP_NAME_FILE_TYPE, chipType: CHIP_TYPE_FILE_TYPE, label: CHIP_NAME_FILE_TYPE, kind: CHIP_KIND_MULTI },
+  {
+    name: CHIP_NAME_DATASET,
+    chipType: CHIP_TYPE_DATASET,
+    label: CHIP_NAME_DATASET,
+    kind: CHIP_KIND_MULTI,
+  },
+  {
+    name: CHIP_NAME_WORKSPACE,
+    chipType: CHIP_TYPE_WORKSPACE,
+    label: CHIP_NAME_WORKSPACE,
+    kind: CHIP_KIND_MULTI,
+  },
+  {
+    name: CHIP_NAME_DATE_RANGE,
+    chipType: CHIP_TYPE_DATE_RANGE,
+    label: CHIP_NAME_DATE_RANGE,
+    kind: CHIP_KIND_DATE_RANGE,
+  },
+  {
+    name: CHIP_NAME_FILE_TYPE,
+    chipType: CHIP_TYPE_FILE_TYPE,
+    label: CHIP_NAME_FILE_TYPE,
+    kind: CHIP_KIND_MULTI,
+  },
 ];
 
 /**
@@ -44,11 +64,15 @@ export default class ActiveFiltersBar extends React.Component {
         values: PropTypes.arrayOf(PropTypes.string),
         negate: PropTypes.bool.isRequired,
         chipType: PropTypes.string.isRequired,
-        kind: PropTypes.oneOf([CHIP_KIND_SINGLE, CHIP_KIND_MULTI, CHIP_KIND_DATE_RANGE]).isRequired,
+        kind: PropTypes.oneOf([
+          CHIP_KIND_SINGLE,
+          CHIP_KIND_MULTI,
+          CHIP_KIND_DATE_RANGE,
+        ]).isRequired,
         options: PropTypes.array,
         workspaceId: PropTypes.string,
         folderId: PropTypes.string,
-      })
+      }),
     ).isRequired,
     /** All available filter definitions from the backend (suggestedFields) */
     availableFilters: PropTypes.array,
@@ -76,7 +100,14 @@ export default class ActiveFiltersBar extends React.Component {
   }
 
   render() {
-    const { chips, availableFilters, onRemoveChip, onToggleNegate, onEditChipValue, onActivateDefault } = this.props;
+    const {
+      chips,
+      availableFilters,
+      onRemoveChip,
+      onToggleNegate,
+      onEditChipValue,
+      onActivateDefault,
+    } = this.props;
 
     // Show active chips if we have them
     if (chips.length > 0) {
@@ -84,38 +115,46 @@ export default class ActiveFiltersBar extends React.Component {
       // Hide the dormant chip as soon as ANY active chip of that name exists.
       const activeNames = new Set(chips.map((c) => c.name));
       const remainingDefaults = DEFAULT_FILTERS.filter(
-        (d) => !activeNames.has(d.name)
+        (d) => !activeNames.has(d.name),
       );
 
       return (
-        <div className="active-filters-bar" role="toolbar" aria-label="Active search filters">
+        <div
+          className="active-filters-bar"
+          role="toolbar"
+          aria-label="Active search filters"
+        >
           {chips.map((chip, index) => {
             // chip.options may be undefined for Dataset/Workspace chips since
             // parseChips only attaches options from suggestedFields.  Fall back
             // to the availableFilters list which includes sidebar-derived options.
-            const chipOptions = chip.options
-              || (availableFilters || []).find((f) => f.name === chip.name)?.options;
+            const chipOptions =
+              chip.options ||
+              (availableFilters || []).find((f) => f.name === chip.name)
+                ?.options;
             return (
-            <ActiveFilterChip
-              key={`active-${index}`}
-              index={index}
-              name={chip.name}
-              value={chip.value}
-              values={chip.values}
-              from={chip.from}
-              to={chip.to}
-              kind={chip.kind}
-              negate={chip.negate}
-              chipType={chip.chipType}
-              options={chipOptions}
-              onRemove={() => onRemoveChip(index)}
-              onToggleNegate={() => onToggleNegate(index)}
-              onEditValue={(newValue) => onEditChipValue(index, newValue)}
-            />
+              <ActiveFilterChip
+                key={`active-${index}`}
+                index={index}
+                name={chip.name}
+                value={chip.value}
+                values={chip.values}
+                from={chip.from}
+                to={chip.to}
+                kind={chip.kind}
+                negate={chip.negate}
+                chipType={chip.chipType}
+                options={chipOptions}
+                onRemove={() => onRemoveChip(index)}
+                onToggleNegate={() => onToggleNegate(index)}
+                onEditValue={(newValue) => onEditChipValue(index, newValue)}
+              />
             );
           })}
           {remainingDefaults.map((def) => {
-            const fieldDef = (availableFilters || []).find((f) => f.name === def.name);
+            const fieldDef = (availableFilters || []).find(
+              (f) => f.name === def.name,
+            );
             return (
               <ActiveFilterChip
                 key={`default-${def.name}`}
@@ -130,7 +169,9 @@ export default class ActiveFiltersBar extends React.Component {
                 dormant
                 onRemove={() => {}}
                 onToggleNegate={() => {}}
-                onEditValue={(newValue, negate) => onActivateDefault(def.name, newValue, def.chipType, negate)}
+                onEditValue={(newValue, negate) =>
+                  onActivateDefault(def.name, newValue, def.chipType, negate)
+                }
               />
             );
           })}
@@ -141,9 +182,15 @@ export default class ActiveFiltersBar extends React.Component {
 
     // No active chips — show all defaults as dormant prompts
     return (
-      <div className="active-filters-bar" role="toolbar" aria-label="Search filters">
+      <div
+        className="active-filters-bar"
+        role="toolbar"
+        aria-label="Search filters"
+      >
         {DEFAULT_FILTERS.map((def) => {
-          const fieldDef = (availableFilters || []).find((f) => f.name === def.name);
+          const fieldDef = (availableFilters || []).find(
+            (f) => f.name === def.name,
+          );
           return (
             <ActiveFilterChip
               key={`default-${def.name}`}
@@ -158,7 +205,9 @@ export default class ActiveFiltersBar extends React.Component {
               dormant
               onRemove={() => {}}
               onToggleNegate={() => {}}
-              onEditValue={(newValue, negate) => onActivateDefault(def.name, newValue, def.chipType, negate)}
+              onEditValue={(newValue, negate) =>
+                onActivateDefault(def.name, newValue, def.chipType, negate)
+              }
             />
           );
         })}

@@ -55,7 +55,7 @@ describe("SearchBox.handleRemoveChip", () => {
     const initial = q(
       "text",
       chip("Email Subject", "test", "+", "text"),
-      chip("File Path", "/docs", "-", "text")
+      chip("File Path", "/docs", "-", "text"),
     );
     const { inst, onFilterChange } = createInstance(initial);
     inst.handleRemoveChip(0); // remove "Email Subject"
@@ -67,7 +67,7 @@ describe("SearchBox.handleRemoveChip", () => {
 
   test("removes a multi-value chip by index", () => {
     const initial = q(
-      chip("Mime Type", "application/pdf OR text/html", "+", "text")
+      chip("Mime Type", "application/pdf OR text/html", "+", "text"),
     );
     const { inst, onFilterChange } = createInstance(initial);
     inst.handleRemoveChip(0);
@@ -79,7 +79,7 @@ describe("SearchBox.handleRemoveChip", () => {
   test("preserves text when removing the only chip", () => {
     const initial = q(
       "search terms",
-      chip("Email Subject", "hello", "+", "text")
+      chip("Email Subject", "hello", "+", "text"),
     );
     const { inst, onFilterChange } = createInstance(initial);
     inst.handleRemoveChip(0);
@@ -117,7 +117,7 @@ describe("SearchBox.handleToggleNegate", () => {
     // Positive Mime Type with "pdf", negative Mime Type with "html"
     const initial = q(
       chip("Mime Type", "application/pdf", "+", "text"),
-      chip("Mime Type", "text/html", "-", "text")
+      chip("Mime Type", "text/html", "-", "text"),
     );
     const { inst, onFilterChange } = createInstance(initial);
     // Toggle the negative chip (index 1) → becomes positive → merges into index 0
@@ -175,7 +175,7 @@ describe("SearchBox.handleEditChipValue", () => {
   test("updates a date range chip with from/to object", () => {
     const initial = q(
       chip("Created After", "2025-01-01", "+", "date_ex"),
-      chip("Created Before", "2025-12-31", "+", "date")
+      chip("Created Before", "2025-12-31", "+", "date"),
     );
     const { inst, onFilterChange } = createInstance(initial);
     // parseChips consolidates into one Date Range chip at index 0
@@ -221,7 +221,11 @@ describe("SearchBox.handleActivateDefault", () => {
   test("creates a new multi-value chip", () => {
     const initial = q("text");
     const { inst, onFilterChange } = createInstance(initial);
-    inst.handleActivateDefault("Mime Type", ["application/pdf", "text/html"], CHIP_TYPE_TEXT);
+    inst.handleActivateDefault(
+      "Mime Type",
+      ["application/pdf", "text/html"],
+      CHIP_TYPE_TEXT,
+    );
 
     const chips = resultChips(onFilterChange);
     expect(chips).toHaveLength(1);
@@ -235,7 +239,12 @@ describe("SearchBox.handleActivateDefault", () => {
   test("merges values into an existing multi-value chip of the same polarity", () => {
     const initial = q(chip("Mime Type", "application/pdf", "+", "text"));
     const { inst, onFilterChange } = createInstance(initial);
-    inst.handleActivateDefault("Mime Type", ["text/html"], CHIP_TYPE_TEXT, false);
+    inst.handleActivateDefault(
+      "Mime Type",
+      ["text/html"],
+      CHIP_TYPE_TEXT,
+      false,
+    );
 
     const chips = resultChips(onFilterChange);
     expect(chips).toHaveLength(1);
@@ -245,11 +254,19 @@ describe("SearchBox.handleActivateDefault", () => {
   test("does not merge when polarities differ", () => {
     const initial = q(chip("Mime Type", "application/pdf", "+", "text"));
     const { inst, onFilterChange } = createInstance(initial);
-    inst.handleActivateDefault("Mime Type", ["text/html"], CHIP_TYPE_TEXT, true);
+    inst.handleActivateDefault(
+      "Mime Type",
+      ["text/html"],
+      CHIP_TYPE_TEXT,
+      true,
+    );
 
     const chips = resultChips(onFilterChange);
     expect(chips).toHaveLength(2);
-    expect(chips[0]).toMatchObject({ negate: false, values: ["application/pdf"] });
+    expect(chips[0]).toMatchObject({
+      negate: false,
+      values: ["application/pdf"],
+    });
     expect(chips[1]).toMatchObject({ negate: true, values: ["text/html"] });
   });
 
@@ -265,7 +282,11 @@ describe("SearchBox.handleActivateDefault", () => {
   test("creates a new Date Range chip", () => {
     const initial = q("text");
     const { inst, onFilterChange } = createInstance(initial);
-    inst.handleActivateDefault("Date Range", { from: "2025-01-01", to: "2025-12-31" }, CHIP_TYPE_DATE_RANGE);
+    inst.handleActivateDefault(
+      "Date Range",
+      { from: "2025-01-01", to: "2025-12-31" },
+      CHIP_TYPE_DATE_RANGE,
+    );
 
     const chips = resultChips(onFilterChange);
     expect(chips).toHaveLength(1);
@@ -280,7 +301,11 @@ describe("SearchBox.handleActivateDefault", () => {
     const initial = q(chip("Created After", "2025-01-01", "+", "date_ex"));
     const { inst, onFilterChange } = createInstance(initial);
     // Existing Date Range has from="2025-01-01", to="". Add a "to" date.
-    inst.handleActivateDefault("Date Range", { from: "", to: "2025-12-31" }, CHIP_TYPE_DATE_RANGE);
+    inst.handleActivateDefault(
+      "Date Range",
+      { from: "", to: "2025-12-31" },
+      CHIP_TYPE_DATE_RANGE,
+    );
 
     const chips = resultChips(onFilterChange);
     const dr = chips.find((c) => c.kind === CHIP_KIND_DATE_RANGE);
@@ -290,13 +315,24 @@ describe("SearchBox.handleActivateDefault", () => {
   });
 
   test("deduplicates values when merging multi-value chips", () => {
-    const initial = q(chip("Mime Type", "application/pdf OR text/html", "+", "text"));
+    const initial = q(
+      chip("Mime Type", "application/pdf OR text/html", "+", "text"),
+    );
     const { inst, onFilterChange } = createInstance(initial);
     // Try to add "application/pdf" again + one new value
-    inst.handleActivateDefault("Mime Type", ["application/pdf", "text/csv"], CHIP_TYPE_TEXT, false);
+    inst.handleActivateDefault(
+      "Mime Type",
+      ["application/pdf", "text/csv"],
+      CHIP_TYPE_TEXT,
+      false,
+    );
 
     const chips = resultChips(onFilterChange);
-    expect(chips[0].values).toEqual(["application/pdf", "text/html", "text/csv"]);
+    expect(chips[0].values).toEqual([
+      "application/pdf",
+      "text/html",
+      "text/csv",
+    ]);
   });
 });
 
@@ -315,7 +351,7 @@ describe("SearchBox.handleModalConfirm", () => {
   test("editing an existing chip replaces it at the given index", () => {
     const initial = q(
       chip("Email Subject", "old value", "+", "text"),
-      chip("File Path", "/docs", "+", "text")
+      chip("File Path", "/docs", "+", "text"),
     );
     const { inst, onFilterChange } = createInstance(initial);
 

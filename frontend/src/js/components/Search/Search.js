@@ -119,7 +119,8 @@ class Search extends React.Component {
       // Expand File Type → Mime Type at the API boundary
       let backendQ = toBackendQ(query.q);
       // Extract Dataset/Workspace chips → workspace[]/ingestion[] params
-      const { cleanedQ, chipFilters } = extractCollectionAndWorkspaceChips(backendQ);
+      const { cleanedQ, chipFilters } =
+        extractCollectionAndWorkspaceChips(backendQ);
       const filters = { ...(query.filters || {}) };
       // Remove any legacy sidebar workspace/ingestion values
       delete filters.workspace;
@@ -129,8 +130,10 @@ class Search extends React.Component {
       // Merge chip-derived filters (include and exclude)
       if (chipFilters.workspace) filters.workspace = chipFilters.workspace;
       if (chipFilters.ingestion) filters.ingestion = chipFilters.ingestion;
-      if (chipFilters.workspace_exclude) filters.workspace_exclude = chipFilters.workspace_exclude;
-      if (chipFilters.ingestion_exclude) filters.ingestion_exclude = chipFilters.ingestion_exclude;
+      if (chipFilters.workspace_exclude)
+        filters.workspace_exclude = chipFilters.workspace_exclude;
+      if (chipFilters.ingestion_exclude)
+        filters.ingestion_exclude = chipFilters.ingestion_exclude;
       this.props.performSearch({ ...query, q: cleanedQ, filters });
     }
   }
@@ -320,33 +323,33 @@ class Search extends React.Component {
           />
         </div>
         <div className="search__results-scroll">
-        <div className="search__underbar">
-          <SearchStatus
-            results={this.props.search.currentResults}
-            currentQuery={this.props.search.currentQuery}
-            searchFailed={this.props.search.searchFailed}
+          <div className="search__underbar">
+            <SearchStatus
+              results={this.props.search.currentResults}
+              currentQuery={this.props.search.currentQuery}
+              searchFailed={this.props.search.searchFailed}
+            />
+
+            <div>{this.renderControls()}</div>
+          </div>
+
+          {this.props.preferences.searchResultHistogram ? (
+            <SearchVisualizations
+              q={this.props.urlParams.q}
+              results={this.props.search.currentResults}
+              updateSearchText={this.updateSearchText}
+            />
+          ) : (
+            false
+          )}
+
+          <SearchResults
+            compact={!!this.props.preferences.compactSearchResults}
+            lastUri={this.props.lastUri}
+            isSearchInProgress={this.props.search.isSearchInProgress}
+            searchResults={this.props.search.currentResults}
           />
-
-          <div>{this.renderControls()}</div>
-        </div>
-
-        {this.props.preferences.searchResultHistogram ? (
-          <SearchVisualizations
-            q={this.props.urlParams.q}
-            results={this.props.search.currentResults}
-            updateSearchText={this.updateSearchText}
-          />
-        ) : (
-          false
-        )}
-
-        <SearchResults
-          compact={!!this.props.preferences.compactSearchResults}
-          lastUri={this.props.lastUri}
-          isSearchInProgress={this.props.search.isSearchInProgress}
-          searchResults={this.props.search.currentResults}
-        />
-        {this.renderPageNav()}
+          {this.renderPageNav()}
         </div>
       </div>
     );
