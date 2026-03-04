@@ -2,39 +2,36 @@
 #
 # move-ingestions-to-collection.sh
 #
-# Moves ingestions listed in input.json a collection.
-# input.json should be an array of objects with a "uri" field, e.g.:
-# [
-#   { "uri": "/resources/ingestion1" },
-#   { "uri": "/resources/ingestion2" }
-# ]
+# Moves ingestions listed in input.csv to a collection.
+# input.csv should contain one URI per line, e.g.:
+# ingestion1
+# ingestion2
 #
 # Prerequisites:
-#   - jq installed (brew install jq)
 #   - Authenticated session token for giant (admin user)
 #
 # Usage:
-#   ./move-ingestions-to-collection.sh <giant-base-url> <token-header-value> <path-to-json> <target-collection>
+#   ./move-ingestions-to-collection.sh <giant-base-url> <token-header-value> <path-to-csv> <target-collection>
 #
 # Example:
 #   ./move-ingestions-to-collection.sh \
 #     "https://giant.example.com" \
 #     "abc123" \
-#     input.json \
+#     input.csv \
 #     "target_collection_name"
 
 set -euo pipefail
 
-BASE_URL="${1:?Usage: $0 <base-url> <token> <json-file> <target-collection>}"
+BASE_URL="${1:?Usage: $0 <base-url> <token> <csv-file> <target-collection>}"
 BASE_URL="${BASE_URL%/}"  # Strip trailing slash if present
-TOKEN="${2:?Usage: $0 <base-url> <token> <json-file> <target-collection>}"
-JSON_FILE="${3:?Usage: $0 <base-url> <token> <json-file> <target-collection>}"
-TARGET_COLLECTION="${4:?Usage: $0 <base-url> <token> <json-file> <target-collection>}"
+TOKEN="${2:?Usage: $0 <base-url> <token> <csv-file> <target-collection>}"
+CSV_FILE="${3:?Usage: $0 <base-url> <token> <csv-file> <target-collection>}"
+TARGET_COLLECTION="${4:?Usage: $0 <base-url> <token> <csv-file> <target-collection>}"
 
 ENDPOINT="${BASE_URL}/api/collections/ingestion/move-ingestion"
 
-# Extract URIs from JSON array, strip /resources/ prefix, and URL-decode
-INGESTION_URIS=$(jq -r '.[] | .uri | sub("^/resources/"; "")' "$JSON_FILE" | perl -pe 's/%([0-9A-Fa-f]{2})/chr(hex($1))/eg')
+# Extract URIs from CSV file (filter out blank lines)
+INGESTION_URIS=$(grep -v '^$' "$CSV_FILE")
 
 TOTAL=$(echo "$INGESTION_URIS" | wc -l | tr -d ' ')
 echo "Found ${TOTAL} ingestions to move to '${TARGET_COLLECTION}'"
