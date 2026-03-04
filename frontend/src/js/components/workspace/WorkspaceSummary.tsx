@@ -24,6 +24,7 @@ import TakeOwnershipOfWorkspaceModal from "./TakeOwnershipOfWorkspaceModal";
 import { takeOwnershipOfWorkspace } from "../../actions/workspaces/takeOwnershipOfWorkspace";
 import { CaptureFromUrl } from "../Uploads/CaptureFromUrl";
 import { EuiText } from "@elastic/eui";
+import { exportWorkspaceInventory } from "../../services/WorkspaceApi";
 import { FileAndFolderCounts } from "../UtilComponents/TreeBrowser/FileAndFolderCounts";
 import buildLink from "../../util/buildLink";
 import history from "../../util/history";
@@ -202,6 +203,20 @@ export default function WorkspaceSummary({
             }
             onClick={() => setDeleteModalOpen(true)}
           />
+          {isAdmin && (
+            <>
+              <Dropdown.Item
+                icon="download"
+                text="Export as JSON"
+                onClick={() => exportWorkspaceInventory(workspace.id, "json")}
+              />
+              <Dropdown.Item
+                icon="download"
+                text="Export as CSV"
+                onClick={() => exportWorkspaceInventory(workspace.id, "csv")}
+              />
+            </>
+          )}
         </Dropdown.Menu>
       </Dropdown>
       <TakeOwnershipOfWorkspaceModal

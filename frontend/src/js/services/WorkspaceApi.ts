@@ -55,6 +55,31 @@ export function getWorkspacesMetadata(): Promise<WorkspaceMetadata[]> {
   return authFetch("/api/workspaces").then((res) => res.json());
 }
 
+export function exportWorkspaceInventory(
+  workspaceId: string,
+  format: "json" | "csv",
+) {
+  return authFetch(
+    `/api/workspaces/${workspaceId}/export?format=${format}`,
+  ).then(async (res) => {
+    const blob = await res.blob();
+    const disposition = res.headers.get("Content-Disposition");
+    const filenameMatch = disposition?.match(/filename="(.+)"/);
+    const filename = filenameMatch
+      ? filenameMatch[1]
+      : `workspace-inventory.${format}`;
+
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+  });
+}
+
 export function getWorkspace(id: string) {
   return authFetch(`/api/workspaces/${id}`).then((res) => res.json());
 }
