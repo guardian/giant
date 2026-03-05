@@ -317,8 +317,8 @@ class Search extends React.Component {
 
   render() {
     return (
-      <div className="app__main-content search">
-        <div className="search__header">
+      <div className="app__main-content search-layout">
+        <div className="search-layout__header">
           <KeyboardShortcut
             shortcut={keyboardShortcuts.focusSearchBox}
             func={this.selectSearchBox}
@@ -336,7 +336,7 @@ class Search extends React.Component {
             onSubmit={this.submitSearch}
           />
         </div>
-        <div className="search__results-scroll">
+        <div className="search-layout__results-scroll">
           <div className="search__underbar">
             <SearchStatus
               results={this.props.search.currentResults}
