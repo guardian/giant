@@ -10,6 +10,7 @@ import model.ingestion.{ RemoteIngest, RemoteIngestStatus}
 import net.logstash.logback.marker.LogstashMarker
 import net.logstash.logback.marker.Markers.append
 import org.joda.time.DateTime
+import java.time.LocalDate
 import play.api.libs.json._
 import play.api.mvc.Action
 import services.{IngestStorage, RemoteIngestConfig, ObjectStorage}
@@ -422,18 +423,21 @@ class Workspaces(
         val workspace = Workspace.fromMetadataAndRootNode(metadata, contents)
         logAction(req.user, workspaceId, s"Exporting workspace inventory. Format: ${format.getOrElse("json")}")
 
+        val safeName = workspace.name.replaceAll("[^a-zA-Z0-9_\\-]", "_")
+        val date = LocalDate.now().toString
+
         format.getOrElse("json").toLowerCase match {
           case "csv" =>
             val csvContent = Workspaces.workspaceToCsv(workspace)
             Ok(csvContent)
               .as("text/csv")
-              .withHeaders("Content-Disposition" -> s"""attachment; filename="${workspace.name}-inventory.csv"""")
+              .withHeaders("Content-Disposition" -> s"""attachment; filename="${safeName}_${date}.csv"""")
 
           case _ =>
             val jsonContent = Workspaces.workspaceToInventoryJson(workspace)
             Ok(jsonContent)
               .as("application/json")
-              .withHeaders("Content-Disposition" -> s"""attachment; filename="${workspace.name}-inventory.json"""")
+              .withHeaders("Content-Disposition" -> s"""attachment; filename="${safeName}_${date}.json"""")
         }
       }
     }
