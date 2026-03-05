@@ -110,10 +110,11 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
         |OPTIONAL MATCH (node)-[:FROM]->(remoteIngest: RemoteIngest)
         |
         |OPTIONAL MATCH (:Resource {uri: node.uri})<-[todo:TODO|:PROCESSING_EXTERNALLY]-(:Extractor)
+        |OPTIONAL MATCH (:Resource {uri: node.uri})<-[extraction:TODO|:PROCESSING_EXTERNALLY|:PROCESSED]-(:Extractor)
         |RETURN node, nodeCreator, parentNode.id, remoteIngest.url,
         |	count(todo) AS numberOfTodos,
         |	collect(todo)[0].note as note,
-        |	collect(todo)[0].ingestion as ingestionUri,
+        |	collect(extraction)[0].ingestion as ingestionUri,
         |	exists((:Resource {uri: node.uri})<-[:EXTRACTION_FAILURE]-(:Extractor)) AS hasFailures
       """.stripMargin,
       parameters(
