@@ -21,6 +21,8 @@ import MdEdit from "react-icons/lib/md/edit";
 import MdDelete from "react-icons/lib/md/delete";
 import SearchIcon from "react-icons/lib/md/search";
 import MdFileDownload from "react-icons/lib/md/file-download";
+import MdShare from "react-icons/lib/md/share";
+import MdSupervisorAccount from "react-icons/lib/md/supervisor-account";
 import TakeOwnershipOfWorkspaceModal from "./TakeOwnershipOfWorkspaceModal";
 import { takeOwnershipOfWorkspace } from "../../actions/workspaces/takeOwnershipOfWorkspace";
 import { CaptureFromUrl } from "../Uploads/CaptureFromUrl";
@@ -73,6 +75,11 @@ export default function WorkspaceSummary({
   onClearDroppedFiles,
 }: Props) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [isTakeOwnershipModalOpen, setIsTakeOwnershipModalOpen] =
+    useState(false);
+  const [isRenameModalOpen, setIsRenameModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
   const workspaceUsers = workspace.followers.filter(
     (follower) =>
@@ -94,9 +101,12 @@ export default function WorkspaceSummary({
   const canDelete = isOwner || (isAdmin && workspace.isPublic);
 
   const menuButton = (
-    <button className="btn workspace__button" aria-label="Workspace actions">
-      <Icon name="bars" />
-    </button>
+    <Icon
+      name="bars"
+      size="large"
+      style={{ cursor: "pointer" }}
+      aria-label="Workspace actions"
+    />
   );
 
   return (
@@ -187,47 +197,58 @@ export default function WorkspaceSummary({
       >
         <Menu vertical compact style={{ minWidth: 200 }}>
           {/* Sharing & ownership */}
-          <ShareWorkspaceModal
-            workspace={workspace}
-            workspaceUsers={workspaceUsers}
-            allUsers={users}
-            currentUser={currentUser}
-            setWorkspaceFollowers={setWorkspaceFollowers}
-            setWorkspaceIsPublic={setWorkspaceIsPublic}
-          />
-          <TakeOwnershipOfWorkspaceModal
-            workspace={workspace}
-            isAdmin={isAdmin}
-            currentUser={currentUser}
-            takeOwnershipOfWorkspace={takeOwnershipOfWorkspace}
-          />
+          <button
+            className="item workspace-menu__item"
+            disabled={!isOwner}
+            onClick={() => {
+              closeMenu();
+              setIsShareModalOpen(true);
+            }}
+            title="Share Workspace"
+          >
+            <MdShare />
+            Share Workspace
+          </button>
+          {isAdmin && currentUser.username !== workspace.owner.username && (
+            <button
+              className="item workspace-menu__item"
+              onClick={() => {
+                closeMenu();
+                setIsTakeOwnershipModalOpen(true);
+              }}
+              title="Take ownership"
+            >
+              <MdSupervisorAccount /> Take Ownership
+            </button>
+          )}
 
           <Divider fitted style={{ margin: 0 }} />
 
           {/* Edit actions */}
-          <ModalAction
-            actionType="edit"
+          <button
             className="item workspace-menu__item"
-            actionDescription="Rename"
-            title={`Rename workspace '${workspace.name}'`}
-            value={workspace.name}
-            onConfirm={(newName) => renameWorkspace(workspace.id, newName)}
             disabled={!isOwner}
+            onClick={() => {
+              closeMenu();
+              setIsRenameModalOpen(true);
+            }}
+            title={`Rename workspace '${workspace.name}'`}
           >
             <MdEdit />
             Rename Workspace
-          </ModalAction>
-          <ModalAction
-            actionType="confirm"
+          </button>
+          <button
             className="item workspace-menu__item workspace-menu__item--danger"
-            actionDescription="Delete"
-            title={`Delete workspace '${workspace.name}'?`}
-            onConfirm={() => deleteWorkspace(workspace.id)}
             disabled={!canDelete}
+            onClick={() => {
+              closeMenu();
+              setIsDeleteModalOpen(true);
+            }}
+            title={`Delete workspace '${workspace.name}'?`}
           >
             <MdDelete />
             Delete Workspace
-          </ModalAction>
+          </button>
 
           {isAdmin && (
             <>
@@ -258,6 +279,41 @@ export default function WorkspaceSummary({
           )}
         </Menu>
       </Popup>
+      <ShareWorkspaceModal
+        workspace={workspace}
+        workspaceUsers={workspaceUsers}
+        allUsers={users}
+        currentUser={currentUser}
+        setWorkspaceFollowers={setWorkspaceFollowers}
+        setWorkspaceIsPublic={setWorkspaceIsPublic}
+        isOpen={isShareModalOpen}
+        onClose={() => setIsShareModalOpen(false)}
+      />
+      <TakeOwnershipOfWorkspaceModal
+        workspace={workspace}
+        isAdmin={isAdmin}
+        currentUser={currentUser}
+        takeOwnershipOfWorkspace={takeOwnershipOfWorkspace}
+        isOpen={isTakeOwnershipModalOpen}
+        onClose={() => setIsTakeOwnershipModalOpen(false)}
+      />
+      <ModalAction
+        actionType="edit"
+        actionDescription="Rename"
+        title={`Rename workspace '${workspace.name}'`}
+        value={workspace.name}
+        onConfirm={(newName) => renameWorkspace(workspace.id, newName)}
+        isOpen={isRenameModalOpen}
+        onClose={() => setIsRenameModalOpen(false)}
+      />
+      <ModalAction
+        actionType="confirm"
+        actionDescription="Delete"
+        title={`Delete workspace '${workspace.name}'?`}
+        onConfirm={() => deleteWorkspace(workspace.id)}
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+      />
     </div>
   );
 }

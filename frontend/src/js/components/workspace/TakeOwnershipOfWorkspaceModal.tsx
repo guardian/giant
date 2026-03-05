@@ -1,6 +1,5 @@
-import React, { useState } from "react";
+import React from "react";
 import Modal from "../UtilComponents/Modal";
-import MdSupervisorAccount from "react-icons/lib/md/supervisor-account";
 import { Workspace } from "../../types/Workspaces";
 import { PartialUser } from "../../types/User";
 import { takeOwnershipOfWorkspace } from "../../actions/workspaces/takeOwnershipOfWorkspace";
@@ -10,20 +9,12 @@ type Props = {
   isAdmin: Boolean;
   currentUser: PartialUser;
   takeOwnershipOfWorkspace: typeof takeOwnershipOfWorkspace;
-  isOpen?: boolean;
-  onClose?: () => void;
+  isOpen: boolean;
+  onClose: () => void;
 };
 
 export default function TakeOwnershipOfWorkspaceModal(props: Props) {
-  const controlled = props.isOpen !== undefined;
-  const [internalOpen, setInternalOpen] = useState(false);
-  const open = controlled ? props.isOpen! : internalOpen;
-  const setOpen = controlled
-    ? (v: boolean) => {
-        if (!v && props.onClose) props.onClose();
-        if (v) setInternalOpen(v);
-      }
-    : setInternalOpen;
+  const open = props.isOpen;
 
   function onSubmit(e?: React.FormEvent) {
     if (e) {
@@ -40,7 +31,7 @@ export default function TakeOwnershipOfWorkspaceModal(props: Props) {
   }
 
   function onDismiss() {
-    setOpen(false);
+    props.onClose();
   }
 
   if (props.currentUser.username === props.workspace.owner.username)
@@ -49,16 +40,6 @@ export default function TakeOwnershipOfWorkspaceModal(props: Props) {
 
   return (
     <React.Fragment>
-      {/* The component that triggers the modal (pass-through rendering of children) */}
-      {!controlled && (
-        <button
-          className="item workspace-menu__item"
-          onClick={() => setOpen(true)}
-          title="Take ownership"
-        >
-          <MdSupervisorAccount /> Take Ownership
-        </button>
-      )}
 
       <Modal
         isOpen={open}
