@@ -140,6 +140,10 @@
   font-size: 14px;
   text-align: left;
   white-space: nowrap;
+
+  &:before {
+    display: none !important;
+  }
 }
 
 .workspace-menu__item {
