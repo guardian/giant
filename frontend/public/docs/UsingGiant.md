@@ -281,8 +281,7 @@ Your computer will now open a file finding dialog. Navigate to the files or fold
 You'll then be shown a list of your selection, so you can confirm it's what you wanted.
 
 - If you selected too many things you can click on the X icon to remove them from the stuff you're going to upload.
-- If you've gone completely wrong just click off the list to cancel and start again.  
-
+- If you've gone completely wrong just click off the list to cancel and start again.
 
 Once you're happy, hit Upload. Giant will start uploading the files. If there are a lot please don't close the window. Let it progress.
 
