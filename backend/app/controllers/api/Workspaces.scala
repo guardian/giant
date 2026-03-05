@@ -254,7 +254,7 @@ class Workspaces(
       case TreeLeaf(_, name, data, _) =>
         // a TreeLeaf won't have any children, so just insert the item at the destination location, and return it's new ID
         data match {
-          case WorkspaceLeaf(_, _, _, _, _, uri, mimeType, size) =>
+          case WorkspaceLeaf(_, _, _, _, _, uri, mimeType, size, _) =>
             val addItemData = AddItemData(name, destinationParentId, "file", Some("document"), AddItemParameters(Some(uri), size, Some(mimeType)))
             insertItem(user, workspaceId, newId, addItemData).map(i => List(i))
           case _ => Attempt.Left(WorkspaceCopyFailure("Unexpected data type of TreeLeaf"))
@@ -461,6 +461,7 @@ object Workspaces {
               "size" -> wl.size,
               "addedBy" -> wl.addedBy.displayName,
               "addedOn" -> wl.addedOn,
+              "ingestionUri" -> wl.ingestionUri,
               "processingStage" -> Json.toJson(wl.processingStage)
             )
           case _ => Json.obj(
@@ -530,18 +531,19 @@ object Workspaces {
               wl.size.map(_.toString).getOrElse(""),
               wl.addedBy.displayName,
               wl.addedOn.map(_.toString).getOrElse(""),
+              wl.ingestionUri.getOrElse(""),
               processingStatus
             ))
           case _ =>
-            List(List(leaf.id, leaf.name, "unknown", s"$path/${leaf.name}", "", "", "", "", "", ""))
+            List(List(leaf.id, leaf.name, "unknown", s"$path/${leaf.name}", "", "", "", "", "", "", ""))
         }
       case node: TreeNode[WorkspaceEntry] =>
         val currentPath = s"$path/${node.name}"
         val folderRow = node.data match {
           case wn: WorkspaceNode =>
-            List(node.id, node.name, "folder", currentPath, "", "", "", wn.addedBy.displayName, wn.addedOn.map(_.toString).getOrElse(""), "")
+            List(node.id, node.name, "folder", currentPath, "", "", "", wn.addedBy.displayName, wn.addedOn.map(_.toString).getOrElse(""), "", "")
           case _ =>
-            List(node.id, node.name, "folder", currentPath, "", "", "", "", "", "")
+            List(node.id, node.name, "folder", currentPath, "", "", "", "", "", "", "")
         }
         folderRow :: node.children.flatMap(child => flattenTreeToCsvRows(child, currentPath))
     }
@@ -556,7 +558,7 @@ object Workspaces {
   }
 
   def workspaceToCsv(workspace: Workspace): String = {
-    val header = List("Node ID", "Name", "Type", "Path", "URI", "MIME Type", "Size (bytes)", "Added By", "Added On (epoch ms)", "Processing Status")
+    val header = List("Node ID", "Name", "Type", "Path", "URI", "MIME Type", "Size (bytes)", "Added By", "Added On (epoch ms)", "Ingestion URI", "Processing Status")
     val rows = flattenTreeToCsvRows(workspace.rootNode, "")
     (header :: rows).map(_.map(escapeCsvField).mkString(",")).mkString("\n")
   }
