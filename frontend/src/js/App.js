@@ -28,6 +28,8 @@ import SettingsSidebar from "./components/Settings/SettingsSidebar";
 import ExtractionFailures from "./components/Settings/ExtractionFailuresComponent";
 import Users from "./components/Settings/Users";
 import About from "./components/Settings/About";
+import UsingGiantGuide from "./components/Documentation/UsingGiantGuide";
+import DocsSidebar from "./components/Documentation/DocsSidebar";
 import Token from "./components/UtilComponents/Token";
 import FeatureSwitches from "./components/Settings/FeatureSwitches";
 import { WeeklyUploadsFeed } from "./components/Uploads/Uploads";
@@ -73,6 +75,7 @@ class App extends React.Component {
             path={["/viewer-old/:uri", "/viewer/:uri"]}
             component={ViewerSidebar}
           />
+          <Route path="/guide" component={DocsSidebar} />
           <Route path="/settings" component={SettingsSidebar} />
           <Route path="/video-verifier" component={VideoVerifier} />
           <Route path="/workspaces/:id?" component={WorkspacesSidebar} />
@@ -107,6 +110,7 @@ class App extends React.Component {
             />
             <Route path="/settings/features" component={FeatureSwitches} />
             <Route path="/settings/about" component={About} />
+            <Route path="/guide" component={UsingGiantGuide} />
             <Route path="/settings/uploads" component={WeeklyUploadsFeed} />
             <Route
               path="/workspaces/:id/:workspaceLocation?"

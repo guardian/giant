@@ -67,14 +67,6 @@ class SettingsSidebar extends React.Component {
           <SidebarSearchLink className="sidebar__item" to="/settings/about">
             <div className="sidebar__item__text">About Giant</div>
           </SidebarSearchLink>
-          <a
-            className="sidebar__item"
-            href="https://docs.google.com/document/d/1wBJtFOnQcNNfzF4nSvULUHoQTsKek-tIRO4oEG7UWC4"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <div className="sidebar__item__text">Using Giant</div>
-          </a>
           <div className="sidebar__item">
             <button
               className="sidebar__item__text btn-link"

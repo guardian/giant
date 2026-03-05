@@ -1,0 +1,61 @@
+.markdown-page {
+  h1,
+  h2 {
+    margin-top: $baseSpacing * 2;
+
+    &:first-child {
+      margin-top: 0;
+    }
+  }
+
+  h1 {
+    padding-bottom: $baseSpacing;
+    border-bottom: 1px solid $borderColour;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: $baseSpacing * 2;
+    color: $primaryDark;
+  }
+
+  th {
+    text-transform: uppercase;
+    font-weight: bold;
+    background: $primary;
+    color: white;
+    padding: calc($baseSpacing / 2) $baseSpacing;
+    text-align: left;
+  }
+
+  td {
+    padding: calc($baseSpacing / 2) $baseSpacing;
+    text-align: left;
+  }
+
+  tr:not(:last-child) {
+    border-bottom: 1px solid $borderColour;
+  }
+
+  code {
+    background: $secondaryLight;
+    padding: 2px 6px;
+    border-radius: $borderRadius;
+    font-size: 13px;
+  }
+
+  img {
+    max-width: 100%;
+    height: auto;
+  }
+
+  ul {
+    padding-left: $baseSpacing * 2;
+    margin-bottom: $baseSpacing;
+  }
+
+  li {
+    margin-bottom: calc($baseSpacing / 2);
+  }
+}

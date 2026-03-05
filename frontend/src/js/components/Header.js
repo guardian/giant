@@ -3,6 +3,7 @@ import PropTypes from "prop-types";
 import SearchIcon from "react-icons/lib/md/search";
 import Settings from "react-icons/lib/md/settings";
 import FolderIcon from "react-icons/lib/md/folder-open";
+import BookIcon from "react-icons/lib/fa/book";
 import DatabaseIcon from "react-icons/lib/fa/database";
 import { SearchLink, NavSearchLink } from "./UtilComponents/SearchLink";
 
@@ -16,7 +17,7 @@ function calculateActive(paths) {
   };
 }
 
-function HeaderSearchLink({ to, children, activePaths, className }) {
+function HeaderSearchLink({ to, children, activePaths, className, title }) {
   return (
     <NavSearchLink
       to={to}
@@ -31,6 +32,7 @@ function HeaderSearchLink({ to, children, activePaths, className }) {
           ? `main-header__item main-header__item--link ${className}`
           : "main-header__item main-header__item--link"
       }
+      title={title}
     >
       {children}
     </NavSearchLink>
@@ -62,6 +64,18 @@ export default class Header extends React.Component {
   };
 
   collectionsPaths = ["/collections", "/ingestions", "/files", "/documents"];
+
+  renderGuideLink() {
+    return (
+      <HeaderSearchLink
+        to="/guide"
+        activePaths={["/guide"]}
+        title="Giant user guide"
+      >
+        <BookIcon className="main-header__item__icon" />
+      </HeaderSearchLink>
+    );
+  }
 
   renderSettingsLink() {
     return (
@@ -135,6 +149,7 @@ export default class Header extends React.Component {
           </div>
           <div className="main-header__links-section">
             {this.renderUser(loggedIn)}
+            {loggedIn ? this.renderGuideLink() : false}
             {loggedIn ? this.renderSettingsLink() : false}
           </div>
         </nav>
