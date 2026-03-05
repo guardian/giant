@@ -6,10 +6,12 @@ import _ from "lodash";
 type BaseProps = {
   actionType: string;
   actionDescription: string;
-  className: string;
+  className?: string;
   title: string;
   text?: string;
   disabled?: boolean;
+  isOpen?: boolean;
+  onClose?: () => void;
 };
 
 type ConfirmProps = BaseProps & {
@@ -35,8 +37,11 @@ export default function ModalAction(
     ConfirmProps | EditProps | SelectMultipleProps
   >,
 ) {
-  const [open, setOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
   const [value, setValue] = useState<string | string[] | undefined>(undefined);
+
+  const isExternallyControlled = props.isOpen !== undefined;
+  const open = isExternallyControlled ? props.isOpen! : internalOpen;
 
   function onSubmit(e?: React.FormEvent) {
     if (e) {
@@ -67,7 +72,11 @@ export default function ModalAction(
   }
 
   function onDismiss() {
-    setOpen(false);
+    if (isExternallyControlled) {
+      props.onClose?.();
+    } else {
+      setInternalOpen(false);
+    }
     setValue(undefined);
   }
 
@@ -76,15 +85,16 @@ export default function ModalAction(
 
   return (
     <React.Fragment>
-      {/* The component that triggers the modal (pass-through rendering of children) */}
-      <button
-        className={props.className}
-        disabled={props.disabled}
-        onClick={() => setOpen(true)}
-        title={props.title}
-      >
-        {props.children}
-      </button>
+      {!isExternallyControlled && (
+        <button
+          className={props.className}
+          disabled={props.disabled}
+          onClick={() => setInternalOpen(true)}
+          title={props.title}
+        >
+          {props.children}
+        </button>
+      )}
 
       <Modal
         isOpen={open}
