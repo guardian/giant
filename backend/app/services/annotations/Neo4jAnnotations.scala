@@ -113,6 +113,7 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
         |RETURN node, nodeCreator, parentNode.id, remoteIngest.url,
         |	count(todo) AS numberOfTodos,
         |	collect(todo)[0].note as note,
+        |	collect(todo)[0].ingestion as ingestionUri,
         |	exists((:Resource {uri: node.uri})<-[:EXTRACTION_FAILURE]-(:Extractor)) AS hasFailures
       """.stripMargin,
       parameters(
@@ -129,9 +130,10 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
         val maybeCapturedFromURL = r.get("remoteIngest.url").optionally(_.asString())
         val numberOfTodos = r.get("numberOfTodos").asInt()
         val note = r.get("note").optionally(_.asString())
+        val ingestionUri = r.get("ingestionUri").optionally(_.asString())
         val hasFailures = r.get("hasFailures").asBoolean()
 
-        WorkspaceEntry.fromNeo4jValue(node, nodeCreator, maybeParentNodeId, maybeCapturedFromURL, numberOfTodos, note, hasFailures)
+        WorkspaceEntry.fromNeo4jValue(node, nodeCreator, maybeParentNodeId, maybeCapturedFromURL, numberOfTodos, note, hasFailures, ingestionUri)
       }.toList
 
       val synthesisedEntries = remoteIngestsToMixin.flatMap(_.asSyntheticEntries(

@@ -79,6 +79,7 @@ case class WorkspaceLeaf(
   // there are nodes in Playground where this is null, which breaks things
   // if I don't make it optional
   size: Option[Long],
+  ingestionUri: Option[String] = None,
 ) extends WorkspaceEntry
 
 
@@ -105,7 +106,8 @@ object WorkspaceEntry {
     maybeCapturedFromURL: Option[String],
     numberOfTodos: Int,
     note: Option[String],
-    hasFailures: Boolean
+    hasFailures: Boolean,
+    ingestionUri: Option[String] = None
   ): TreeEntry[WorkspaceEntry] = {
     val processingStage = if (hasFailures) {
       ProcessingStage.Failed
@@ -148,6 +150,7 @@ object WorkspaceEntry {
           // there are nodes in Playground where this is null, which breaks things
           // if I don't make it optional
           size = v.get("size").optionally(_.asLong()),
+          ingestionUri = ingestionUri,
         )
       )
     }
