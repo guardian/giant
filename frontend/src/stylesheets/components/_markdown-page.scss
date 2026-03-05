@@ -21,10 +21,9 @@
   }
 
   th {
-    text-transform: uppercase;
-    font-weight: bold;
-    background: $primary;
-    color: white;
+    font-weight: normal;
+    background: $secondary;
+    color: $primaryDark;
     padding: calc($baseSpacing / 2) $baseSpacing;
     text-align: left;
   }
@@ -53,6 +52,17 @@
   ul {
     padding-left: $baseSpacing * 2;
     margin-bottom: $baseSpacing;
+    list-style: disc;
+
+    ul {
+      list-style: circle;
+    }
+  }
+
+  ol {
+    padding-left: $baseSpacing * 2;
+    margin-bottom: $baseSpacing;
+    list-style: decimal;
   }
 
   li {

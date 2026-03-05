@@ -1,64 +1,166 @@
-# **Using Giant**
+# **Using Giant** {#using-giant}
 
-# **Introduction** {#introduction}
+[Giant](https://giant.pfi.gutools.co.uk/) is a tool for securely searching, managing and sharing documents and data. It supports PDF, Office documents, emails, ZIP files, audio, video and more.
 
-[Giant](https://giant.pfi.gutools.co.uk/) is a tool for securely searching, managing and sharing documents and data. It supports PDF, Office documents, emails, ZIP files and more.
-
-It can extract searchable text from documents that do not already have it (known as [OCR](https://en.wikipedia.org/wiki/Optical_character_recognition)). For example: PDFs of scanned paper documents which you cannot search in Preview or Acrobat Reader are searchable in Giant.
+It can extract searchable text from documents that do not already have it (known as [OCR](https://en.wikipedia.org/wiki/Optical_character_recognition)). For example, PDFs of scanned paper documents and photographs containing text are searchable in Giant.
 
 To get access to Giant email [digital.investigations@guardian.co.uk](mailto:digital.investigations@guardian.co.uk) and [esd@guardian.co.uk](mailto:esd@guardian.co.uk). And for help, also email those teams rather than the IT Service Desk.
 
 ## **Why put stuff into Giant?** {#why-put-stuff-into-giant?}
 
-* All files saved into Giant are stored in an encrypted file system that GNM controls. Google, Amazon etc cannot read the content.  
-* Searching in Giant is much easier than on a hard disk, because you can control the scope of your search, and because Giant performs [optical character recognitio](https://en.wikipedia.org/wiki/Optical_character_recognition)n on all documents, meaning even photos of documents or "unsearchable" JPEG or PDF documents become searchable.    
+* All files saved into Giant are stored in an encrypted file system under the Guardian's control. Google, Amazon etc cannot read the content.  
+* Searching in Giant is much easier than on a hard disk, because you can control the scope of your search, and because Giant performs [optical character recognition](https://en.wikipedia.org/wiki/Optical_character_recognition) on all documents, meaning even photos of documents or "unsearchable" JPEG or PDF documents become searchable.    
 * Having a document in Giant addresses the risk of document proliferation, where multiple versions of a document shared between different people end up in multiple locations (download folders on different computers, private user folders, email attachments, messenger attachments, etc). If something is in Giant, everyone with permission can view it without having to make a copy. And if we need to get rid of something, the task is simple because it's just in one place.  
-* For similar reasons, Giant gives you document portability. You don't need to take a copy to work from home – just access it in Giant.   
-* Because Giant "renders" the file for you, you don't need to install special software on every computer you use to view unusual file types such as emails.
+* For similar reasons, Giant gives you document portability. You don't need to take a copy to work from home – just access it in Giant from anywhere.   
+* Because Giant 'renders' the file for you, you don't need to install special software on every computer you use to view unusual file types such as emails.
 
-# **Giant’s three main pages** {#giant’s-three-main-pages}
+## **Giant’s three main sections** {#giant’s-three-main-sections}
 
 At the top of every Giant window you will find links for the three main entry points for Giant's data: "Search", "Datasets" and "Workspaces".
 
-![Title bar](/docs/images/01_title_bar.png)
+<img src="/docs/images/01_title_bar.png" width="50%" />
 
-The [**Search**](https://giant.pfi.gutools.co.uk/search) page allows you to search for content using a search interface. 
+<div style="width: 50%;">
 
-The [**Datasets**](https://giant.pfi.gutools.co.uk/collections) page allows you to browse through Datasets that you have permission to view. There are two kinds of dataset:
+*The three main Giant sections are shown at the top of every page* 
+___
+</div><br/>
 
-* Large collections of related material such as a tranche of leaked material provided by a source.  These are created when the Investigations & Reporting team bulk upload such a collection.    
-* The sum total of an individual user's uploads. Each user has their own personal dataset.  
+* The [**Search**](https://giant.pfi.gutools.co.uk/search) page allows you to search for content using a sophisticated search interface. 
 
-Documents in datasets are organised identically to the way in which they were uploaded into Giant and you cannot rearrange items here. 
+* The [**Datasets**](https://giant.pfi.gutools.co.uk/collections) page allows you to browse through collections of material that you have permission to view. There are two kinds of dataset:
 
-[**Workspaces**](https://giant.pfi.gutools.co.uk/workspaces/) are collections of documents, from one or many datasets, that can be created, named and organised by Giant users. Workspaces structured like a file system so – provided you have access – the documents therein can be arranged into folders, renamed, added and removed, etc. 
+  * Large collections of related documents such as a tranche of leaked material provided by a source. These are created when the Investigations & Reporting team bulk upload such a collection.    
+  * The sum total of an individual user's uploads. Each user has their own personal dataset.  
 
-| Documents don't actually *live* inside workspaces. Under the hood, workspaces are collections of links to documents that live in some *dataset* or other. When you upload documents into a workspace, what you're actually doing is uploading the files to your personal dataset (mine is called "Luke Hoyland Documents") and then making a link to that document that is displayed in your active workspace. You can see all your uploads if you go to your own dataset. |
-| :---- |
+Documents in datasets are organised in the same structure as the source material that was uploaded into Giant. You cannot rearrange items in datasets. 
 
-You can use workspaces either to create curated selections of significant documents from Giant's datasets or to upload your own files into Giant.  
+- [**Workspaces**](https://giant.pfi.gutools.co.uk/workspaces/) are user-defined collections of documents, from one or many datasets. Workspaces can be created, named and organised by any Giant user. Workspaces organised like an editable file system so – provided you have access – the documents therein can be arranged into folders; and they can be renamed, added, removed, etc. 
 
-# **Searching for documents** {#searching-for-documents}
+You can use workspaces either to create curated selections of significant documents from datasets, from workspaces shared with you, and from documents you upload yourself.  
+
+| **Note** | Documents don't actually *live* inside workspaces. Under the hood, workspaces are collections of links to documents that come from one or more datasets. When you upload documents "into" a workspace, what you're actually doing is uploading the files to your personal dataset (mine is called "Luke Hoyland Documents") and then making a reference to that document within your active workspace. You can see *all* your uploads - not matter what workspaces they are in - if you go to your own dataset. |
+| :---- | :---- |
+
+# **The Search page** {#the-search-page}
 
 Click on the **Search** button in the top left of any Giant screen to get to the search page. 
 
-## **Search scope** {#search-scope}
+<img src="/docs/images/02_1_search_page_empty.png" width="75%" />
 
-First, select the areas in Giant that you want to search. The left-hand sidebar in Giant shows a list of the datasets and workspaces that you have access to. Click the checkbox for specific ones to limit the scope of your search to those datasets and workspaces. If you don't check any, Giant will search everything that you have access to.
+<div style="width: 50%;">
 
-Below the Datasets and Workspaces on the left-hand panel are some extra ways to filter your search: creation date and file type. 
+*The Giant search page* 
+___
+</div><br/>
 
-* If you select a creation date Giant will only search documents that it knows were created within the date range you have selected. Please be aware that this date is not always known, so searching by date can sometimes mean things don't get returned that perhaps should.   
-* If you select one or more file types Giant will only search documents of those types.  
+## **Search filters** {#search-filters}
+
+First, select the areas in Giant that you want to search. The left-hand sidebar in Giant shows a list of the datasets and workspaces that you have access to. Click the checkbox for specific ones to limit the scope of your search to those datasets and workspaces. If you don't have any checkboxes checked, Giant will search everything that you have access to.
+
+Below the search bar you'll see a set of filters, including for Workspaces and Datasets. You can select and deselect them using these filter buttons also. We call them 'chips'. 
+
+<img src="/docs/images/02_2_search_chips.png" width="100%" />
+
+<div style="width: 50%;">
+
+*This filter will restrict your search to material that is in dataset 'Luke Hoyland Documents' and/or in the workspace 'Eine kleine workspace'* 
+___
+</div><br/>
+
+
+Below the Datasets and Workspaces on the left-hand panel are some extra ways to filter your search: **Creation Date** and **File Type**. They two have corresponding 'chips' below your search query. 
+
+* If you select a **Creation Date** Giant will filter down its results to those that it knows were created within the date range you have selected. Please be aware that this date is not always known, so searching by date can sometimes mean things don't get returned that perhaps should. 
+* In the Creation date chip, if you select an end date but no start date, Giant will display all matching files created before that date. Similarly, if you select a start date but no end date, you'll see all matches created after that date.  
+* If you select one or more **File Types** Giant will only search documents of those types.
+
+You can also perform excluding or **'negative searches'** by switching the sidebar checkbox to a 'minus', and similarly with the button on the left of each chip. This will filter your searches to everything **except** the values in that filter. 
+
+<img src="/docs/images/02_3_search_chips_negative.png" width="30%" />
+
+<div style="width: 50%;">
+
+*This negative search filter will exclude anything from the Dataset 'Luke Hoyland Documents'* 
+___
+</div><br/>
+
 
 ## **The Search field itself** {#the-search-field-itself}
 
-By default, if you simply type some words into the search field in Giant, it will search for any document that contains all those words somewhere within the document. If you put your search in quotes it will only return matches of the words in that exact order. If you want to be more sophisticated than that, there are lots of options available: quoted searches for exact matches, either/or searches, searches that exclude some items, and other search filters. There's a full guide here:  [Search in Giant](https://docs.google.com/document/d/1uejYdU7w5GJpmg9R2u-Wi6qr1YfSg7bWHRRazDwHjUU).
+By default, if you simply type some words into the search field in Giant, it will search for any document that contains those words somewhere within the document. 
+
+This will include text in images, words spoken in audio and video files, etc. 
+
+If you put your search in quotes it will only return matches of the words *in that exact order*. 
+
+If you want to be more sophisticated than that, there are more options available. These are called search operators.
+
+## **Search operators** {#search-operators}
+
+Under normal conditions Giant will search for documents containing every word in your search term. But you can use special syntax to perform more advanced searches:
+
+* **OR / ||**: If you type the search term *"X OR Y"* or *"X || Y"* Giant will search for documents that either contain X or Y. Remember to use caps for *OR*, or Giant will will search for "or"!
+* **NOT / !**: If you type *"NOT X"* Giant will search for documents that don't contain X. Same goes for *"! X"*.
+* **AND / &&**: If you type *"X AND Y"* or *"X && Y"* you're telling Giant that both X and Y must be in the document. Remember to use *AND* in caps for it to be treated as a search operator. "AND" is actually the default behaviour for Giant, but can be useful if you already have an OR operator in your search. This is where parentheses come in...
+* **(parentheses)**: Putting stuff in brackets tells Giant the scope of multiple operators. Two examples:
+
+  * *"(X OR Y) AND Z"* means the documents can contain X or Y, but they must always contain Z. *"(X || Y) && Z"* does the same thing. 
+  * *"(X AND Y) NOT Z"* means Giant searches for documents that contain X and Y, but don't contain Z. *"(X && Y) ! Z"* does the same.
+* **Fuzzy matches**: Sometimes you want to include documents containing spelling mistakes, in order to do this you can use the *~* character to perform a "fuzzy" search. The query *"mississippi~"* would allow up to 2 characters to be mistyped. You can be explicit with how many characters you want to allow to be mistyped by including a number after the ~. So *"mississippi~4"* would allow up to 4 wrong characters.
+* **Proximity**: As we send earlier if you put a search term Giant will search for that exact set of words in that exact order. Proximity allows you to be a bit slacker with that determination. If you combine a quoted search with that *~* character again, you're telling Giant the the words don't have to be in that exact order, so long as they appear close to each other. You can define how close with a number. 
+
+  * For example, the phrase query *"quick fox"* would match only this exact phrase, but if we modify that to *"quick fox"~10* Giant will match documents where the terms "quick" and "fox" are within 10 words of each other.
+* **Wildcards**: *Warning: wildcards queries can be very inefficient, take a long time to complete and potentially cause system instability. This is especially true when a wildcard is used to prefix a term. Only use when necessary.*
+  * **Single-character wildcards**: The question mark operator can be used to substitute characters. For example, *"?at"* would match cat, mat, sat, etc.
+  * **Multiple-character wildcards**: Unlike the ? operator the * operator allows multiple characters to match. For example, *"f\*t"* would match fat, flat, feast, fervent, etc.  
+
+
+## **Search troubleshooting** {#search-troubleshooting}
+
+Sometimes you'll receive the message that a search has failed and you should check your query. This can happen for several reasons, but often it's because your query contains characters which are part of the query syntax. These are called unescaped special characters or unescaped control characters.
+
+Giant's query syntax has powerful features such as phrase queries, regular expressions and proximity queries. Unfortunately these features require the use of special characters under the hood, effectively preventing you from searching for terms that actually contain those same characters. One example of this is the forward slash: *"/"*. This is used to define a regular expressions query such as *"/joh?n(ath[oa]n)/"* to return all permutations of the name Jon/John/Jonathon/Jonathan. But of course forward slashes are often used in file paths (such as in URLs), so there may be times that forward slashes are a part of what you're looking for. 
+
+To prevent Giant's query parser from interpreting your forward slash as the beginning of a regular expressions query, you can *escape* the forward slash by preceding it with a back slash, like so: \/.
+
+Escaping means converting a special character which means something to the query language and making it be treated like a literal character.
+
+The following is a list of characters you will need to escape if you want to search for the literal character:
+
+<div style="width: 25%;">
+
+| Character you want to search | How to 'escape' it |
+| :---- | :---- |
+| + | \\+ |
+| - | \\- |
+| && | \\&& |
+| \|\| | \\\|\| |
+| ! | \\! |
+| ( | \\( |
+| ) | \\) |
+| { | \\{ |
+| ^ | \\^ |
+| " | \\" |
+| ~ | \\~ |
+| * | \\* |
+| ? | \\? |
+| \ | \\\ |
+
+</div><br/>
 
 ## **Search results** {#search-results}
 
-If your search gets a hit, the documents that match the search terms will be listed below the search term:  
-![Search results highlighted](/docs/images/02_search_results_highlighted.png)
+If your search gets a hit, the documents that match the search terms will be listed below. The search terms will be highlighted, showing the surrounding text to give you some context.  
+
+<img src="/docs/images/02_search_results_highlighted.png" width="80%" />
+
+<div style="width: 50%;">
+
+*xxxxx* 
+___
+</div><br/>
+
 
 The result will provide a preview of the surrounding text of the search hit, so you can get an idea of the context. 
 
@@ -373,32 +475,5 @@ The My Uploads view in Giant Settings shows you the state of all your uploads. T
 
 [https://giant.pfi.gutools.co.uk/settings/my-uploads](https://giant.pfi.gutools.co.uk/settings/my-uploads)
 
-As we encounter new eccentricities in file types, we are making fixes to the robots that process files for Giant. So files that failed to process in the past may succeed now. If you want to check with an old file, see "Reprocess old or problem files" in the section immediately above this one.
-
-# **Keyboard shortcuts** {#keyboard-shortcuts}
-
-## **Search** {#shortcuts-search}
-
-| Action | Shortcut |
-| ------ | -------- |
-| Focus the search box | `s` |
-
-## **Document Viewer** {#shortcuts-document-viewer}
-
-| Action | Shortcut |
-| ------ | -------- |
-| Next highlight | `n` |
-| Previous highlight | `Shift + N` |
-| Previous search result | `Shift + Left` |
-| Next search result | `Shift + Right` |
-| Show text view | `Shift + X` |
-| Show preview | `Shift + C` |
-| Find in page | `Cmd/Ctrl + F` |
-
-## **General** {#shortcuts-general}
-
-| Action | Shortcut |
-| ------ | -------- |
-| Close modal | `Esc` |
-| Focus first item in tree | `Home` |
-| Focus last item in tree | `End` |
+As we encounter new eccentricities in file types, we are making fixes to the robots that process files for Giant. So files that failed to process in the past may succeed now. If you want to check with an old file, see “Reprocess old or problem files” in the section immediately above this one.   
+ 

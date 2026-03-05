@@ -54,7 +54,7 @@ export default function DocsSidebar() {
     const el = document.getElementById(id);
     const content = document.querySelector(".app__content");
     if (el && content) {
-      content.scrollTo({ top: el.offsetTop - 24, behavior: "smooth" });
+      content.scrollTo({ top: el.offsetTop - 60, behavior: "smooth" });
     }
   };
 
