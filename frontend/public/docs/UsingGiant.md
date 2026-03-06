@@ -20,7 +20,7 @@ At the top of every Giant window you will find links for the three main entry po
 
 <img src="/docs/images/01_title_bar.png" width="50%" />
 
-<div style="width: 50%;">
+<div style="width: 25%;">
 
 _The three main Giant sections are shown at the top of every page_
 
@@ -49,13 +49,13 @@ Click on the **Search** button in the top left of any Giant screen to get to the
 
 <img src="/docs/images/02_1_search_page_empty.png" width="75%" />
 
-<div style="width: 50%;">
+<div style="width: 25%;">
 
 _The Giant search page_
 
 ---
 
-</div><br/>
+</div>
 
 ## **Search filters** {#search-filters}
 
@@ -65,7 +65,7 @@ Below the search bar you'll see a set of filters, including for Workspaces and D
 
 <img src="/docs/images/02_2_search_chips.png" width="100%" />
 
-<div style="width: 50%;">
+<div style="width: 25%;">
 
 _This filter will restrict your search to material that is in dataset 'Luke Hoyland Documents' and/or in the workspace 'Eine kleine workspace'_
 
@@ -83,7 +83,7 @@ You can also perform excluding or **'negative searches'** by switching the sideb
 
 <img src="/docs/images/02_3_search_chips_negative.png" width="30%" />
 
-<div style="width: 50%;">
+<div style="width: 25%;">
 
 _This negative search filter will exclude anything from the Dataset 'Luke Hoyland Documents'_
 
@@ -157,11 +157,11 @@ The following is a list of characters you will need to escape if you want to sea
 
 If your search gets a hit, the documents that match the search terms will be listed below. The search terms will be highlighted, showing the surrounding text to give you some context.
 
-<img src="/docs/images/02_search_results_highlighted.png" width="80%" />
+<img src="/docs/images/02_search_results_highlighted_rev.png" width="80%" />
 
-<div style="width: 50%;">
+<div style="width: 25%;">
 
-_xxxxx_
+_Search results showing matches in context_
 
 ---
 
@@ -180,29 +180,56 @@ You can view documents by getting to them through several different routes:
 
 - Performing a [search](#searching-for-documents) and clicking on a search result.
 - Navigating through a [workspace](#workspaces) and double clicking on a file you find therein.
-- Browning through a dataset and double clicking on a file you find therein.
+- Browsing through a dataset and double clicking on a file you find therein.
 - Traversing through the filesystem from another document by clicking on the first document's path in the document sidebar and navigating to a document elsewhere in the same file path.
 
-The document will be opened in a document viewer window. This consists of a sidebar with some information about the document (location, upload information, and any metadata that Giant extracted from the document), plus the document view itself. The document view comes in two flavours, depending on when the document was added to Giant:
+The document will be opened in a document viewer window. This consists of a sidebar with some information about the document (location, upload information, and any metadata that Giant extracted from the document), plus the document view itself. Document views come in several different flavours, depending on file format:
 
-- Documents uploaded before April 2022 have three modes: Text, OCR, and Preview. The first two modes just show the text that Giant found in Giant and are easily searchable. The Preview mode shows the document itself but is less searchable.
-- Documents uploaded since April 2022 combine these three modes into one. Consequently you see a realistic view of the document, but all the text that Giant found or extracted from Giant is searchable in that view.
+- **Text based documents** such as PDFs and MS Word documents are displayed in a single view, with the OCR'd text overlayed on top of the original document. Search term matches will be highlighted in the document itself. You can also search for other terms within the documents and these will be highlighted in a different colour to the original search term matches. We call this flavour the **combined view mode** because the extracted text and the original file are presented in the same view. 
+- **Emails** are displayed in a form that resembles an email, showing the To:, From:, Subject: fields etc. 
+- **Spreadsheets** are displayed as a searchable table. At the time of writing this is limited in utility.
+- **Other document types** - raw text, images, audio, video, etc (plus any fails Giant didn't convert into the above flavour) - have multiple 'view modes', with the searchable text displayed in a different view to the original media. Documents are initially opened in the extracted text mode to allow you to see search results (and perform further searches in the docuyment)  
 
-This guide will focus on the latter flavour.
+## **Combined view documents** {#combined-view-documents}
 
-If you came to a document via a search, the first match for the search will be displayed, highlighted in cyan:  
-![Docviewer searchresults](/docs/images/03_docviewer_searchresults.png)
+<img src="/docs/images/03_1_docviewer_page.png" width="80%" />
 
-Your search term will be shown in the upper widget top right (see the thing prefilled with "Mogg") in the illustration above. You can cycle through other matches within the document by hitting the up and down arrows in that upper widget.
+<div style="width: 25%;">
+
+_A 'combined document view'. If you came to this document via a search, the first match for the search will be displayed, highlighted in cyan_
+
+---
+
+</div><br/>
+
+Some documents will contain more than one match of your search term. In the combined document view you can step through each match using the widget at the top right of the page. Pressing the down arrow will take you to the next match in the document. 
+
+</div><br/>
+
+<img src="/docs/images/03_docviewer_twin_search_widget.png" width="30%" />
+
+<div style="width: 25%;">
+
+_When you come to a 'combined view' document through a search, the find widget has two levels: the top leavel lets you step through matches for your original search term. The second level allows you to search for anything else within the current document._
+
+---
+
+</div><br/>
 
 If the content in the document is difficult to read, you can try the following:
 
-- Rotate documents on their side using the rotation buttons in the top left widgets:  
-  ![Docviewer rotate](/docs/images/04_docviewer_rotate.png)
-- Expand or contract the window content using the Command \+ or \- keystrokes.
-- If all else fails use the "View as Text" button in the sidebar.
+- Expand or contract the window content using the zoom buttons:
 
-## **Searching within a document** {#searching-within-a-document}
+  <img src="/docs/images/04_1_docviewer_zoom.png" width="35%" />
+- Rotate documents on their side using the rotation buttons:  
+
+  <img src="/docs/images/04_docviewer_rotate.png" width="35%" />
+- If all else fails, use the "View as Text" button in the sidebar:
+
+  <img src="/docs/images/04_2_docviewer_view_as_text.png" width="75%" />
+
+
+## **Searching within a combined view document** {#searching-within-a-combined-view-document}
 
 You can search for things within the document itself, without going back to Giant's search page. Hit **Command F** or type something into the search-in-document widget. If you came to the document from a search, this appears below the main search widget. If you came to the document by browsing, it'll be the only widget there.
 
@@ -210,13 +237,44 @@ You can search for things within the document itself, without going back to Gian
 | :---------------------------------------------------------------------------------- | :------------------------------------------------------ |
 | _![Docviewer searchresults find](/docs/images/05_docviewer_searchresults_find.png)_ | _![Docviewer find](/docs/images/06_docviewer_find.png)_ |
 
-## **Unusual file formats** {#unusual-file-formats}
+## **Other document formats** {#other-document-formats}
 
 Giant can process other file formats such as emails, images, video files, audio files. For many of these when you open the file you'll be given the option to view it in different ways. For example:
 
-- An **image** containing text will have undergone optical character recognition to extract the text into an accompanying textual "view", meaning you can find text in images through this OCR text.. The "OCR" text view may be shown instead of the image itself when you open the document. If you want to view the image itself instead, look at the bottom right of the window and you'll see alternative view modes, including "Preview". Use "preview" to view the image itself.
-- Similarly, **audio** and **video** files will have undergone transcription. And if they were not in English they'll have also undergone translation. Again, these searchable transcription "views" modes will be shown for those files. If you want to see or hear the original media file, switch to Preview mode.
-- The list of languages that the transcription system supports can be found [here](https://github.com/openai/whisper/blob/ba3f3cd54b0e5b8ce1ab3de13e32122d0d5f98ab/whisper/tokenizer.py#L10). At the time of writing it's 100 languages.
+## **Image files** {#image-files}
+
+All images files are processed by Giant's optical character recognition engine to extract text into an accompanying textual "view", meaning you can find text in images through this OCR text. When you first open an image document the "OCR text" view may be shown instead of the image itself when you open the document. If there's no text this may be a pretty uninteeresting page! To view the image itself instead, look at the bottom right of the window and you'll see alternative view modes, including "Preview". Use "preview" to view the image itself.
+
+<img src="/docs/images/06_1_docviewer_image_switch_to_preview.gif" width="80%" />
+
+<div style="width: 25%;">
+
+_An image opened from a search result. The user switches to 'Preview' view mode_
+
+---
+
+</div><br/>
+
+## **Audio and video files** {#audio-and-video-files}
+
+In a similar fashion to the way Giant extracts text from images, it transcibes and translates words spoken content in audio and video files. Again, these searchable transcription "views" modes will be what you see when you open those files, because that 'view' is the searchable one. If you want to see or hear the original media file, switch to Preview mode.
+
+<img src="/docs/images/06_1_docviewer_video_switch_to_preview.gif" width="80%" />
+
+<div style="width: 25%;">
+
+_Video and audio files initially open with the transcript text. Click Preview view mode to see the video itself_
+
+---
+
+</div><br/>
+
+<div style="width: 50%;">
+
+| **Note** | The list of languages that the transcription system supports can be found [here](https://github.com/openai/whisper/blob/ba3f3cd54b0e5b8ce1ab3de13e32122d0d5f98ab/whisper/tokenizer.py#L10). At the time of writing it's 100 languages. |
+| :------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+
+</div>
 
 # **Workspaces** {#workspaces}
 
@@ -245,22 +303,36 @@ In the Workspaces section they are grouped into three lists:
 
 In Giant click on the Workspaces button at the top of the screen and hit the **New Workspace** button in the left-hand sidebar.
 
-![Workspaces new button](/docs/images/07_workspaces_new_button.png)
+<img src="/docs/images/07_workspaces_new_button.png" width="80%" />
 
-You'll be shown the following dialog box:
+<div style="width: 25%;">
 
-![Workspaces new dialog](/docs/images/08_workspaces_new_dialog.png)  
-Give the workspace a name and a tag colour if you want to organise your workspaces into different categories. Before you hit the **Create** button read about Public workspaces below.
+_The New Workspace button_
 
-To share a workspace see [Sharing access](#sharing-access-to-documents-in-a-workspace) below.
+---
+
+</div><br/>
+
+
+You'll be shown the New Workspace dialog box:
+
+<img src="/docs/images/08_workspaces_new_dialog.png" width="50%" />
+
+<div style="width: 25%;">
+
+_Give the workspace a name and a tag colour if you want to organise your workspaces into different categories. Don't click the 'Public' chekbox before reading the following section_
+
+---
+
+</div>
 
 ## **Public workspaces** {#public-workspaces}
 
-The "public" checkbox allows you to create a workspace that is visible to all other users of Giant at GNM. It isn't completely public\!
+The "public" checkbox in the New Workspace dialog allows you to create a workspace that is visible to all other users of Giant at the Guardian. It isn't completely public\!
 
 Public workspaces should really only be used for material that is already in the public domain and that has no special data protection status. The material is technically secure, but since hundreds of people have access it's unwise to put anything confidential in here.
 
-Don't click on this if you want to keep your workspace private to you, or just to you and some other colleagues. For the latter see [Sharing access](#sharing-access-to-documents-in-a-workspace) below.
+Don't click on this if you want to keep your workspace private to you, or if you plan to share your workspace with a limited number of colleagues. To achieve the latter see [Sharing access](#sharing-access-to-documents-in-a-workspace) below.
 
 ## **Uploading new documents into a workspace** {#uploading-new-documents-into-a-workspace}
 
