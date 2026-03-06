@@ -1,5 +1,7 @@
 # **Using Giant** {#using-giant}
 
+_Navigate this user guide using Cmd-F ( Ctrl-F) to find keywords, or by clicking on headers in the sidebar. Within the guide text links are shown in bold._
+
 [Giant](https://giant.pfi.gutools.co.uk/) is a tool for securely searching, managing and sharing documents and data. It supports PDF, Office documents, emails, ZIP files, audio, video and more.
 
 It can extract searchable text from documents that do not already have it (known as [OCR](https://en.wikipedia.org/wiki/Optical_character_recognition)). For example, PDFs of scanned paper documents and photographs containing text are searchable in Giant.
@@ -303,7 +305,7 @@ In the Workspaces section they are grouped into three lists:
 
 In Giant click on the Workspaces button at the top of the screen and hit the **New Workspace** button in the left-hand sidebar.
 
-<img src="/docs/images/07_workspaces_new_button.png" width="80%" />
+<img src="/docs/images/07_workspaces_new_button.png" width="50%" />
 
 <div style="width: 25%;">
 
@@ -409,7 +411,15 @@ Once you're happy, hit **Upload**. Giant will start uploading the files. If ther
 
 Once uploaded, the files will appear in the workspace. The spinning icon indicates that Giant is **processing** the files. For some tasks, such as transcription, translation, and OCR, the time this takes will depend on how big the file is (for example how many pages it has). Files that a "processing" are already uploaded, So at this stage you can safely navigate away from the page.
 
-![Workspaces file listing processed](/docs/images/11_workspaces_file_listing_processed.png)
+<img src="/docs/images/11_workspaces_file_listing_processed.png" width="75%" />
+
+<div style="width: 25%;">
+
+_Once a file shows as "processed", Giant has extracted all the text and made a safely viewable version of the file_ 
+
+---
+
+</div><br/>
 
 Once a file says it has "processed", you can [view](#viewing-documents) it or [search](#searching-for-documents) for it.
 
@@ -461,12 +471,33 @@ From a webpage right click and opt to **Capture with Giant**. You’ll be given 
 
 You can add files that are already in Giant to a workspace, even if they're already in some other workspace. The first method allows you to add an existing file to any workspace, including a new one. The second method allows you to move or copy one or many files and folders from one workspace to another.
 
-### **Method 1: how to add a file to a workspace from within the file itself** {#method-1:-how-to-add-a-file-to-a-workspace-from-within-the-file-itself}
+### **Method 1: if you have a document open in Giant** {#if-youre-in-a-document}
 
 Use this method if you have a file open but not the workspace(s) that it may belong to. This could happen if someone sent you the URL of the file, or if you found the file in search. You can add any file that you open to as many workspaces as you like. The files themselves aren’t duplicated \- Giant just keeps a record of which workspaces the file has been added to. So even if the file belongs to someone else, if you add it to a new workspace it won’t disappear from wherever they had it.
 
-Open the file. In the left hand sidebar you will see a button **Add to Workspace**. You'll be shown a dialog box where you should pick a target workspace. Every workspace that you have access to will be listed in the dropdown menu. (If you want instead to add the file to a brand new workspace, [create it](#creating-a-new-workspace) first.) You can abbreviate the list by typing some characters that appear in the workspace name: the list will shorten to show only those workspaces with that text in their name.  
-![Docsidebar add to workspace dialog](/docs/images/15_docsidebar_add_to_workspace_dialog.png)
+Open the file. In the left hand sidebar you will see a button **Add to Workspace**. 
+
+<img src="/docs/images/15_1_docsidebar_add_to_workspace_button.png" width="75%" />
+
+<div style="width: 25%;">
+
+_The Add to Workspace dialog, with options to pick a workspace, a location within that workspace, and a new name for the document_
+
+---
+
+</div><br/>
+
+You'll be shown a dialog box where you should pick a target workspace. Every workspace that you have access to will be listed in the dropdown menu. (If you want instead to add the file to a brand new workspace, [create it](#creating-a-new-workspace) first.) You can abbreviate the list by typing some characters that appear in the workspace name: the list will shorten to show only those workspaces with that text in their name.  
+
+<img src="/docs/images/15_docsidebar_add_to_workspace_dialog.png" width="50%" />
+
+<div style="width: 25%;">
+
+_The Add to Workspace dialog, with options to pick a workspace, a location within that workspace, and a new name for the document if you so wish_
+
+---
+
+</div><br/>
 
 Once you have selected a workspace, the dialog will show the folder structure of that workspace. Twist down the arrows to select a specific location. If you accidentally select a folder but you want to save the file at the top of the workspace, clear the selection by choosing a different workspace in the dropdown menu and then reselecting your intended workspace.
 
@@ -474,29 +505,66 @@ As with all documents in a workspace, you can rename them to something that make
 
 Then hit **Save**. Now navigate to your workspace and you'll see the file there.
 
-### **Method 2: moving or copying a file from one workspace to another workspace** {#method-2:-moving-or-copying-a-file-from-one-workspace-to-another-workspace}
+### **Method 2: moving or copying files from one workspace to another workspace** {#method-2:-moving-or-copying-a-file-from-one-workspace-to-another-workspace}
 
-Use this method if you have a file in a workspace but want to move or copy it into another workspace in order to share it with different people, to have copies of the file in different workspaces for different projects, etc.
+Use this method if you have files or folders in a workspace but want to move or copy them into another workspace in order to share it with different people, to have copies of the material in different workspaces for different projects, etc.
 
-1. First, make sure that the workspace you want to put the file into exists, and is [shared with the right people](#sharing-access-to-documents-in-a-workspace).
-2. Now switch to the workspace where the file already is.
-3. Select the file or folder of files and drag it from the “source” workspace into the “target” workspace that will be listed in the sidebar to the left. If you need to scroll down, drag the file down to the bottom of the window \- this should case Giant to scroll the whole window including the sidebar.
-4. Drag the folder over the top of the target workspace and release the mouse. You’ll now be shown an dialog asking if you want to copy the file or move it. “Copying” makes a new reference to the file in the target workspace, so that it appears in both places. (In fact there is only one real version of the file: you’re just making it show in both workspaces.) “Moving” removes the file/folder entry in the source workspace and puts it in the new workspace.
+1. First, make sure that the workspace you want to put the files into exists, and is [shared with the right people](#sharing-access-to-documents-in-a-workspace).
+2. Now switch to the workspace where the files already area.
+3. Select the material and drag from the 'source' workspace into the 'target' workspace entry in the sidebar to the left. 
+
+<img src="/docs/images/17_1_workspaces_drag_to_move_animated.gif" width="75%" />
+
+<div style="width: 25%;">
+
+_Drag to copy or move files from one workspace into another_
+
+---
+
+</div><br/>
+
+
+4. You’ll be shown an dialog asking if you want to copy the these items or move them. 'Copying' makes a new reference to the file in the target workspace, so that it appears in both places. 'Moving; removes the file/folder entry in the source workspace and puts it in the new workspace.
 5. Now switch to that workspace and put the file or folder in the exact location within that workspace that you want. (See [Organising files in a workspace](#organising-files-in-workspaces) below)
 
 ## **Organising files in workspaces** {#organising-files-in-workspaces}
 
 To **create a folder** click the **New Folder** button:
 
-![Workspaces new folder button](/docs/images/16_workspaces_new_folder_button.png)
+<img src="/docs/images/16_workspaces_new_folder_button.png" width="40%" />
+
+<div style="width: 25%;">
+
+_Making a new folder in a workspace_
+
+---
+
+</div><br/>
 
 To **move files** just drag them around, like you do in the Finder on a Mac. Shift-click and cmd-click will work for multiple selections:
 
-![Workspaces drag to move](/docs/images/17_workspaces_drag_to_move.png)
+<img src="/docs/images/17_workspaces_drag_to_move.png" width="50%" />
+
+<div style="width: 25%;">
+
+_Moving selections around in a workspace_
+
+---
+
+</div><br/>
+
 
 To **rename a file** or **remove a file**, right-click on it:
 
-![Workspaces contextual menu rename](/docs/images/18_workspaces_contextual_menu_rename.png)
+<img src="/docs/images/18_workspaces_contextual_menu_rename.png)" width="50%" />
+
+<div style="width: 25%;">
+
+_The Add to Workspace dialog, with options to pick a workspace, a location within that workspace, and a new name for the document if you so wish_
+
+---
+
+</div><br/>
 
 Note that renaming a file here will just rename it in this workspace. The original document in a dataset, or links to it in any other workspace, will not get renamed.
 
