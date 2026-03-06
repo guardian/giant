@@ -11,14 +11,14 @@ To get access to Giant email [digital.investigations@guardian.co.uk](mailto:digi
 ## **Why put stuff into Giant?** {#why-put-stuff-into-giant?}
 
 - All files saved into Giant are stored in an encrypted file system under the Guardian's control. Google, Amazon etc cannot read the content.
-- Searching in Giant is much easier than on a hard disk, because you can control the scope of your search, and because Giant performs [optical character recognition](https://en.wikipedia.org/wiki/Optical_character_recognition) on all documents, meaning even photos of documents or "unsearchable" JPEG or PDF documents become searchable.
+- Searching in Giant is much easier than on a hard disk, because you can control the scope of your search, and because Giant performs [optical character recognition](https://en.wikipedia.org/wiki/Optical_character_recognition) on all documents, meaning even photos of documents or "unsearchable' JPEG or PDF documents become searchable.
 - Having a document in Giant addresses the risk of document proliferation, where multiple versions of a document shared between different people end up in multiple locations (download folders on different computers, private user folders, email attachments, messenger attachments, etc). If something is in Giant, everyone with permission can view it without having to make a copy. And if we need to get rid of something, the task is simple because it's just in one place.
 - For similar reasons, Giant gives you document portability. You don't need to take a copy to work from home – just access it in Giant from anywhere.
 - Because Giant 'renders' the file for you, you don't need to install special software on every computer you use to view unusual file types such as emails.
 
 ## **Giant’s three main sections** {#giant’s-three-main-sections}
 
-At the top of every Giant window you will find links for the three main entry points for Giant's data: "Search", "Datasets" and "Workspaces".
+At the top of every Giant window you will find links for the three main entry points for Giant's data: 'Search', 'Datasets' and 'Workspaces'.
 
 <img src="/docs/images/01_title_bar.png" width="50%" />
 
@@ -42,7 +42,7 @@ Documents in datasets are organised in the same structure as the source material
 
 You can use workspaces either to create curated selections of significant documents from datasets, from workspaces shared with you, and from documents you upload yourself.
 
-| **Note** | Documents don't actually _live_ inside workspaces. Under the hood, workspaces are collections of links to documents that come from one or more datasets. When you upload documents "into" a workspace, what you're actually doing is uploading the files to your personal dataset (mine is called "Luke Hoyland Documents") and then making a reference to that document within your active workspace. You can see _all_ your uploads - not matter what workspaces they are in - if you go to your own dataset. |
+| **Note** | Documents don't actually _live_ inside workspaces. Under the hood, workspaces are collections of links to documents that come from one or more datasets. When you upload documents 'into' a workspace, what you're actually doing is uploading the files to your personal dataset (mine is called 'Luke Hoyland Documents') and then making a reference to that document within your active workspace. You can see _all_ your uploads - not matter what workspaces they are in - if you go to your own dataset. |
 | :------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 
 # **The Search page** {#the-search-page}
@@ -107,26 +107,26 @@ If you want to be more sophisticated than that, there are more options available
 
 Under normal conditions Giant will search for documents containing every word in your search term. But you can use special syntax to perform more advanced searches:
 
-- **OR / ||**: If you type the search term _"X OR Y"_ or _"X || Y"_ Giant will search for documents that either contain X or Y. Remember to use caps for _OR_, or Giant will will search for "or"!
-- **NOT / !**: If you type _"NOT X"_ Giant will search for documents that don't contain X. Same goes for _"! X"_.
-- **AND / &&**: If you type _"X AND Y"_ or _"X && Y"_ you're telling Giant that both X and Y must be in the document. Remember to use _AND_ in caps for it to be treated as a search operator. "AND" is actually the default behaviour for Giant, but can be useful if you already have an OR operator in your search. This is where parentheses come in...
+- **OR / ||**: If you type the search term _'X OR Y'_ or _'X || Y'_ Giant will search for documents that either contain X or Y. Remember to use caps for _OR_, or Giant will will search for 'or'!
+- **NOT / !**: If you type _'NOT X'_ Giant will search for documents that don't contain X. Same goes for _'! X'_.
+- **AND / &&**: If you type _'X AND Y'_ or _'X && Y'_ you're telling Giant that both X and Y must be in the document. Remember to use _AND_ in caps for it to be treated as a search operator. 'AND' is actually the default behaviour for Giant, but can be useful if you already have an OR operator in your search. This is where parentheses come in...
 - **(parentheses)**: Putting stuff in brackets tells Giant the scope of multiple operators. Two examples:
-  - _"(X OR Y) AND Z"_ means the documents can contain X or Y, but they must always contain Z. _"(X || Y) && Z"_ does the same thing.
-  - _"(X AND Y) NOT Z"_ means Giant searches for documents that contain X and Y, but don't contain Z. _"(X && Y) ! Z"_ does the same.
+  - _'(X OR Y) AND Z'_ means the documents can contain X or Y, but they must always contain Z. _'(X || Y) && Z'_ does the same thing.
+  - _'(X AND Y) NOT Z'_ means Giant searches for documents that contain X and Y, but don't contain Z. _'(X && Y) ! Z'_ does the same.
 
-- **Fuzzy matches**: Sometimes you want to include documents containing spelling mistakes, in order to do this you can use the _~_ character to perform a "fuzzy" search. The query _"mississippi~"_ would allow up to 2 characters to be mistyped. You can be explicit with how many characters you want to allow to be mistyped by including a number after the ~. So _"mississippi~4"_ would allow up to 4 wrong characters.
+- **Fuzzy matches**: Sometimes you want to include documents containing spelling mistakes, in order to do this you can use the _~_ character to perform a 'fuzzy' search. The query _'mississippi~'_ would allow up to 2 characters to be mistyped. You can be explicit with how many characters you want to allow to be mistyped by including a number after the ~. So _'mississippi~4'_ would allow up to 4 wrong characters.
 - **Proximity**: As we send earlier if you put a search term Giant will search for that exact set of words in that exact order. Proximity allows you to be a bit slacker with that determination. If you combine a quoted search with that _~_ character again, you're telling Giant the the words don't have to be in that exact order, so long as they appear close to each other. You can define how close with a number.
-  - For example, the phrase query _"quick fox"_ would match only this exact phrase, but if we modify that to _"quick fox"~10_ Giant will match documents where the terms "quick" and "fox" are within 10 words of each other.
+  - For example, the phrase query _'quick fox'_ would match only this exact phrase, but if we modify that to _'quick fox'~10_ Giant will match documents where the terms 'quick' and 'fox' are within 10 words of each other.
 
 - **Wildcards**: _Warning: wildcards queries can be very inefficient, take a long time to complete and potentially cause system instability. This is especially true when a wildcard is used to prefix a term. Only use when necessary._
-  - **Single-character wildcards**: The question mark operator can be used to substitute characters. For example, _"?at"_ would match cat, mat, sat, etc.
-  - **Multiple-character wildcards**: Unlike the ? operator the _ operator allows multiple characters to match. For example, _"f\*t"\* would match fat, flat, feast, fervent, etc.
+  - **Single-character wildcards**: The question mark operator can be used to substitute characters. For example, _'?at'_ would match cat, mat, sat, etc.
+  - **Multiple-character wildcards**: Unlike the ? operator the _ operator allows multiple characters to match. For example, _'f\*t'\* would match fat, flat, feast, fervent, etc.
 
 ## **Search troubleshooting** {#search-troubleshooting}
 
 Sometimes you'll receive the message that a search has failed and you should check your query. This can happen for several reasons, but often it's because your query contains characters which are part of the query syntax. These are called unescaped special characters or unescaped control characters.
 
-Giant's query syntax has powerful features such as phrase queries, regular expressions and proximity queries. Unfortunately these features require the use of special characters under the hood, effectively preventing you from searching for terms that actually contain those same characters. One example of this is the forward slash: _"/"_. This is used to define a regular expressions query such as _"/joh?n(ath[oa]n)/"_ to return all permutations of the name Jon/John/Jonathon/Jonathan. But of course forward slashes are often used in file paths (such as in URLs), so there may be times that forward slashes are a part of what you're looking for.
+Giant's query syntax has powerful features such as phrase queries, regular expressions and proximity queries. Unfortunately these features require the use of special characters under the hood, effectively preventing you from searching for terms that actually contain those same characters. One example of this is the forward slash: _'/'_. This is used to define a regular expressions query such as _'/joh?n(ath[oa]n)/'_ to return all permutations of the name Jon/John/Jonathon/Jonathan. But of course forward slashes are often used in file paths (such as in URLs), so there may be times that forward slashes are a part of what you're looking for.
 
 To prevent Giant's query parser from interpreting your forward slash as the beginning of a regular expressions query, you can _escape_ the forward slash by preceding it with a back slash, like so: \/.
 
@@ -173,24 +173,30 @@ The result will provide a preview of the surrounding text of the search hit, so 
 
 As you can see in the illustration above, some documents will show multiple hits: up to five are listed. There are two reasons for this:
 
-1. Giant performs optical character recognition (OCR) on many document types, sometimes in multiple languages. This means that for such documents there is a searchable index of not only the regular text in the document but also of each set of "OCR" text extracted from the documents. Sometimes this will take you to the same content as the text search hit; sometimes to something that wasn't originally searchable (such as some words in an image).
+1. Giant performs optical character recognition (OCR) on many document types, sometimes in multiple languages. This means that for such documents there is a searchable index of not only the regular text in the document but also of each set of 'OCR" text extracted from the documents. Sometimes this will take you to the same content as the text search hit; sometimes to something that wasn't originally searchable (such as some words in an image).
 2. Some documents will contain multiple instances of some of the terms you searched for, so up to five matches are shown per document.
+
+## **Search URLs** {#search-urls}
+
+Almost everything you do in Giant causes the URL in the location bar to be updated. So if you perform an interesting search and want to save it, or share it with a colleague, just copy that URL and store it/send it/whatever.
+
+Note, however, that these URLs will not produce the same results if the person you share with them has different permissions to you on the material being searched. They may not be allowed to perform the search at all.
 
 # **Viewing documents** {#viewing-documents}
 
 You can view documents by getting to them through several different routes:
 
-- Performing a [search](#searching-for-documents) and clicking on a search result.
+- Performing a [search](#the-search-page) and clicking on a search result.
 - Navigating through a [workspace](#workspaces) and double clicking on a file you find therein.
 - Browsing through a dataset and double clicking on a file you find therein.
 - Traversing through the filesystem from another document by clicking on the first document's path in the document sidebar and navigating to a document elsewhere in the same file path.
 
 The document will be opened in a document viewer window. This consists of a sidebar with some information about the document (location, upload information, and any metadata that Giant extracted from the document), plus the document view itself. Document views come in several different flavours, depending on file format:
 
-- **Text based documents** such as PDFs and MS Word documents are displayed in a single view, with the OCR'd text overlayed on top of the original document. Search term matches will be highlighted in the document itself. You can also search for other terms within the documents and these will be highlighted in a different colour to the original search term matches. We call this flavour the **combined view mode** because the extracted text and the original file are presented in the same view. 
-- **Emails** are displayed in a form that resembles an email, showing the To:, From:, Subject: fields etc. 
+- **Text based documents** such as PDFs and MS Word documents are displayed in a single view, with the OCR'd text overlayed on top of the original document. Search term matches will be highlighted in the document itself. You can also search for other terms within the documents and these will be highlighted in a different colour to the original search term matches. We call this flavour the **combined view mode** because the extracted text and the original file are presented in the same view.
+- **Emails** are displayed in a form that resembles an email, showing the To:, From:, Subject: fields etc.
 - **Spreadsheets** are displayed as a searchable table. At the time of writing this is limited in utility.
-- **Other document types** - raw text, images, audio, video, etc (plus any fails Giant didn't convert into the above flavour) - have multiple 'view modes', with the searchable text displayed in a different view to the original media. Documents are initially opened in the extracted text mode to allow you to see search results (and perform further searches in the docuyment)  
+- **Other document types** - raw text, images, audio, video, etc (plus any fails Giant didn't convert into the above flavour) - have multiple 'view modes', with the searchable text displayed in a different view to the original media. Documents are initially opened in the extracted text mode to allow you to see search results (and perform further searches in the document)
 
 ## **Combined view documents** {#combined-view-documents}
 
@@ -204,7 +210,7 @@ _A 'combined document view'. If you came to this document via a search, the firs
 
 </div><br/>
 
-Some documents will contain more than one match of your search term. In the combined document view you can step through each match using the widget at the top right of the page. Pressing the down arrow will take you to the next match in the document. 
+Some documents will contain more than one match of your search term. In the combined document view you can step through each match using the widget at the top right of the page. Pressing the down arrow will take you to the next match in the document.
 
 </div><br/>
 
@@ -223,13 +229,14 @@ If the content in the document is difficult to read, you can try the following:
 - Expand or contract the window content using the zoom buttons:
 
   <img src="/docs/images/04_1_docviewer_zoom.png" width="35%" />
-- Rotate documents on their side using the rotation buttons:  
+
+- Rotate documents on their side using the rotation buttons:
 
   <img src="/docs/images/04_docviewer_rotate.png" width="35%" />
+
 - If all else fails, use the "View as Text" button in the sidebar:
 
   <img src="/docs/images/04_2_docviewer_view_as_text.png" width="75%" />
-
 
 ## **Searching within a combined view document** {#searching-within-a-combined-view-document}
 
@@ -245,7 +252,7 @@ Giant can process other file formats such as emails, images, video files, audio 
 
 ## **Image files** {#image-files}
 
-All images files are processed by Giant's optical character recognition engine to extract text into an accompanying textual "view", meaning you can find text in images through this OCR text. When you first open an image document the "OCR text" view may be shown instead of the image itself when you open the document. If there's no text this may be a pretty uninteeresting page! To view the image itself instead, look at the bottom right of the window and you'll see alternative view modes, including "Preview". Use "preview" to view the image itself.
+All images files are processed by Giant's optical character recognition engine to extract text into an accompanying textual 'view', meaning you can find text in images through this OCR text. When you first open an image document the 'OCR text' view may be shown instead of the image itself when you open the document. If there's no text this may be a pretty uninteeresting page! To view the image itself instead, look at the bottom right of the window and you'll see alternative view modes, including 'Preview'. Use 'preview' to view the image itself.
 
 <img src="/docs/images/06_1_docviewer_image_switch_to_preview.gif" width="80%" />
 
@@ -259,7 +266,7 @@ _An image opened from a search result. The user switches to 'Preview' view mode_
 
 ## **Audio and video files** {#audio-and-video-files}
 
-In a similar fashion to the way Giant extracts text from images, it transcibes and translates words spoken content in audio and video files. Again, these searchable transcription "views" modes will be what you see when you open those files, because that 'view' is the searchable one. If you want to see or hear the original media file, switch to Preview mode.
+In a similar fashion to the way Giant extracts text from images, it transcibes and translates words spoken content in audio and video files. Again, these searchable transcription 'views' modes will be what you see when you open those files, because that 'view' is the searchable one. If you want to see or hear the original media file, switch to Preview mode.
 
 <img src="/docs/images/06_1_docviewer_video_switch_to_preview.gif" width="80%" />
 
@@ -274,7 +281,7 @@ _Video and audio files initially open with the transcript text. Click Preview vi
 <div style="width: 50%;">
 
 | **Note** | The list of languages that the transcription system supports can be found [here](https://github.com/openai/whisper/blob/ba3f3cd54b0e5b8ce1ab3de13e32122d0d5f98ab/whisper/tokenizer.py#L10). At the time of writing it's 100 languages. |
-| :------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| :------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 
 </div>
 
@@ -289,7 +296,7 @@ The two principal uses of workspaces are:
 
 These use cases are non-exclusive. You can, for example, have a workspace containing documents from multiple datasets along with additional files you have uploaded yourself. And a single file can be in as many different workspaces as you want.
 
-Files in a workspace are **private to you by default** – however you can share access with others within the Guardian. You can choose to create a "public" workspace – which makes the contents viewable for all other Giant users at GNM – or you can [add specific users to a workspace](#sharing-access-to-documents-in-a-workspace) to share its documents with those people.
+Files in a workspace are **private to you by default** – however you can share access with others within the Guardian. You can choose to create a 'public' workspace – which makes the contents viewable for all other Giant users at GNM – or you can [add specific users to a workspace](#sharing-access-to-documents-in-a-workspace) to share its documents with those people.
 
 ## **Finding workspaces** {#finding-workspaces}
 
@@ -315,7 +322,6 @@ _The New Workspace button_
 
 </div><br/>
 
-
 You'll be shown the New Workspace dialog box:
 
 <img src="/docs/images/08_workspaces_new_dialog.png" width="50%" />
@@ -330,7 +336,7 @@ _Give the workspace a name and a tag colour if you want to organise your workspa
 
 ## **Public workspaces** {#public-workspaces}
 
-The "public" checkbox in the New Workspace dialog allows you to create a workspace that is visible to all other users of Giant at the Guardian. It isn't completely public\!
+The 'public' checkbox in the New Workspace dialog allows you to create a workspace that is visible to all other users of Giant at the Guardian. It isn't completely public\!
 
 Public workspaces should really only be used for material that is already in the public domain and that has no special data protection status. The material is technically secure, but since hundreds of people have access it's unwise to put anything confidential in here.
 
@@ -344,7 +350,7 @@ Navigate to a workspace. Click on nothing if you want to upload files to the top
 
 **1. Manual upload**
 
-Drag a selection of files, or a directory and all its contents, into the spot in the workspace that you want to upload the files to. 
+Drag a selection of files, or a directory and all its contents, into the spot in the workspace that you want to upload the files to.
 
 <img src="/docs/images/09_1_workspaces_upload_drag.gif" width="75%" />
 
@@ -356,12 +362,11 @@ _Drag a folder or some files to somewhere in your workspace_
 
 </div><br/>
 
-You can't select a combination of files and directories at the same time because your computer may misreport the selection to the browser.  
+You can't select a combination of files and directories at the same time because your computer may misreport the selection to the browser.
 
 **2. The upload button**
 
 Click the upload files button at the top of the screen:
-
 
 <img src="/docs/images/09_workspaces_upload_button.png" width="75%" />
 
@@ -373,7 +378,7 @@ _Workspaces upload button_
 
 </div><br/>
 
-If you do the latter you'll be shown a window where you can choose one of two options:  
+If you do the latter you'll be shown a window where you can choose one of two options:
 
 <img src="/docs/images/10_workspaces_upload_selection_dialog.png" width="60%" />
 
@@ -409,19 +414,19 @@ _The upload selection review dialog for 'Add Directory'. You can twist down subf
 
 Once you're happy, hit **Upload**. Giant will start uploading the files. If there are a lot **please don't close the window**. The upload is being performed by your browser. Don't interrupt it. You can of course move to a new tab while it plods away.
 
-Once uploaded, the files will appear in the workspace. The spinning icon indicates that Giant is **processing** the files. For some tasks, such as transcription, translation, and OCR, the time this takes will depend on how big the file is (for example how many pages it has). Files that a "processing" are already uploaded, So at this stage you can safely navigate away from the page.
+Once uploaded, the files will appear in the workspace. The spinning icon indicates that Giant is **processing** the files. For some tasks, such as transcription, translation, and OCR, the time this takes will depend on how big the file is (for example how many pages it has). Files that a 'processing' are already uploaded, So at this stage you can safely navigate away from the page.
 
 <img src="/docs/images/11_workspaces_file_listing_processed.png" width="75%" />
 
 <div style="width: 25%;">
 
-_Once a file shows as "processed", Giant has extracted all the text and made a safely viewable version of the file_ 
+_Once a file shows as 'processed', Giant has extracted all the text and made a safely viewable version of the file_
 
 ---
 
 </div><br/>
 
-Once a file says it has "processed", you can [view](#viewing-documents) it or [search](#searching-for-documents) for it.
+Once a file says it has 'processed', you can [view](#viewing-documents) it or [search](#the-search-page) for it.
 
 Under the hood, the file is actually stored in your own personal dataset, which includes every file you upload. The workspace is really little more than a nicely organisable set of bookmarks. But since they behave just like files, you can treat them just like files.
 
@@ -443,7 +448,7 @@ _Capture from URL button_
 
 </div><br/>
 
-Enter the URL of the page you want captured and where in the workspace you want to save it.  
+Enter the URL of the page you want captured and where in the workspace you want to save it.
 
 <img src="/docs/images/13_workspaces_capture_from_url_selection_dialog.png" width="50%" />
 
@@ -455,15 +460,15 @@ _Capture from URL button_
 
 </div><br/>
 
-Giant will go and fetch it. If the page contains audio or video content this process can take more than 15 minutes because our transcripotion service will attempt to transcribe and translate any spoken content. You do not need to wait on the page while files are being processed. 
+Giant will go and fetch it. If the page contains audio or video content this process can take more than 15 minutes because our transcripotion service will attempt to transcribe and translate any spoken content. You do not need to wait on the page while files are being processed.
 
 ## **Send a webpage to Giant** {#send-a-webpage-to-giant}
 
-While browsing the internet you may wish to save the content of something you view on a webpage or social media post. You can send the material directly to Giant from there. Video and audio will be transcribed and translated, and the whole thing will be searchable for later retrieval. 
+While browsing the internet you may wish to save the content of something you view on a webpage or social media post. You can send the material directly to Giant from there. Video and audio will be transcribed and translated, and the whole thing will be searchable for later retrieval.
 
 This feature only works if your browser has the [Guardian Staff Extension](https://sites.google.com/a/guardian.co.uk/esd/web-tools/composer-workflow/teleporter/), aka Teleporter.
 
-From a webpage right click and opt to **Capture with Giant**. You’ll be given the same options as above, after which you can go about your browsing business while Giant grabs the material and stores it for you.  
+From a webpage right click and opt to **Capture with Giant**. You’ll be given the same options as above, after which you can go about your browsing business while Giant grabs the material and stores it for you.
 
 ![Workspaces capture from url workflow](/docs/images/14_workspaces_capture_from_url_workflow.gif)
 
@@ -475,7 +480,7 @@ You can add files that are already in Giant to a workspace, even if they're alre
 
 Use this method if you have a file open but not the workspace(s) that it may belong to. This could happen if someone sent you the URL of the file, or if you found the file in search. You can add any file that you open to as many workspaces as you like. The files themselves aren’t duplicated \- Giant just keeps a record of which workspaces the file has been added to. So even if the file belongs to someone else, if you add it to a new workspace it won’t disappear from wherever they had it.
 
-Open the file. In the left hand sidebar you will see a button **Add to Workspace**. 
+Open the file. In the left hand sidebar you will see a button **Add to Workspace**.
 
 <img src="/docs/images/15_1_docsidebar_add_to_workspace_button.png" width="75%" />
 
@@ -487,7 +492,7 @@ _The Add to Workspace dialog, with options to pick a workspace, a location withi
 
 </div><br/>
 
-You'll be shown a dialog box where you should pick a target workspace. Every workspace that you have access to will be listed in the dropdown menu. (If you want instead to add the file to a brand new workspace, [create it](#creating-a-new-workspace) first.) You can abbreviate the list by typing some characters that appear in the workspace name: the list will shorten to show only those workspaces with that text in their name.  
+You'll be shown a dialog box where you should pick a target workspace. Every workspace that you have access to will be listed in the dropdown menu. (If you want instead to add the file to a brand new workspace, [create it](#creating-a-new-workspace) first.) You can abbreviate the list by typing some characters that appear in the workspace name: the list will shorten to show only those workspaces with that text in their name.
 
 <img src="/docs/images/15_docsidebar_add_to_workspace_dialog.png" width="50%" />
 
@@ -511,7 +516,7 @@ Use this method if you have files or folders in a workspace but want to move or 
 
 1. First, make sure that the workspace you want to put the files into exists, and is [shared with the right people](#sharing-access-to-documents-in-a-workspace).
 2. Now switch to the workspace where the files already area.
-3. Select the material and drag from the 'source' workspace into the 'target' workspace entry in the sidebar to the left. 
+3. Select the material and drag from the 'source' workspace into the 'target' workspace entry in the sidebar to the left.
 
 <img src="/docs/images/17_1_workspaces_drag_to_move_animated.gif" width="75%" />
 
@@ -522,7 +527,6 @@ _Drag to copy or move files from one workspace into another_
 ---
 
 </div><br/>
-
 
 4. You’ll be shown an dialog asking if you want to copy the these items or move them. 'Copying' makes a new reference to the file in the target workspace, so that it appears in both places. 'Moving; removes the file/folder entry in the source workspace and puts it in the new workspace.
 5. Now switch to that workspace and put the file or folder in the exact location within that workspace that you want. (See [Organising files in a workspace](#organising-files-in-workspaces) below)
@@ -553,14 +557,13 @@ _Moving selections around in a workspace_
 
 </div><br/>
 
-
 To **rename a file** or **remove a file**, right-click on it:
 
-<img src="/docs/images/18_workspaces_contextual_menu_rename.png)" width="50%" />
+<img src="/docs/images/18_workspaces_contextual_menu_rename.png" width="50%" />
 
 <div style="width: 25%;">
 
-_The Add to Workspace dialog, with options to pick a workspace, a location within that workspace, and a new name for the document if you so wish_
+_You can rename a file in a workspace by right-clicking on it_
 
 ---
 
@@ -570,9 +573,17 @@ Note that renaming a file here will just rename it in this workspace. The origin
 
 When **removing a file from a workspace,** the file is only removed from that workspace and remains in Giant as well as in any other workspaces it has been added to. To permanently delete something from Giant, please see below.
 
-If you alone own a document (i.e. no one else uploaded the same file), you may be able **delete it from Giant entirely** by right-clicking on it in your workspace and opting to “Delete file”.
+If you alone own a document (i.e. no one else uploaded the same file), you may be able **delete it from Giant entirely** by right-clicking on it in your workspace and opting to 'Delete file'.
 
-![Workspaces contextual menu](/docs/images/19_workspaces_contextual_menu.png)
+<img src="/docs/images/19_workspaces_contextual_menu_delete.png" width="50%" />
+
+<div style="width: 25%;">
+
+_If you're the sole owner of a file, you can delete all trace of it from Giant_
+
+---
+
+</div><br/>
 
 Please note that it isn't always possible to delete files for several reasons. For example the file may be shared with someone else. Or someone else may have an identical file for different reasons. Because of Giant’s security design it is intentionally not possible for one user to know which other users have a file or have permission to view it. So Giant can’t actually tell you why something can’t be deleted. If Giant refuses to delete a file and you need it to be deleted for everyone, please contact [digital.investigations@guardian.co.uk](mailto:digital.investigations@guardian.co.uk) and we’ll try to help.
 
@@ -581,28 +592,52 @@ Please note that it isn't always possible to delete files for several reasons. F
 At present there are two ways to do this:
 
 1. You can search a folder within a workspace by right-clicking on that folder.
-2. You can search one or more whole workspaces by selecting those workspaces in Giant's "Search" view.
+2. You can search the workspace you are in by means of the **Search Workspace** button at the top.
+3. You can search combinations pf one or more whole workspaces (and/or datasets) by selecting those items in the sidebar of Giant's 'Search' view.
 
-### **Searching a single folder in a workspace** {#searching-a-single-folder-in-a-workspace}
+### **1. Searching a single folder in a workspace** {#searching-a-single-folder-in-a-workspace}
 
-Go to your workspace and right click on the folder that you want to search. You'll see an option to **Search in folder**:  
-![Workspaces contextual menu search in folder](/docs/images/20_workspaces_contextual_menu_search_in_folder.png)
+Go to your workspace and right click on the folder that you want to search. You'll see an option to **Search in folder**:
 
-This will take you to Giant's search view, with that workspace folder preselected as a [chip](https://docs.google.com/document/d/1uejYdU7w5GJpmg9R2u-Wi6qr1YfSg7bWHRRazDwHjUU/edit#heading=h.ik23h3kcne5f) in the search field:
+<img src="/docs/images/20_workspaces_contextual_menu_search_in_folder.png" width="50%" />
 
-![Search chips workspace folder](/docs/images/21_search_chips_workspace_folder.png)
+<div style="width: 25%;">
 
-Now, next to the chip, type whatever it is you want to search for and hit Search (or just Enter/Return). Giant will constrict its search to just the folder that you selected.
+_Right click on a folder to tell Giant to perform a search of the documents inside it_
+
+---
+
+</div><br/>
+
+This will take you to Giant's search view, with that workspace and folder preselected as [chips](#search-filters) in active filters:
+
+<img src="/docs/images/21_search_chips_workspace_folder.png" width="100%" />
+
+<div style="width: 25%;">
+
+_After you choose 'Search in Folder, Giant takes you to the Search page, with the workspace and folder preselected as filters_
+
+---
+
+</div><br/>
+
+Now, type whatever it is you want to search for and hit Search (or just Enter/Return). Giant will restrict its search to just the folder that you selected.
 
 ### **Searching a whole workspace** {#searching-a-whole-workspace}
 
 Click “Search” in the Giant page header to switch to Giant's search view:
 
-![Docsidebar click search header](/docs/images/22_docsidebar_click_search_header.png)
+<img src="/docs/images/22_workspaces_search_workspace_button.png" width="100%" />
 
-To restrict your search to just the documents in a particular workspace, click the checkbox next to that workspace's name, on the left:  
-![Search sidebar workspace checkbox](/docs/images/23_search_sidebar_workspace_checkbox.png)  
-Then enter your search term in the search box. For more on search see [above](#searching-for-documents).
+<div style="width: 25%;">
+
+_Click the Search Workspace button to restrict a search to stuff in that workspace_
+
+---
+
+</div><br/>
+
+For more on search see [the Search section above](#the-search-page).
 
 ## **Sharing access to documents in a workspace** {#sharing-access-to-documents-in-a-workspace}
 
@@ -610,7 +645,15 @@ Documents uploaded to a workspace you create are **private to you by default**. 
 
 To share access with others, click the “Share Workspace” button that is displayed when you are viewing your workspace:
 
-![Workspaces share dialog](/docs/images/24_workspaces_share_dialog.png)
+<img src="/docs/images/24_workspaces_share_dialog.png" width="50%" />
+
+<div style="width: 25%;">
+
+_Sharing a workspace with colleagues_
+
+---
+
+</div><br/>
 
 Add the email addresses of who you want to have access. These people **will be able to** **view and edit anything in the workspace**: they can add files, rename them, move them and remove them. These people **will not be able to delete the workspace, rename it, or share it with more people**.
 
@@ -645,8 +688,17 @@ In your personal dataset, once you have uploaded documents in Giant you'll see a
 
 ## **Your personal dataset** {#your-personal-dataset}
 
-Every file that you upload into a workspace is actually stored in your personal dataset. If you go to the [Datasets view](https://giant.pfi.gutools.co.uk/collections) in Giant you'll see yours. Mine is called "Luke Hoyland Documents".  
-![Datasets my documents](/docs/images/25_datasets_my_documents.png)
+Every file that you upload into a workspace is actually stored in your personal dataset. If you go to the [Datasets view](https://giant.pfi.gutools.co.uk/collections) in Giant you'll see yours. Mine is called "Luke Hoyland Documents".
+
+<img src="/docs/images/25_datasets_my_documents.png" width="50%" />
+
+<div style="width: 25%;">
+
+_Your own dataset contains everything you have uploaded_
+
+---
+
+</div><br/>
 
 This dataset is organised into folders corresponding to each time you uploaded a bunch of files, sorted by date. You'll quickly see that this isn't a very helpful way of organising files, which is why we have workspaces. But the personal dataset can be useful in some circumstances, – e.g.
 
@@ -671,8 +723,19 @@ There may be times when you want Giant to re-analyse a document and extract its 
 | Documents processed before the advent of the “unified document viewer” in 2022 show in three separate view modes: basic “text” and “OCR” \- which just look like plain text, and “preview” – which looks like the original document). If you perform a search that finds a match in such a document, Giant can't take you to the matching text in the preview of the document, so you won't see it highlighted there. If you really want to see documents in the separate view modes you can access those modes via the "View as text” button in the sidebar when the document is being displayed. |
 | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 
-To force Giant to reprocess a file, locate it in a workspace and right click on it. You should see an option to reprocess the original source file which Giant will (usually) have stowed away in an encrypted storage container:  
- ![Workspaces node reprocess](/docs/images/26_workspaces_node_reprocess.png)
+To force Giant to reprocess a file, locate it in a workspace and right click on it. You should see an option to reprocess the original source file which Giant will (usually) have stowed away in an encrypted storage container:
+
+<img src="/docs/images/xxxx" width="50%" />
+
+<div style="width: 25%;">
+
+_xxxx_
+
+---
+
+</div><br/>
+
+![Workspaces node reprocess](/docs/images/26_workspaces_node_reprocess.png)
 
 ## **Delete files completely** {#delete-files-completely}
 
