@@ -89,7 +89,7 @@ _This negative search filter will exclude anything from the Dataset 'Luke Hoylan
 
 ---
 
-</div><br/>
+</div>
 
 ## **The Search field itself** {#the-search-field-itself}
 
@@ -151,7 +151,7 @@ The following is a list of characters you will need to escape if you want to sea
 | ?                            | \\?                |
 | \                            | \\\                |
 
-</div><br/>
+</div>
 
 ## **Search results** {#search-results}
 
@@ -253,7 +253,7 @@ _An image opened from a search result. The user switches to 'Preview' view mode_
 
 ---
 
-</div><br/>
+</div>
 
 ## **Audio and video files** {#audio-and-video-files}
 
@@ -338,26 +338,76 @@ Don't click on this if you want to keep your workspace private to you, or if you
 
 Workspaces are where you upload and organise your files in Giant. To begin you upload your files to a workspace and you can then browse and search through them.
 
-Navigate to a workspace. Click on nothing if you want to upload files to the top of the workspace. Or click on a folder within the workspace to upload files to that folder. Then hit the “Upload to Workspace” button.
+Navigate to a workspace. Click on nothing if you want to upload files to the top of the workspace. Or click on a folder within the workspace to upload files to that folder. Then tell Giant what files you want to upload in one of two ways:
 
-![Workspaces upload button](/docs/images/09_workspaces_upload_button.png)
+**1. Manual upload**
 
-You'll be shown a window where you can choose one of two options:  
-![Workspaces upload selection dialog](/docs/images/10_workspaces_upload_selection_dialog.png)
+Drag a selection of files, or a directory and all its contents, into the spot in the workspace that you want to upload the files to. 
+
+<img src="/docs/images/09_1_workspaces_upload_drag.gif" width="75%" />
+
+<div style="width: 25%;">
+
+_Drag a folder or some files to somewhere in your workspace_
+
+---
+
+</div><br/>
+
+You can't select a combination of files and directories at the same time because your computer may misreport the selection to the browser.  
+
+**2. The upload button**
+
+Click the upload files button at the top of the screen:
+
+
+<img src="/docs/images/09_workspaces_upload_button.png" width="75%" />
+
+<div style="width: 25%;">
+
+_Workspaces upload button_
+
+---
+
+</div><br/>
+
+If you do the latter you'll be shown a window where you can choose one of two options:  
+
+<img src="/docs/images/10_workspaces_upload_selection_dialog.png" width="60%" />
+
+<div style="width: 25%;">
+
+_The upload selection dialog, showing the location you chose to upload the files to_
+
+---
+
+</div><br/>
 
 - **Add Files** to add specific files from your computer to your chosen location in the workspace. You can select more than one file at once if your computer allows it. The files will be added side by side to your chosen location in your workspace.
 - **Add Directory** to add an entire folder from your computer to the chosen location in the workspace. Here the directory structure on your computer will be preserved: everything will end up inside a folder of the same name, and any subfolders therein will have been retained with their original contents.
 
 Your computer will now open a file finding dialog. Navigate to the files or folder you want to upload, select them, then hit OK/Open/Upload or whatever button it is that your computer shows to upload the files.
 
-You'll then be shown a list of your selection, so you can confirm it's what you wanted.
+## **Confirming the upload selection** {#confirming-the-upload-selection}
+
+Whether you dragged files into the workspace manually or went via the Upload button, before the files actually upload you'll be shown a list of what you've chosen, for you to review:
+
+<img src="/docs/images/10_1_workspaces_upload_review_dialog.png" width="60%" />
+
+<div style="width: 25%;">
+
+_The upload selection review dialog for 'Add Directory'. You can twist down subfolders to see what's inside them. Hit X to remove anything from the list to be uploaded_
+
+---
+
+</div><br/>
 
 - If you selected too many things you can click on the X icon to remove them from the stuff you're going to upload.
 - If you've gone completely wrong just click off the list to cancel and start again.
 
-Once you're happy, hit Upload. Giant will start uploading the files. If there are a lot please don't close the window. Let it progress.
+Once you're happy, hit **Upload**. Giant will start uploading the files. If there are a lot **please don't close the window**. The upload is being performed by your browser. Don't interrupt it. You can of course move to a new tab while it plods away.
 
-Once uploaded, the files will appear in the workspace. The spinning icon indicates that Giant is **processing** the files. For some tasks, such as OCR, the time this takes will depend on how big the file is (for example how many pages it has). This process is now being performed by Giant rather than your computer. So you can safely navigate away from the page though and come back once they are done.
+Once uploaded, the files will appear in the workspace. The spinning icon indicates that Giant is **processing** the files. For some tasks, such as transcription, translation, and OCR, the time this takes will depend on how big the file is (for example how many pages it has). Files that a "processing" are already uploaded, So at this stage you can safely navigate away from the page.
 
 ![Workspaces file listing processed](/docs/images/11_workspaces_file_listing_processed.png)
 
@@ -365,22 +415,46 @@ Once a file says it has "processed", you can [view](#viewing-documents) it or [s
 
 Under the hood, the file is actually stored in your own personal dataset, which includes every file you upload. The workspace is really little more than a nicely organisable set of bookmarks. But since they behave just like files, you can treat them just like files.
 
-## **Saving online content into Giant**
+## **Saving web content into Giant** {#saving-web-content-into-giant}
 
 You can give Giant the URL of a webpage and it will snapshot the page, extract the text, and ingest, transcribe and translate any multimedia content therein (such as videos). There are two ways to do this:
 
-### **From Giant: ‘Capture from URL’**
+## **Tell Giant to fetch content from a URL** {#tell-giant-to-fetch-content-from-a-URL}
 
-![Workspaces capture from url button](/docs/images/12_workspaces_capture_from_url_button.png)  
-Within a workspace click on Capture to Giant, enter the URL of the page you want captured and where you want to save it.  
-![Workspaces capture from url selection dialog](/docs/images/13_workspaces_capture_from_url_selection_dialog.png)  
-Giant will go and fetch it. It may take a while if the page contains audio or video content.
+Within a workspace click on the Capture from URL button:
 
-### **From a webpage: right click and ‘Capture with Giant’**
+<img src="/docs/images/12_workspaces_capture_from_url_button.png" width="100%" />
 
-This will only work if your browser has the Guardian Staff Extension.
+<div style="width: 25%;">
+
+_Capture from URL button_
+
+---
+
+</div><br/>
+
+Enter the URL of the page you want captured and where in the workspace you want to save it.  
+
+<img src="/docs/images/13_workspaces_capture_from_url_selection_dialog.png" width="50%" />
+
+<div style="width: 25%;">
+
+_Capture from URL button_
+
+---
+
+</div><br/>
+
+Giant will go and fetch it. If the page contains audio or video content this process can take more than 15 minutes because our transcripotion service will attempt to transcribe and translate any spoken content. You do not need to wait on the page while files are being processed. 
+
+## **Send a webpage to Giant** {#send-a-webpage-to-giant}
+
+While browsing the internet you may wish to save the content of something you view on a webpage or social media post. You can send the material directly to Giant from there. Video and audio will be transcribed and translated, and the whole thing will be searchable for later retrieval. 
+
+This feature only works if your browser has the [Guardian Staff Extension](https://sites.google.com/a/guardian.co.uk/esd/web-tools/composer-workflow/teleporter/), aka Teleporter.
 
 From a webpage right click and opt to **Capture with Giant**. You’ll be given the same options as above, after which you can go about your browsing business while Giant grabs the material and stores it for you.  
+
 ![Workspaces capture from url workflow](/docs/images/14_workspaces_capture_from_url_workflow.gif)
 
 ## **Adding existing Giant files to a workspace** {#adding-existing-giant-files-to-a-workspace}
