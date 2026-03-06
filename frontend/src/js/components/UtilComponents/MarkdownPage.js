@@ -22,6 +22,32 @@ export default function MarkdownPage({ src, fullHeight }) {
     }
   }, [fullHeight]);
 
+  useEffect(() => {
+    if (!markdown) return;
+
+    const scrollToHash = () => {
+      const hash = window.location.hash;
+      if (!hash) return;
+
+      const id = decodeURIComponent(hash.slice(1));
+      const el = document.getElementById(id);
+      const content = document.querySelector(".app__content");
+
+      if (el && content) {
+        content.scrollTo({ top: el.offsetTop - 60, behavior: "auto" });
+      }
+    };
+
+    // Wait for markdown headings to be present in the DOM before scrolling.
+    const raf = window.requestAnimationFrame(scrollToHash);
+    window.addEventListener("hashchange", scrollToHash);
+
+    return () => {
+      window.cancelAnimationFrame(raf);
+      window.removeEventListener("hashchange", scrollToHash);
+    };
+  }, [markdown]);
+
   return (
     <div className="app__main-content">
       <ReactMarkdown

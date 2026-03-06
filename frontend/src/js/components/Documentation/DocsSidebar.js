@@ -55,6 +55,12 @@ export default function DocsSidebar() {
     const content = document.querySelector(".app__content");
     if (el && content) {
       content.scrollTo({ top: el.offsetTop - 60, behavior: "smooth" });
+      window.history.replaceState(
+        null,
+        "",
+        `${window.location.pathname}${window.location.search}#${id}`,
+      );
+      setActiveId(id);
     }
   };
 
