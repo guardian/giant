@@ -400,7 +400,12 @@ Drag a folder or some files to somewhere in your workspace
 
 </div>
 
-You can't select a combination of files and directories at the same time because your computer may misreport the selection to the browser.
+<div style="width: 50%;">
+
+| **Note** | You can't select a combination of files and directories at the same time because your computer may misreport the selection to the browser. |
+| :------- | :----------------------------------------------------------------------------------------------------------------------------------------- |
+
+</div>
 
 **2. The Upload button**
 
