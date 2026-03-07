@@ -1354,4 +1354,51 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
       Attempt.Left(NotFoundFailure(s"No children with this"))
     }
   }
+
+  override def moveIngestionToCollection(ingestionUri: Uri, targetCollectionUri: Uri, newIngestionUri: Uri): Attempt[Unit] = attemptTransaction { tx =>
+    logger.info(s"Moving ingestion ${ingestionUri.value} to collection ${targetCollectionUri.value}")
+
+    for {
+      // Step 1: Update the PARENT relationship - delete old, create new
+      result <- tx.run(
+        """
+          |MATCH (ingestion:Ingestion {uri: {oldUri}})-[oldParent:PARENT]->(oldCollection:Collection)
+          |MATCH (newCollection:Collection {uri: {newCollectionUri}})
+          |DELETE oldParent
+          |CREATE (ingestion)-[:PARENT]->(newCollection)
+          |RETURN ingestion, newCollection
+        """.stripMargin,
+        parameters(
+          "oldUri", ingestionUri.value,
+          "newCollectionUri", targetCollectionUri.value
+        )
+      )
+
+      _ <- if (result.list().isEmpty) {
+        Attempt.Left[Unit](NotFoundFailure(s"Could not find ingestion ${ingestionUri.value} or collection ${targetCollectionUri.value}"))
+      } else {
+        Attempt.Right(())
+      }
+
+      // Step 2: Update the ingestion node's URI property
+      _ = logger.info(s"Updating ingestion URI from ${ingestionUri.value} to ${newIngestionUri.value}")
+      uriUpdateResult <- tx.run(
+        """
+          |MATCH (ingestion:Ingestion {uri: {oldUri}})
+          |SET ingestion.uri = {newUri}
+          |RETURN ingestion
+        """.stripMargin,
+        parameters(
+          "oldUri", ingestionUri.value,
+          "newUri", newIngestionUri.value
+        )
+      )
+
+      _ <- if (uriUpdateResult.list().isEmpty) {
+        Attempt.Left[Unit](NotFoundFailure(s"Could not find ingestion ${ingestionUri.value} to update URI"))
+      } else {
+        Attempt.Right(())
+      }
+    } yield ()
+  }
 }
