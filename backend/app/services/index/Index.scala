@@ -42,4 +42,6 @@ trait Index {
   def removeResourceFromWorkspace(uri: Uri, workspaceId: String, workspaceNodeId: String): Attempt[Unit]
 
   def deleteWorkspace(workspaceId: String): Attempt[Unit]
+
+  def updateIngestionPath(oldIngestionPath: String, newIngestionPath: String): Attempt[Unit]
 }
