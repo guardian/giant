@@ -495,7 +495,7 @@ Within a workspace click the **Capture from URL** button:
 
 <div class="doc-caption">
 
-Capture from URL button
+The Capture from URL button
 
 </div>
 
@@ -509,7 +509,7 @@ Enter the URL of the page you want captured and where in the workspace you want 
 
 <div class="doc-caption">
 
-Capture from URL button
+The Capture from URL dialog with options to choose a workspace, workspace folder, and name
 
 </div>
 
@@ -553,7 +553,7 @@ Open the file. In the left-hand sidebar you will see the **Add to Workspace** bu
 
 <div class="doc-caption">
 
-The Add to Workspace dialog, with options to pick a workspace, a location within that workspace, and a new name for the document
+The Add to Workspace dialog button is shown in a document's sidebar
 
 </div>
 
