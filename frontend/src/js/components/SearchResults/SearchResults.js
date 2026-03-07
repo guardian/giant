@@ -102,7 +102,11 @@ export default class SearchResults extends React.Component {
         );
       }
     } else {
-      return null;
+      return (
+        <p className="search-results__message center-text">
+          Search tip: type + or - to add filters
+        </p>
+      );
     }
   }
 }
