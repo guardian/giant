@@ -166,6 +166,7 @@ The following is a list of characters you will need to escape if you want to sea
 | (                            | `\(`                           |
 | )                            | `\)`                           |
 | {                            | `\{`                           |
+| }                            | `\}`                           |
 | ^                            | `\^`                           |
 | "                            | `\"`                           |
 | ~                            | `\~`                           |
