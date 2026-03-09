@@ -1,10 +1,24 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import remarkHeadingId from "remark-heading-id";
 import rehypeRaw from "rehype-raw";
 
-export default function MarkdownPage({ src, fullHeight }) {
+type MarkdownPageProps = {
+  src: string;
+  fullHeight?: boolean;
+};
+
+export function getIdFromHash(hash: string): string | null {
+  if (!hash) return null;
+  return decodeURIComponent(hash.slice(1));
+}
+
+export function markdownScrollTop(offsetTop: number): number {
+  return offsetTop - 60;
+}
+
+export default function MarkdownPage({ src, fullHeight }: MarkdownPageProps) {
   const [markdown, setMarkdown] = useState("");
 
   useEffect(() => {
@@ -15,7 +29,8 @@ export default function MarkdownPage({ src, fullHeight }) {
 
   useEffect(() => {
     if (!fullHeight) return;
-    const content = document.querySelector(".app__content");
+
+    const content = document.querySelector<HTMLElement>(".app__content");
     if (content) {
       content.classList.add("app__content--docs");
       return () => content.classList.remove("app__content--docs");
@@ -26,15 +41,17 @@ export default function MarkdownPage({ src, fullHeight }) {
     if (!markdown) return;
 
     const scrollToHash = () => {
-      const hash = window.location.hash;
-      if (!hash) return;
+      const id = getIdFromHash(window.location.hash);
+      if (!id) return;
 
-      const id = decodeURIComponent(hash.slice(1));
       const el = document.getElementById(id);
-      const content = document.querySelector(".app__content");
+      const content = document.querySelector<HTMLElement>(".app__content");
 
       if (el && content) {
-        content.scrollTo({ top: el.offsetTop - 60, behavior: "auto" });
+        content.scrollTo({
+          top: markdownScrollTop(el.offsetTop),
+          behavior: "auto",
+        });
       }
     };
 

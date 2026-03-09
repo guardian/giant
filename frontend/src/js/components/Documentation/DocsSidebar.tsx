@@ -1,7 +1,13 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 
-function parseHeadings(markdown) {
-  const headings = [];
+type Heading = {
+  level: number;
+  text: string;
+  id: string;
+};
+
+export function parseHeadings(markdown: string): Heading[] {
+  const headings: Heading[] = [];
   const lines = markdown.split("\n");
   for (const line of lines) {
     const match = line.match(/^(#{1,2})\s+\**(.+?)\**\s*\{#(.+?)\}/);
@@ -16,9 +22,27 @@ function parseHeadings(markdown) {
   return headings;
 }
 
+export function findActiveHeadingId(
+  headings: Heading[],
+  scrollTop: number,
+  getElementById: (id: string) => HTMLElement | null = (id) =>
+    document.getElementById(id),
+): string | null {
+  let current: string | null = null;
+
+  for (const h of headings) {
+    const el = getElementById(h.id);
+    if (el && el.offsetTop - 80 <= scrollTop) {
+      current = h.id;
+    }
+  }
+
+  return current;
+}
+
 export default function DocsSidebar() {
-  const [headings, setHeadings] = useState([]);
-  const [activeId, setActiveId] = useState(null);
+  const [headings, setHeadings] = useState<Heading[]>([]);
+  const [activeId, setActiveId] = useState<string | null>(null);
 
   useEffect(() => {
     fetch("/docs/UsingGiant.md")
@@ -27,22 +51,15 @@ export default function DocsSidebar() {
   }, []);
 
   const updateActiveId = useCallback(() => {
-    const content = document.querySelector(".app__content");
+    const content = document.querySelector<HTMLElement>(".app__content");
     if (!content || headings.length === 0) return;
-    const scrollTop = content.scrollTop;
-    let current = null;
-    for (const h of headings) {
-      const el = document.getElementById(h.id);
-      if (el && el.offsetTop - 80 <= scrollTop) {
-        current = h.id;
-      }
-    }
-    setActiveId(current);
+
+    setActiveId(findActiveHeadingId(headings, content.scrollTop));
   }, [headings]);
 
   useEffect(() => {
     if (headings.length === 0) return;
-    const content = document.querySelector(".app__content");
+    const content = document.querySelector<HTMLElement>(".app__content");
     if (!content) return;
 
     content.addEventListener("scroll", updateActiveId);
@@ -50,9 +67,9 @@ export default function DocsSidebar() {
     return () => content.removeEventListener("scroll", updateActiveId);
   }, [headings, updateActiveId]);
 
-  const scrollTo = (id) => {
+  const scrollTo = (id: string) => {
     const el = document.getElementById(id);
-    const content = document.querySelector(".app__content");
+    const content = document.querySelector<HTMLElement>(".app__content");
     if (el && content) {
       content.scrollTo({ top: el.offsetTop - 60, behavior: "smooth" });
       window.history.replaceState(
