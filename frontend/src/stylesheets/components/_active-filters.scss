@@ -10,14 +10,14 @@
   &__add-btn {
     display: inline-flex;
     align-items: center;
-    align-self: center;
+    align-self: stretch;
     gap: 4px;
     background: none;
     border: 1px dashed rgba($primary, 0.4);
     border-radius: $borderRadiusLarge;
     color: $primary;
     font-size: 13px;
-    padding: 4px 12px 4px 8px;
+    padding: 0 12px 0 8px;
     cursor: pointer;
     transition:
       border-color 0.15s ease,
