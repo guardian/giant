@@ -211,6 +211,7 @@ class AppComponents(context: Context, config: Config)
     val workspacesController = new Workspaces(authControllerComponents, annotations, esResources, manifest, users, blobStorage, previewStorage, postgresClient, remoteIngestStore, remoteIngestStorage, config.remoteIngest, snsClient)
     val commentsController = new Comments(authControllerComponents, manifest, esResources, annotations)
     val usersController = new Users(authControllerComponents, userProvider)
+    val workersController = new Workers(authControllerComponents, manifest)
     val pagesController = new PagesController(authControllerComponents, manifest, esResources, pages2, annotations, previewStorage)
     val ingestionController = new Ingestion(authControllerComponents, ingestStorage)
     val ingestionEventsController = new IngestionEvents(authControllerComponents, postgresClient, users )
@@ -277,6 +278,7 @@ class AppComponents(context: Context, config: Config)
       workspacesController,
       previewController,
       usersController,
+      workersController,
       videoVerifierController,
       authController,
       appController,

@@ -16,7 +16,7 @@ import org.joda.time.DateTime
 import org.neo4j.driver.v1.Values.parameters
 import org.neo4j.driver.v1.{Driver, StatementResult, StatementRunner, Value}
 import services.Neo4jQueryLoggingConfig
-import services.manifest.Manifest.WorkCounts
+import services.manifest.Manifest.{ToDo, ToDoItem, ToDoResponse, WorkCounts}
 import utils._
 import utils.attempt.{Attempt, Failure, IllegalStateFailure, NotFoundFailure}
 
@@ -449,6 +449,83 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
     markResourceAsExpandable(tx, parent)
 
     Right(())
+  }
+
+  override def getToDo(): Either[Failure, ToDoResponse] =  transaction { tx =>
+    // TODO DRY out the common parts with fetchWork
+    val r = tx.run(
+      s"""
+         |MATCH (extractor: Extractor)-[todo: TODO]->(blob: Blob:Resource)
+         |OPTIONAL MATCH (blob)<-[failure:EXTRACTION_FAILURE]-(extractor)
+         |WITH extractor, todo, blob, collect(failure) as failures
+         |ORDER BY coalesce(todo.priority, extractor.priority) DESC
+         |WITH COLLECT({
+         |  extractor: extractor.name,
+         |  ingestion: todo.ingestion,
+         |  attempts: todo.attempts,
+         |  priority: todo.priority,
+         |  size: blob.size,
+         |  blobUri: blob.uri,
+         |  lockedBy: todo.lockedBy,
+         |  failures: failures
+         |}) as allItems
+         |RETURN reduce(acc = {inProgress: {total: 0, items:[]}, waiting: {total: 0, items:[]}, failed: {total: 0, items:[]}}, item in allItems |
+         |  CASE
+         |    WHEN item.lockedBy IS NOT NULL
+         |      THEN {
+         |        inProgress: {total: acc.inProgress.total + 1, items: acc.inProgress.items + item},
+         |        waiting: acc.waiting,
+         |        failed: acc.failed
+         |      }
+         |    WHEN item.attempts < {maxExtractionAttempts}
+         |      THEN {
+         |        inProgress: acc.inProgress,
+         |        waiting: {total: acc.waiting.total + 1, items: (
+         |          CASE WHEN size(acc.waiting.items) < {limit} THEN acc.waiting.items + item ELSE acc.waiting.items END
+         |        )},
+         |        failed: acc.failed
+         |      }
+         |    ELSE
+         |      {
+         |        inProgress: acc.inProgress,
+         |        waiting: acc.waiting,
+         |        failed: {total: acc.failed.total + 1, items: (
+         |          CASE WHEN size(acc.failed.items) < {limit} THEN acc.failed.items + item ELSE acc.failed.items END
+         |        )}
+         |      }
+         |  END
+         |) as result
+         |""".stripMargin,
+      parameters(
+        "limit", 25,
+        "maxExtractionAttempts", Int.box(maxExtractionAttempts)
+      ),
+    ).single()
+
+    def extractToDo(r: Value): ToDo = ToDo(
+      total = r.get("total").asLong(),
+      items = r.get("items").asList[ToDoItem](v => ToDoItem(
+        extractor = v.get("extractor").asString(),
+        ingestion = v.get("ingestion").asString(),
+        attempts = v.get("attempts").asInt(),
+        priority = v.get("priority").asInt(),
+        size = v.get("size").asLong(),
+        blobUri = v.get("blobUri").asString(),
+        lockedBy = if(v.get("lockedBy").isNull) None else Some(v.get("lockedBy").asString()), //TODO also get the lockedAt timestamp
+        failures = v.get("failures").asList[Manifest.Failure](f => Manifest.Failure(
+          at = f.get("at").asLong(),
+          stackTrace = f.get("stackTrace").asString()
+        )).asScala.toList
+      )).asScala.toList
+    )
+
+    Right(
+      ToDoResponse(
+        inProgress = extractToDo(r.get("result").get("inProgress")),
+        waiting = extractToDo(r.get("result").get("waiting")),
+        failed = extractToDo(r.get("result").get("failed"))
+      )
+    )
   }
 
   override def fetchWork(workerName: String, workerCount: Int, workerIndex: Int, maxBatchSize: Int, maxCost: Int): Either[Failure, List[WorkItem]] = transaction { tx =>

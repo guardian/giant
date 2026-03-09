@@ -44,6 +44,7 @@ import MyUploads from "./components/IngestionEvents/MyUploads";
 import AllIngestionEvents from "./components/IngestionEvents/AllIngestionEvents";
 import { CaptureFromUrl } from "./components/Uploads/CaptureFromUrl";
 import { VideoVerifier } from "./components/VideoVerifier";
+import {ToDo} from "./components/Settings/ToDo";
 
 class App extends React.Component {
   static propTypes = {
@@ -108,6 +109,7 @@ class App extends React.Component {
             <Route path="/settings/features" component={FeatureSwitches} />
             <Route path="/settings/about" component={About} />
             <Route path="/settings/uploads" component={WeeklyUploadsFeed} />
+            <Route path="/settings/todo" component={ToDo} />
             <Route
               path="/workspaces/:id/:workspaceLocation?"
               component={Workspaces}
