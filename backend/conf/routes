@@ -97,6 +97,8 @@ PUT           /api/users/:username/register                                 cont
 
 GET           /api/currentUser/permissions                                  controllers.api.Users.getMyPermissions()
 
+GET           /api/todo                                                     controllers.api.Workers.getToDo()
+
 POST          /api/video-verifier/fetch                                     controllers.api.VideoVerifier.fetchVideosToVerify()
 
 + NOCSRF

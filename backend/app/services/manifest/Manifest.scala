@@ -6,9 +6,9 @@ import model._
 import model.annotations.WorkspaceMetadata
 import model.frontend.email.EmailNeighbours
 import model.frontend.{BasicResource, ExtractionFailures, ResourcesForExtractionFailure}
-import model.ingestion.{IngestionFile, RemoteIngest, WorkspaceItemContext, WorkspaceItemUploadContext}
+import model.ingestion.{IngestionFile, WorkspaceItemContext, WorkspaceItemUploadContext}
 import model.manifest._
-import services.manifest.Manifest.WorkCounts
+import services.manifest.Manifest.{ToDo, ToDoResponse, WorkCounts}
 import utils.attempt.{Attempt, Failure}
 
 import java.nio.file.Path
@@ -30,9 +30,17 @@ object Manifest {
   case class InsertEmail(email: Email, parent: Uri) extends Insertion
 
   case class WorkCounts(inProgress: Int, outstanding: Int)
+
+  case class ToDo(total: Long, items: List[ToDoItem])
+  case class Failure(at: Long, stackTrace: String)
+  case class ToDoItem(extractor: String, ingestion: String, attempts: Int, priority: Int, size: Long, blobUri: String, lockedBy: Option[String], failures: List[Failure])
+  case class ToDoResponse(inProgress: ToDo, waiting: ToDo, failed: ToDo)
 }
 
 trait WorkerManifest {
+
+  def getToDo(): Either[Failure, ToDoResponse]
+
   def fetchWork(workerName: String, workerCount:Int, workerIndex:Int, maxBatchSize: Int, maxCost: Int): Either[Failure, List[WorkItem]]
 
   def releaseLocks(workerName: String): Either[Failure, Unit]

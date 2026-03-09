@@ -51,12 +51,15 @@ class SettingsSidebar extends React.Component {
         <SidebarSearchLink className="sidebar__item" to="/settings/uploads">
           <div className="sidebar__item__text">Upload Calendar</div>
         </SidebarSearchLink>
+        <SidebarSearchLink className="sidebar__item" to="/settings/todo">
+          <div className="sidebar__item__text">TODO</div>
+        </SidebarSearchLink>
       </React.Fragment>
     );
   };
 
   render() {
-    const canManageUsers = this.props.myPermissions.includes(
+    const canPerformAdminOperations = this.props.myPermissions.includes(
       "CanPerformAdminOperations",
     );
 
@@ -95,7 +98,7 @@ class SettingsSidebar extends React.Component {
           <SidebarSearchLink className="sidebar__item" to="/settings/features">
             <div className="sidebar__item__text">Feature Switches</div>
           </SidebarSearchLink>
-          {canManageUsers ? this.renderAdminSettingsLinks() : false}
+          {canPerformAdminOperations ? this.renderAdminSettingsLinks() : false}
         </div>
         <div className="sidebar__group">
           <div className="sidebar__title">Logs</div>
@@ -105,7 +108,7 @@ class SettingsSidebar extends React.Component {
           >
             <div className="sidebar__item__text">My Uploads</div>
           </SidebarSearchLink>
-          {canManageUsers ? this.renderAdminLogsLinks() : false}
+          {canPerformAdminOperations ? this.renderAdminLogsLinks() : false}
         </div>
       </div>
     );
