@@ -843,7 +843,11 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
     if (!isRemoteIngest) {
       items.push(
         { key: "rename", content: "Rename", icon: "pen square" }, // or 'pencil alternate'
-        { key: "remove", content: "Remove from workspace", icon: "trash" },
+        {
+          key: "remove",
+          content: "Remove from workspace",
+          icon: "remove circle",
+        },
       );
     }
 
@@ -986,6 +990,7 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
                     "*",
                   ]),
                   page: 1,
+                  filters: { workspace: [workspace.id] },
                 }),
               );
             }
