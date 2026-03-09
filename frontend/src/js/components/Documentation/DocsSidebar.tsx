@@ -46,8 +46,12 @@ export default function DocsSidebar() {
 
   useEffect(() => {
     fetch("/docs/UsingGiant.md")
-      .then((res) => res.text())
-      .then((text) => setHeadings(parseHeadings(text)));
+      .then((res) => {
+        if (!res.ok) throw new Error(res.statusText);
+        return res.text();
+      })
+      .then((text) => setHeadings(parseHeadings(text)))
+      .catch(() => setHeadings([]));
   }, []);
 
   const updateActiveId = useCallback(() => {

@@ -23,8 +23,12 @@ export default function MarkdownPage({ src, fullHeight }: MarkdownPageProps) {
 
   useEffect(() => {
     fetch(src)
-      .then((res) => res.text())
-      .then(setMarkdown);
+      .then((res) => {
+        if (!res.ok) throw new Error(res.statusText);
+        return res.text();
+      })
+      .then(setMarkdown)
+      .catch(() => setMarkdown("# Failed to load documentation"));
   }, [src]);
 
   useEffect(() => {
