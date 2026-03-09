@@ -1,21 +1,4 @@
-import { findActiveHeadingId, parseHeadings } from "./DocsSidebar";
-
-describe("parseHeadings", () => {
-  test("extracts only level 1 and 2 headings with explicit ids", () => {
-    const markdown = [
-      "# Top {#top}",
-      "Some text",
-      "## **Section One** {#section-1}",
-      "### Ignored {#ignored}",
-      "## Missing id",
-    ].join("\n");
-
-    expect(parseHeadings(markdown)).toStrictEqual([
-      { level: 1, text: "Top", id: "top" },
-      { level: 2, text: "Section One", id: "section-1" },
-    ]);
-  });
-});
+import { findActiveHeadingId } from "./DocsSidebar";
 
 describe("findActiveHeadingId", () => {
   test("returns the last heading that is above scroll position", () => {

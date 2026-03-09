@@ -6,24 +6,6 @@ type Heading = {
   id: string;
 };
 
-// Assumes headings use optional bold (**) wrapping and explicit {#id} anchors,
-// matching the convention used in UsingGiant.md.
-export function parseHeadings(markdown: string): Heading[] {
-  const headings: Heading[] = [];
-  const lines = markdown.split("\n");
-  for (const line of lines) {
-    const match = line.match(/^(#{1,2})\s+\**(.+?)\**\s*\{#(.+?)\}/);
-    if (match) {
-      headings.push({
-        level: match[1].length,
-        text: match[2],
-        id: match[3],
-      });
-    }
-  }
-  return headings;
-}
-
 export function findActiveHeadingId(
   headings: Heading[],
   scrollTop: number,
