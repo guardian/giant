@@ -11,7 +11,7 @@ import { setWorkspaceIsPublic } from "../../actions/workspaces/setWorkspaceIsPub
 import { WorkspacePublicInfoIcon } from "./WorkspacePublicInfoIcon";
 import { WorkspacePublicMessage } from "./WorkspacePublicMessage";
 import MdShare from "react-icons/lib/md/share";
-import { useControlledOpen } from "../../hooks/useControlledOpen";
+import { useControlledOpen } from "../UtilComponents/useControlledOpen";
 
 type Props = {
   workspace: Workspace;

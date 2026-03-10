@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import Modal from "./Modal";
 import { Dropdown } from "semantic-ui-react";
 import _ from "lodash";
-import { useControlledOpen } from "../../hooks/useControlledOpen";
+import { useControlledOpen } from "./useControlledOpen";
 
 type BaseProps = {
   actionType: string;

@@ -4,7 +4,7 @@ import MdSupervisorAccount from "react-icons/lib/md/supervisor-account";
 import { Workspace } from "../../types/Workspaces";
 import { PartialUser } from "../../types/User";
 import { takeOwnershipOfWorkspace } from "../../actions/workspaces/takeOwnershipOfWorkspace";
-import { useControlledOpen } from "../../hooks/useControlledOpen";
+import { useControlledOpen } from "../UtilComponents/useControlledOpen";
 
 type Props = {
   workspace: Workspace;
