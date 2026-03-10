@@ -1,4 +1,4 @@
-import {VPC_SSM_PARAMETER_PREFIX} from "@guardian/cdk/lib/constants/ssm-parameter-paths";
+import { VPC_SSM_PARAMETER_PREFIX } from '@guardian/cdk/lib/constants/ssm-parameter-paths';
 import {
 	GuStack,
 	type GuStackProps,

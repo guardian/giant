@@ -1,6 +1,34 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`Giant's riff-raff.yaml should match the snapshot 1`] = `
+exports[`Giant's riff-raff.yaml(s) should match the snapshot 1`] = `
+"allowedStages:
+  - CODE
+  - PROD
+deployments:
+  cfn-eu-west-1-pfi-giant-neo4j:
+    type: cloud-formation
+    regions:
+      - eu-west-1
+    stacks:
+      - pfi-giant
+    app: neo4j
+    contentDirectory: cdk.out/neo4j
+    parameters:
+      templateStagePaths:
+        CODE: pfi-giant-neo4j-CODE.template.json
+        PROD: pfi-giant-neo4j-PROD.template.json
+      amiParametersToTags:
+        AMINeo4j:
+          BuiltBy: amigo
+          AmigoStage: PROD
+          Recipe: investigations-neo4j-v4-jammy-java11
+          Encrypted: investigations
+      amiEncrypted: true
+    dependencies: []
+"
+`;
+
+exports[`Giant's riff-raff.yaml(s) should match the snapshot 2`] = `
 "allowedStages:
   - CODE
   - PROD
@@ -12,23 +40,11 @@ deployments:
     stacks:
       - pfi-giant
     app: postgres
-    contentDirectory: cdk.out
+    contentDirectory: cdk.out/postgres
     parameters:
       templateStagePaths:
         CODE: pfi-giant-postgres-CODE.template.json
         PROD: pfi-giant-postgres-PROD.template.json
-  cfn-eu-west-1-pfi-giant-neo4j:
-    type: cloud-formation
-    regions:
-      - eu-west-1
-    stacks:
-      - pfi-giant
-    app: neo4j
-    contentDirectory: cdk.out
-    parameters:
-      templateStagePaths:
-        CODE: pfi-giant-neo4j-CODE.template.json
-        PROD: pfi-giant-neo4j-PROD.template.json
 "
 `;
 
@@ -823,8 +839,536 @@ exports[`Giant's stacks should match the snapshots 2`] = `
 exports[`Giant's stacks should match the snapshots 3`] = `
 {
   "Metadata": {
-    "gu:cdk:constructs": [],
+    "gu:cdk:constructs": [
+      "GuVpcParameter",
+      "GuSubnetListParameter",
+      "GuAmiParameter",
+      "GuInstanceRole",
+      "GuSsmSshPolicy",
+      "GuDescribeEC2Policy",
+      "GuLoggingStreamNameParameter",
+      "GuLogShippingPolicy",
+      "GuDistributionBucketParameter",
+      "GuGetDistributablePolicy",
+      "GuParameterStoreReadPolicy",
+      "GuHttpsEgressSecurityGroup",
+      "GuAutoScalingGroup",
+    ],
     "gu:cdk:version": "TEST",
+  },
+  "Parameters": {
+    "AMINeo4j": {
+      "Description": "Amazon Machine Image ID for the app neo4j. Use this in conjunction with AMIgo to keep AMIs up to date.",
+      "Type": "AWS::EC2::Image::Id",
+    },
+    "DistributionBucketName": {
+      "Default": "/account/services/artifact.bucket",
+      "Description": "SSM parameter containing the S3 bucket name holding distribution artifacts",
+      "Type": "AWS::SSM::Parameter::Value<String>",
+    },
+    "LoggingStreamName": {
+      "Default": "/account/services/logging.stream.name",
+      "Description": "SSM parameter containing the Name (not ARN) on the kinesis stream",
+      "Type": "AWS::SSM::Parameter::Value<String>",
+    },
+    "PrivateSubnets": {
+      "Default": "/account/vpc/primary/subnets/private",
+      "Description": "A list of private subnets",
+      "Type": "AWS::SSM::Parameter::Value<List<AWS::EC2::Subnet::Id>>",
+    },
+    "VpcId": {
+      "Default": "/account/vpc/giant/id",
+      "Description": "Virtual Private Cloud to run EC2 instances within. Should NOT be the account default VPC.",
+      "Type": "AWS::SSM::Parameter::Value<AWS::EC2::VPC::Id>",
+    },
+  },
+  "Resources": {
+    "ASGNeo4jASGBC023AB8": {
+      "Properties": {
+        "LaunchTemplate": {
+          "LaunchTemplateId": {
+            "Ref": "pfigiantCODEneo4j767EBB39",
+          },
+          "Version": {
+            "Fn::GetAtt": [
+              "pfigiantCODEneo4j767EBB39",
+              "LatestVersionNumber",
+            ],
+          },
+        },
+        "MaxSize": "2",
+        "MetricsCollection": [
+          {
+            "Granularity": "1Minute",
+          },
+        ],
+        "MinSize": "1",
+        "Tags": [
+          {
+            "Key": "App",
+            "PropagateAtLaunch": true,
+            "Value": "neo4j",
+          },
+          {
+            "Key": "gu:cdk:version",
+            "PropagateAtLaunch": true,
+            "Value": "TEST",
+          },
+          {
+            "Key": "gu:repo",
+            "PropagateAtLaunch": true,
+            "Value": "guardian/giant",
+          },
+          {
+            "Key": "Stack",
+            "PropagateAtLaunch": true,
+            "Value": "pfi-giant",
+          },
+          {
+            "Key": "Stage",
+            "PropagateAtLaunch": true,
+            "Value": "CODE",
+          },
+        ],
+        "VPCZoneIdentifier": {
+          "Ref": "PrivateSubnets",
+        },
+      },
+      "Type": "AWS::AutoScaling::AutoScalingGroup",
+    },
+    "DescribeEC2PolicyFF5F9295": {
+      "Properties": {
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Action": [
+                "autoscaling:DescribeAutoScalingInstances",
+                "autoscaling:DescribeAutoScalingGroups",
+                "ec2:DescribeTags",
+                "ec2:DescribeInstances",
+              ],
+              "Effect": "Allow",
+              "Resource": "*",
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "PolicyName": "describe-ec2-policy",
+        "Roles": [
+          {
+            "Ref": "InstanceRoleNeo4jDFC87794",
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Policy",
+    },
+    "GetDistributablePolicyNeo4j5A00374C": {
+      "Properties": {
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Action": "s3:GetObject",
+              "Effect": "Allow",
+              "Resource": {
+                "Fn::Join": [
+                  "",
+                  [
+                    "arn:aws:s3:::",
+                    {
+                      "Ref": "DistributionBucketName",
+                    },
+                    "/pfi-giant/CODE/neo4j/*",
+                  ],
+                ],
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "PolicyName": "GetDistributablePolicyNeo4j5A00374C",
+        "Roles": [
+          {
+            "Ref": "InstanceRoleNeo4jDFC87794",
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Policy",
+    },
+    "GuHttpsEgressSecurityGroupNeo4jE65F413B": {
+      "Properties": {
+        "GroupDescription": "Allow all outbound HTTPS traffic",
+        "SecurityGroupEgress": [
+          {
+            "CidrIp": "0.0.0.0/0",
+            "Description": "Allow all outbound HTTPS traffic",
+            "FromPort": 443,
+            "IpProtocol": "tcp",
+            "ToPort": 443,
+          },
+        ],
+        "Tags": [
+          {
+            "Key": "App",
+            "Value": "neo4j",
+          },
+          {
+            "Key": "gu:cdk:version",
+            "Value": "TEST",
+          },
+          {
+            "Key": "gu:repo",
+            "Value": "guardian/giant",
+          },
+          {
+            "Key": "Stack",
+            "Value": "pfi-giant",
+          },
+          {
+            "Key": "Stage",
+            "Value": "CODE",
+          },
+        ],
+        "VpcId": "VpcId",
+      },
+      "Type": "AWS::EC2::SecurityGroup",
+    },
+    "GuLogShippingPolicy981BFE5A": {
+      "Properties": {
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Action": [
+                "kinesis:Describe*",
+                "kinesis:Put*",
+              ],
+              "Effect": "Allow",
+              "Resource": {
+                "Fn::Join": [
+                  "",
+                  [
+                    "arn:aws:kinesis:eu-west-1:",
+                    {
+                      "Ref": "AWS::AccountId",
+                    },
+                    ":stream/",
+                    {
+                      "Ref": "LoggingStreamName",
+                    },
+                  ],
+                ],
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "PolicyName": "GuLogShippingPolicy981BFE5A",
+        "Roles": [
+          {
+            "Ref": "InstanceRoleNeo4jDFC87794",
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Policy",
+    },
+    "InstanceRoleNeo4jDFC87794": {
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "ec2.amazonaws.com",
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "ManagedPolicyArns": [
+          {
+            "Fn::ImportValue": "pfi-playground-shared-CommonInstancePolicy",
+          },
+        ],
+        "Path": "/",
+        "Tags": [
+          {
+            "Key": "App",
+            "Value": "neo4j",
+          },
+          {
+            "Key": "gu:cdk:version",
+            "Value": "TEST",
+          },
+          {
+            "Key": "gu:repo",
+            "Value": "guardian/giant",
+          },
+          {
+            "Key": "Stack",
+            "Value": "pfi-giant",
+          },
+          {
+            "Key": "Stage",
+            "Value": "CODE",
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Role",
+    },
+    "ParameterStoreReadNeo4j7BD2AF7E": {
+      "Properties": {
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Action": "ssm:GetParametersByPath",
+              "Effect": "Allow",
+              "Resource": {
+                "Fn::Join": [
+                  "",
+                  [
+                    "arn:aws:ssm:eu-west-1:",
+                    {
+                      "Ref": "AWS::AccountId",
+                    },
+                    ":parameter/CODE/pfi-giant/neo4j",
+                  ],
+                ],
+              },
+            },
+            {
+              "Action": [
+                "ssm:GetParameters",
+                "ssm:GetParameter",
+              ],
+              "Effect": "Allow",
+              "Resource": {
+                "Fn::Join": [
+                  "",
+                  [
+                    "arn:aws:ssm:eu-west-1:",
+                    {
+                      "Ref": "AWS::AccountId",
+                    },
+                    ":parameter/CODE/pfi-giant/neo4j/*",
+                  ],
+                ],
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "PolicyName": "parameter-store-read-policy",
+        "Roles": [
+          {
+            "Ref": "InstanceRoleNeo4jDFC87794",
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Policy",
+    },
+    "SsmSshPolicy4CFC977E": {
+      "Properties": {
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Action": [
+                "ec2messages:AcknowledgeMessage",
+                "ec2messages:DeleteMessage",
+                "ec2messages:FailMessage",
+                "ec2messages:GetEndpoint",
+                "ec2messages:GetMessages",
+                "ec2messages:SendReply",
+                "ssm:UpdateInstanceInformation",
+                "ssm:ListInstanceAssociations",
+                "ssm:DescribeInstanceProperties",
+                "ssm:DescribeDocumentParameters",
+                "ssmmessages:CreateControlChannel",
+                "ssmmessages:CreateDataChannel",
+                "ssmmessages:OpenControlChannel",
+                "ssmmessages:OpenDataChannel",
+              ],
+              "Effect": "Allow",
+              "Resource": "*",
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "PolicyName": "ssm-ssh-policy",
+        "Roles": [
+          {
+            "Ref": "InstanceRoleNeo4jDFC87794",
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Policy",
+    },
+    "pfigiantCODEneo4j767EBB39": {
+      "DependsOn": [
+        "InstanceRoleNeo4jDFC87794",
+      ],
+      "Properties": {
+        "LaunchTemplateData": {
+          "IamInstanceProfile": {
+            "Arn": {
+              "Fn::GetAtt": [
+                "pfigiantCODEneo4jProfileF8372D85",
+                "Arn",
+              ],
+            },
+          },
+          "ImageId": {
+            "Ref": "AMINeo4j",
+          },
+          "InstanceType": "t3.large",
+          "MetadataOptions": {
+            "HttpTokens": "required",
+            "InstanceMetadataTags": "enabled",
+          },
+          "Monitoring": {
+            "Enabled": true,
+          },
+          "SecurityGroupIds": [
+            {
+              "Fn::GetAtt": [
+                "GuHttpsEgressSecurityGroupNeo4jE65F413B",
+                "GroupId",
+              ],
+            },
+            {
+              "Fn::ImportValue": "pfi-playground-shared-CommonInstanceSecurityGroup",
+            },
+          ],
+          "TagSpecifications": [
+            {
+              "ResourceType": "instance",
+              "Tags": [
+                {
+                  "Key": "App",
+                  "Value": "neo4j",
+                },
+                {
+                  "Key": "gu:cdk:version",
+                  "Value": "TEST",
+                },
+                {
+                  "Key": "gu:repo",
+                  "Value": "guardian/giant",
+                },
+                {
+                  "Key": "Name",
+                  "Value": "pfi-giant-neo4j-CODE/pfi-giant-CODE-neo4j",
+                },
+                {
+                  "Key": "Stack",
+                  "Value": "pfi-giant",
+                },
+                {
+                  "Key": "Stage",
+                  "Value": "CODE",
+                },
+              ],
+            },
+            {
+              "ResourceType": "volume",
+              "Tags": [
+                {
+                  "Key": "App",
+                  "Value": "neo4j",
+                },
+                {
+                  "Key": "gu:cdk:version",
+                  "Value": "TEST",
+                },
+                {
+                  "Key": "gu:repo",
+                  "Value": "guardian/giant",
+                },
+                {
+                  "Key": "Name",
+                  "Value": "pfi-giant-neo4j-CODE/pfi-giant-CODE-neo4j",
+                },
+                {
+                  "Key": "Stack",
+                  "Value": "pfi-giant",
+                },
+                {
+                  "Key": "Stage",
+                  "Value": "CODE",
+                },
+              ],
+            },
+          ],
+          "UserData": {
+            "Fn::Base64": {
+              "Fn::Join": [
+                "",
+                [
+                  "#!/bin/bash
+export AWS_DEFAULT_REGION=eu-west-1
+aws s3 cp s3://",
+                  {
+                    "Fn::ImportValue": "pfi-playground-shared-DistBucket",
+                  },
+                  "/pfi-playground/rex/neo4j/scripts/setup-neo4j-instance.sh .
+chmod u=rwx setup-neo4j-instance.sh
+./setup-neo4j-instance.sh '",
+                  {
+                    "Fn::ImportValue": "pfi-playground-shared-DistBucket",
+                  },
+                  "' '50' '",
+                  {
+                    "Fn::ImportValue": "pfi-playground-shared-KmsKeyArn",
+                  },
+                  "'",
+                ],
+              ],
+            },
+          },
+        },
+        "TagSpecifications": [
+          {
+            "ResourceType": "launch-template",
+            "Tags": [
+              {
+                "Key": "App",
+                "Value": "neo4j",
+              },
+              {
+                "Key": "gu:cdk:version",
+                "Value": "TEST",
+              },
+              {
+                "Key": "gu:repo",
+                "Value": "guardian/giant",
+              },
+              {
+                "Key": "Name",
+                "Value": "pfi-giant-neo4j-CODE/pfi-giant-CODE-neo4j",
+              },
+              {
+                "Key": "Stack",
+                "Value": "pfi-giant",
+              },
+              {
+                "Key": "Stage",
+                "Value": "CODE",
+              },
+            ],
+          },
+        ],
+      },
+      "Type": "AWS::EC2::LaunchTemplate",
+    },
+    "pfigiantCODEneo4jProfileF8372D85": {
+      "Properties": {
+        "Roles": [
+          {
+            "Ref": "InstanceRoleNeo4jDFC87794",
+          },
+        ],
+      },
+      "Type": "AWS::IAM::InstanceProfile",
+    },
   },
 }
 `;
@@ -832,8 +1376,536 @@ exports[`Giant's stacks should match the snapshots 3`] = `
 exports[`Giant's stacks should match the snapshots 4`] = `
 {
   "Metadata": {
-    "gu:cdk:constructs": [],
+    "gu:cdk:constructs": [
+      "GuVpcParameter",
+      "GuSubnetListParameter",
+      "GuAmiParameter",
+      "GuInstanceRole",
+      "GuSsmSshPolicy",
+      "GuDescribeEC2Policy",
+      "GuLoggingStreamNameParameter",
+      "GuLogShippingPolicy",
+      "GuDistributionBucketParameter",
+      "GuGetDistributablePolicy",
+      "GuParameterStoreReadPolicy",
+      "GuHttpsEgressSecurityGroup",
+      "GuAutoScalingGroup",
+    ],
     "gu:cdk:version": "TEST",
+  },
+  "Parameters": {
+    "AMINeo4j": {
+      "Description": "Amazon Machine Image ID for the app neo4j. Use this in conjunction with AMIgo to keep AMIs up to date.",
+      "Type": "AWS::EC2::Image::Id",
+    },
+    "DistributionBucketName": {
+      "Default": "/account/services/artifact.bucket",
+      "Description": "SSM parameter containing the S3 bucket name holding distribution artifacts",
+      "Type": "AWS::SSM::Parameter::Value<String>",
+    },
+    "LoggingStreamName": {
+      "Default": "/account/services/logging.stream.name",
+      "Description": "SSM parameter containing the Name (not ARN) on the kinesis stream",
+      "Type": "AWS::SSM::Parameter::Value<String>",
+    },
+    "PrivateSubnets": {
+      "Default": "/account/vpc/primary/subnets/private",
+      "Description": "A list of private subnets",
+      "Type": "AWS::SSM::Parameter::Value<List<AWS::EC2::Subnet::Id>>",
+    },
+    "VpcId": {
+      "Default": "/account/vpc/giant/id",
+      "Description": "Virtual Private Cloud to run EC2 instances within. Should NOT be the account default VPC.",
+      "Type": "AWS::SSM::Parameter::Value<AWS::EC2::VPC::Id>",
+    },
+  },
+  "Resources": {
+    "ASGNeo4jASGBC023AB8": {
+      "Properties": {
+        "LaunchTemplate": {
+          "LaunchTemplateId": {
+            "Ref": "pfigiantPRODneo4jF2F31AE5",
+          },
+          "Version": {
+            "Fn::GetAtt": [
+              "pfigiantPRODneo4jF2F31AE5",
+              "LatestVersionNumber",
+            ],
+          },
+        },
+        "MaxSize": "2",
+        "MetricsCollection": [
+          {
+            "Granularity": "1Minute",
+          },
+        ],
+        "MinSize": "1",
+        "Tags": [
+          {
+            "Key": "App",
+            "PropagateAtLaunch": true,
+            "Value": "neo4j",
+          },
+          {
+            "Key": "gu:cdk:version",
+            "PropagateAtLaunch": true,
+            "Value": "TEST",
+          },
+          {
+            "Key": "gu:repo",
+            "PropagateAtLaunch": true,
+            "Value": "guardian/giant",
+          },
+          {
+            "Key": "Stack",
+            "PropagateAtLaunch": true,
+            "Value": "pfi-giant",
+          },
+          {
+            "Key": "Stage",
+            "PropagateAtLaunch": true,
+            "Value": "PROD",
+          },
+        ],
+        "VPCZoneIdentifier": {
+          "Ref": "PrivateSubnets",
+        },
+      },
+      "Type": "AWS::AutoScaling::AutoScalingGroup",
+    },
+    "DescribeEC2PolicyFF5F9295": {
+      "Properties": {
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Action": [
+                "autoscaling:DescribeAutoScalingInstances",
+                "autoscaling:DescribeAutoScalingGroups",
+                "ec2:DescribeTags",
+                "ec2:DescribeInstances",
+              ],
+              "Effect": "Allow",
+              "Resource": "*",
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "PolicyName": "describe-ec2-policy",
+        "Roles": [
+          {
+            "Ref": "InstanceRoleNeo4jDFC87794",
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Policy",
+    },
+    "GetDistributablePolicyNeo4j5A00374C": {
+      "Properties": {
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Action": "s3:GetObject",
+              "Effect": "Allow",
+              "Resource": {
+                "Fn::Join": [
+                  "",
+                  [
+                    "arn:aws:s3:::",
+                    {
+                      "Ref": "DistributionBucketName",
+                    },
+                    "/pfi-giant/PROD/neo4j/*",
+                  ],
+                ],
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "PolicyName": "GetDistributablePolicyNeo4j5A00374C",
+        "Roles": [
+          {
+            "Ref": "InstanceRoleNeo4jDFC87794",
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Policy",
+    },
+    "GuHttpsEgressSecurityGroupNeo4jE65F413B": {
+      "Properties": {
+        "GroupDescription": "Allow all outbound HTTPS traffic",
+        "SecurityGroupEgress": [
+          {
+            "CidrIp": "0.0.0.0/0",
+            "Description": "Allow all outbound HTTPS traffic",
+            "FromPort": 443,
+            "IpProtocol": "tcp",
+            "ToPort": 443,
+          },
+        ],
+        "Tags": [
+          {
+            "Key": "App",
+            "Value": "neo4j",
+          },
+          {
+            "Key": "gu:cdk:version",
+            "Value": "TEST",
+          },
+          {
+            "Key": "gu:repo",
+            "Value": "guardian/giant",
+          },
+          {
+            "Key": "Stack",
+            "Value": "pfi-giant",
+          },
+          {
+            "Key": "Stage",
+            "Value": "PROD",
+          },
+        ],
+        "VpcId": "VpcId",
+      },
+      "Type": "AWS::EC2::SecurityGroup",
+    },
+    "GuLogShippingPolicy981BFE5A": {
+      "Properties": {
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Action": [
+                "kinesis:Describe*",
+                "kinesis:Put*",
+              ],
+              "Effect": "Allow",
+              "Resource": {
+                "Fn::Join": [
+                  "",
+                  [
+                    "arn:aws:kinesis:eu-west-1:",
+                    {
+                      "Ref": "AWS::AccountId",
+                    },
+                    ":stream/",
+                    {
+                      "Ref": "LoggingStreamName",
+                    },
+                  ],
+                ],
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "PolicyName": "GuLogShippingPolicy981BFE5A",
+        "Roles": [
+          {
+            "Ref": "InstanceRoleNeo4jDFC87794",
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Policy",
+    },
+    "InstanceRoleNeo4jDFC87794": {
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "ec2.amazonaws.com",
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "ManagedPolicyArns": [
+          {
+            "Fn::ImportValue": "pfi-giant-shared-CommonInstancePolicy",
+          },
+        ],
+        "Path": "/",
+        "Tags": [
+          {
+            "Key": "App",
+            "Value": "neo4j",
+          },
+          {
+            "Key": "gu:cdk:version",
+            "Value": "TEST",
+          },
+          {
+            "Key": "gu:repo",
+            "Value": "guardian/giant",
+          },
+          {
+            "Key": "Stack",
+            "Value": "pfi-giant",
+          },
+          {
+            "Key": "Stage",
+            "Value": "PROD",
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Role",
+    },
+    "ParameterStoreReadNeo4j7BD2AF7E": {
+      "Properties": {
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Action": "ssm:GetParametersByPath",
+              "Effect": "Allow",
+              "Resource": {
+                "Fn::Join": [
+                  "",
+                  [
+                    "arn:aws:ssm:eu-west-1:",
+                    {
+                      "Ref": "AWS::AccountId",
+                    },
+                    ":parameter/PROD/pfi-giant/neo4j",
+                  ],
+                ],
+              },
+            },
+            {
+              "Action": [
+                "ssm:GetParameters",
+                "ssm:GetParameter",
+              ],
+              "Effect": "Allow",
+              "Resource": {
+                "Fn::Join": [
+                  "",
+                  [
+                    "arn:aws:ssm:eu-west-1:",
+                    {
+                      "Ref": "AWS::AccountId",
+                    },
+                    ":parameter/PROD/pfi-giant/neo4j/*",
+                  ],
+                ],
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "PolicyName": "parameter-store-read-policy",
+        "Roles": [
+          {
+            "Ref": "InstanceRoleNeo4jDFC87794",
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Policy",
+    },
+    "SsmSshPolicy4CFC977E": {
+      "Properties": {
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Action": [
+                "ec2messages:AcknowledgeMessage",
+                "ec2messages:DeleteMessage",
+                "ec2messages:FailMessage",
+                "ec2messages:GetEndpoint",
+                "ec2messages:GetMessages",
+                "ec2messages:SendReply",
+                "ssm:UpdateInstanceInformation",
+                "ssm:ListInstanceAssociations",
+                "ssm:DescribeInstanceProperties",
+                "ssm:DescribeDocumentParameters",
+                "ssmmessages:CreateControlChannel",
+                "ssmmessages:CreateDataChannel",
+                "ssmmessages:OpenControlChannel",
+                "ssmmessages:OpenDataChannel",
+              ],
+              "Effect": "Allow",
+              "Resource": "*",
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "PolicyName": "ssm-ssh-policy",
+        "Roles": [
+          {
+            "Ref": "InstanceRoleNeo4jDFC87794",
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Policy",
+    },
+    "pfigiantPRODneo4jF2F31AE5": {
+      "DependsOn": [
+        "InstanceRoleNeo4jDFC87794",
+      ],
+      "Properties": {
+        "LaunchTemplateData": {
+          "IamInstanceProfile": {
+            "Arn": {
+              "Fn::GetAtt": [
+                "pfigiantPRODneo4jProfile962A4BF6",
+                "Arn",
+              ],
+            },
+          },
+          "ImageId": {
+            "Ref": "AMINeo4j",
+          },
+          "InstanceType": "m6i.xlarge",
+          "MetadataOptions": {
+            "HttpTokens": "required",
+            "InstanceMetadataTags": "enabled",
+          },
+          "Monitoring": {
+            "Enabled": true,
+          },
+          "SecurityGroupIds": [
+            {
+              "Fn::GetAtt": [
+                "GuHttpsEgressSecurityGroupNeo4jE65F413B",
+                "GroupId",
+              ],
+            },
+            {
+              "Fn::ImportValue": "pfi-giant-shared-CommonInstanceSecurityGroup",
+            },
+          ],
+          "TagSpecifications": [
+            {
+              "ResourceType": "instance",
+              "Tags": [
+                {
+                  "Key": "App",
+                  "Value": "neo4j",
+                },
+                {
+                  "Key": "gu:cdk:version",
+                  "Value": "TEST",
+                },
+                {
+                  "Key": "gu:repo",
+                  "Value": "guardian/giant",
+                },
+                {
+                  "Key": "Name",
+                  "Value": "pfi-giant-neo4j-PROD/pfi-giant-PROD-neo4j",
+                },
+                {
+                  "Key": "Stack",
+                  "Value": "pfi-giant",
+                },
+                {
+                  "Key": "Stage",
+                  "Value": "PROD",
+                },
+              ],
+            },
+            {
+              "ResourceType": "volume",
+              "Tags": [
+                {
+                  "Key": "App",
+                  "Value": "neo4j",
+                },
+                {
+                  "Key": "gu:cdk:version",
+                  "Value": "TEST",
+                },
+                {
+                  "Key": "gu:repo",
+                  "Value": "guardian/giant",
+                },
+                {
+                  "Key": "Name",
+                  "Value": "pfi-giant-neo4j-PROD/pfi-giant-PROD-neo4j",
+                },
+                {
+                  "Key": "Stack",
+                  "Value": "pfi-giant",
+                },
+                {
+                  "Key": "Stage",
+                  "Value": "PROD",
+                },
+              ],
+            },
+          ],
+          "UserData": {
+            "Fn::Base64": {
+              "Fn::Join": [
+                "",
+                [
+                  "#!/bin/bash
+export AWS_DEFAULT_REGION=eu-west-1
+aws s3 cp s3://",
+                  {
+                    "Fn::ImportValue": "pfi-giant-shared-DistBucket",
+                  },
+                  "/pfi-giant/rex/neo4j/scripts/setup-neo4j-instance.sh .
+chmod u=rwx setup-neo4j-instance.sh
+./setup-neo4j-instance.sh '",
+                  {
+                    "Fn::ImportValue": "pfi-giant-shared-DistBucket",
+                  },
+                  "' '100' '",
+                  {
+                    "Fn::ImportValue": "pfi-giant-shared-KmsKeyArn",
+                  },
+                  "'",
+                ],
+              ],
+            },
+          },
+        },
+        "TagSpecifications": [
+          {
+            "ResourceType": "launch-template",
+            "Tags": [
+              {
+                "Key": "App",
+                "Value": "neo4j",
+              },
+              {
+                "Key": "gu:cdk:version",
+                "Value": "TEST",
+              },
+              {
+                "Key": "gu:repo",
+                "Value": "guardian/giant",
+              },
+              {
+                "Key": "Name",
+                "Value": "pfi-giant-neo4j-PROD/pfi-giant-PROD-neo4j",
+              },
+              {
+                "Key": "Stack",
+                "Value": "pfi-giant",
+              },
+              {
+                "Key": "Stage",
+                "Value": "PROD",
+              },
+            ],
+          },
+        ],
+      },
+      "Type": "AWS::EC2::LaunchTemplate",
+    },
+    "pfigiantPRODneo4jProfile962A4BF6": {
+      "Properties": {
+        "Roles": [
+          {
+            "Ref": "InstanceRoleNeo4jDFC87794",
+          },
+        ],
+      },
+      "Type": "AWS::IAM::InstanceProfile",
+    },
   },
 }
 `;
