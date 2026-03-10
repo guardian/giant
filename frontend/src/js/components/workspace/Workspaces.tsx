@@ -53,6 +53,7 @@ import {
 } from "../../util/treeUtils";
 import { setFocusedEntry } from "../../actions/workspaces/setFocusedEntry";
 import {
+  getEntryLink,
   processingStageToString,
   workspaceEntryPath,
   workspaceHasProcessingFiles,
@@ -823,14 +824,6 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
     return "unknown";
   }
 
-  getEntryLink(workspace: Workspace, entry: TreeEntry<WorkspaceEntry>): string {
-    const entryPath = workspaceEntryPath(
-      workspace.id,
-      entry.id === workspace.rootNode.id ? undefined : entry.id,
-    );
-    return `${window.location.origin}${entryPath}`;
-  }
-
   renderContextMenu(
     entry: TreeEntry<WorkspaceEntry>,
     positionX: number,
@@ -849,7 +842,6 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
     const copyCaptureURLContent = "Copy URL this was captured from";
     const copyEntryLinkContent = `Copy link to ${folderOrFile}`;
     const deleteFileContent = "Delete file";
-    const entryLink = this.getEntryLink(workspace, entry);
 
     const isRemoteIngest = entry.id.startsWith("RemoteIngest");
 
@@ -963,7 +955,9 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
                   );
                   break;
                 case copyEntryLinkContent:
-                  navigator.clipboard.writeText(entryLink);
+                  navigator.clipboard.writeText(
+                    getEntryLink(workspace, entry.id),
+                  );
                   break;
               }
 
