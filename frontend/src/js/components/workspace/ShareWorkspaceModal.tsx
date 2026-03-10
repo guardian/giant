@@ -11,6 +11,7 @@ import { setWorkspaceIsPublic } from "../../actions/workspaces/setWorkspaceIsPub
 import { WorkspacePublicInfoIcon } from "./WorkspacePublicInfoIcon";
 import { WorkspacePublicMessage } from "./WorkspacePublicMessage";
 import MdShare from "react-icons/lib/md/share";
+import { useControlledOpen } from "../../hooks/useControlledOpen";
 
 type Props = {
   workspace: Workspace;
@@ -28,15 +29,7 @@ export default function ShareWorkspaceModal(props: Props) {
     (u) => u.username,
   );
   const currentIsPublic = props.workspace.isPublic;
-  const controlled = props.isOpen !== undefined;
-  const [internalOpen, setInternalOpen] = useState(false);
-  const open = controlled ? props.isOpen! : internalOpen;
-  const setOpen = controlled
-    ? (v: boolean) => {
-        if (!v && props.onClose) props.onClose();
-        if (v) setInternalOpen(v);
-      }
-    : setInternalOpen;
+  const { open, setOpen, controlled } = useControlledOpen(props);
 
   // These should be undefined when the modal is closed.
   // This stops us preserving state across different openings of the modal,

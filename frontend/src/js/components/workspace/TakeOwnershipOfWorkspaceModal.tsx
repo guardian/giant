@@ -1,9 +1,10 @@
-import React, { useState } from "react";
+import React from "react";
 import Modal from "../UtilComponents/Modal";
 import MdSupervisorAccount from "react-icons/lib/md/supervisor-account";
 import { Workspace } from "../../types/Workspaces";
 import { PartialUser } from "../../types/User";
 import { takeOwnershipOfWorkspace } from "../../actions/workspaces/takeOwnershipOfWorkspace";
+import { useControlledOpen } from "../../hooks/useControlledOpen";
 
 type Props = {
   workspace: Workspace;
@@ -15,15 +16,7 @@ type Props = {
 };
 
 export default function TakeOwnershipOfWorkspaceModal(props: Props) {
-  const controlled = props.isOpen !== undefined;
-  const [internalOpen, setInternalOpen] = useState(false);
-  const open = controlled ? props.isOpen! : internalOpen;
-  const setOpen = controlled
-    ? (v: boolean) => {
-        if (!v && props.onClose) props.onClose();
-        if (v) setInternalOpen(v);
-      }
-    : setInternalOpen;
+  const { open, setOpen, controlled } = useControlledOpen(props);
 
   function onSubmit(e?: React.FormEvent) {
     if (e) {

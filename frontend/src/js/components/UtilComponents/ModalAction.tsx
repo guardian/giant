@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import Modal from "./Modal";
 import { Dropdown } from "semantic-ui-react";
 import _ from "lodash";
+import { useControlledOpen } from "../../hooks/useControlledOpen";
 
 type BaseProps = {
   actionType: string;
@@ -37,15 +38,7 @@ export default function ModalAction(
     ConfirmProps | EditProps | SelectMultipleProps
   >,
 ) {
-  const controlled = props.isOpen !== undefined;
-  const [internalOpen, setInternalOpen] = useState(false);
-  const open = controlled ? props.isOpen! : internalOpen;
-  const setOpen = controlled
-    ? (v: boolean) => {
-        if (!v && props.onClose) props.onClose();
-        if (v) setInternalOpen(v);
-      }
-    : setInternalOpen;
+  const { open, setOpen, controlled } = useControlledOpen(props);
   const [value, setValue] = useState<string | string[] | undefined>(undefined);
 
   function onSubmit(e?: React.FormEvent) {
