@@ -7,6 +7,7 @@ import {
   FileSystemFileEntry,
   FileSystemDirectoryEntry,
 } from "./FileApiHelpers";
+import { filterSystemFiles } from "./filterSystemFiles";
 
 async function readDragEvent(e: React.DragEvent): Promise<Map<string, File>> {
   const files = new Map<string, File>();
@@ -113,7 +114,7 @@ export default class FilePicker extends React.Component<Props, State> {
         files.set(newPath, newFile);
       }
 
-      this.props.onAddFiles(files);
+      this.props.onAddFiles(filterSystemFiles(files));
 
       if (this.input.current) {
         // Avoids a bug where you add a folder, remove it and then try to add it again
@@ -134,7 +135,7 @@ export default class FilePicker extends React.Component<Props, State> {
 
     this.setState({ readingFiles: true });
     readDragEvent(e).then((files) => {
-      this.props.onAddFiles(files);
+      this.props.onAddFiles(filterSystemFiles(files));
       this.setState({ readingFiles: false });
     });
   };
