@@ -77,6 +77,9 @@
   user-select: none;
   position: relative;
   min-width: fit-content;
+  padding-left: $baseSpacing;
+  padding-right: $baseSpacing;
+  text-align: left;
 
   &-resizer {
     &-grabber {
