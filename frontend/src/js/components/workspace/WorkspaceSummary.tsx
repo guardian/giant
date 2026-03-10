@@ -20,11 +20,13 @@ import ShareWorkspaceModal from "./ShareWorkspaceModal";
 import MdEdit from "react-icons/lib/md/edit";
 import MdDelete from "react-icons/lib/md/delete";
 import MdMore from "react-icons/lib/md/expand-more";
+import SearchIcon from "react-icons/lib/md/search";
 import TakeOwnershipOfWorkspaceModal from "./TakeOwnershipOfWorkspaceModal";
 import { takeOwnershipOfWorkspace } from "../../actions/workspaces/takeOwnershipOfWorkspace";
 import { CaptureFromUrl } from "../Uploads/CaptureFromUrl";
 import { EuiText } from "@elastic/eui";
 import { FileAndFolderCounts } from "../UtilComponents/TreeBrowser/FileAndFolderCounts";
+import buildLink from "../../util/buildLink";
 import history from "../../util/history";
 
 type Props = {
@@ -118,6 +120,22 @@ export default function WorkspaceSummary({
         )}
       </div>
       <div style={{ flexGrow: 1 }}></div>
+      <button
+        className="btn"
+        onClick={() => {
+          const searchUrl = buildLink(
+            "/search",
+            {},
+            { filters: { workspace: [workspace.id] } },
+          );
+          window.open(searchUrl, "_blank", "noopener");
+        }}
+        title="Search workspace"
+        aria-label={`Search workspace ${workspace.name}`}
+      >
+        <SearchIcon style={{ marginRight: "3px", marginBottom: "1px" }} />
+        Search workspace
+      </button>
       <UploadFiles
         username={currentUser.username}
         workspace={workspace}
