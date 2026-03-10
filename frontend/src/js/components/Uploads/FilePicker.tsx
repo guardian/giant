@@ -1,6 +1,7 @@
 import React from "react";
 import { Button } from "semantic-ui-react";
 import { readFilesFromDragEvent } from "./dropZoneUtils";
+import { filterSystemFiles } from "./filterSystemFiles";
 
 type Props = {
   disabled: boolean;
@@ -77,7 +78,7 @@ export default class FilePicker extends React.Component<Props, State> {
         files.set(newPath, newFile);
       }
 
-      this.props.onAddFiles(files);
+      this.props.onAddFiles(filterSystemFiles(files));
 
       if (this.input.current) {
         // Avoids a bug where you add a folder, remove it and then try to add it again
@@ -99,7 +100,7 @@ export default class FilePicker extends React.Component<Props, State> {
     this.setState({ readingFiles: true });
     readFilesFromDragEvent(e)
       .then((files) => {
-        this.props.onAddFiles(files);
+        this.props.onAddFiles(filterSystemFiles(files));
       })
       .catch((error) => {
         console.error("Failed to read dropped files:", error);
