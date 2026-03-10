@@ -824,15 +824,11 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
   }
 
   getEntryLink(workspace: Workspace, entry: TreeEntry<WorkspaceEntry>): string {
-    const basePath = workspaceEntryPath(
+    const entryPath = workspaceEntryPath(
       workspace.id,
       entry.id === workspace.rootNode.id ? undefined : entry.id,
     );
-    const origin =
-      typeof window !== "undefined" && window.location
-        ? window.location.origin
-        : "";
-    return `${origin}${basePath}`;
+    return `${window.location.origin}${entryPath}`;
   }
 
   renderContextMenu(
@@ -846,19 +842,13 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
     const workspaceNode = isWorkspaceNode(entry.data) ? entry.data : null;
     const isWorkspaceFolder = workspaceNode !== null;
     const isWorkspaceFile = workspaceLeaf !== null;
-    const copyFilenameContent = isWorkspaceFolder
-      ? "Copy folder name"
-      : "Copy file name";
-    const copyFilePathContent = isWorkspaceFolder
-      ? "Copy folder path"
-      : "Copy file path";
+    const folderOrFile = isWorkspaceFolder ? "folder" : "file";
+
+    const copyFilenameContent = `Copy ${folderOrFile} name`;
+    const copyFilePathContent = `Copy ${folderOrFile} path`;
     const copyCaptureURLContent = "Copy URL this was captured from";
-    const copyEntryLinkContent = isWorkspaceFolder
-      ? "Copy link to folder"
-      : "Copy link to file";
-    const deleteEntryContent = isWorkspaceFolder
-      ? "Delete folder"
-      : "Delete file";
+    const copyEntryLinkContent = `Copy link to ${folderOrFile}`;
+    const deleteFileContent = "Delete file";
     const entryLink = this.getEntryLink(workspace, entry);
 
     const isRemoteIngest = entry.id.startsWith("RemoteIngest");
@@ -887,7 +877,7 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
     ) {
       items.push({
         key: "deleteOrRemove",
-        content: deleteEntryContent,
+        content: deleteFileContent,
         icon: "trash",
       });
     }
@@ -988,7 +978,7 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
             }
 
             if (
-              menuItemProps.content === deleteEntryContent ||
+              menuItemProps.content === deleteFileContent ||
               menuItemProps.content?.toString().startsWith("Dismiss failed")
             ) {
               this.setState({
