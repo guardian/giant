@@ -34,7 +34,7 @@ deployments:
       amiTags:
         Recipe: investigations-elasticsearch-8-arm64
         AmigoStage: PROD
-        Encrypted: pfi-playground
+        Encrypted: investigations
 
   pfi:
     type: autoscaling
