@@ -684,7 +684,7 @@ class ElasticsearchResources(override val client: ElasticClient, indexName: Stri
     executeUpdateByQuery {
       updateByQuerySync(indexName,
         termQuery(IndexFields.ingestionRaw, oldIngestionPath)
-      ).script(
+      ).scrollSize(250).requestsPerSecond(100).script(
         Script(
           s"""
              |if(ctx._source.${IndexFields.ingestion} != null) {
