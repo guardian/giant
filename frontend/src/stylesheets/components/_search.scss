@@ -266,6 +266,8 @@
   margin-right: $baseSpacing;
 }
 
-.search__button {
+.search__buttons {
+  display: flex;
   margin-right: 10px;
+  gap: 3px;
 }
