@@ -9,7 +9,8 @@
   &__page {
     width: 100%;
     display: flex;
-    min-height: calc(100vh - #{$headerHeight});
+    height: calc(100vh - #{$headerHeight});
+    overflow: hidden;
 
     &--centered {
       justify-content: center;
@@ -20,6 +21,7 @@
 
   &__content {
     flex-grow: 1;
+    overflow-y: auto;
   }
 
   &__main-content {
