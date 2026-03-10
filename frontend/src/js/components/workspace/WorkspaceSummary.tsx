@@ -17,8 +17,6 @@ import { Collection } from "../../types/Collection";
 import { TreeEntry, TreeNode } from "../../types/Tree";
 import { getWorkspace } from "../../actions/workspaces/getWorkspace";
 import ShareWorkspaceModal from "./ShareWorkspaceModal";
-import MdEdit from "react-icons/lib/md/edit";
-import MdDelete from "react-icons/lib/md/delete";
 import SearchIcon from "react-icons/lib/md/search";
 import TakeOwnershipOfWorkspaceModal from "./TakeOwnershipOfWorkspaceModal";
 import { takeOwnershipOfWorkspace } from "../../actions/workspaces/takeOwnershipOfWorkspace";
@@ -216,10 +214,7 @@ export default function WorkspaceSummary({
         disabled={currentUser.username !== workspace.owner.username}
         isOpen={renameModalOpen}
         onClose={() => setRenameModalOpen(false)}
-      >
-        <MdEdit />
-        Rename Workspace
-      </ModalAction>
+      />
       <ModalAction
         actionType="confirm"
         className="btn workspace__button"
@@ -232,10 +227,7 @@ export default function WorkspaceSummary({
         }
         isOpen={deleteModalOpen}
         onClose={() => setDeleteModalOpen(false)}
-      >
-        <MdDelete />
-        Delete Workspace
-      </ModalAction>
+      />
     </div>
   );
 }
