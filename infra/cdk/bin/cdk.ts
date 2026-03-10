@@ -4,7 +4,7 @@ import { Postgres } from '../lib/postgres';
 
 const app = new App();
 
-const stack = "pfi-giant";
+const stack = 'pfi-giant';
 
 new Postgres(app, 'pfi-giant-postgres-CODE', {
 	stack,

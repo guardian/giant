@@ -1,10 +1,8 @@
 import type { GuStackProps } from '@guardian/cdk/lib/constructs/core';
-import {
-	GuStack,
-} from '@guardian/cdk/lib/constructs/core';
+import { GuStack } from '@guardian/cdk/lib/constructs/core';
 import { GuVpc, SubnetType } from '@guardian/cdk/lib/constructs/ec2/vpc';
 import type { App } from 'aws-cdk-lib';
-import { CfnOutput, Duration, SecretValue, Tags } from 'aws-cdk-lib';
+import { CfnOutput, Duration, Tags } from 'aws-cdk-lib';
 import {
 	InstanceClass,
 	InstanceSize,
@@ -24,10 +22,7 @@ export class Postgres extends GuStack {
 	constructor(scope: App, id: string, props: GuStackProps) {
 		super(scope, id, props);
 
-		const vpc = GuVpc.fromIdParameter(
-			this,
-			'GiantVPC',
-		);
+		const vpc = GuVpc.fromIdParameter(this, 'GiantVPC');
 
 		const dbStorage = 20;
 
@@ -50,9 +45,9 @@ export class Postgres extends GuStack {
 				}),
 			},
 			engine: DatabaseInstanceEngine.postgres({
-				version: PostgresEngineVersion.VER_15
+				version: PostgresEngineVersion.VER_15,
 			}),
-            allowMajorVersionUpgrade: true,
+			allowMajorVersionUpgrade: true,
 			allocatedStorage: dbStorage,
 			maxAllocatedStorage: dbStorage + 20,
 			autoMinorVersionUpgrade: true,
@@ -79,7 +74,7 @@ export class Postgres extends GuStack {
 		});
 
 		// Enable nightly backups (via https://github.com/guardian/aws-backup)
-		Tags.of(database).add("devx-backup-enabled", "true");
+		Tags.of(database).add('devx-backup-enabled', 'true');
 
 		const dbAccessSecurityGroup = new SecurityGroup(this, 'db-access', {
 			vpc: vpc,

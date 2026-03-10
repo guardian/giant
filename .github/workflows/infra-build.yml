@@ -35,6 +35,9 @@ jobs:
       - name: cdk synth
         run: |
           npm ci
+          npm run lint
+          npm run test
+          npm run format -- --check
           npm run synth
 
       - uses: guardian/actions-riff-raff@v4
