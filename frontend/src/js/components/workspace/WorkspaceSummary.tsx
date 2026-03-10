@@ -28,6 +28,7 @@ import { EuiText } from "@elastic/eui";
 import { FileAndFolderCounts } from "../UtilComponents/TreeBrowser/FileAndFolderCounts";
 import buildLink from "../../util/buildLink";
 import history from "../../util/history";
+import { workspaceEntryPath } from "../../util/workspaceUtils";
 
 type Props = {
   workspace: Workspace;
@@ -77,7 +78,7 @@ export default function WorkspaceSummary({
 
   const handleTitleClick = () => {
     clearFocus();
-    history.push(`/workspaces/${workspace.id}`);
+    history.push(workspaceEntryPath(workspace.id));
   };
 
   return (

@@ -103,7 +103,24 @@ export function processingStageToString(
   }
 }
 
+export function workspaceEntryPath(
+  workspaceId: string,
+  entryId?: string,
+): string {
+  return entryId
+    ? `/workspaces/${workspaceId}/${entryId}`
+    : `/workspaces/${workspaceId}`;
+}
+
 export function useWorkspaceId(): string | undefined {
   let match = useRouteMatch("/workspaces/:id");
   return (match?.params as any)?.id;
+}
+
+export function getEntryLink(workspace: Workspace, entryId: string): string {
+  const entryPath = workspaceEntryPath(
+    workspace.id,
+    entryId === workspace.rootNode.id ? undefined : entryId,
+  );
+  return `${window.location.origin}${entryPath}`;
 }
