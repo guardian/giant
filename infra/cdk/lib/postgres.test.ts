@@ -1,11 +1,11 @@
 import { App } from "aws-cdk-lib";
 import { Template } from "aws-cdk-lib/assertions";
-import { Giant } from "./giant";
+import { Postgres } from "./postgres";
 
-describe("The Giant stack", () => {
+describe("Giant's 'postgres' stack", () => {
   it("matches the snapshot", () => {
     const app = new App();
-    const stack = new Giant(app, "Giant", { stack: "pfi-playground", stage: "TEST" });
+    const stack = new Postgres(app, "postgres", { stack: "pfi-playground", stage: "TEST" });
     const template = Template.fromStack(stack);
     expect(template.toJSON()).toMatchSnapshot();
   });

@@ -20,7 +20,7 @@ import {
 	StorageType,
 } from 'aws-cdk-lib/aws-rds';
 
-export class Giant extends GuStack {
+export class Postgres extends GuStack {
 	constructor(scope: App, id: string, props: GuStackProps) {
 		super(scope, id, props);
 

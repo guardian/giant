@@ -55,7 +55,7 @@ jobs:
               - CODE
               - PROD
             deployments:
-              cloudformation-postgres:
+              cloudformation:
                 type: cloud-formation
                 app: postgres
                 parameters:
