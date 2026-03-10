@@ -50,14 +50,24 @@ export default class SearchBox extends React.Component {
             updateSearchText={this.props.updateSearchText}
           />
           <div className="search__actions">{spinner}</div>
-          <button
-            className="btn search__button"
-            title="Search"
-            onClick={this.props.updateSearchText}
-            disabled={this.props.isSearchInProgress}
-          >
-            Search
-          </button>
+          <div className={"search__buttons"}>
+            <button
+              className="btn"
+              title="Search"
+              onClick={this.props.updateSearchText}
+              disabled={this.props.isSearchInProgress}
+            >
+              Search
+            </button>
+            <button
+              className="btn"
+              title="Clear search query and filters"
+              onClick={this.props.resetQuery}
+              disabled={this.props.isSearchInProgress}
+            >
+              Clear
+            </button>
+          </div>
         </div>
       </div>
     );
