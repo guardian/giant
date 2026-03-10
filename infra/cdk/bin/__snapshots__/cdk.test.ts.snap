@@ -17,6 +17,18 @@ deployments:
       templateStagePaths:
         CODE: pfi-giant-postgres-CODE.template.json
         PROD: pfi-giant-postgres-PROD.template.json
+  cfn-eu-west-1-pfi-giant-neo4j:
+    type: cloud-formation
+    regions:
+      - eu-west-1
+    stacks:
+      - pfi-giant
+    app: neo4j
+    contentDirectory: cdk.out
+    parameters:
+      templateStagePaths:
+        CODE: pfi-giant-neo4j-CODE.template.json
+        PROD: pfi-giant-neo4j-PROD.template.json
 "
 `;
 
@@ -812,6 +824,24 @@ exports[`Giant's stacks should match the snapshots 2`] = `
       "Type": "AWS::SecretsManager::Secret",
       "UpdateReplacePolicy": "Delete",
     },
+  },
+}
+`;
+
+exports[`Giant's stacks should match the snapshots 3`] = `
+{
+  "Metadata": {
+    "gu:cdk:constructs": [],
+    "gu:cdk:version": "TEST",
+  },
+}
+`;
+
+exports[`Giant's stacks should match the snapshots 4`] = `
+{
+  "Metadata": {
+    "gu:cdk:constructs": [],
+    "gu:cdk:version": "TEST",
   },
 }
 `;
