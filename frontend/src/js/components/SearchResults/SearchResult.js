@@ -3,11 +3,11 @@ import PropTypes from "prop-types";
 import EmailIcon from "react-icons/lib/md/email";
 import * as R from "ramda";
 import md5 from "md5";
-import { Link } from "react-router-dom";
-
 import { SearchLink } from "../UtilComponents/SearchLink";
 import { formatDate } from "../../util/formatDate";
 import { getDocumentIconInfo } from "../../util/fileTypeIcon";
+import { formatRecipients } from "../../util/formatRecipients";
+import { CollectionLinks } from "./CollectionLinks";
 import { HighlightedText } from "../UtilComponents/HighlightedText";
 import { searchResultPropType } from "../../types/SearchResults";
 
@@ -140,21 +140,9 @@ export class SearchResult extends React.Component {
     const collections = this.props.searchResult.collections;
     if (!collections || collections.length === 0) return null;
 
-    const links = collections.map((collection, i) => (
-      <React.Fragment key={collection}>
-        {i > 0 && ", "}
-        <Link
-          className="search-result__detail-link"
-          to={`/collections/${encodeURIComponent(collection)}`}
-        >
-          {collection}
-        </Link>
-      </React.Fragment>
-    ));
-
     return this.renderProperty(
       "Dataset",
-      <React.Fragment>{links}</React.Fragment>,
+      <CollectionLinks collections={collections} separator="" />,
     );
   }
 
@@ -162,11 +150,7 @@ export class SearchResult extends React.Component {
     switch (this.props.searchResult.details._type) {
       case "email": {
         const recipients = this.props.searchResult.details.recipients || [];
-        const toStr = recipients
-          .map((r) => r.displayName || r.email)
-          .join(", ");
-        const truncatedTo =
-          toStr.length > 80 ? toStr.slice(0, 80) + "…" : toStr;
+        const truncatedTo = formatRecipients(recipients, 80);
         const attachments = this.props.searchResult.details.attachmentCount;
         return (
           <React.Fragment>

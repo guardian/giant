@@ -6,9 +6,10 @@ import AttachmentIcon from "react-icons/lib/md/attach-file";
 import * as R from "ramda";
 import md5 from "md5";
 import { SearchLink } from "../UtilComponents/SearchLink";
-import { Link } from "react-router-dom";
 import { formatDate } from "../../util/formatDate";
 import { getDocumentIconInfo } from "../../util/fileTypeIcon";
+import { formatRecipients } from "../../util/formatRecipients";
+import { CollectionLinks } from "./CollectionLinks";
 import filesize from "filesize";
 
 export default class CompactResultsTable extends React.Component {
@@ -80,30 +81,8 @@ export default class CompactResultsTable extends React.Component {
               From: {result.details.from.email}
               {result.details.recipients &&
                 result.details.recipients.length > 0 &&
-                (() => {
-                  const toStr = result.details.recipients
-                    .map((r) => r.displayName || r.email)
-                    .join(", ");
-                  const truncated =
-                    toStr.length > 60 ? toStr.slice(0, 60) + "…" : toStr;
-                  return " · To: " + truncated;
-                })()}
-              {collections.length > 0 && (
-                <React.Fragment>
-                  {" · "}
-                  {collections.map((c, i) => (
-                    <React.Fragment key={c}>
-                      {i > 0 && ", "}
-                      <Link
-                        className="search-result__detail-link"
-                        to={`/collections/${encodeURIComponent(c)}`}
-                      >
-                        {c}
-                      </Link>
-                    </React.Fragment>
-                  ))}
-                </React.Fragment>
-              )}
+                " · To: " + formatRecipients(result.details.recipients, 60)}
+              <CollectionLinks collections={collections} />
             </span>
           </React.Fragment>
         );
@@ -130,22 +109,7 @@ export default class CompactResultsTable extends React.Component {
             </SearchLink>
             <span className="search__compact-details">
               {typeLabel}
-              {collections.length > 0 && (
-                <React.Fragment>
-                  {" · "}
-                  {collections.map((c, i) => (
-                    <React.Fragment key={c}>
-                      {i > 0 && ", "}
-                      <Link
-                        className="search-result__detail-link"
-                        to={`/collections/${encodeURIComponent(c)}`}
-                      >
-                        {c}
-                      </Link>
-                    </React.Fragment>
-                  ))}
-                </React.Fragment>
-              )}
+              <CollectionLinks collections={collections} />
             </span>
           </React.Fragment>
         );
