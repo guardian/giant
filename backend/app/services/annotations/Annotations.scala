@@ -6,7 +6,7 @@ import model.frontend.{TreeEntry, TreeLeaf}
 import model.ingestion.RemoteIngest
 import services.annotations.Annotations.{AffectedResource, CopyDestination, DeleteItemResult, MoveItemResult}
 import utils.attempt.{Attempt, Failure}
-import org.neo4j.driver.v1.Value
+import org.neo4j.driver.Value
 
 
 trait Annotations {

@@ -8,8 +8,8 @@ import model.annotations._
 import model.frontend.{TreeEntry, TreeLeaf, TreeNode}
 import model.ingestion.RemoteIngest
 import model.user.DBUser
-import org.neo4j.driver.v1.{Driver, Record, Value}
-import org.neo4j.driver.v1.Values.parameters
+import org.neo4j.driver.{Driver, Record, Value}
+import org.neo4j.driver.Values.parameters
 import play.api.libs.json.Json
 import services.Neo4jQueryLoggingConfig
 import services.annotations.Annotations.{AffectedResource, CopyDestination, DeleteItemResult, MoveItemResult}
@@ -222,7 +222,7 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
         "tagColor", tagColor
       )
     ).flatMap {
-      case r if r.summary().counters().nodesCreated() == 0 =>
+      case r if r.consume().counters().nodesCreated() == 0 =>
         Attempt.Left(IllegalStateFailure("Did not create new workspace"))
       case _ =>
         Attempt.Right(())
@@ -252,9 +252,9 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
         "username", currentUser,
         "followers", followers.toArray
       )
-    ).flatMap {
-      case r if r.summary().counters().relationshipsCreated() != followers.length =>
-        Attempt.Left(IllegalStateFailure(s"Error when updating workspace followers, unexpected relationships created ${r.summary().counters().relationshipsCreated()}"))
+    ).map(_.consume()).flatMap {
+      case r if r.counters().relationshipsCreated() != followers.length =>
+        Attempt.Left(IllegalStateFailure(s"Error when updating workspace followers, unexpected relationships created ${r.counters().relationshipsCreated()}"))
       case _ =>
         Attempt.Right(())
     }
@@ -273,9 +273,9 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
         "username", currentUser,
         "isPublic", Boolean.box(isPublic)
       )
-    ).flatMap {
-      case r if r.summary().counters().propertiesSet() != 1 =>
-        Attempt.Left(IllegalStateFailure(s"Error when updating workspace isPublic, unexpected properties set ${r.summary().counters().propertiesSet()}"))
+    ).map(_.consume()).flatMap {
+      case r if r.counters().propertiesSet() != 1 =>
+        Attempt.Left(IllegalStateFailure(s"Error when updating workspace isPublic, unexpected properties set ${r.counters().propertiesSet()}"))
       case _ =>
         Attempt.Right(())
     }
@@ -295,9 +295,9 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
         "name", name,
         "username", currentUser
       )
-    ).flatMap {
-      case r if r.summary().counters().propertiesSet() != 2 =>
-        Attempt.Left(IllegalStateFailure(s"Error when updating workspace name, unexpected properties set ${r.summary().counters().propertiesSet()}"))
+    ).map(_.consume()).flatMap {
+      case r if r.counters().propertiesSet() != 2 =>
+        Attempt.Left(IllegalStateFailure(s"Error when updating workspace name, unexpected properties set ${r.counters().propertiesSet()}"))
       case _ =>
         Attempt.Right(())
     }
@@ -320,9 +320,9 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
         "owner", owner,
         "username", currentUser
       )
-    ).flatMap {
-      case r if r.summary().counters().relationshipsCreated() != 2 =>
-        Attempt.Left(IllegalStateFailure(s"Error when updating workspace owner, unexpected properties set ${r.summary().counters().propertiesSet()}"))
+    ).map(_.consume()).flatMap {
+      case r if r.counters().relationshipsCreated() != 2 =>
+        Attempt.Left(IllegalStateFailure(s"Error when updating workspace owner, unexpected properties set ${r.counters().propertiesSet()}"))
       case _ =>
         Attempt.Right(())
     }
@@ -343,8 +343,8 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
         "workspaceId", workspace,
         "username", currentUser
       )
-    ).flatMap {
-      case r if r.summary().counters().nodesDeleted() < 1 =>
+    ).map(_.consume()).flatMap {
+      case r if r.counters().nodesDeleted() < 1 =>
         Attempt.Left(IllegalStateFailure("Failed to delete workspace"))
       case _ =>
         Attempt.Right(())
@@ -373,13 +373,13 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
         "folderName", folderName,
         "addedOn", Long.box(System.currentTimeMillis())
       )
-    ).flatMap {
-      case r if r.summary().counters().nodesCreated() == 0 =>
+    ).map(_.list().asScala.headOption).flatMap {
+      case None =>
         // This is the expected failure case on lack of permissions.
         // But we return a 404 to not leak information to the client
         Attempt.Left(NotFoundFailure("Could not find node to create folder at"))
-      case r =>
-        Attempt.Right(r.single().get("f").get("id").asString())
+      case Some(r) =>
+        Attempt.Right(r.get("f").get("id").asString())
     }
     }
 
@@ -455,11 +455,11 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
       parameters(
         params:_*
       )
-    ).flatMap {
-      case r if r.summary().counters().nodesCreated() == 0 =>
+    ).map(_.list().asScala.headOption).flatMap {
+      case None =>
         Attempt.Left(IllegalStateFailure("Did not create new workspace resource"))
-      case r =>
-        Attempt.Right(r.single().get("file").get("id").asString())
+      case Some(r) =>
+        Attempt.Right(r.get("file").get("id").asString())
     }
   }
 
@@ -477,8 +477,8 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
         "itemId", itemId,
         "name", name
       )
-    ).flatMap {
-      case r if r.summary().counters().propertiesSet() == 0 =>
+    ).map(_.consume()).flatMap {
+      case r if r.counters().propertiesSet() == 0 =>
         Attempt.Left(IllegalStateFailure("Failed to change item name"))
       case _ =>
         Attempt.Right(())
@@ -562,8 +562,9 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
       val records = statementResult.list().asScala.toList
       val entriesMoved = records.map(_.get("itemAndItsDescendants"))
       val resourcesMoved = entriesMoved.flatMap(AffectedResource.fromNeo4jValue)
-      val relationshipsCreated = statementResult.summary().counters().relationshipsCreated()
-      val relationshipsDeleted = statementResult.summary().counters().relationshipsDeleted()
+      val counters = statementResult.consume().counters()
+      val relationshipsCreated = counters.relationshipsCreated()
+      val relationshipsDeleted = counters.relationshipsDeleted()
 
       if (entriesMoved.isEmpty) {
         // checking r.single().get("isNewParentDescendantOfItem").asBoolean() would be helpful for reporting the
@@ -608,17 +609,20 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
         "workspaceId", workspaceId,
         "itemId", itemId
       )
-    ).flatMap {
-      case r if r.summary().counters().nodesDeleted() < 1 =>
-        Attempt.Left(IllegalStateFailure("Failed to delete item"))
+    ).flatMap { result =>
 
-      case r =>
-        val entries = r.list().asScala.toList
+      val entries = result.list().asScala.toList
 
-        val removedItems = entries.head.get("removedItem") +: entries.map(_.get("removedChild"))
-        val removedResources = removedItems.flatMap(AffectedResource.fromNeo4jValue)
+      result match {
+        case r if r.consume().counters().nodesDeleted() < 1 =>
+          Attempt.Left(IllegalStateFailure("Failed to delete item"))
 
-        Attempt.Right(DeleteItemResult(removedResources))
+        case _ =>
+          val removedItems = entries.head.get("removedItem") +: entries.map(_.get("removedChild"))
+          val removedResources = removedItems.flatMap(AffectedResource.fromNeo4jValue)
+
+          Attempt.Right(DeleteItemResult(removedResources))
+      }
     }
   }
 
@@ -638,8 +642,8 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
         "uri", uri.value,
         "anchor", anchor.map { a => Json.stringify(Json.toJson(a)) }.orNull
       )
-    ).flatMap {
-      case r if r.summary().counters().nodesCreated() == 0 =>
+    ).map(_.consume()).flatMap {
+      case r if r.counters().nodesCreated() == 0 =>
         Attempt.Left(IllegalStateFailure("Failed to insert new comment"))
       case _ =>
         Attempt.Right(())
@@ -684,7 +688,7 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
       (dbUser, summary) match {
         case (None, _) =>
           Attempt.Left(NotFoundFailure("Not found"))
-        case (Some(_), r) if r.summary().counters().nodesDeleted() != 1 =>
+        case (Some(_), r) if r.consume().counters().nodesDeleted() != 1 =>
           Attempt.Left(IllegalStateFailure("Failed to delete comment"))
         case _ =>
           Attempt.Right(())

@@ -4,7 +4,7 @@ import model._
 import model.frontend._
 import model.frontend.user.PartialUser
 import model.user.DBUser
-import org.neo4j.driver.v1.Value
+import org.neo4j.driver.Value
 import play.api.libs.json.Json.JsValueWrapper
 import play.api.libs.json.{Format, JsNumber, JsObject, JsResult, JsString, JsSuccess, JsValue, Json, Reads, Writes}
 

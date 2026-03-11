@@ -1,7 +1,7 @@
 package model.frontend.email
 
 import java.time.OffsetDateTime
-import org.neo4j.driver.v1.Value
+import org.neo4j.driver.Value
 import utils.attempt.Attempt
 import model._
 import play.api.libs.json.{Json, Writes}

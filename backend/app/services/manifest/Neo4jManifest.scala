@@ -13,8 +13,8 @@ import model.ingestion.{IngestionFile, WorkspaceItemContext, WorkspaceItemUpload
 import model.manifest._
 import model.user.DBUser
 import org.joda.time.DateTime
-import org.neo4j.driver.v1.Values.parameters
-import org.neo4j.driver.v1.{Driver, StatementResult, StatementRunner, Value}
+import org.neo4j.driver.Values.parameters
+import org.neo4j.driver.{Driver, Result, QueryRunner, Value}
 import services.Neo4jQueryLoggingConfig
 import services.manifest.Manifest.WorkCounts
 import utils._
@@ -242,7 +242,7 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
     } yield ingestionUri
   }
 
-  def markResourceAsExpandable(tx: StatementRunner, resourceUri: Uri): Either[Failure, Unit] = {
+  def markResourceAsExpandable(tx: QueryRunner, resourceUri: Uri): Either[Failure, Unit] = {
     // if resource at uri is a blob, both the blob and its parent:File are expandable
     // otherwise it is expandable
 
@@ -276,7 +276,7 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
     Right(())
   }
 
-  def markParentFileAsExpandableIfBlobIsExpandable(tx: StatementRunner, blobUri: Uri): Either[Failure, Unit] = {
+  def markParentFileAsExpandableIfBlobIsExpandable(tx: QueryRunner, blobUri: Uri): Either[Failure, Unit] = {
     tx.run(
       """
         |MATCH (blob :Blob:Resource {isExpandable: true, uri: {blobUri}})
@@ -291,7 +291,7 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
     Right(())
   }
 
-  def insertDirectory(tx: StatementRunner, parentUri: Uri, uri: Uri, display: Option[String] = None): Either[Failure, Unit] = {
+  def insertDirectory(tx: QueryRunner, parentUri: Uri, uri: Uri, display: Option[String] = None): Either[Failure, Unit] = {
     tx.run(
       """
          |MERGE (parent:Resource {uri: {parentUri}})
@@ -314,7 +314,7 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
   }
 
   def insertBlob(
-    tx: StatementRunner,
+    tx: QueryRunner,
     file: IngestionFile,
     uri: Uri,
     parentBlobs: List[Uri],
@@ -413,7 +413,7 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
     Right(())
   }
 
-  def insertEmail(tx: StatementRunner, email: Email, parent: Uri): Either[Failure, Unit] = {
+  def insertEmail(tx: QueryRunner, email: Email, parent: Uri): Either[Failure, Unit] = {
     // KEEP IN MIND AN EMAIL RECORD IN THE MANIFEST IS A *RECEIVED* EMAIL NOT A SENT EMAIL SO THERE CAN BE MANY COPIES OF IT
 
     tx.run(
@@ -608,7 +608,7 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
       // TODO: Get the transcription service to sent back the ingestion id so that we only replace the PROCESSING_EXTERNALLY
       // relation that is associated with the current ingestion with a PROCESSED relation
       // (currently, we just replace all of them)
-      val result = tx.run(
+      val resultSummary = tx.run(
         s"""
            |MATCH (b :Blob:Resource {uri: {uri}})<-[processing:PROCESSING_EXTERNALLY]-(e: Extractor {name: {extractorName}})
            |
@@ -633,9 +633,9 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
           "uri", uri,
           "extractorName", extractorName,
         )
-      )
+      ).consume()
 
-      val counters = result.summary().counters()
+      val counters = resultSummary.counters()
 
       if (counters.relationshipsCreated() == 0 || counters.relationshipsDeleted() == 0 || counters.relationshipsCreated() != counters.relationshipsDeleted()) {
         Left(IllegalStateFailure(s"Unexpected number of creates/deletes in markExternalAsComplete. Created: ${counters.relationshipsCreated()}. Deleted: ${counters.relationshipsDeleted()}"))
@@ -658,7 +658,7 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
         |""".stripMargin
     }.getOrElse("")
 
-    val result = tx.run(
+    val resultSummary = tx.run(
       s"""
         |MATCH (b :Blob:Resource {uri: {uri}})<-[todo:TODO {
         |  ingestion: {ingestion},
@@ -686,9 +686,9 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
         "workspaceNodeId", params.workspace.map(_.workspaceNodeId).orNull,
         "workspaceBlobUri", params.workspace.map(_.blobAddedToWorkspace).orNull
       )
-    )
+    ).consume()
 
-    val counters = result.summary().counters()
+    val counters = resultSummary.counters()
 
     if(counters.relationshipsCreated() != 1 || counters.relationshipsDeleted() != 1) {
       Left(IllegalStateFailure(s"Unexpected number of creates/deletes in markAsComplete. Created: ${counters.relationshipsCreated()}. Deleted: ${counters.relationshipsDeleted()}"))
@@ -709,7 +709,7 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
         |""".stripMargin
     }.getOrElse("")
 
-    val result = tx.run(
+    val resultSummary = tx.run(
       s"""
          |MATCH (b :Blob:Resource {uri: {uri}})<-[todo:TODO {
          |  ingestion: {ingestion},
@@ -742,9 +742,9 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
         "workspaceBlobUri", params.workspace.map(_.blobAddedToWorkspace).orNull,
         "startTime", DateTime.now().getMillis.asInstanceOf[java.lang.Long]
       )
-    )
+    ).consume()
 
-    val counters = result.summary().counters()
+    val counters = resultSummary.counters()
 
     if (counters.relationshipsCreated() != 1 || counters.relationshipsDeleted() != 1) {
       Left(IllegalStateFailure(s"Unexpected number of creates/deletes in markExternalAsProcessing. Created: ${counters.relationshipsCreated()}. Deleted: ${counters.relationshipsDeleted()}"))
@@ -1002,16 +1002,18 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
         "uri", uri.value
       )
     ).flatMap(result => {
-      val counters = result.summary().counters()
-      val relationshipsCreated = counters.relationshipsCreated()
-      val relationshipsDeleted = counters.relationshipsDeleted()
-      val propertiesSet = counters.propertiesSet()
+
       val originalNumberOfProcessedRelations = result
         .list()
         .asScala
         .map(_.get("originalNumberOfProcessedRelations").asInt())
         .headOption
         .getOrElse(0)
+
+      val counters = result.consume().counters()
+      val relationshipsCreated = counters.relationshipsCreated()
+      val relationshipsDeleted = counters.relationshipsDeleted()
+      val propertiesSet = counters.propertiesSet()
 
       if (relationshipsCreated != originalNumberOfProcessedRelations) {
         Attempt.Left(IllegalStateFailure(
@@ -1045,8 +1047,8 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
       parameters(
         "uri", uri.value
       )
-    ).flatMap(result => {
-      val counters = result.summary().counters()
+    ).map(_.consume()).flatMap(resultSummary => {
+      val counters = resultSummary.counters()
       val relationshipsCreated = counters.relationshipsCreated()
       val relationshipsDeleted = counters.relationshipsDeleted()
       val propertiesSet = counters.propertiesSet()
@@ -1076,8 +1078,8 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
       parameters(
         "uri", uri.value
     )
-    ).flatMap(result => {
-      val counters = result.summary().counters()
+    ).map(_.consume()).flatMap(resultSummary => {
+      val counters = resultSummary.counters()
       val propertiesSet = counters.propertiesSet()
       logger.info(s"When resetting TODO attempts for blob ${uri.value}, ${propertiesSet} properties were set")
       Attempt.Right(())
@@ -1097,8 +1099,8 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
       parameters(
         "uri", uri.value
       )
-    ).flatMap(result => {
-      val counters = result.summary().counters()
+    ).map(_.consume()).flatMap(resultSummary => {
+      val counters = resultSummary.counters()
       val relationshipsCreated = counters.relationshipsCreated()
       val relationshipsDeleted = counters.relationshipsDeleted()
       if (relationshipsDeleted > 0 && relationshipsCreated != 1) {
@@ -1123,8 +1125,8 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
       parameters(
         "uri", uri.value
       )
-    ).flatMap(result => {
-      val counters = result.summary().counters()
+    ).map(_.consume()).flatMap(resultSummary => {
+      val counters = resultSummary.counters()
       val relationshipsDeleted = counters.relationshipsDeleted()
 
       logger.info(s"Deleted ${relationshipsDeleted} EXTRACTION_FAILURE relations for blob ${uri.value}")
@@ -1238,9 +1240,9 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
       query,
       parameters(
         "uri", uri.value
-      )).flatMap { result: StatementResult =>
+      )).map(_.consume()).flatMap { resultSummary =>
 
-      val counters = result.summary().counters()
+      val counters = resultSummary.counters()
 
       if (correctResultsCount(counters.nodesDeleted())) Attempt.Right(())
       else {
@@ -1291,8 +1293,8 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
       parameters(
         "uri", uri.value
       )
-    ).flatMap { result =>
-      val counters = result.summary().counters()
+    ).map(_.consume()).flatMap { resultSummary =>
+      val counters = resultSummary.counters()
 
       if(counters.nodesDeleted() < 1) {
         Attempt.Left(IllegalStateFailure(s"Error deleting ingestion $uri. Nodes deleted: ${counters.nodesDeleted()}"))
@@ -1303,7 +1305,7 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
   }
 
   override def setProgressNote(blobUri: Uri, extractor: Extractor, note: String): Either[Failure, Unit] = transaction { tx =>
-    val result = tx.run(
+    val counters = tx.run(
       """
         |MATCH (b :Blob :Resource { uri: {blobUri} })<-[todo:TODO]-(:Extractor { name: {extractorName} })
         |SET todo.note = {note}
@@ -1313,9 +1315,7 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
         "extractorName", extractor.name,
         "note", note
       )
-    )
-
-    val counters = result.summary().counters()
+    ).consume().counters()
 
     if(counters.propertiesSet() != 1) {
       Left(IllegalStateFailure(s"Error in setProgressNote: unexpected properties set ${counters.propertiesSet()}"))
@@ -1335,7 +1335,7 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
           "workspaceNodeId", workspaceContext.get.workspaceParentNodeId,
           "childUri", childUri
         )
-      ).map { result: StatementResult =>
+      ).map { result: Result =>
         val children = result.list().asScala.toList
 
         val childrenUris = children.map { c =>

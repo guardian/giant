@@ -2,7 +2,7 @@ package model.user
 
 import model._
 import model.frontend.user.PartialUser
-import org.neo4j.driver.v1.Value
+import org.neo4j.driver.Value
 import utils.auth.totp.{Base32Secret, Secret}
 
 /* User model for representation in the database */

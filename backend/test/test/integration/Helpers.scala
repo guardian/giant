@@ -10,7 +10,7 @@ import model.frontend.{Filter, SearchResults, TreeEntry, TreeNode}
 import model.manifest.{Blob, Collection, CollectionWithUsers}
 import model.user.UserPermissions
 import model.{CreateCollectionRequest, CreateIngestionRequest, English, Uri}
-import org.neo4j.driver.v1.Driver
+import org.neo4j.driver.Driver
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.{Assertion, Inside, OptionValues}
 import play.api.libs.Files.SingletonTemporaryFileCreator

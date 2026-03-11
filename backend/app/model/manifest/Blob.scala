@@ -1,7 +1,7 @@
 package model.manifest
 
 import model.Uri
-import org.neo4j.driver.v1.Value
+import org.neo4j.driver.Value
 import play.api.libs.json._
 
 case class Blob(uri: Uri, size: Long, mimeType: Set[MimeType])

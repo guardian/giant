@@ -5,9 +5,9 @@ import model.CreateIngestionRequest
 import model.frontend.user.PartialUser
 import model.manifest.{Collection}
 import model.user.{BCryptPassword, DBUser, UserPermission, UserPermissions}
-import org.neo4j.driver.v1.Values.parameters
-import org.neo4j.driver.v1.exceptions.ClientException
-import org.neo4j.driver.v1.{Driver, Record, StatementResult}
+import org.neo4j.driver.Values.parameters
+import org.neo4j.driver.exceptions.ClientException
+import org.neo4j.driver.{Driver, Record, Result}
 import services.Neo4jQueryLoggingConfig
 import services.annotations.Annotations
 import services.index.{Index, Pages}
@@ -233,12 +233,10 @@ class Neo4jUserManagement(neo4jDriver: Driver, executionContext: ExecutionContex
       parameters("username", username)
     )
 
-    attemptedResult.flatMap { result =>
-      result.summary.counters.nodesDeleted match {
-        case 1 => Attempt.Right(())
-        case 0 => Attempt.Left(NotFoundFailure(s"User '$username' doesn't exist"))
-        case _ => Attempt.Left(IllegalStateFailure(s"Deleted multiple users when trying to delete $username"))
-      }
+    attemptedResult.map(_.consume().counters().nodesDeleted).flatMap {
+      case 1 => Attempt.Right(())
+      case 0 => Attempt.Left(NotFoundFailure(s"User '$username' doesn't exist"))
+      case _ => Attempt.Left(IllegalStateFailure(s"Deleted multiple users when trying to delete $username"))
     }
   }
 
@@ -371,13 +369,13 @@ class Neo4jUserManagement(neo4jDriver: Driver, executionContext: ExecutionContex
     }
   }
 
-  private def singleUser(username: String, statementResult: StatementResult, field: String = "user"): Attempt[DBUser] = {
+  private def singleUser(username: String, statementResult: Result, field: String = "user"): Attempt[DBUser] = {
     statementResult.hasKeyOrFailure(field, UserDoesNotExistFailure(username)).map { result =>
       DBUser.fromNeo4jValue(result.get(field))
     }
   }
 
-  private def userPermissions(result: StatementResult): Attempt[UserPermissions] = {
+  private def userPermissions(result: Result): Attempt[UserPermissions] = {
     val results = result.list().asScala.toList
 
     results.headOption match {

@@ -1,12 +1,12 @@
 package utils
 
-import org.neo4j.driver.v1.Values.parameters
+import org.neo4j.driver.Values.parameters
 
 import java.util.UUID
 import java.util.concurrent.CompletionStage
-import org.neo4j.driver.v1.exceptions.{Neo4jException, NoSuchRecordException, TransientException}
-import org.neo4j.driver.v1._
-import org.neo4j.driver.v1.types.TypeSystem
+import org.neo4j.driver.exceptions.{Neo4jException, NoSuchRecordException, TransientException}
+import org.neo4j.driver._
+import org.neo4j.driver.types.TypeSystem
 import play.api.Logger
 import services.Neo4jQueryLoggingConfig
 import utils.attempt.{Attempt, Failure, Neo4JFailure, Neo4JTransientFailure, NotFoundFailure, UnknownFailure}
@@ -27,42 +27,42 @@ class Neo4jHelper(driver: Driver, executionContext: ExecutionContext, queryLoggi
     * @param f the operation being called
     * @return an Attempt containing the result (or failure)
     */
-  def attemptNeo4J(f: => StatementResult)(): Attempt[StatementResult] =
+  def attemptNeo4J(f: => Result)(): Attempt[Result] =
     Attempt.catchNonFatal(f) {
       case NonFatal(t) => Neo4JFailure(t)
     }
 
   /**
     * This is a useful wrapper around a Neo4J transaction. It has most of the same methods, but instead of blocking
-    * and eventually returning StatementResult objects, it returns a (synchronous) Attempt[StatementResult].
+    * and eventually returning Result objects, it returns a (synchronous) Attempt[Result].
     */
-  class AttemptWrappedTransaction(underlying: StatementRunner, executionContext: ExecutionContext) {
-    def run(statementTemplate: String, statementParameters: Record): Attempt[StatementResult] =
+  class AttemptWrappedTransaction(underlying: QueryRunner, executionContext: ExecutionContext) {
+    def run(statementTemplate: String, statementParameters: Record): Attempt[Result] =
       attemptNeo4J({
         underlying.run(statementTemplate, statementParameters)
       })()
 
-    def run(statementTemplate: String): Attempt[StatementResult] =
+    def run(statementTemplate: String): Attempt[Result] =
       attemptNeo4J({
         underlying.run(statementTemplate)
       })()
 
-    def run(statementTemplate: String, parameters: Value): Attempt[StatementResult] =
+    def run(statementTemplate: String, parameters: Value): Attempt[Result] =
       attemptNeo4J({
         underlying.run(statementTemplate, parameters)
       })()
 
-    def run(statementTemplate: String, statementParameters: java.util.Map[String, AnyRef]): Attempt[StatementResult] =
+    def run(statementTemplate: String, statementParameters: java.util.Map[String, AnyRef]): Attempt[Result] =
       attemptNeo4J({
         underlying.run(statementTemplate, statementParameters)
       })()
 
-    def run(statement: Statement): Attempt[StatementResult] =
+    def run(statement: Query): Attempt[Result] =
       attemptNeo4J({
         underlying.run(statement)
       })()
 
-    def run(statementTemplate: String, parameters: (String, AnyRef)*): Attempt[StatementResult] = {
+    def run(statementTemplate: String, parameters: (String, AnyRef)*): Attempt[Result] = {
       val flattenedParameters = parameters.flatten { case (k, v) => Vector(k,v) }
       val parametersObj = Values.parameters(flattenedParameters:_*)
       run(statementTemplate, parametersObj)
@@ -72,13 +72,13 @@ class Neo4jHelper(driver: Driver, executionContext: ExecutionContext, queryLoggi
   /**
     * This is a wrapper around a Neo4J transaction that logs slow queries.
     */
-  class LoggingTransaction(underlying: Transaction, config: Neo4jQueryLoggingConfig) extends Transaction {
+  private class LoggingTransaction(underlying: Transaction, config: Neo4jQueryLoggingConfig) extends Transaction {
     // a UUID to uniquely identify this transaction if it is slow
     private lazy val uuid = UUID.randomUUID().toString
     // collect all of the statements run in this transaction
-    private var statements = mutable.Buffer.empty[() => String]
+    private val statements = mutable.Buffer.empty[() => String]
 
-    def logNeo4J(logData: => String)(f: => StatementResult): StatementResult = {
+    def logNeo4J(logData: => String)(f: => Result): Result = {
       statements += (() => logData)
       val start = System.currentTimeMillis()
 
@@ -97,61 +97,38 @@ class Neo4jHelper(driver: Driver, executionContext: ExecutionContext, queryLoggi
       result
     }
 
-    def run(statementTemplate: String, statementParameters: Record): StatementResult =
+    def run(statementTemplate: String, statementParameters: Record): Result =
       logNeo4J(s"$statementTemplate [${statementParameters.fields().asScala}]"){
         underlying.run(statementTemplate, statementParameters)
       }
 
-    def run(statementTemplate: String): StatementResult =
+    def run(statementTemplate: String): Result =
       logNeo4J(s"$statementTemplate"){
         underlying.run(statementTemplate)
       }
 
-    def run(statementTemplate: String, parameters: Value): StatementResult =
+    def run(statementTemplate: String, parameters: Value): Result =
       logNeo4J(s"$statementTemplate [$parameters]"){
         underlying.run(statementTemplate, parameters)
       }
 
-    def run(statementTemplate: String, statementParameters: java.util.Map[String, AnyRef]): StatementResult =
+    def run(statementTemplate: String, statementParameters: java.util.Map[String, AnyRef]): Result =
       logNeo4J(s"$statementTemplate [${statementParameters.asScala}]") {
         underlying.run(statementTemplate, statementParameters)
       }
 
-    def run(statement: Statement): StatementResult =
+    def run(statement: Query): Result =
       logNeo4J(s"$statement") {
         underlying.run(statement)
       }
 
-    // TODO MRB: log slow async queries? (we would have to wait for all the results to complete)
-
-    def runAsync(statementTemplate: String, statementParameters: Record): CompletionStage[StatementResultCursor] =
-      underlying.runAsync(statementTemplate, statementParameters)
-
-    def runAsync(statementTemplate: String): CompletionStage[StatementResultCursor] =
-      underlying.runAsync(statementTemplate)
-
-    def runAsync(statementTemplate: String, parameters: Value): CompletionStage[StatementResultCursor] =
-      underlying.runAsync(statementTemplate, parameters)
-
-    def runAsync(statementTemplate: String, statementParameters: java.util.Map[String, AnyRef]): CompletionStage[StatementResultCursor] =
-      underlying.runAsync(statementTemplate, statementParameters)
-
-    override def runAsync(statement: Statement): CompletionStage[StatementResultCursor] = {
-      underlying.runAsync(statement)
-    }
-
-    override def commitAsync(): CompletionStage[Void] = underlying.commitAsync()
-    override def rollbackAsync(): CompletionStage[Void] = underlying.rollbackAsync()
-
-    override def typeSystem(): TypeSystem = underlying.typeSystem()
-
     override def close(): Unit = underlying.close()
 
-    override def success(): Unit = {
+    override def commit(): Unit = {
       val start = System.currentTimeMillis()
 
       try {
-        underlying.success()
+        underlying.commit()
       } finally {
         val timeTaken = System.currentTimeMillis() - start
         if (timeTaken >= config.slowQueryThreshold.toMillis) {
@@ -162,7 +139,7 @@ class Neo4jHelper(driver: Driver, executionContext: ExecutionContext, queryLoggi
       }
     }
 
-    override def failure(): Unit = underlying.failure()
+    override def rollback(): Unit = underlying.rollback()
 
     override def isOpen: Boolean = underlying.isOpen
   }
@@ -181,8 +158,8 @@ class Neo4jHelper(driver: Driver, executionContext: ExecutionContext, queryLoggi
       .map { either =>
         // notify the transaction whether the attempt was successful or not
         either.fold[Unit](
-          _ => tx.failure(),
-          _ => tx.success()
+          _ => tx.rollback(),
+          _ => tx.commit()
         )
         either
       }(executionContext)
@@ -212,11 +189,11 @@ class Neo4jHelper(driver: Driver, executionContext: ExecutionContext, queryLoggi
         .toList
         .map(_.group(1).toInt)
 
-      val nodesStatementResult = tx.run(
+      val nodesResult = tx.run(
         """MATCH (n) WHERE id(n) IN {nodeIds} RETURN n""",
         parameters("nodeIds", nodeIds.asJava)
       )
-      val nodes = nodesStatementResult
+      val nodes = nodesResult
         .list()
         .asScala
         .toList
@@ -233,11 +210,11 @@ class Neo4jHelper(driver: Driver, executionContext: ExecutionContext, queryLoggi
       .toList
       .map(_.group(1).toInt)
 
-    val relationshipsStatementResult = tx.run(
+    val relationshipsResult = tx.run(
       """MATCH ()-[r]->() WHERE id(r) IN {relationshipIds} RETURN r""",
       parameters("relationshipIds", relationshipIds.asJava)
     )
-    val relationships = relationshipsStatementResult
+    val relationships = relationshipsResult
       .list()
       .asScala
       .toList
@@ -255,7 +232,7 @@ class Neo4jHelper(driver: Driver, executionContext: ExecutionContext, queryLoggi
       ).flatten
     } catch {
       case NonFatal(ex) => {
-        tx.failure()
+        tx.rollback()
         logger.error("Error attempting to get deadlocked nodes and relationships", ex)
         List()
       }
@@ -264,15 +241,15 @@ class Neo4jHelper(driver: Driver, executionContext: ExecutionContext, queryLoggi
     }
   }
 
-  def transaction[T](f: StatementRunner => Either[Failure, T]): Either[Failure, T] = {
+  def transaction[T](f: Transaction => Either[Failure, T]): Either[Failure, T] = {
     val session = driver.session()
     val tx = session.beginTransaction()
     try {
       val result = f(new LoggingTransaction(tx, queryLoggingConfig))
       if (result.isRight) {
-        tx.success()
+        tx.commit()
       } else {
-        tx.failure()
+        tx.rollback()
       }
       tx.close()
       session.close()
@@ -286,7 +263,7 @@ class Neo4jHelper(driver: Driver, executionContext: ExecutionContext, queryLoggi
         //  "Cannot run more statements in this transaction, because previous statements
         //  in the transaction has failed and the transaction has been rolled back.
         //  Please start a new transaction to run another statement."
-        tx.failure()
+        tx.rollback()
         tx.close()
 
         val deadlockedNodesAndRelationships = getDeadlockedNodesAndRelationships(session, transientException)
@@ -295,7 +272,7 @@ class Neo4jHelper(driver: Driver, executionContext: ExecutionContext, queryLoggi
         Left(Neo4JTransientFailure(transientException))
 
       case NonFatal(ex) =>
-        tx.failure()
+        tx.rollback()
 
         // We want to get a stack trace here otherwise we only get async transport level frames from the neo4j client
         val wrappingException = new IllegalStateException("Caught error from neo4j: " + ex.getMessage, ex)
@@ -337,7 +314,7 @@ object Neo4jHelper {
     }
   }
 
-  implicit class RichStatementResult(result: StatementResult) {
+  implicit class RichResult(result: Result) {
     def hasKeyOrFailure(expectedKey: String, error: Failure)(implicit executionContext: ExecutionContext): Attempt[Record] = {
       Attempt.catchNonFatal(result.single()) {
         case _: NoSuchRecordException => error
