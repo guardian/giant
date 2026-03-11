@@ -7,6 +7,7 @@ import GridIcon from "react-icons/lib/md/grid-on";
 import SlideshowIcon from "react-icons/lib/md/slideshow";
 import ArchiveIcon from "react-icons/lib/md/archive";
 import WebIcon from "react-icons/lib/md/web";
+import React from "react";
 
 const PDF_MIMES = ["application/pdf"];
 
@@ -41,8 +42,12 @@ const ARCHIVE_MIMES = [
 
 const WEB_MIMES = ["text/html", "application/xhtml+xml"];
 
-// Returns { icon, className } based on mimeTypes array
-export function getDocumentIconInfo(mimeTypes) {
+type IconInfo = {
+  icon: React.ComponentType;
+  className: string;
+};
+
+export function getDocumentIconInfo(mimeTypes: string[] | undefined): IconInfo {
   if (!mimeTypes || mimeTypes.length === 0) {
     return { icon: DocumentIcon, className: "search-result__icon-document" };
   }
