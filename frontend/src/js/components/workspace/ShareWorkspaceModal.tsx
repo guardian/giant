@@ -74,7 +74,6 @@ export default function ShareWorkspaceModal(props: Props) {
 
   return (
     <React.Fragment>
-
       <Modal
         isOpen={open}
         dismiss={onDismiss}

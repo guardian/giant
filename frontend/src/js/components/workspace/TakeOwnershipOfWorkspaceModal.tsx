@@ -40,7 +40,6 @@ export default function TakeOwnershipOfWorkspaceModal(props: Props) {
 
   return (
     <React.Fragment>
-
       <Modal
         isOpen={open}
         dismiss={onDismiss}
