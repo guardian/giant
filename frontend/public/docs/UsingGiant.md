@@ -52,7 +52,7 @@ The three main Giant sections are shown at the top of every page.
 
 Documents in datasets are organised in the same structure as the source material that was uploaded into Giant. You cannot rearrange items in datasets.
 
-- [**Workspaces**](/workspaces) are user-defined collections of documents, from one or many datasets. Workspaces can be created, named and organised by any Giant user. Workspaces organised like an editable file system so – provided you have access – the documents therein can be arranged into folders; and they can be renamed, added, removed, etc.
+- [**Workspaces**](/workspaces) are user-defined collections of documents, from one or many datasets. Workspaces can be created, named and organised by any Giant user. Workspaces are organised like an editable file system so – provided you have access – the documents therein can be arranged into folders; and they can be renamed, added, removed, etc.
 
 You can use workspaces either to create curated selections of significant documents from datasets, from workspaces shared with you, and from documents you upload yourself.
 
@@ -216,7 +216,7 @@ You can view documents by getting to them through several different routes:
 
 The document will be opened in a document viewer window. This consists of a sidebar with some information about the document (location, upload information, and any metadata that Giant extracted from the document), plus the document view itself. Document views come in several different flavours, depending on file format:
 
-- **Text based documents** such as PDFs and MS Word documents are displayed in a single view, with the OCR'd text overlayed on top of the original document. Search term matches will be highlighted in the document itself. You can also search for other terms within the documents and these will be highlighted in a different colour to the original search term matches. We call this flavour the **combined view mode** because the extracted text and the original file are presented in the same view.
+- **Text based documents** such as PDFs and MS Word documents are displayed in a single view, with the OCR'd text overlaid on top of the original document. Search term matches will be highlighted in the document itself. You can also search for other terms within the documents and these will be highlighted in a different colour to the original search term matches. We call this flavour the **combined view mode** because the extracted text and the original file are presented in the same view.
 - **Emails** are displayed in a form that resembles an email, showing the To:, From:, Subject: fields etc.
 - **Spreadsheets** are displayed as a searchable table. At the time of writing this is limited in utility.
 - **Other document types** - raw text, images, audio, video, etc (plus any files Giant didn't convert into the above flavour) - have multiple 'view modes', with the searchable text displayed in a different view to the original media. Documents are initially opened in the extracted text mode to allow you to see search results (and perform further searches in the document)
@@ -486,13 +486,13 @@ As noted earlier, files uploaded via a workspace are stored in your personal dat
 
 You can give Giant the URL of a webpage and it will snapshot the page, extract the text, and ingest, transcribe and translate any multimedia content therein (such as videos). There are two ways to do this:
 
-## **Tell Giant to fetch content from a URL** {#tell-giant-to-fetch-content-from-a-url}
+### **1. Tell Giant to fetch content from a URL** {#tell-giant-to-fetch-content-from-a-url}
 
 Within a workspace click the **Capture from URL** button:
 
-<div class="doc-figure" style="width: 100%;">
+<div class="doc-figure" style="width: 75%;">
 
-<img src="/docs/images/12_workspaces_capture_from_url_button.jpg" alt="Capture from URL button in workspace" width="100%"  />
+<img src="/docs/images/12_workspaces_capture_from_url_button.jpg" alt="Capture from URL button in workspace" width="75%"  />
 
 <div class="doc-caption">
 
@@ -506,7 +506,7 @@ Enter the URL of the page you want captured and where in the workspace you want 
 
 <div class="doc-figure" style="width: 50%;">
 
-<img src="/docs/images/13_workspaces_capture_from_url_selection_dialog.jpg" alt="Capture from URL dialog with URL and destination options" width="100%"  />
+<img src="/docs/images/13_workspaces_capture_from_url_selection_dialog.jpg" alt="Capture from URL dialog with URL and destination options" width="75%"  />
 
 <div class="doc-caption">
 
@@ -518,7 +518,7 @@ The Capture from URL dialog with options to choose a workspace, workspace folder
 
 Giant will go and fetch it. If the page contains audio or video content this process can take more than 15 minutes because our transcription service will attempt to transcribe and translate any spoken content. You do not need to wait on the page while files are being processed.
 
-## **Send a webpage to Giant** {#send-a-webpage-to-giant}
+### **2. Send a webpage to Giant** {#send-a-webpage-to-giant}
 
 While browsing the internet you may wish to save the content of something you view on a webpage or social media post. You can send the material directly to Giant from there. Video and audio will be transcribed and translated, and the whole thing will be searchable for later retrieval.
 
@@ -532,7 +532,7 @@ From a webpage right-click and opt to **Capture with Giant**. You’ll be given 
 
 <div class="doc-caption">
 
-Workflow for capturing web content with Giant.
+Workflow for capturing web content with Giant
 
 </div>
 
@@ -669,7 +669,7 @@ Please note that it isn't always possible to delete files for several reasons. F
 
 ## **Searching for documents in a workspace** {#searching-for-documents-in-a-workspace}
 
-At present there are two ways to do this:
+At present there are three ways to do this:
 
 1. You can search a folder within a workspace by right-clicking on that folder.
 2. You can search the workspace you are in by means of the **Search Workspace** button at the top.
