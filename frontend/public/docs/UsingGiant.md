@@ -526,7 +526,7 @@ This feature only works if your browser has the [Guardian Staff Extension](https
 
 From a webpage right-click and opt to **Capture with Giant**. You’ll be given the same options as above, after which you can go about your browsing business while Giant grabs the material and stores it for you.
 
-<div class="doc-figure" style="width: 75%;">
+<div class="doc-figure" style="width: 100%;">
 
 <video src="/docs/images/14_workspaces_capture_from_url_workflow.mp4" autoplay loop muted playsinline width="100%" title="Workflow for capturing web content with Giant"></video>
 
