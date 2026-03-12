@@ -12,16 +12,12 @@ export function findActiveHeadingId(
   getElementById: (id: string) => HTMLElement | null = (id) =>
     document.getElementById(id),
 ): string | null {
-  let current: string | null = null;
-
-  for (const h of headings) {
+  const passed = headings.filter((h) => {
     const el = getElementById(h.id);
-    if (el && el.offsetTop - 80 <= scrollTop) {
-      current = h.id;
-    }
-  }
+    return el !== null && el.offsetTop - 80 <= scrollTop;
+  });
 
-  return current;
+  return passed[passed.length - 1]?.id ?? null;
 }
 
 function collectHeadingsFromDom(): Heading[] {
