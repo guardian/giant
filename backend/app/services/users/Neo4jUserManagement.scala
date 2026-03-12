@@ -329,7 +329,7 @@ class Neo4jUserManagement(neo4jDriver: Driver, executionContext: ExecutionContex
       """
         |MATCH (user: User { username: $username })
         |MATCH (collection: Collection { uri: $collection })
-        |CREATE UNIQUE (user)-[:CAN_SEE]->(collection)
+        |MERGE (user)-[:CAN_SEE]->(collection)
       """.stripMargin,
       parameters(
         "username", username,
