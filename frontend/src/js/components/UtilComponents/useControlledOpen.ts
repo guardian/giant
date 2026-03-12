@@ -12,7 +12,6 @@ export function useControlledOpen(props: ControlledOpenProps) {
   const setOpen = controlled
     ? (v: boolean) => {
         if (!v && props.onClose) props.onClose();
-        if (v) setInternalOpen(v);
       }
     : setInternalOpen;
 
