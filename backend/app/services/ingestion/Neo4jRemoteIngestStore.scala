@@ -48,7 +48,7 @@ class Neo4jRemoteIngestStore(driver: Driver, executionContext: ExecutionContext,
 
     val query =
       """
-        |MATCH (user: User { username: { username }})
+        |MATCH (user: User { username: $username})
         |CREATE (wst: RemoteIngestTask {
         |  type: 'WebpageSnapshot',
         |  id: $webpageSnapshotId,

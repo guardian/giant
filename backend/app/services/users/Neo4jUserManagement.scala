@@ -65,7 +65,7 @@ class Neo4jUserManagement(neo4jDriver: Driver, executionContext: ExecutionContex
   override def listUsersWithPermission(permission: UserPermission): Attempt[List[DBUser]] = attemptTransaction { tx =>
     val attemptedResult = tx.run(
       """
-        |MATCH (user :User)-[:HAS_PERMISSION]->(permission: Permission { name: {permissionName} })
+        |MATCH (user :User)-[:HAS_PERMISSION]->(permission: Permission { name: $permissionName })
         |RETURN user
       """.stripMargin,
       parameters(
@@ -86,7 +86,7 @@ class Neo4jUserManagement(neo4jDriver: Driver, executionContext: ExecutionContex
   override def getPermissions(username: String): Attempt[UserPermissions] = attemptTransaction { tx =>
     tx.run(
       """
-        |MATCH (user: User { username: {username} })
+        |MATCH (user: User { username: $username })
         |OPTIONAL MATCH (permission: Permission)<-[:HAS_PERMISSION]-(user)
         |RETURN permission
       """.stripMargin,
@@ -101,12 +101,12 @@ class Neo4jUserManagement(neo4jDriver: Driver, executionContext: ExecutionContex
       s"""
          |CREATE
          | (user :User {
-         |   username: {username},
-         |   displayName: {displayName},
-         |   password: {password},
-         |   invalidationTime: {invalidationTime},
-         |   registered: {registered},
-         |   totpSecret: {totpSecret}
+         |   username: $$username,
+         |   displayName: $$displayName,
+         |   password: $$password,
+         |   invalidationTime: $$invalidationTime,
+         |   registered: $$registered,
+         |   totpSecret: $$totpSecret
          | })
          |
          | ${permissionQuery(permissions)}
@@ -138,13 +138,13 @@ class Neo4jUserManagement(neo4jDriver: Driver, executionContext: ExecutionContex
   override def importUser(user: DBUser, permissions: UserPermissions): Attempt[DBUser] = attemptTransaction { tx =>
     val attemptedResult = tx.run(
       s"""
-         |MERGE (user :User { username: {username} })
+         |MERGE (user :User { username: $$username })
          |
-         | SET user.displayName = {displayName}
-         | SET user.password = {password}
-         | SET user.invalidationTime = {invalidationTime}
-         | SET user.registered = {registered}
-         | SET user.totpSecret = {totpSecret}
+         | SET user.displayName = $$displayName
+         | SET user.password = $$password
+         | SET user.invalidationTime = $$invalidationTime
+         | SET user.registered = $$registered
+         | SET user.totpSecret = $$totpSecret
          |
          | ${permissionQuery(permissions)}
          |
@@ -174,9 +174,7 @@ class Neo4jUserManagement(neo4jDriver: Driver, executionContext: ExecutionContex
       "registered" -> true)
 
     _ <- createDefaultUserResources(user.toPartial)
-  } yield {
-    user
-  }
+  } yield user
 
   override def updateUserDisplayName(username: String, displayName: String): Attempt[DBUser] =
     updateUser(username, "displayName" -> displayName)
@@ -189,14 +187,14 @@ class Neo4jUserManagement(neo4jDriver: Driver, executionContext: ExecutionContex
 
   private def updateUser(username: String, fields: (String, Any)* ): Attempt[DBUser] = attemptTransaction { tx =>
     val setStatements = fields.map { case (fieldName, value) =>
-      s"SET user.$fieldName = {$fieldName}"
+      s"SET user.$fieldName = $$$fieldName"
     }
     val params: Seq[Any] =
       Seq("username", username) ++ fields.flatMap { case (fieldName, value) => Seq(fieldName, value) }
 
     val attemptedResult = tx.run(
       s"""
-        |MATCH (user :User {username: {username}})
+        |MATCH (user :User {username: $$username})
         |${setStatements.mkString("\n")}
         |RETURN user
       """.stripMargin,
@@ -212,7 +210,7 @@ class Neo4jUserManagement(neo4jDriver: Driver, executionContext: ExecutionContex
   override def getUser(username: String): Attempt[DBUser] = attemptTransaction { tx =>
     val attemptedResult = tx.run(
       """
-        |MATCH (user :User {username: {username}})
+        |MATCH (user :User {username: $username})
         |RETURN user
       """.stripMargin,
       parameters("username", username)
@@ -227,7 +225,7 @@ class Neo4jUserManagement(neo4jDriver: Driver, executionContext: ExecutionContex
   override def removeUser(username: String): Attempt[Unit] = attemptTransaction { tx =>
     val attemptedResult = tx.run(
       """
-        |MATCH (user :User {username: {username}})
+        |MATCH (user :User {username: $username})
         |DETACH DELETE user
       """.stripMargin,
       parameters("username", username)
@@ -243,8 +241,8 @@ class Neo4jUserManagement(neo4jDriver: Driver, executionContext: ExecutionContex
   override def updateInvalidatedTime(username: String, invalidationTime: Long): Attempt[DBUser] = attemptTransaction { tx =>
     val attemptedResult = tx.run(
       """
-        |MATCH (user :User {username: {username}})
-        |SET user.invalidationTime = {invalidationTime}
+        |MATCH (user :User {username: $username})
+        |SET user.invalidationTime = $invalidationTime
         |RETURN user
       """.stripMargin,
       parameters(
@@ -281,7 +279,7 @@ class Neo4jUserManagement(neo4jDriver: Driver, executionContext: ExecutionContex
   override def getDefaultCollectionUriForUser(username: String): Attempt[String] = attemptTransaction { tx =>
     tx.run(
       """
-        | MATCH (user: User { username: {username} })-[:CAN_SEE]->(collection: Collection { createdBy: {username}})<-[:PARENT]-(ingestion:Ingestion { default: true })
+        | MATCH (user: User { username: $username })-[:CAN_SEE]->(collection: Collection { createdBy: $username})<-[:PARENT]-(ingestion:Ingestion { default: true })
         | RETURN collection.uri as collectionUri
         | ORDER BY ID(ingestion) ASC
         | LIMIT 1
@@ -295,7 +293,7 @@ class Neo4jUserManagement(neo4jDriver: Driver, executionContext: ExecutionContex
   override def getUsersForCollection(collectionUri: String): Attempt[Set[String]] = attemptTransaction { tx =>
     tx.run(
       """
-        | MATCH (collection: Collection { uri: {collection} })
+        | MATCH (collection: Collection { uri: $collection })
         | MATCH (user: User)-[:CAN_SEE]->(collection)
         | RETURN user.username as username
       """.stripMargin,
@@ -310,7 +308,7 @@ class Neo4jUserManagement(neo4jDriver: Driver, executionContext: ExecutionContex
   override def getVisibleCollectionUrisForUser(username: String): Attempt[Set[String]] = attemptTransaction { tx =>
     val result = tx.run(
       """
-        |MATCH (u: User { username: {username} })-[:CAN_SEE]->(collection: Collection)
+        |MATCH (u: User { username: $username })-[:CAN_SEE]->(collection: Collection)
         |MATCH (collection)<-[:CAN_SEE]-(user: User)
         |RETURN collection.uri as collection
       """.stripMargin,
@@ -329,8 +327,8 @@ class Neo4jUserManagement(neo4jDriver: Driver, executionContext: ExecutionContex
   override def addUserCollection(username: String, collection: String): Attempt[Unit] = attemptTransaction { tx =>
     tx.run(
       """
-        |MATCH (user: User { username: {username} })
-        |MATCH (collection: Collection { uri: {collection} })
+        |MATCH (user: User { username: $username })
+        |MATCH (collection: Collection { uri: $collection })
         |CREATE UNIQUE (user)-[:CAN_SEE]->(collection)
       """.stripMargin,
       parameters(
@@ -343,7 +341,7 @@ class Neo4jUserManagement(neo4jDriver: Driver, executionContext: ExecutionContex
   override def removeUserCollection(username: String, collection: String): Attempt[Unit] = attemptTransaction { tx =>
     tx.run(
       """
-        |MATCH (u: User { username: {username} })-[r:CAN_SEE]->(c: Collection { uri: {collection}})
+        |MATCH (u: User { username: $username })-[r:CAN_SEE]->(c: Collection { uri: $collection})
         |DETACH DELETE r
       """.stripMargin,
       parameters(
@@ -356,7 +354,7 @@ class Neo4jUserManagement(neo4jDriver: Driver, executionContext: ExecutionContex
   override def setPermissions(user: String, permissions: UserPermissions): Attempt[Unit] = attemptTransaction { tx =>
     tx.run(
       s"""
-        |MATCH (user: User { username: { username } })
+        |MATCH (user: User { username: $$username })
         |${permissionQuery(permissions)}
         |RETURN user
       """.stripMargin,
@@ -423,7 +421,7 @@ class Neo4jUserManagement(neo4jDriver: Driver, executionContext: ExecutionContex
       """.stripMargin
     } else {
       """
-        |WITH {granted} as permissions, user
+        |WITH $granted as permissions, user
         |OPTIONAL MATCH (user)-[existing: HAS_PERMISSION]->(otherPermission: Permission)
         |  WHERE NOT otherPermission.name IN permissions
         |  DELETE existing

@@ -190,7 +190,7 @@ class Neo4jHelper(driver: Driver, executionContext: ExecutionContext, queryLoggi
         .map(_.group(1).toInt)
 
       val nodesResult = tx.run(
-        """MATCH (n) WHERE id(n) IN {nodeIds} RETURN n""",
+        """MATCH (n) WHERE id(n) IN $nodeIds RETURN n""",
         parameters("nodeIds", nodeIds.asJava)
       )
       val nodes = nodesResult
@@ -211,7 +211,7 @@ class Neo4jHelper(driver: Driver, executionContext: ExecutionContext, queryLoggi
       .map(_.group(1).toInt)
 
     val relationshipsResult = tx.run(
-      """MATCH ()-[r]->() WHERE id(r) IN {relationshipIds} RETURN r""",
+      """MATCH ()-[r]->() WHERE id(r) IN $relationshipIds RETURN r""",
       parameters("relationshipIds", relationshipIds.asJava)
     )
     val relationships = relationshipsResult
