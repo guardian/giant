@@ -82,6 +82,7 @@ export default class Header extends React.Component {
       <HeaderSearchLink
         to="/settings/dataset-permissions"
         activePaths={["/settings"]}
+        title="Settings"
       >
         <Settings className="main-header__item__icon" />
       </HeaderSearchLink>
