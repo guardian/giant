@@ -65,7 +65,7 @@ Click the **Search** button in the top left of any Giant screen to get to the se
 
 <div class="doc-figure" style="width: 75%;">
 
-<img src="/docs/images/02_1_search_page_empty.png" alt="Empty Giant Search page" width="100%" />
+<img src="/docs/images/02_1_search_page_empty.jpg" alt="Empty Giant Search page" width="100%" />
 
 <div class="doc-caption">
 
@@ -182,7 +182,7 @@ If your search gets a hit, the documents that match the search terms will be lis
 
 <div class="doc-figure" style="width: 80%;">
 
-<img src="/docs/images/02_search_results_highlighted_rev.png" alt="Search results with highlighted matches" width="100%"  />
+<img src="/docs/images/02_search_results_highlighted_rev.jpg" alt="Search results with highlighted matches" width="100%"  />
 
 <div class="doc-caption">
 
@@ -225,7 +225,7 @@ The document will be opened in a document viewer window. This consists of a side
 
 <div class="doc-figure" style="width: 80%;">
 
-<img src="/docs/images/03_1_docviewer_page.png" alt="Combined document view with highlighted search match" width="100%"  />
+<img src="/docs/images/03_1_docviewer_page.jpg" alt="Combined document view with highlighted search match" width="100%"  />
 
 <div class="doc-caption">
 
@@ -261,7 +261,7 @@ If the content in the document is difficult to read, you can try the following:
 
 - If all else fails, use the "View as Text" button in the sidebar:
 
-  <img src="/docs/images/04_2_docviewer_view_as_text.png" alt="View as Text button in document sidebar" width="75%" />
+  <img src="/docs/images/04_2_docviewer_view_as_text.jpg" alt="View as Text button in document sidebar" width="75%" />
 
 ## **Searching within a combined view document** {#searching-within-a-combined-view-document}
 
@@ -285,7 +285,7 @@ All image files are processed by Giant's optical character recognition engine to
 
 <div class="doc-figure" style="width: 80%;">
 
-<img src="/docs/images/06_1_docviewer_image_switch_to_preview.gif" alt="Animated demo of switching an image document from OCR text to Preview mode" width="100%"  />
+<video src="/docs/images/06_1_docviewer_image_switch_to_preview.mp4" autoplay loop muted playsinline width="100%" title="Animated demo of switching an image document from OCR text to Preview mode"></video>
 
 <div class="doc-caption">
 
@@ -301,7 +301,7 @@ In a similar fashion to the way Giant extracts text from images, it transcribes 
 
 <div class="doc-figure" style="width: 80%;">
 
-<img src="/docs/images/06_1_docviewer_video_switch_to_preview.gif" alt="Animated demo of switching a video document from transcript text to Preview mode" width="100%"  />
+<video src="/docs/images/06_1_docviewer_video_switch_to_preview.mp4" autoplay loop muted playsinline width="100%" title="Animated demo of switching a video document from transcript text to Preview mode"></video>
 
 <div class="doc-caption">
 
@@ -347,7 +347,7 @@ In Giant, click the **Workspaces** button at the top of the screen and hit the *
 
 <div class="doc-figure" style="width: 50%;">
 
-<img src="/docs/images/07_workspaces_new_button.png" alt="New Workspace button in Workspaces sidebar" width="100%"  />
+<img src="/docs/images/07_workspaces_new_button.jpg" alt="New Workspace button in Workspaces sidebar" width="100%"  />
 
 <div class="doc-caption">
 
@@ -391,7 +391,7 @@ Drag a selection of files, or a directory and all its contents, into the spot in
 
 <div class="doc-figure" style="width: 75%;">
 
-<img src="/docs/images/09_1_workspaces_upload_drag.gif" alt="Animated demo of dragging files or folders into a workspace to upload" width="100%"  />
+<video src="/docs/images/09_1_workspaces_upload_drag.mp4" autoplay loop muted playsinline width="100%" title="Animated demo of dragging files or folders into a workspace to upload"></video>
 
 <div class="doc-caption">
 
@@ -414,7 +414,7 @@ Click the Upload button at the top of the screen:
 
 <div class="doc-figure" style="width: 75%;">
 
-<img src="/docs/images/09_workspaces_upload_button.png" alt="Upload button in a workspace" width="100%"  />
+<img src="/docs/images/09_workspaces_upload_button.jpg" alt="Upload button in a workspace" width="100%"  />
 
 <div class="doc-caption">
 
@@ -428,7 +428,7 @@ If you do the latter you'll be shown a window where you can choose one of two op
 
 <div class="doc-figure" style="width: 60%;">
 
-<img src="/docs/images/10_workspaces_upload_selection_dialog.png" alt="Upload selection dialog with Add Files and Add Directory" width="100%"  />
+<img src="/docs/images/10_workspaces_upload_selection_dialog.jpg" alt="Upload selection dialog with Add Files and Add Directory" width="100%"  />
 
 <div class="doc-caption">
 
@@ -449,7 +449,7 @@ Whether you dragged files into the workspace manually or went via the Upload but
 
 <div class="doc-figure" style="width: 60%;">
 
-<img src="/docs/images/10_1_workspaces_upload_review_dialog.png" alt="Upload review dialog showing selected files and folders" width="100%"  />
+<img src="/docs/images/10_1_workspaces_upload_review_dialog.jpg" alt="Upload review dialog showing selected files and folders" width="100%"  />
 
 <div class="doc-caption">
 
@@ -468,7 +468,7 @@ Once uploaded, the files will appear in the workspace. The spinning icon indicat
 
 <div class="doc-figure" style="width: 75%;">
 
-<img src="/docs/images/11_workspaces_file_listing_processed.png" alt="Workspace file list showing processing status" width="100%"  />
+<img src="/docs/images/11_workspaces_file_listing_processed.jpg" alt="Workspace file list showing processing status" width="100%"  />
 
 <div class="doc-caption">
 
@@ -492,7 +492,7 @@ Within a workspace click the **Capture from URL** button:
 
 <div class="doc-figure" style="width: 100%;">
 
-<img src="/docs/images/12_workspaces_capture_from_url_button.png" alt="Capture from URL button in workspace" width="100%"  />
+<img src="/docs/images/12_workspaces_capture_from_url_button.jpg" alt="Capture from URL button in workspace" width="100%"  />
 
 <div class="doc-caption">
 
@@ -506,7 +506,7 @@ Enter the URL of the page you want captured and where in the workspace you want 
 
 <div class="doc-figure" style="width: 50%;">
 
-<img src="/docs/images/13_workspaces_capture_from_url_selection_dialog.png" alt="Capture from URL dialog with URL and destination options" width="100%"  />
+<img src="/docs/images/13_workspaces_capture_from_url_selection_dialog.jpg" alt="Capture from URL dialog with URL and destination options" width="100%"  />
 
 <div class="doc-caption">
 
@@ -528,7 +528,7 @@ From a webpage right-click and opt to **Capture with Giant**. You’ll be given 
 
 <div class="doc-figure" style="width: 75%;">
 
-<img src="/docs/images/14_workspaces_capture_from_url_workflow.gif" alt="Workflow for capturing web content with Giant" width="100%" />
+<video src="/docs/images/14_workspaces_capture_from_url_workflow.mp4" autoplay loop muted playsinline width="100%" title="Workflow for capturing web content with Giant"></video>
 
 <div class="doc-caption">
 
@@ -550,7 +550,7 @@ Open the file. In the left-hand sidebar you will see the **Add to Workspace** bu
 
 <div class="doc-figure" style="width: 75%;">
 
-<img src="/docs/images/15_1_docsidebar_add_to_workspace_button.png" alt="Add to Workspace button in document sidebar" width="100%"  />
+<img src="/docs/images/15_1_docsidebar_add_to_workspace_button.jpg" alt="Add to Workspace button in document sidebar" width="100%"  />
 
 <div class="doc-caption">
 
@@ -564,7 +564,7 @@ You'll be shown a dialog box where you should pick a target workspace. Every wor
 
 <div class="doc-figure" style="width: 50%;">
 
-<img src="/docs/images/15_docsidebar_add_to_workspace_dialog.png" alt="Add to Workspace dialog with workspace and folder selection" width="100%"  />
+<img src="/docs/images/15_docsidebar_add_to_workspace_dialog.jpg" alt="Add to Workspace dialog with workspace and folder selection" width="100%"  />
 
 <div class="doc-caption">
 
@@ -590,7 +590,7 @@ Use this method if you have files or folders in a workspace but want to move or 
 
 <div class="doc-figure" style="width: 75%;">
 
-<img src="/docs/images/17_1_workspaces_drag_to_move_animated.gif" alt="Animated demo of dragging items from one workspace to another" width="100%"  />
+<video src="/docs/images/17_1_workspaces_drag_to_move_animated.mp4" autoplay loop muted playsinline width="100%" title="Animated demo of dragging items from one workspace to another"></video>
 
 <div class="doc-caption">
 
@@ -609,7 +609,7 @@ To **create a folder** click the **New Folder** button:
 
 <div class="doc-figure" style="width: 40%;">
 
-<img src="/docs/images/16_workspaces_new_folder_button.png" alt="New Folder button in a workspace" width="100%"  />
+<img src="/docs/images/16_workspaces_new_folder_button.jpg" alt="New Folder button in a workspace" width="100%"  />
 
 <div class="doc-caption">
 
@@ -623,7 +623,7 @@ To **move files** just drag them around, like you do in the Finder on a Mac. `Sh
 
 <div class="doc-figure" style="width: 50%;">
 
-<img src="/docs/images/17_workspaces_drag_to_move.png" alt="Dragging files and folders within a workspace" width="100%"  />
+<img src="/docs/images/17_workspaces_drag_to_move.jpg" alt="Dragging files and folders within a workspace" width="100%"  />
 
 <div class="doc-caption">
 
@@ -637,7 +637,7 @@ To **rename a file** or **remove a file**, right-click on it:
 
 <div class="doc-figure" style="width: 50%;">
 
-<img src="/docs/images/18_workspaces_contextual_menu_rename.png" alt="Workspace context menu with Rename option" width="100%"  />
+<img src="/docs/images/18_workspaces_contextual_menu_rename.jpg" alt="Workspace context menu with Rename option" width="100%"  />
 
 <div class="doc-caption">
 
@@ -655,7 +655,7 @@ If you alone own a document (i.e. no one else uploaded the same file), you may b
 
 <div class="doc-figure" style="width: 50%;">
 
-<img src="/docs/images/19_workspaces_contextual_menu_delete.png" alt="Workspace context menu with Delete file option" width="100%"  />
+<img src="/docs/images/19_workspaces_contextual_menu_delete.jpg" alt="Workspace context menu with Delete file option" width="100%"  />
 
 <div class="doc-caption">
 
@@ -681,7 +681,7 @@ Go to your workspace and right-click on the folder that you want to search. You'
 
 <div class="doc-figure" style="width: 50%;">
 
-<img src="/docs/images/20_workspaces_contextual_menu_search_in_folder.png" alt="Folder context menu with Search in Folder option" width="100%"  />
+<img src="/docs/images/20_workspaces_contextual_menu_search_in_folder.jpg" alt="Folder context menu with Search in Folder option" width="100%"  />
 
 <div class="doc-caption">
 
@@ -695,7 +695,7 @@ This will take you to Giant's search view, with that workspace and folder presel
 
 <div class="doc-figure" style="width: 100%;">
 
-<img src="/docs/images/21_search_chips_workspace_folder.png" alt="Search page with workspace and folder chips preselected" width="100%"  />
+<img src="/docs/images/21_search_chips_workspace_folder.jpg" alt="Search page with workspace and folder chips preselected" width="100%"  />
 
 <div class="doc-caption">
 
@@ -713,7 +713,7 @@ Click **Search** in the Giant page header to switch to Giant's search view:
 
 <div class="doc-figure" style="width: 100%;">
 
-<img src="/docs/images/22_workspaces_search_workspace_button.png" alt="Search Workspace button in workspace header" width="100%"  />
+<img src="/docs/images/22_workspaces_search_workspace_button.jpg" alt="Search Workspace button in workspace header" width="100%"  />
 
 <div class="doc-caption">
 
@@ -733,7 +733,7 @@ To share access with others, click the **Share Workspace** button that is displa
 
 <div class="doc-figure" style="width: 50%;">
 
-<img src="/docs/images/24_workspaces_share_dialog.png" alt="Share Workspace dialog with email list" width="100%"  />
+<img src="/docs/images/24_workspaces_share_dialog.jpg" alt="Share Workspace dialog with email list" width="100%"  />
 
 <div class="doc-caption">
 
@@ -780,7 +780,7 @@ As noted above, files you upload into workspaces are stored in your personal dat
 
 <div class="doc-figure" style="width: 50%;">
 
-<img src="/docs/images/25_datasets_my_documents.png" alt="Datasets view showing personal documents dataset" width="100%"  />
+<img src="/docs/images/25_datasets_my_documents.jpg" alt="Datasets view showing personal documents dataset" width="100%"  />
 
 <div class="doc-caption">
 
@@ -812,7 +812,7 @@ To force Giant to reprocess a file, locate it in a workspace and right-click on 
 
 <div class="doc-figure" style="width: 75%;">
 
-<img src="/docs/images/26_workspaces_node_reprocess.png" alt="Workspace file context menu with Reprocess option" width="100%"  />
+<img src="/docs/images/26_workspaces_node_reprocess.jpg" alt="Workspace file context menu with Reprocess option" width="100%"  />
 
 <div class="doc-caption">
 
@@ -832,7 +832,7 @@ If you're confident that a document is safe to download, use the Download option
 
 <div class="doc-figure" style="width: 75%;">
 
-<img src="/docs/images/27_docviewer_download_button.png" alt="Download button in document sidebar" width="100%"  />
+<img src="/docs/images/27_docviewer_download_button.jpg" alt="Download button in document sidebar" width="100%"  />
 
 <div class="doc-caption">
 
