@@ -12,13 +12,16 @@ export function findActiveHeadingId(
   getElementById: (id: string) => HTMLElement | null = (id) =>
     document.getElementById(id),
 ): string | null {
-  // get the first heading within 80px of the scroll position
-  const [activeHeading] = headings.filter((h) => {
-    const headingScrollTop = getElementById(h.id)?.scrollTop;
-    return headingScrollTop && headingScrollTop - 80 <= scrollTop;
-  });
+  let current: string | null = null;
 
-  return activeHeading?.id ?? null;
+  for (const h of headings) {
+    const el = getElementById(h.id);
+    if (el && el.offsetTop - 80 <= scrollTop) {
+      current = h.id;
+    }
+  }
+
+  return current;
 }
 
 function collectHeadingsFromDom(): Heading[] {
