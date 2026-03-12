@@ -36,10 +36,10 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
   override def setup(): Either[Failure, Unit] = {
     for {
       _ <- transaction { tx =>
-        tx.run("CREATE CONSTRAINT ON (dictionary :Dictionary) ASSERT dictionary.id IS UNIQUE")
-        tx.run("CREATE CONSTRAINT ON (workspace :Workspace) ASSERT workspace.id IS UNIQUE")
-        tx.run("CREATE CONSTRAINT ON (node :WorkspaceNode) ASSERT node.id IS UNIQUE")
-        tx.run("CREATE CONSTRAINT ON (comment :Comment) ASSERT comment.id IS UNIQUE")
+        tx.run("CREATE CONSTRAINT IF NOT EXISTS FOR (dictionary :Dictionary) REQUIRE dictionary.id IS UNIQUE")
+        tx.run("CREATE CONSTRAINT IF NOT EXISTS FOR (workspace :Workspace) REQUIRE workspace.id IS UNIQUE")
+        tx.run("CREATE CONSTRAINT IF NOT EXISTS FOR (node :WorkspaceNode) REQUIRE node.id IS UNIQUE")
+        tx.run("CREATE CONSTRAINT IF NOT EXISTS FOR (comment :Comment) REQUIRE comment.id IS UNIQUE")
         Right(())
       }
     } yield Right(())

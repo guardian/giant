@@ -39,9 +39,9 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
   implicit val ec: ExecutionContext = executionContext
 
   override def setup(): Either[Failure, Unit] = transaction { tx =>
-      tx.run("CREATE CONSTRAINT ON (resource: Resource)   ASSERT resource.uri   IS UNIQUE")
-      tx.run("CREATE CONSTRAINT ON (extractor: Extractor) ASSERT extractor.name IS UNIQUE")
-      tx.run("CREATE CONSTRAINT ON (tpe: MimeType)        ASSERT tpe.mimeType   IS UNIQUE")
+      tx.run("CREATE CONSTRAINT IF NOT EXISTS FOR (resource: Resource)   REQUIRE resource.uri   IS UNIQUE")
+      tx.run("CREATE CONSTRAINT IF NOT EXISTS FOR (extractor: Extractor) REQUIRE extractor.name IS UNIQUE")
+      tx.run("CREATE CONSTRAINT IF NOT EXISTS FOR (tpe: MimeType)        REQUIRE tpe.mimeType   IS UNIQUE")
 
       Right(())
   }

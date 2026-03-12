@@ -28,9 +28,9 @@ class Neo4jRemoteIngestStore(driver: Driver, executionContext: ExecutionContext,
   implicit val ec: ExecutionContext = executionContext
 
   override def setup(): Either[Failure, Unit] = transaction { tx =>
-    tx.run("CREATE CONSTRAINT ON (remoteIngest: RemoteIngest)   ASSERT remoteIngest.id   IS UNIQUE")
-    tx.run("CREATE CONSTRAINT ON (task: RemoteIngestTask)   ASSERT task.id   IS UNIQUE")
-    tx.run("CREATE INDEX ON :RemoteIngestTask(status)")
+    tx.run("CREATE CONSTRAINT IF NOT EXISTS FOR (remoteIngest: RemoteIngest)   REQUIRE remoteIngest.id   IS UNIQUE")
+    tx.run("CREATE CONSTRAINT IF NOT EXISTS FOR (task: RemoteIngestTask)   REQUIRE task.id   IS UNIQUE")
+    tx.run("CREATE INDEX IF NOT EXISTS FOR (task:RemoteIngestTask) ON (task.status)")
     Right(())
   }
   override def insertRemoteIngest(
