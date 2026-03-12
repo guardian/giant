@@ -24,6 +24,11 @@
     overflow-y: auto;
   }
 
+  &__content--docs {
+    max-height: calc(100vh - #{$headerHeight});
+    overflow-y: auto;
+  }
+
   &__main-content {
     margin: $baseSpacing * 2;
     flex-grow: 2;

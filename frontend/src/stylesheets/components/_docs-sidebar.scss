@@ -1,0 +1,54 @@
+.docs-sidebar {
+  max-height: calc(100vh - #{$headerHeight});
+  overflow-y: auto;
+  position: sticky;
+  top: $headerHeight;
+
+  &__back {
+    display: block;
+    padding: $baseSpacing;
+    color: $primary;
+    text-decoration: none;
+    font-size: 14px;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+
+  &__toc {
+    flex: 1;
+    overflow-y: auto;
+    padding-top: $baseSpacing;
+  }
+
+  &__link {
+    display: block;
+    width: 100%;
+    text-align: left;
+    padding: 4px $baseSpacing;
+    border: none;
+    background: none;
+    cursor: pointer;
+    font-size: 15px;
+    line-height: 1.4;
+    color: $primaryDark;
+    white-space: normal;
+    word-wrap: break-word;
+
+    &:hover {
+      background-color: $secondary;
+    }
+
+    &--sub {
+      padding-left: $baseSpacing * 2;
+      font-size: 14px;
+      color: $primary;
+    }
+
+    &--active {
+      background-color: $secondary;
+      font-weight: bold;
+    }
+  }
+}
