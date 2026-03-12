@@ -49,7 +49,7 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
     tx.run(
       """
         |MATCH (workspace :Workspace)
-        |WHERE (:User { username: $currentUser })-[:FOLLOWING|:OWNS]->(workspace) OR workspace.isPublic
+        |WHERE (:User { username: $currentUser })-[:FOLLOWING|OWNS]->(workspace) OR workspace.isPublic
         |MATCH (creator :User)-[:CREATED]->(workspace)<-[:FOLLOWING]-(follower :User)
         |MATCH (owner :User)-[:OWNS]->(workspace)
         |RETURN workspace, creator, owner, collect(distinct follower) as followers
@@ -73,7 +73,7 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
     tx.run(
       """
         |MATCH (workspace :Workspace {id: $id })
-        |WHERE (:User { username: $currentUser })-[:FOLLOWING|:OWNS]->(workspace) OR workspace.isPublic
+        |WHERE (:User { username: $currentUser })-[:FOLLOWING|OWNS]->(workspace) OR workspace.isPublic
         |MATCH (creator :User)-[:CREATED]->(workspace)<-[:FOLLOWING]-(follower :User)
         |MATCH (owner :User)-[:OWNS]->(workspace)
         |RETURN workspace, creator, owner, collect(distinct follower) as followers
@@ -101,7 +101,7 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
     tx.run(
       """
         |MATCH (workspace: Workspace { id: $id })
-        |WHERE (:User { username: $currentUser })-[:FOLLOWING|:OWNS]->(workspace) OR workspace.isPublic
+        |WHERE (:User { username: $currentUser })-[:FOLLOWING|OWNS]->(workspace) OR workspace.isPublic
         |
         |OPTIONAL MATCH (workspace)<-[:PART_OF]-(node :WorkspaceNode)<-[:CREATED]-(nodeCreator :User)
         |
@@ -109,7 +109,7 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
         |
         |OPTIONAL MATCH (node)-[:FROM]->(remoteIngest: RemoteIngest)
         |
-        |OPTIONAL MATCH (:Resource {uri: node.uri})<-[todo:TODO|:PROCESSING_EXTERNALLY]-(:Extractor)
+        |OPTIONAL MATCH (:Resource {uri: node.uri})<-[todo:TODO|PROCESSING_EXTERNALLY]-(:Extractor)
         |RETURN node, nodeCreator, parentNode.id, remoteIngest.url,
         |	count(todo) AS numberOfTodos,
         |	collect(todo)[0].note as note,
