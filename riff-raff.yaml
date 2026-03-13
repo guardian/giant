@@ -24,7 +24,7 @@ deployments:
       amiTags:
         Recipe: investigations-neo4j-jammy
         AmigoStage: PROD
-        Encrypted: pfi-playground
+        Encrypted: investigations
 
   pfi-elasticsearch-ami-update:
     type: ami-cloudformation-parameter
