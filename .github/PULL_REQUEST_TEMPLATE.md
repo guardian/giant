@@ -9,7 +9,8 @@
  - [ ] Tested on playground
 
 ## Things to think about
- - [ ] Does this change impact the external transcription service integration? If so, how has this been tested?
+ - Does this change impact the external transcription service integration? If so, how has this been tested?
+ - For UI changes: have you thought about accessibility? See https://github.com/guardian/accessibility/
 
 ## Images
 
