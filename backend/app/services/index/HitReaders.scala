@@ -306,10 +306,12 @@ object HitReaders {
       case Some(highlights) if highlights.nonEmpty =>
         val prefix = IndexFields.ocr + "."
 
-        Some(highlights.collect {
+        val result = highlights.collect {
           case (key, values) if key.startsWith(IndexFields.ocr) && values.nonEmpty =>
             key.substring(prefix.length) -> values.head
-        })
+        }
+
+        if (result.nonEmpty) Some(result) else None
 
       case _ =>
         None
@@ -333,7 +335,8 @@ object HitReaders {
           }
         }
 
-        Some(highlightedLanguages ++ nonHighlightedLanguages.getOrElse(Map()))
+        val result = highlightedLanguages ++ nonHighlightedLanguages.getOrElse(Map())
+        if (result.nonEmpty) Some(result) else None
 
       case _ =>
         None
