@@ -70,8 +70,8 @@ export function buildSegments(resource: BasicResource): PathSegment[] {
 }
 
 function shrinkDisplay(display: string): string {
-  if (display.length > 15) {
-    return display.substring(0, 15) + "...";
+  if (display.length > 26) {
+    return display.substring(0, 26) + "...";
   }
 
   return display;

@@ -82,6 +82,8 @@ $btnBoxShadowHeight: 2px;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  flex-wrap: wrap;
+  gap: calc($baseSpacing / 2);
 
   // Title with a button to the right
   &--title {
@@ -94,7 +96,7 @@ $btnBoxShadowHeight: 2px;
   }
 
   & .btn:not(:last-child) {
-    margin-right: $baseSpacing;
+    margin-right: calc($baseSpacing / 2);
   }
 
   &--left {

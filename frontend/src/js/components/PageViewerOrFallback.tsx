@@ -124,10 +124,13 @@ export const PageViewerOrFallback: FC<{}> = () => {
   // Default to "combined" when we have pages.
   // Search URLs may set view=ocr.english etc., but for paged documents
   // the combined view should always be the landing view.
+  // `view` is intentionally omitted from deps — this should only run
+  // when totalPages first loads, not when the user switches views.
   useEffect(() => {
     if (totalPages && totalPages > 0 && view !== COMBINED_VIEW) {
       dispatch(setResourceView(COMBINED_VIEW));
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [totalPages, dispatch]);
 
   if (totalPages === null) {
