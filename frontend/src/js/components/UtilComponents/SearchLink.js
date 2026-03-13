@@ -26,7 +26,7 @@ SearchLinkUnconnected.propTypes = {
 
 function NavSearchLinkUnconnected(props) {
   const { to, urlParams, children, onDrop, onDragOver, onDragLeave } = props;
-  const { className, activeClassName, isActive } = props;
+  const { className, activeClassName, isActive, title } = props;
   const link = buildLink(to, urlParams, {});
 
   return (
@@ -38,6 +38,7 @@ function NavSearchLinkUnconnected(props) {
       onDrop={onDrop}
       onDragOver={onDragOver}
       onDragLeave={onDragLeave}
+      title={title}
     >
       {children}
     </NavLink>
