@@ -16,12 +16,17 @@ class PreviewSwitcher extends React.Component {
   static propTypes = {
     resource: resourcePropType,
     view: PropTypes.string,
+    totalPages: PropTypes.number,
     setResourceView: PropTypes.func.isRequired,
   };
 
   currentViewModeIsValid(resource) {
     if (!this.props.view) {
       return false;
+    }
+
+    if (this.props.view === "combined" && this.props.totalPages > 0) {
+      return true;
     }
 
     if (
@@ -130,6 +135,14 @@ class PreviewSwitcher extends React.Component {
           shortcut={keyboardShortcuts.showPreview}
           func={this.showPreview}
         />
+        {this.props.totalPages > 0 && (
+          <PreviewLink
+            current={current}
+            text="Combined"
+            to="combined"
+            navigate={this.props.setResourceView}
+          />
+        )}
         {hasTextContent(this.props.resource) &&
         !this.props.resource.transcript ? (
           <PreviewLink
