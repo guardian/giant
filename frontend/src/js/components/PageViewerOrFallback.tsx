@@ -144,6 +144,7 @@ export const PageViewerOrFallback: FC<{}> = () => {
           flexGrow: 1,
           height: "calc(100vh - 50px)",
           overflow: "hidden",
+          backgroundColor: "rgb(63, 63, 63)",
         }}
       >
         <div
