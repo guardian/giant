@@ -8,7 +8,12 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { CachedPreview, HighlightForSearchNavigation, PageData } from "./model";
+import {
+  CachedPreview,
+  HighlightForSearchNavigation,
+  PageData,
+  PageDimensions,
+} from "./model";
 import { Page } from "./Page";
 import { PageCache } from "./PageCache";
 import styles from "./VirtualScroll.module.css";
@@ -28,6 +33,7 @@ type VirtualScrollProps = {
 
   rotation: number;
   scale: number;
+  firstPageDimensions?: PageDimensions;
 };
 
 type RenderedPage = {
@@ -55,6 +61,7 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
 
   rotation,
   scale,
+  firstPageDimensions,
 }) => {
   // Tweaked this and 2 seems to be a good amount on a regular monitor
   // The fewer pages we preload the faster the initial paint will be
@@ -65,7 +72,12 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
   const MARGIN = 10;
 
   const containerSize = 1000 * scale;
-  const pageHeight = containerSize + MARGIN * 2;
+  // Use the actual page aspect ratio from the backend to calculate slot height.
+  // Falls back to A4 portrait (297/210) if dimensions are not available.
+  const aspectRatio = firstPageDimensions
+    ? firstPageDimensions.height / firstPageDimensions.width
+    : 297 / 210;
+  const pageHeight = containerSize * aspectRatio + MARGIN * 2;
 
   const viewport = useRef<HTMLDivElement>(null);
 

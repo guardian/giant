@@ -2,12 +2,13 @@ import React, { FC, useCallback, useEffect, useState } from "react";
 import { Controls } from "./Controls";
 import styles from "./PageViewer.module.css";
 import { VirtualScroll } from "./VirtualScroll";
-import { HighlightForSearchNavigation } from "./model";
+import { HighlightForSearchNavigation, PageDimensions } from "./model";
 import { range, uniq } from "lodash";
 
 type PageViewerProps = {
   uri: string;
   totalPages: number;
+  firstPageDimensions?: PageDimensions;
 };
 
 export type HighlightsState = {
@@ -45,7 +46,11 @@ function getPreloadPages(highlightState: HighlightsState): number[] {
   );
 }
 
-export const PageViewer: FC<PageViewerProps> = ({ uri, totalPages }) => {
+export const PageViewer: FC<PageViewerProps> = ({
+  uri,
+  totalPages,
+  firstPageDimensions,
+}) => {
   const params = new URLSearchParams(document.location.search);
 
   const searchQuery = params.get("q") ?? undefined;
@@ -156,6 +161,7 @@ export const PageViewer: FC<PageViewerProps> = ({ uri, totalPages }) => {
           pageNumbersToPreload={pageNumbersToPreload}
           rotation={rotation}
           scale={scale}
+          firstPageDimensions={firstPageDimensions}
         />
       ) : null}
     </main>

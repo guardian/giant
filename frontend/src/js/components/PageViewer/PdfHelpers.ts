@@ -75,12 +75,8 @@ const renderPagePreview = async (
   const canvasContext = canvas.getContext("2d")!;
 
   const unscaledViewport = pdfPage.getViewport({ scale: 1.0 });
-  const isLandscape = unscaledViewport.width > unscaledViewport.height;
 
-  const widthScale = containerSize / unscaledViewport.width;
-  const heightScale = containerSize / unscaledViewport.height;
-
-  const scale = isLandscape ? widthScale : heightScale;
+  const scale = containerSize / unscaledViewport.width;
 
   const viewport = pdfPage.getViewport({ scale });
 
