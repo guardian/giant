@@ -22,6 +22,7 @@ class PagesController(val controllerComponents: AuthControllerComponents, manife
   def getPageCount(uri: Uri) = ApiAction.attempt { req =>
     val countAttempt = pagesService.getPageCount(uri)
     val dimensionsAttempt = pagesService.getFirstPageDimensions(uri)
+      .recoverWith { case _ => Attempt.Right(None) }
     for {
       count <- countAttempt
       dimensions <- dimensionsAttempt
