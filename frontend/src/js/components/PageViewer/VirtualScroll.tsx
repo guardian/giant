@@ -74,10 +74,12 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
   const containerSize = 1000 * scale;
   // Use the actual page aspect ratio from the backend to calculate slot height.
   // Falls back to A4 portrait (297/210) if dimensions are not available.
+  const isRotatedSideways = rotation % 180 !== 0;
   const aspectRatio = firstPageDimensions
     ? firstPageDimensions.height / firstPageDimensions.width
     : 297 / 210;
-  const pageHeight = containerSize * aspectRatio + MARGIN * 2;
+  const effectiveAspectRatio = isRotatedSideways ? 1 / aspectRatio : aspectRatio;
+  const pageHeight = containerSize * effectiveAspectRatio + MARGIN * 2;
 
   const viewport = useRef<HTMLDivElement>(null);
 
