@@ -121,12 +121,14 @@ export const PageViewerOrFallback: FC<{}> = () => {
       .then((obj) => setTotalPages(obj.pageCount));
   }, [uri]);
 
-  // Default to "combined" when we have pages and no view is set.
+  // Default to "combined" when we have pages.
+  // Search URLs may set view=ocr.english etc., but for paged documents
+  // the combined view should always be the landing view.
   useEffect(() => {
-    if (totalPages && totalPages > 0 && !view) {
+    if (totalPages && totalPages > 0 && view !== COMBINED_VIEW) {
       dispatch(setResourceView(COMBINED_VIEW));
     }
-  }, [totalPages, view, dispatch]);
+  }, [totalPages, dispatch]);
 
   if (totalPages === null) {
     return null;
@@ -142,7 +144,6 @@ export const PageViewerOrFallback: FC<{}> = () => {
           flexGrow: 1,
           height: "calc(100vh - 50px)",
           overflow: "hidden",
-          backgroundColor: "rgb(63, 63, 63)",
         }}
       >
         <div
