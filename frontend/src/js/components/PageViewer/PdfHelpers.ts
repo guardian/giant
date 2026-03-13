@@ -84,8 +84,17 @@ const renderPagePreview = async (
 
   const viewport = pdfPage.getViewport({ scale });
 
-  canvas.width = viewport.width;
-  canvas.height = viewport.height;
+  // Render at higher resolution on HiDPI displays for sharper text.
+  // The canvas backing store is multiplied by DPR, but CSS dimensions
+  // are set to the logical size so the layout footprint is unchanged.
+  // Critically, `scale` (returned in CachedPreview) stays as the logical
+  // scale — text overlays and highlight geometry depend on this.
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = Math.floor(viewport.width * dpr);
+  canvas.height = Math.floor(viewport.height * dpr);
+  canvas.style.width = `${viewport.width}px`;
+  canvas.style.height = `${viewport.height}px`;
+  canvasContext.scale(dpr, dpr);
 
   // Render
   await pdfPage.render({
