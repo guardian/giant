@@ -178,9 +178,16 @@ export const PageViewerOrFallback: FC<{}> = () => {
     () => setRotation((r) => (r - 90 + 360) % 360),
     [],
   );
-  const zoomIn = useCallback(() => setScale((s) => s + 0.25), []);
+  const SCALE_STEP = 0.25;
+  const MIN_SCALE = 0.25;
+  const MAX_SCALE = 5;
+
+  const zoomIn = useCallback(
+    () => setScale((s) => Math.min(s + SCALE_STEP, MAX_SCALE)),
+    [],
+  );
   const zoomOut = useCallback(
-    () => setScale((s) => Math.max(0.25, s - 0.25)),
+    () => setScale((s) => Math.max(s - SCALE_STEP, MIN_SCALE)),
     [],
   );
 
