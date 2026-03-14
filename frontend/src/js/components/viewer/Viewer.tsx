@@ -468,14 +468,18 @@ class Viewer extends React.Component<Props, State> {
 
     return (
       <div className="viewer">
-        <KeyboardShortcut
-          shortcut={keyboardShortcuts.nextResult}
-          func={this.effectiveNextFn}
-        />
-        <KeyboardShortcut
-          shortcut={keyboardShortcuts.previousResult}
-          func={this.effectivePreviousFn}
-        />
+        {this.effectiveNextFn && (
+          <KeyboardShortcut
+            shortcut={keyboardShortcuts.nextResult}
+            func={this.effectiveNextFn}
+          />
+        )}
+        {this.effectivePreviousFn && (
+          <KeyboardShortcut
+            shortcut={keyboardShortcuts.previousResult}
+            func={this.effectivePreviousFn}
+          />
+        )}
 
         {this.renderResource(this.props.resource)}
         <div className="viewer__footer">
