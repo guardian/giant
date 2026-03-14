@@ -43,6 +43,7 @@ import LazyTreeBrowser from "./LazyTreeBrowser";
 import { SearchResults } from "../../types/SearchResults";
 import { getDefaultView } from "../../util/resourceUtils";
 import DownloadButton from "./DownloadButton";
+import { WorkspaceNavigation } from "../../util/workspaceNavigation";
 
 type Props = {
   match: { params: { uri: string } };
@@ -55,6 +56,7 @@ type Props = {
   currentResults?: SearchResults;
   currentHighlight?: number;
   totalHighlights?: number;
+  workspaceNav?: WorkspaceNavigation;
   getResource: typeof getResource;
   getChildResource: typeof getChildResource;
   resetResource: typeof resetResource;
@@ -298,6 +300,20 @@ class Viewer extends React.Component<Props, State> {
     }
   }
 
+  get effectivePreviousFn(): (() => void) | undefined {
+    if (this.hasPreviousResult()) {
+      return () => this.previousResult();
+    }
+    return this.props.workspaceNav?.goToPrevious;
+  }
+
+  get effectiveNextFn(): (() => void) | undefined {
+    if (this.hasNextResult()) {
+      return () => this.nextResult();
+    }
+    return this.props.workspaceNav?.goToNext;
+  }
+
   renderTextPreview(
     resource: Resource,
     highlightableText: HighlightableText,
@@ -441,11 +457,11 @@ class Viewer extends React.Component<Props, State> {
       <div className="viewer">
         <KeyboardShortcut
           shortcut={keyboardShortcuts.nextResult}
-          func={this.nextResult}
+          func={this.effectiveNextFn}
         />
         <KeyboardShortcut
           shortcut={keyboardShortcuts.previousResult}
-          func={this.previousResult}
+          func={this.effectivePreviousFn}
         />
 
         {this.renderResource(this.props.resource)}
@@ -455,10 +471,8 @@ class Viewer extends React.Component<Props, State> {
             view={this.props.urlParams.view}
             currentHighlight={this.props.currentHighlight}
             totalHighlights={this.props.totalHighlights}
-            previousFn={
-              this.hasPreviousResult() ? () => this.previousResult() : undefined
-            }
-            nextFn={this.hasNextResult() ? () => this.nextResult() : undefined}
+            previousFn={this.effectivePreviousFn}
+            nextFn={this.effectiveNextFn}
           />
         </div>
       </div>

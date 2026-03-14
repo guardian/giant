@@ -15,6 +15,8 @@ import { Resource } from "../types/Resource";
 import { setResourceView } from "../actions/urlParams/setViews";
 import { getComments } from "../actions/resources/getComments";
 import { setSelection } from "../actions/resources/setSelection";
+import history from "../util/history";
+import { useWorkspaceNavigation } from "../util/workspaceNavigation";
 
 const COMBINED_VIEW = "combined";
 
@@ -83,6 +85,8 @@ const PageViewerContent: FC<{
 
 export const PageViewerOrFallback: FC<{}> = () => {
   const { uri } = useParams<{ uri: string }>();
+
+  const workspaceNav = useWorkspaceNavigation(uri, history.push);
   const [totalPages, setTotalPages] = useState<number | null>(null);
   const view = useSelector<GiantState, string | undefined>(
     (state) => state.urlParams.view,
@@ -109,7 +113,7 @@ export const PageViewerOrFallback: FC<{}> = () => {
   if (totalPages === null) {
     return null;
   } else if (totalPages === 0) {
-    return <Viewer match={{ params: { uri } }} />;
+    return <Viewer match={{ params: { uri } }} workspaceNav={workspaceNav} />;
   } else {
     const showTextContent = !isCombinedOrUnset(view);
     return (
