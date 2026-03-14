@@ -7,11 +7,10 @@ const JUNK_BASENAMES = new Set([
   ".apdisk",
 ]);
 
-const JUNK_PATH_SEGMENTS = ["__macosx"];
-
-// Directory names that are macOS system artifacts — if any segment
-// of the path matches one of these, the file is junk.
-const JUNK_DIRECTORY_NAMES = new Set([
+// Directory or path segment names that are macOS/Windows system artifacts —
+// if any segment of the path matches one of these, the file is junk.
+const JUNK_PATH_SEGMENTS = new Set([
+  "__macosx",
   ".spotlight-v100",
   ".trashes",
   ".fseventsd",
@@ -36,14 +35,10 @@ function isSystemFile(path: string): boolean {
   }
 
   // Paths containing macOS zip artifact directories or system directories
-  const lowerPath = path.toLowerCase();
-  const segments = lowerPath.split("/");
+  const segments = path.toLowerCase().split("/");
 
   for (const segment of segments) {
-    if (
-      JUNK_PATH_SEGMENTS.includes(segment) ||
-      JUNK_DIRECTORY_NAMES.has(segment)
-    ) {
+    if (JUNK_PATH_SEGMENTS.has(segment)) {
       return true;
     }
   }
