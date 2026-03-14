@@ -5,9 +5,7 @@ function makeHighlightableText(contents: string): HighlightableText {
   return { contents, highlights: [] };
 }
 
-function makeResource(
-  overrides: Partial<Resource> & { text: HighlightableText },
-): Resource {
+function makeResource(overrides?: Partial<Resource>): Resource {
   return {
     uri: "test/doc.pdf",
     type: "blob",
@@ -20,6 +18,7 @@ function makeResource(
     children: [],
     comments: [],
     previewStatus: "disabled",
+    text: makeHighlightableText(""),
     ...overrides,
   } as Resource;
 }
