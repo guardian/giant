@@ -23,27 +23,17 @@ function basename(path: string): string {
 }
 
 function isSystemFile(path: string): boolean {
-  const name = basename(path).toLowerCase();
+  const lowercasedPath = path.toLowerCase();
+  const name = basename(lowercasedPath);
+  const segments = lowercasedPath.split("/");
 
-  if (JUNK_BASENAMES.has(name)) {
-    return true;
-  }
-
-  // AppleDouble resource fork files (._<filename>)
-  if (name.startsWith("._")) {
-    return true;
-  }
-
-  // Paths containing macOS zip artifact directories or system directories
-  const segments = path.toLowerCase().split("/");
-
-  for (const segment of segments) {
-    if (JUNK_PATH_SEGMENTS.has(segment)) {
-      return true;
-    }
-  }
-
-  return false;
+  return (
+    JUNK_BASENAMES.has(name) ||
+    // AppleDouble resource fork files (._<filename>)
+    name.startsWith("._") ||
+    // Paths containing macOS zip artifact directories or system directories
+    segments.some((segment) => JUNK_PATH_SEGMENTS.has(segment))
+  );
 }
 
 export function filterSystemFiles(files: Map<string, File>): Map<string, File> {
