@@ -78,9 +78,7 @@ export function getCurrentResource(prefix: string): string {
 }
 
 export function hasTextContent(resource: Resource): boolean {
-  return (
-    resource.text !== undefined && resource.text.contents.trim().length > 0
-  );
+  return resource.text.contents.trim() !== "";
 }
 
 export function getDefaultView(resource: Resource): string | undefined {
@@ -99,10 +97,10 @@ export function getDefaultView(resource: Resource): string | undefined {
     return undefined;
   }
 
-  if (resource.text.contents.trim().length === 0 && resource.ocr) {
+  if (!hasTextContent(resource) && resource.ocr) {
     const ocrEntries = Object.entries(resource.ocr);
     const firstNonEmptyEntry = ocrEntries.find(
-      ([_, { contents }]) => contents.trim().length > 0,
+      ([_, { contents }]) => contents.trim() !== "",
     );
 
     if (firstNonEmptyEntry) {
@@ -111,10 +109,7 @@ export function getDefaultView(resource: Resource): string | undefined {
   }
 
   // If text is empty and there's no usable OCR, prefer preview over an empty text view
-  if (
-    resource.text.contents.trim().length === 0 &&
-    resource.previewStatus !== "disabled"
-  ) {
+  if (!hasTextContent(resource) && resource.previewStatus !== "disabled") {
     return "preview";
   }
 
