@@ -70,6 +70,7 @@ export type Resource = BasicResource & {
   children: BasicResource[];
   comments: CommentData[];
   selection?: ResourceRange;
+  previewStatus: string;
   text: HighlightableText;
   ocr?: {
     [lang: string]: HighlightableText;

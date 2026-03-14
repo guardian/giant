@@ -77,6 +77,12 @@ export function getCurrentResource(prefix: string): string {
   return window.location.pathname.split("/").slice(2).join("/");
 }
 
+export function hasTextContent(resource: Resource): boolean {
+  return (
+    resource.text !== undefined && resource.text.contents.trim().length > 0
+  );
+}
+
 export function getDefaultView(resource: Resource): string | undefined {
   if (resource.type !== "blob") {
     return undefined;
@@ -102,6 +108,14 @@ export function getDefaultView(resource: Resource): string | undefined {
     if (firstNonEmptyEntry) {
       return `ocr.${firstNonEmptyEntry[0]}`;
     }
+  }
+
+  // If text is empty and there's no usable OCR, prefer preview over an empty text view
+  if (
+    resource.text.contents.trim().length === 0 &&
+    resource.previewStatus !== "disabled"
+  ) {
+    return "preview";
   }
 
   return "text";
