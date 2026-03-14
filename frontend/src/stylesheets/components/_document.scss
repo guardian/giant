@@ -179,6 +179,45 @@
   opacity: 0.4;
 }
 
+.doc-nav-buttons {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.doc-nav-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 4px;
+  font-size: 22px;
+  transition: background-color 0.15s;
+
+  svg {
+    display: block;
+  }
+}
+
+.doc-nav-button--previous {
+  transform: scaleX(-1);
+}
+
+.doc-nav-button--active {
+  cursor: pointer;
+  color: white;
+
+  &:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+  }
+}
+
+.doc-nav-button--inactive {
+  color: rgba(255, 255, 255, 0.3);
+  cursor: default;
+}
+
 .download-modal__name {
   position: relative;
 }

@@ -300,6 +300,19 @@ class Viewer extends React.Component<Props, State> {
     }
   }
 
+  get navContext(): "search" | "workspace" | undefined {
+    if (this.hasPreviousResult() || this.hasNextResult()) {
+      return "search";
+    }
+    if (
+      this.props.workspaceNav?.hasPrevious ||
+      this.props.workspaceNav?.hasNext
+    ) {
+      return "workspace";
+    }
+    return undefined;
+  }
+
   get effectivePreviousFn(): (() => void) | undefined {
     if (this.hasPreviousResult()) {
       return () => this.previousResult();
@@ -473,6 +486,7 @@ class Viewer extends React.Component<Props, State> {
             totalHighlights={this.props.totalHighlights}
             previousFn={this.effectivePreviousFn}
             nextFn={this.effectiveNextFn}
+            navContext={this.navContext}
           />
         </div>
       </div>

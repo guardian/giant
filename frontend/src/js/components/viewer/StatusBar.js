@@ -3,8 +3,7 @@ import PropTypes from "prop-types";
 import { resourcePropType } from "../../types/Resource";
 import PreviewSwitcher from "./PreviewSwitcher";
 import DownIcon from "react-icons/lib/md/arrow-downward";
-import PreviousIcon from "react-icons/lib/md/navigate-before";
-import NextIcon from "react-icons/lib/md/navigate-next";
+import PlayArrow from "react-icons/lib/md/play-arrow";
 import UpIcon from "react-icons/lib/md/arrow-upward";
 import HighlightToggle from "./HighlightToggle";
 import { keyboardShortcuts } from "../../util/keyboardShortcuts";
@@ -16,25 +15,30 @@ import { bindActionCreators } from "redux";
 import { updatePreference } from "../../actions/preferences";
 import { setCurrentHighlight } from "../../actions/highlights";
 
-function NavButton({ IconElement, title, onClick }) {
-  const className = onClick
-    ? "preview__nav-button--active"
-    : "preview__nav-button--inactive";
+function DocNavButton({ title, onClick, direction }) {
+  const isActive = !!onClick;
+  const className = isActive
+    ? "doc-nav-button doc-nav-button--active"
+    : "doc-nav-button doc-nav-button--inactive";
+  const rotation = direction === "previous" ? "doc-nav-button--previous" : "";
 
   return (
-    <span title={title}>
-      <IconElement
-        className={className}
-        onClick={onClick ? onClick : () => {}}
-      />
+    <span
+      title={title}
+      className={`${className} ${rotation}`}
+      onClick={isActive ? onClick : undefined}
+      role="button"
+      tabIndex={isActive ? 0 : -1}
+    >
+      <PlayArrow />
     </span>
   );
 }
 
-NavButton.propTypes = {
-  IconElement: PropTypes.func.isRequired,
+DocNavButton.propTypes = {
   title: PropTypes.string.isRequired,
   onClick: PropTypes.func,
+  direction: PropTypes.oneOf(["previous", "next"]).isRequired,
 };
 
 class StatusBar extends React.Component {
@@ -44,6 +48,7 @@ class StatusBar extends React.Component {
     previewStatus: PropTypes.string,
     nextFn: PropTypes.func,
     previousFn: PropTypes.func,
+    navContext: PropTypes.oneOf(["search", "workspace"]),
     preferences: PropTypes.object.isRequired,
     updatePreference: PropTypes.func.isRequired,
 
@@ -184,11 +189,6 @@ class StatusBar extends React.Component {
           func={this.nextSearchHighlight}
         />
         <span>
-          <NavButton
-            IconElement={PreviousIcon}
-            title={`Previous result from search (${keyboardShortcuts.previousResult})`}
-            onClick={this.props.previousFn}
-          />
           <button
             onClick={this.highlightButtonClicked}
             className="btn viewer__toggle-highlighting-button"
@@ -198,14 +198,27 @@ class StatusBar extends React.Component {
           {this.renderHighlightToggle()}
           {this.renderSearchResultNavigation()}
         </span>
-        <span>
+        <span className="doc-nav-buttons">
           <PreviewSwitcher
             view={this.props.view}
             resource={this.props.resource}
           />
-          <NavButton
-            IconElement={NextIcon}
-            title={`Next result from search (${keyboardShortcuts.nextResult})`}
+          <DocNavButton
+            direction="previous"
+            title={
+              this.props.navContext === "workspace"
+                ? `Previous in folder (${keyboardShortcuts.previousResult})`
+                : `Previous result (${keyboardShortcuts.previousResult})`
+            }
+            onClick={this.props.previousFn}
+          />
+          <DocNavButton
+            direction="next"
+            title={
+              this.props.navContext === "workspace"
+                ? `Next in folder (${keyboardShortcuts.nextResult})`
+                : `Next result (${keyboardShortcuts.nextResult})`
+            }
             onClick={this.props.nextFn}
           />
         </span>
