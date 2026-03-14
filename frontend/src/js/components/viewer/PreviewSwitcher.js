@@ -12,6 +12,16 @@ import { bindActionCreators } from "redux";
 
 import { setResourceView } from "../../actions/urlParams/setViews";
 
+export function previewLabelForMimeTypes(mimeTypes) {
+  if (mimeTypes.some((m) => m.startsWith("video/"))) {
+    return "Video";
+  }
+  if (mimeTypes.some((m) => m.startsWith("audio/"))) {
+    return "Audio";
+  }
+  return "Preview";
+}
+
 class PreviewSwitcher extends React.Component {
   static propTypes = {
     resource: resourcePropType,
@@ -63,6 +73,10 @@ class PreviewSwitcher extends React.Component {
 
   canPreview(previewStatus) {
     return previewStatus !== "disabled";
+  }
+
+  previewLabel() {
+    return previewLabelForMimeTypes(this.props.resource?.mimeTypes ?? []);
   }
 
   componentDidUpdateOrMount() {
@@ -169,7 +183,7 @@ class PreviewSwitcher extends React.Component {
         {this.canPreview(this.props.resource.previewStatus) ? (
           <PreviewLink
             current={current}
-            text="Preview"
+            text={this.previewLabel()}
             to="preview"
             navigate={this.props.setResourceView}
           />
