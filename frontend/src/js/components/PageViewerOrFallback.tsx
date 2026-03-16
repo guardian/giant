@@ -58,12 +58,9 @@ const PageViewerContent: FC<{
     return <TablePreview text={resource.text.contents} />;
   } else if (view === "preview") {
     return <Preview resource={resource} />;
-  } else if (
-    view!.startsWith("ocr") ||
-    view!.startsWith("transcript") ||
-    view!.startsWith("vttTranscript")
-  ) {
-    const highlightableText = _.get(resource, view!);
+  } else {
+    const highlightableText =
+      view === "text" ? resource.text : _.get(resource, view!);
     if (!highlightableText) {
       return renderNoPreview();
     }
@@ -81,27 +78,7 @@ const PageViewerContent: FC<{
         setSelection={(s?: Selection) => dispatch(setSelection(s))}
       />
     );
-  } else if (view === "text") {
-    if (!resource.text) {
-      return renderNoPreview();
-    }
-    return (
-      <TextPreview
-        uri={resource.uri}
-        currentUser={auth.token!.user}
-        text={resource.text.contents}
-        searchHighlights={resource.text.highlights}
-        view="text"
-        comments={resource.comments}
-        selection={resource.selection}
-        preferences={preferences}
-        getComments={(u: string) => dispatch(getComments(u))}
-        setSelection={(s?: Selection) => dispatch(setSelection(s))}
-      />
-    );
   }
-
-  return renderNoPreview();
 };
 
 export const PageViewerOrFallback: FC<{}> = () => {
