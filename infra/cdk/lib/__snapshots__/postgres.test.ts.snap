@@ -1,6 +1,6 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`The Giant stack matches the snapshot 1`] = `
+exports[`Giant's 'postgres' stack matches the snapshot 1`] = `
 {
   "Metadata": {
     "gu:cdk:constructs": [
@@ -70,7 +70,7 @@ exports[`The Giant stack matches the snapshot 1`] = `
             [
               "{{resolve:secretsmanager:",
               {
-                "Ref": "GiantDatabaseSecret51D228833fdaad7efa858a3daf9490cf0a702aeb",
+                "Ref": "postgresDatabaseSecretCA51D0AC3fdaad7efa858a3daf9490cf0a702aeb",
               },
               ":SecretString:password::}}",
             ],
@@ -180,7 +180,7 @@ exports[`The Giant stack matches the snapshot 1`] = `
     "DatabaseSecretAttachmentE5D1B020": {
       "Properties": {
         "SecretId": {
-          "Ref": "GiantDatabaseSecret51D228833fdaad7efa858a3daf9490cf0a702aeb",
+          "Ref": "postgresDatabaseSecretCA51D0AC3fdaad7efa858a3daf9490cf0a702aeb",
         },
         "TargetId": {
           "Ref": "DatabaseB269D8BB",
@@ -191,7 +191,7 @@ exports[`The Giant stack matches the snapshot 1`] = `
     },
     "DatabaseSecurityGroup7319C0F6": {
       "Properties": {
-        "GroupDescription": "Giant/DatabaseSecurityGroup",
+        "GroupDescription": "postgres/DatabaseSecurityGroup",
         "SecurityGroupEgress": [
           {
             "CidrIp": "0.0.0.0/0",
@@ -223,9 +223,9 @@ exports[`The Giant stack matches the snapshot 1`] = `
       },
       "Type": "AWS::EC2::SecurityGroup",
     },
-    "DatabaseSecurityGroupfromGiantdbaccess9A17AB315432E7A0126D": {
+    "DatabaseSecurityGroupfrompostgresdbaccessDB6F60745432B2BFF6F2": {
       "Properties": {
-        "Description": "from Giantdbaccess9A17AB31:5432",
+        "Description": "from postgresdbaccessDB6F6074:5432",
         "FromPort": 5432,
         "GroupId": {
           "Fn::GetAtt": [
@@ -275,7 +275,55 @@ exports[`The Giant stack matches the snapshot 1`] = `
       },
       "Type": "AWS::RDS::DBSubnetGroup",
     },
-    "GiantDatabaseSecret51D228833fdaad7efa858a3daf9490cf0a702aeb": {
+    "dbaccess7C99761D": {
+      "Properties": {
+        "GroupDescription": "postgres/db-access",
+        "Tags": [
+          {
+            "Key": "gu:cdk:version",
+            "Value": "TEST",
+          },
+          {
+            "Key": "gu:repo",
+            "Value": "guardian/giant",
+          },
+          {
+            "Key": "Stack",
+            "Value": "pfi-playground",
+          },
+          {
+            "Key": "Stage",
+            "Value": "TEST",
+          },
+        ],
+        "VpcId": {
+          "Ref": "VpcId",
+        },
+      },
+      "Type": "AWS::EC2::SecurityGroup",
+    },
+    "dbaccesstopostgresDatabaseSecurityGroup9DCCE86B543212E6302E": {
+      "Properties": {
+        "Description": "Allow DB access",
+        "DestinationSecurityGroupId": {
+          "Fn::GetAtt": [
+            "DatabaseSecurityGroup7319C0F6",
+            "GroupId",
+          ],
+        },
+        "FromPort": 5432,
+        "GroupId": {
+          "Fn::GetAtt": [
+            "dbaccess7C99761D",
+            "GroupId",
+          ],
+        },
+        "IpProtocol": "tcp",
+        "ToPort": 5432,
+      },
+      "Type": "AWS::EC2::SecurityGroupEgress",
+    },
+    "postgresDatabaseSecretCA51D0AC3fdaad7efa858a3daf9490cf0a702aeb": {
       "DeletionPolicy": "Delete",
       "Properties": {
         "Description": {
@@ -321,54 +369,6 @@ exports[`The Giant stack matches the snapshot 1`] = `
       },
       "Type": "AWS::SecretsManager::Secret",
       "UpdateReplacePolicy": "Delete",
-    },
-    "dbaccess7C99761D": {
-      "Properties": {
-        "GroupDescription": "Giant/db-access",
-        "Tags": [
-          {
-            "Key": "gu:cdk:version",
-            "Value": "TEST",
-          },
-          {
-            "Key": "gu:repo",
-            "Value": "guardian/giant",
-          },
-          {
-            "Key": "Stack",
-            "Value": "pfi-playground",
-          },
-          {
-            "Key": "Stage",
-            "Value": "TEST",
-          },
-        ],
-        "VpcId": {
-          "Ref": "VpcId",
-        },
-      },
-      "Type": "AWS::EC2::SecurityGroup",
-    },
-    "dbaccesstoGiantDatabaseSecurityGroup645117305432BE54698B": {
-      "Properties": {
-        "Description": "Allow DB access",
-        "DestinationSecurityGroupId": {
-          "Fn::GetAtt": [
-            "DatabaseSecurityGroup7319C0F6",
-            "GroupId",
-          ],
-        },
-        "FromPort": 5432,
-        "GroupId": {
-          "Fn::GetAtt": [
-            "dbaccess7C99761D",
-            "GroupId",
-          ],
-        },
-        "IpProtocol": "tcp",
-        "ToPort": 5432,
-      },
-      "Type": "AWS::EC2::SecurityGroupEgress",
     },
   },
 }

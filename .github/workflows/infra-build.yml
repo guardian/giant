@@ -1,11 +1,11 @@
-name: postgres-build
+name: infra-build
 
 on:
   workflow_dispatch:
   push:
     paths:
-      - "postgres/**"
-      - ".github/workflows/postgres*"
+      - "../../infra/**"
+      - ".github/workflows/infra*"
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
@@ -19,7 +19,7 @@ jobs:
       pull-requests: write
     defaults:
       run:
-        working-directory: ./postgres/cdk
+        working-directory: ./infra/cdk
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
@@ -28,24 +28,28 @@ jobs:
 
       - uses: actions/setup-node@v3
         with:
-          node-version-file: './postgres/cdk/.nvmrc'
+          node-version-file: './infra/cdk/.nvmrc'
           cache: npm
-          cache-dependency-path: ./postgres/cdk/package-lock.json
+          cache-dependency-path: ./infra/cdk/package-lock.json
 
       - name: cdk synth
         run: |
           npm ci
+          npm run lint
+          npm run test
+          npm run format -- --check
           npm run synth
 
       - uses: guardian/actions-riff-raff@v4
         with:
+          buildNumberOffset: 107
           roleArn: ${{ secrets.GU_RIFF_RAFF_ROLE_ARN }}
           githubToken: ${{ secrets.GITHUB_TOKEN }}
           app: postgres
           contentDirectories: |
             cloudformation:
-              - ./postgres/cdk/cdk.out/pfi-giant-postgres-CODE.template.json
-              - ./postgres/cdk/cdk.out/pfi-giant-postgres-PROD.template.json
+              - ./infra/cdk/cdk.out/pfi-giant-postgres-CODE.template.json
+              - ./infra/cdk/cdk.out/pfi-giant-postgres-PROD.template.json
           config: |
             stacks:
               - pfi-giant
