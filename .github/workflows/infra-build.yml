@@ -42,6 +42,7 @@ jobs:
 
       - uses: guardian/actions-riff-raff@v4
         with:
+          buildNumberOffset: 107
           roleArn: ${{ secrets.GU_RIFF_RAFF_ROLE_ARN }}
           githubToken: ${{ secrets.GITHUB_TOKEN }}
           app: postgres
