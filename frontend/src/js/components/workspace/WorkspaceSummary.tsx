@@ -67,6 +67,9 @@ export default function WorkspaceSummary({
   const [renameModalOpen, setRenameModalOpen] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
 
+  const isOwner = currentUser.username === workspace.owner.username;
+  const canDelete = isOwner || (isAdmin && workspace.isPublic);
+
   const workspaceUsers = workspace.followers.filter(
     (follower) =>
       follower.username !== currentUser.username &&
@@ -102,7 +105,7 @@ export default function WorkspaceSummary({
         )}
       </h1>
       <div className="workspace__badges">
-        {workspace.owner.username !== workspace.creator.username && (
+        {workspace.creator.username !== workspace.owner.username && (
           <Label>Created&nbsp;by {workspace.creator.displayName}</Label>
         )}
         <Label>Owned&nbsp;by {workspace.owner.displayName}</Label>
@@ -156,7 +159,7 @@ export default function WorkspaceSummary({
         pointing="top right"
       >
         <Dropdown.Menu>
-          {isAdmin && currentUser.username !== workspace.owner.username && (
+          {isAdmin && !isOwner && (
             <Dropdown.Item
               icon="user plus"
               text="Take Ownership"
@@ -166,22 +169,19 @@ export default function WorkspaceSummary({
           <Dropdown.Item
             icon="share alternate"
             text="Share Workspace"
-            disabled={currentUser.username !== workspace.owner.username}
+            disabled={!isOwner}
             onClick={() => setShareModalOpen(true)}
           />
           <Dropdown.Item
             icon="edit"
             text="Rename Workspace"
-            disabled={currentUser.username !== workspace.owner.username}
+            disabled={!isOwner}
             onClick={() => setRenameModalOpen(true)}
           />
           <Dropdown.Item
             icon="trash"
             text="Delete Workspace"
-            disabled={
-              currentUser.username !== workspace.owner.username &&
-              !(isAdmin && workspace.isPublic)
-            }
+            disabled={!canDelete}
             onClick={() => setDeleteModalOpen(true)}
           />
         </Dropdown.Menu>
@@ -211,7 +211,7 @@ export default function WorkspaceSummary({
         title={`Rename workspace '${workspace.name}'`}
         value={workspace.name}
         onConfirm={(newName) => renameWorkspace(workspace.id, newName)}
-        disabled={currentUser.username !== workspace.owner.username}
+        disabled={!isOwner}
         isOpen={renameModalOpen}
         onClose={() => setRenameModalOpen(false)}
       />
@@ -221,10 +221,7 @@ export default function WorkspaceSummary({
         actionDescription="Delete"
         title={`Delete workspace '${workspace.name}'?`}
         onConfirm={() => deleteWorkspace(workspace.id)}
-        disabled={
-          currentUser.username !== workspace.owner.username &&
-          !(isAdmin && workspace.isPublic)
-        }
+        disabled={!canDelete}
         isOpen={deleteModalOpen}
         onClose={() => setDeleteModalOpen(false)}
       />
