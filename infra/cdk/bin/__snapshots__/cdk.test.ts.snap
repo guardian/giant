@@ -1,0 +1,817 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Giant's riff-raff.yaml should match the snapshot 1`] = `
+"allowedStages:
+  - CODE
+  - PROD
+deployments:
+  cfn-eu-west-1-pfi-giant-postgres:
+    type: cloud-formation
+    regions:
+      - eu-west-1
+    stacks:
+      - pfi-giant
+    app: postgres
+    contentDirectory: cdk.out
+    parameters:
+      templateStagePaths:
+        CODE: pfi-giant-postgres-CODE.template.json
+        PROD: pfi-giant-postgres-PROD.template.json
+"
+`;
+
+exports[`Giant's stacks should match the snapshots 1`] = `
+{
+  "Metadata": {
+    "gu:cdk:constructs": [
+      "GuVpcParameter",
+      "GuSubnetListParameter",
+    ],
+    "gu:cdk:version": "TEST",
+  },
+  "Outputs": {
+    "DbAccessSecurityGroup": {
+      "Export": {
+        "Name": "pfi-giant-postgres-CODE-DbAccessSecurityGroup",
+      },
+      "Value": {
+        "Fn::GetAtt": [
+          "dbaccess7C99761D",
+          "GroupId",
+        ],
+      },
+    },
+    "PostgresDbSecretArn": {
+      "Export": {
+        "Name": "pfi-giant-postgres-CODE-PostgresDbSecretArn",
+      },
+      "Value": {
+        "Ref": "DatabaseSecretAttachmentE5D1B020",
+      },
+    },
+  },
+  "Parameters": {
+    "PrivateSubnets": {
+      "Default": "/account/vpc/primary/subnets/private",
+      "Description": "A list of private subnets",
+      "Type": "AWS::SSM::Parameter::Value<List<AWS::EC2::Subnet::Id>>",
+    },
+    "VpcId": {
+      "Default": "/account/vpc/primary/id",
+      "Description": "Virtual Private Cloud to run EC2 instances within. Should NOT be the account default VPC.",
+      "Type": "AWS::SSM::Parameter::Value<AWS::EC2::VPC::Id>",
+    },
+  },
+  "Resources": {
+    "DatabaseB269D8BB": {
+      "DeletionPolicy": "Snapshot",
+      "Properties": {
+        "AllocatedStorage": "20",
+        "AllowMajorVersionUpgrade": true,
+        "AutoMinorVersionUpgrade": true,
+        "CopyTagsToSnapshot": true,
+        "DBInstanceClass": "db.t4g.micro",
+        "DBInstanceIdentifier": "giant-db-code",
+        "DBName": "giant",
+        "DBSubnetGroupName": {
+          "Ref": "DatabaseSubnetGroup7D60F180",
+        },
+        "DeleteAutomatedBackups": false,
+        "DeletionProtection": true,
+        "EnableCloudwatchLogsExports": [
+          "postgresql",
+        ],
+        "EnableIAMDatabaseAuthentication": true,
+        "Engine": "postgres",
+        "EngineVersion": "15",
+        "MasterUserPassword": {
+          "Fn::Join": [
+            "",
+            [
+              "{{resolve:secretsmanager:",
+              {
+                "Ref": "pfigiantpostgresCODEDatabaseSecret0A2B19503fdaad7efa858a3daf9490cf0a702aeb",
+              },
+              ":SecretString:password::}}",
+            ],
+          ],
+        },
+        "MasterUsername": "giant_master",
+        "MaxAllocatedStorage": 40,
+        "MonitoringInterval": 60,
+        "MonitoringRoleArn": {
+          "Fn::GetAtt": [
+            "DatabaseMonitoringRole576991DA",
+            "Arn",
+          ],
+        },
+        "MultiAZ": false,
+        "Port": "5432",
+        "PubliclyAccessible": false,
+        "StorageEncrypted": true,
+        "StorageType": "gp3",
+        "Tags": [
+          {
+            "Key": "App",
+            "Value": "postgres",
+          },
+          {
+            "Key": "devx-backup-enabled",
+            "Value": "true",
+          },
+          {
+            "Key": "gu:cdk:version",
+            "Value": "TEST",
+          },
+          {
+            "Key": "gu:repo",
+            "Value": "guardian/giant",
+          },
+          {
+            "Key": "Stack",
+            "Value": "pfi-giant",
+          },
+          {
+            "Key": "Stage",
+            "Value": "CODE",
+          },
+        ],
+        "VPCSecurityGroups": [
+          {
+            "Fn::GetAtt": [
+              "DatabaseSecurityGroup7319C0F6",
+              "GroupId",
+            ],
+          },
+        ],
+      },
+      "Type": "AWS::RDS::DBInstance",
+      "UpdateReplacePolicy": "Snapshot",
+    },
+    "DatabaseMonitoringRole576991DA": {
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "monitoring.rds.amazonaws.com",
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "ManagedPolicyArns": [
+          {
+            "Fn::Join": [
+              "",
+              [
+                "arn:",
+                {
+                  "Ref": "AWS::Partition",
+                },
+                ":iam::aws:policy/service-role/AmazonRDSEnhancedMonitoringRole",
+              ],
+            ],
+          },
+        ],
+        "Tags": [
+          {
+            "Key": "App",
+            "Value": "postgres",
+          },
+          {
+            "Key": "devx-backup-enabled",
+            "Value": "true",
+          },
+          {
+            "Key": "gu:cdk:version",
+            "Value": "TEST",
+          },
+          {
+            "Key": "gu:repo",
+            "Value": "guardian/giant",
+          },
+          {
+            "Key": "Stack",
+            "Value": "pfi-giant",
+          },
+          {
+            "Key": "Stage",
+            "Value": "CODE",
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Role",
+    },
+    "DatabaseSecretAttachmentE5D1B020": {
+      "Properties": {
+        "SecretId": {
+          "Ref": "pfigiantpostgresCODEDatabaseSecret0A2B19503fdaad7efa858a3daf9490cf0a702aeb",
+        },
+        "TargetId": {
+          "Ref": "DatabaseB269D8BB",
+        },
+        "TargetType": "AWS::RDS::DBInstance",
+      },
+      "Type": "AWS::SecretsManager::SecretTargetAttachment",
+    },
+    "DatabaseSecurityGroup7319C0F6": {
+      "Properties": {
+        "GroupDescription": "pfi-giant-postgres-CODE/DatabaseSecurityGroup",
+        "SecurityGroupEgress": [
+          {
+            "CidrIp": "0.0.0.0/0",
+            "Description": "Allow all outbound traffic by default",
+            "IpProtocol": "-1",
+          },
+        ],
+        "Tags": [
+          {
+            "Key": "App",
+            "Value": "postgres",
+          },
+          {
+            "Key": "gu:cdk:version",
+            "Value": "TEST",
+          },
+          {
+            "Key": "gu:repo",
+            "Value": "guardian/giant",
+          },
+          {
+            "Key": "Stack",
+            "Value": "pfi-giant",
+          },
+          {
+            "Key": "Stage",
+            "Value": "CODE",
+          },
+        ],
+        "VpcId": {
+          "Ref": "VpcId",
+        },
+      },
+      "Type": "AWS::EC2::SecurityGroup",
+    },
+    "DatabaseSecurityGroupfrompfigiantpostgresCODEdbaccessF3491BC45432652C4199": {
+      "Properties": {
+        "Description": "from pfigiantpostgresCODEdbaccessF3491BC4:5432",
+        "FromPort": 5432,
+        "GroupId": {
+          "Fn::GetAtt": [
+            "DatabaseSecurityGroup7319C0F6",
+            "GroupId",
+          ],
+        },
+        "IpProtocol": "tcp",
+        "SourceSecurityGroupId": {
+          "Fn::GetAtt": [
+            "dbaccess7C99761D",
+            "GroupId",
+          ],
+        },
+        "ToPort": 5432,
+      },
+      "Type": "AWS::EC2::SecurityGroupIngress",
+    },
+    "DatabaseSubnetGroup7D60F180": {
+      "Properties": {
+        "DBSubnetGroupDescription": "Subnet group for Database database",
+        "SubnetIds": {
+          "Ref": "PrivateSubnets",
+        },
+        "Tags": [
+          {
+            "Key": "App",
+            "Value": "postgres",
+          },
+          {
+            "Key": "devx-backup-enabled",
+            "Value": "true",
+          },
+          {
+            "Key": "gu:cdk:version",
+            "Value": "TEST",
+          },
+          {
+            "Key": "gu:repo",
+            "Value": "guardian/giant",
+          },
+          {
+            "Key": "Stack",
+            "Value": "pfi-giant",
+          },
+          {
+            "Key": "Stage",
+            "Value": "CODE",
+          },
+        ],
+      },
+      "Type": "AWS::RDS::DBSubnetGroup",
+    },
+    "dbaccess7C99761D": {
+      "Properties": {
+        "GroupDescription": "pfi-giant-postgres-CODE/db-access",
+        "Tags": [
+          {
+            "Key": "App",
+            "Value": "postgres",
+          },
+          {
+            "Key": "gu:cdk:version",
+            "Value": "TEST",
+          },
+          {
+            "Key": "gu:repo",
+            "Value": "guardian/giant",
+          },
+          {
+            "Key": "Stack",
+            "Value": "pfi-giant",
+          },
+          {
+            "Key": "Stage",
+            "Value": "CODE",
+          },
+        ],
+        "VpcId": {
+          "Ref": "VpcId",
+        },
+      },
+      "Type": "AWS::EC2::SecurityGroup",
+    },
+    "dbaccesstopfigiantpostgresCODEDatabaseSecurityGroup20D1AF4B5432334DD811": {
+      "Properties": {
+        "Description": "Allow DB access",
+        "DestinationSecurityGroupId": {
+          "Fn::GetAtt": [
+            "DatabaseSecurityGroup7319C0F6",
+            "GroupId",
+          ],
+        },
+        "FromPort": 5432,
+        "GroupId": {
+          "Fn::GetAtt": [
+            "dbaccess7C99761D",
+            "GroupId",
+          ],
+        },
+        "IpProtocol": "tcp",
+        "ToPort": 5432,
+      },
+      "Type": "AWS::EC2::SecurityGroupEgress",
+    },
+    "pfigiantpostgresCODEDatabaseSecret0A2B19503fdaad7efa858a3daf9490cf0a702aeb": {
+      "DeletionPolicy": "Delete",
+      "Properties": {
+        "Description": {
+          "Fn::Join": [
+            "",
+            [
+              "Generated by the CDK for stack: ",
+              {
+                "Ref": "AWS::StackName",
+              },
+            ],
+          ],
+        },
+        "GenerateSecretString": {
+          "ExcludeCharacters": " %+~\`#$&*()|[]{}:;<>?!'/@"\\",
+          "GenerateStringKey": "password",
+          "PasswordLength": 30,
+          "SecretStringTemplate": "{"username":"giant_master"}",
+        },
+        "Name": "pfi-giant-postgres-CODE",
+        "Tags": [
+          {
+            "Key": "App",
+            "Value": "postgres",
+          },
+          {
+            "Key": "devx-backup-enabled",
+            "Value": "true",
+          },
+          {
+            "Key": "gu:cdk:version",
+            "Value": "TEST",
+          },
+          {
+            "Key": "gu:repo",
+            "Value": "guardian/giant",
+          },
+          {
+            "Key": "Stack",
+            "Value": "pfi-giant",
+          },
+          {
+            "Key": "Stage",
+            "Value": "CODE",
+          },
+        ],
+      },
+      "Type": "AWS::SecretsManager::Secret",
+      "UpdateReplacePolicy": "Delete",
+    },
+  },
+}
+`;
+
+exports[`Giant's stacks should match the snapshots 2`] = `
+{
+  "Metadata": {
+    "gu:cdk:constructs": [
+      "GuVpcParameter",
+      "GuSubnetListParameter",
+    ],
+    "gu:cdk:version": "TEST",
+  },
+  "Outputs": {
+    "DbAccessSecurityGroup": {
+      "Export": {
+        "Name": "pfi-giant-postgres-PROD-DbAccessSecurityGroup",
+      },
+      "Value": {
+        "Fn::GetAtt": [
+          "dbaccess7C99761D",
+          "GroupId",
+        ],
+      },
+    },
+    "PostgresDbSecretArn": {
+      "Export": {
+        "Name": "pfi-giant-postgres-PROD-PostgresDbSecretArn",
+      },
+      "Value": {
+        "Ref": "DatabaseSecretAttachmentE5D1B020",
+      },
+    },
+  },
+  "Parameters": {
+    "PrivateSubnets": {
+      "Default": "/account/vpc/primary/subnets/private",
+      "Description": "A list of private subnets",
+      "Type": "AWS::SSM::Parameter::Value<List<AWS::EC2::Subnet::Id>>",
+    },
+    "VpcId": {
+      "Default": "/account/vpc/primary/id",
+      "Description": "Virtual Private Cloud to run EC2 instances within. Should NOT be the account default VPC.",
+      "Type": "AWS::SSM::Parameter::Value<AWS::EC2::VPC::Id>",
+    },
+  },
+  "Resources": {
+    "DatabaseB269D8BB": {
+      "DeletionPolicy": "Snapshot",
+      "Properties": {
+        "AllocatedStorage": "20",
+        "AllowMajorVersionUpgrade": true,
+        "AutoMinorVersionUpgrade": true,
+        "CopyTagsToSnapshot": true,
+        "DBInstanceClass": "db.t4g.micro",
+        "DBInstanceIdentifier": "giant-db-prod",
+        "DBName": "giant",
+        "DBSubnetGroupName": {
+          "Ref": "DatabaseSubnetGroup7D60F180",
+        },
+        "DeleteAutomatedBackups": false,
+        "DeletionProtection": true,
+        "EnableCloudwatchLogsExports": [
+          "postgresql",
+        ],
+        "EnableIAMDatabaseAuthentication": true,
+        "Engine": "postgres",
+        "EngineVersion": "15",
+        "MasterUserPassword": {
+          "Fn::Join": [
+            "",
+            [
+              "{{resolve:secretsmanager:",
+              {
+                "Ref": "pfigiantpostgresPRODDatabaseSecret863A42DC3fdaad7efa858a3daf9490cf0a702aeb",
+              },
+              ":SecretString:password::}}",
+            ],
+          ],
+        },
+        "MasterUsername": "giant_master",
+        "MaxAllocatedStorage": 40,
+        "MonitoringInterval": 60,
+        "MonitoringRoleArn": {
+          "Fn::GetAtt": [
+            "DatabaseMonitoringRole576991DA",
+            "Arn",
+          ],
+        },
+        "MultiAZ": false,
+        "Port": "5432",
+        "PubliclyAccessible": false,
+        "StorageEncrypted": true,
+        "StorageType": "gp3",
+        "Tags": [
+          {
+            "Key": "App",
+            "Value": "postgres",
+          },
+          {
+            "Key": "devx-backup-enabled",
+            "Value": "true",
+          },
+          {
+            "Key": "gu:cdk:version",
+            "Value": "TEST",
+          },
+          {
+            "Key": "gu:repo",
+            "Value": "guardian/giant",
+          },
+          {
+            "Key": "Stack",
+            "Value": "pfi-giant",
+          },
+          {
+            "Key": "Stage",
+            "Value": "PROD",
+          },
+        ],
+        "VPCSecurityGroups": [
+          {
+            "Fn::GetAtt": [
+              "DatabaseSecurityGroup7319C0F6",
+              "GroupId",
+            ],
+          },
+        ],
+      },
+      "Type": "AWS::RDS::DBInstance",
+      "UpdateReplacePolicy": "Snapshot",
+    },
+    "DatabaseMonitoringRole576991DA": {
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "monitoring.rds.amazonaws.com",
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "ManagedPolicyArns": [
+          {
+            "Fn::Join": [
+              "",
+              [
+                "arn:",
+                {
+                  "Ref": "AWS::Partition",
+                },
+                ":iam::aws:policy/service-role/AmazonRDSEnhancedMonitoringRole",
+              ],
+            ],
+          },
+        ],
+        "Tags": [
+          {
+            "Key": "App",
+            "Value": "postgres",
+          },
+          {
+            "Key": "devx-backup-enabled",
+            "Value": "true",
+          },
+          {
+            "Key": "gu:cdk:version",
+            "Value": "TEST",
+          },
+          {
+            "Key": "gu:repo",
+            "Value": "guardian/giant",
+          },
+          {
+            "Key": "Stack",
+            "Value": "pfi-giant",
+          },
+          {
+            "Key": "Stage",
+            "Value": "PROD",
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Role",
+    },
+    "DatabaseSecretAttachmentE5D1B020": {
+      "Properties": {
+        "SecretId": {
+          "Ref": "pfigiantpostgresPRODDatabaseSecret863A42DC3fdaad7efa858a3daf9490cf0a702aeb",
+        },
+        "TargetId": {
+          "Ref": "DatabaseB269D8BB",
+        },
+        "TargetType": "AWS::RDS::DBInstance",
+      },
+      "Type": "AWS::SecretsManager::SecretTargetAttachment",
+    },
+    "DatabaseSecurityGroup7319C0F6": {
+      "Properties": {
+        "GroupDescription": "pfi-giant-postgres-PROD/DatabaseSecurityGroup",
+        "SecurityGroupEgress": [
+          {
+            "CidrIp": "0.0.0.0/0",
+            "Description": "Allow all outbound traffic by default",
+            "IpProtocol": "-1",
+          },
+        ],
+        "Tags": [
+          {
+            "Key": "App",
+            "Value": "postgres",
+          },
+          {
+            "Key": "gu:cdk:version",
+            "Value": "TEST",
+          },
+          {
+            "Key": "gu:repo",
+            "Value": "guardian/giant",
+          },
+          {
+            "Key": "Stack",
+            "Value": "pfi-giant",
+          },
+          {
+            "Key": "Stage",
+            "Value": "PROD",
+          },
+        ],
+        "VpcId": {
+          "Ref": "VpcId",
+        },
+      },
+      "Type": "AWS::EC2::SecurityGroup",
+    },
+    "DatabaseSecurityGroupfrompfigiantpostgresPRODdbaccess76C0E5F85432D1F4D7C7": {
+      "Properties": {
+        "Description": "from pfigiantpostgresPRODdbaccess76C0E5F8:5432",
+        "FromPort": 5432,
+        "GroupId": {
+          "Fn::GetAtt": [
+            "DatabaseSecurityGroup7319C0F6",
+            "GroupId",
+          ],
+        },
+        "IpProtocol": "tcp",
+        "SourceSecurityGroupId": {
+          "Fn::GetAtt": [
+            "dbaccess7C99761D",
+            "GroupId",
+          ],
+        },
+        "ToPort": 5432,
+      },
+      "Type": "AWS::EC2::SecurityGroupIngress",
+    },
+    "DatabaseSubnetGroup7D60F180": {
+      "Properties": {
+        "DBSubnetGroupDescription": "Subnet group for Database database",
+        "SubnetIds": {
+          "Ref": "PrivateSubnets",
+        },
+        "Tags": [
+          {
+            "Key": "App",
+            "Value": "postgres",
+          },
+          {
+            "Key": "devx-backup-enabled",
+            "Value": "true",
+          },
+          {
+            "Key": "gu:cdk:version",
+            "Value": "TEST",
+          },
+          {
+            "Key": "gu:repo",
+            "Value": "guardian/giant",
+          },
+          {
+            "Key": "Stack",
+            "Value": "pfi-giant",
+          },
+          {
+            "Key": "Stage",
+            "Value": "PROD",
+          },
+        ],
+      },
+      "Type": "AWS::RDS::DBSubnetGroup",
+    },
+    "dbaccess7C99761D": {
+      "Properties": {
+        "GroupDescription": "pfi-giant-postgres-PROD/db-access",
+        "Tags": [
+          {
+            "Key": "App",
+            "Value": "postgres",
+          },
+          {
+            "Key": "gu:cdk:version",
+            "Value": "TEST",
+          },
+          {
+            "Key": "gu:repo",
+            "Value": "guardian/giant",
+          },
+          {
+            "Key": "Stack",
+            "Value": "pfi-giant",
+          },
+          {
+            "Key": "Stage",
+            "Value": "PROD",
+          },
+        ],
+        "VpcId": {
+          "Ref": "VpcId",
+        },
+      },
+      "Type": "AWS::EC2::SecurityGroup",
+    },
+    "dbaccesstopfigiantpostgresPRODDatabaseSecurityGroupC0B2F2CA5432FD83B828": {
+      "Properties": {
+        "Description": "Allow DB access",
+        "DestinationSecurityGroupId": {
+          "Fn::GetAtt": [
+            "DatabaseSecurityGroup7319C0F6",
+            "GroupId",
+          ],
+        },
+        "FromPort": 5432,
+        "GroupId": {
+          "Fn::GetAtt": [
+            "dbaccess7C99761D",
+            "GroupId",
+          ],
+        },
+        "IpProtocol": "tcp",
+        "ToPort": 5432,
+      },
+      "Type": "AWS::EC2::SecurityGroupEgress",
+    },
+    "pfigiantpostgresPRODDatabaseSecret863A42DC3fdaad7efa858a3daf9490cf0a702aeb": {
+      "DeletionPolicy": "Delete",
+      "Properties": {
+        "Description": {
+          "Fn::Join": [
+            "",
+            [
+              "Generated by the CDK for stack: ",
+              {
+                "Ref": "AWS::StackName",
+              },
+            ],
+          ],
+        },
+        "GenerateSecretString": {
+          "ExcludeCharacters": " %+~\`#$&*()|[]{}:;<>?!'/@"\\",
+          "GenerateStringKey": "password",
+          "PasswordLength": 30,
+          "SecretStringTemplate": "{"username":"giant_master"}",
+        },
+        "Name": "pfi-giant-postgres-PROD",
+        "Tags": [
+          {
+            "Key": "App",
+            "Value": "postgres",
+          },
+          {
+            "Key": "devx-backup-enabled",
+            "Value": "true",
+          },
+          {
+            "Key": "gu:cdk:version",
+            "Value": "TEST",
+          },
+          {
+            "Key": "gu:repo",
+            "Value": "guardian/giant",
+          },
+          {
+            "Key": "Stack",
+            "Value": "pfi-giant",
+          },
+          {
+            "Key": "Stage",
+            "Value": "PROD",
+          },
+        ],
+      },
+      "Type": "AWS::SecretsManager::Secret",
+      "UpdateReplacePolicy": "Delete",
+    },
+  },
+}
+`;
