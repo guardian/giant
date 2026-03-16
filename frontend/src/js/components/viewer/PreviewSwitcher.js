@@ -12,6 +12,7 @@ import { bindActionCreators } from "redux";
 
 import { setResourceView } from "../../actions/urlParams/setViews";
 
+/** @param {string[]} mimeTypes @returns {string} */
 export function previewLabelForMimeTypes(mimeTypes) {
   if (mimeTypes.some((m) => m.startsWith("video/"))) {
     return "Video";
