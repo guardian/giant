@@ -53,6 +53,22 @@
   overflow: auto;
 }
 
+.document__page-viewer-wrapper {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  height: calc(100vh - 50px);
+  overflow: hidden;
+  background-color: $previewDark;
+}
+
+.document__page-viewer-content {
+  flex-grow: 1;
+  overflow: auto;
+  display: flex;
+  min-height: 0;
+}
+
 .document__status {
   position: relative;
   display: flex;

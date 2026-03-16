@@ -135,26 +135,10 @@ export const PageViewerOrFallback: FC<{}> = () => {
   } else {
     const showTextContent = !isCombinedOrUnset(view);
     return (
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          flexGrow: 1,
-          height: "calc(100vh - 50px)",
-          overflow: "hidden",
-          backgroundColor: "rgb(63, 63, 63)",
-        }}
-      >
-        <div
-          style={{
-            flexGrow: 1,
-            overflow: "auto",
-            display: "flex",
-            minHeight: 0,
-          }}
-        >
+      <div className="document__page-viewer-wrapper">
+        <div className="document__page-viewer-content">
           {showTextContent ? (
-            <div className="document" style={{ flexGrow: 1 }}>
+            <div className="document">
               <PageViewerContent
                 uri={uri}
                 totalPages={totalPages}
@@ -166,7 +150,7 @@ export const PageViewerOrFallback: FC<{}> = () => {
           )}
         </div>
         {resource && (
-          <div className="document__status" style={{ flexShrink: 0 }}>
+          <div className="document__status">
             <span />
             <span>
               <PreviewSwitcher
