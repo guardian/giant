@@ -206,7 +206,6 @@ export default function WorkspaceSummary({
       />
       <ModalAction
         actionType="edit"
-        className="btn workspace__button"
         actionDescription="Rename"
         title={`Rename workspace '${workspace.name}'`}
         value={workspace.name}
@@ -217,7 +216,6 @@ export default function WorkspaceSummary({
       />
       <ModalAction
         actionType="confirm"
-        className="btn workspace__button"
         actionDescription="Delete"
         title={`Delete workspace '${workspace.name}'?`}
         onConfirm={() => deleteWorkspace(workspace.id)}

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { Dropdown } from "semantic-ui-react";
 import _ from "lodash";
 import Modal from "../UtilComponents/Modal";
@@ -10,9 +10,6 @@ import { Checkbox } from "../UtilComponents/Checkbox";
 import { setWorkspaceIsPublic } from "../../actions/workspaces/setWorkspaceIsPublic";
 import { WorkspacePublicInfoIcon } from "./WorkspacePublicInfoIcon";
 import { WorkspacePublicMessage } from "./WorkspacePublicMessage";
-import MdShare from "react-icons/lib/md/share";
-import { useControlledOpen } from "../UtilComponents/useControlledOpen";
-
 type Props = {
   workspace: Workspace;
   workspaceUsers: PartialUser[];
@@ -20,8 +17,8 @@ type Props = {
   currentUser: PartialUser;
   setWorkspaceFollowers: typeof setWorkspaceFollowers;
   setWorkspaceIsPublic: typeof setWorkspaceIsPublic;
-  isOpen?: boolean;
-  onClose?: () => void;
+  isOpen: boolean;
+  onClose: () => void;
 };
 
 export default function ShareWorkspaceModal(props: Props) {
@@ -29,7 +26,6 @@ export default function ShareWorkspaceModal(props: Props) {
     (u) => u.username,
   );
   const currentIsPublic = props.workspace.isPublic;
-  const { open, setOpen, controlled } = useControlledOpen(props);
 
   // These should be undefined when the modal is closed.
   // This stops us preserving state across different openings of the modal,
@@ -38,11 +34,11 @@ export default function ShareWorkspaceModal(props: Props) {
   const [followers, setFollowers] = useState<string[] | undefined>(undefined);
   const [isPublic, setIsPublic] = useState<boolean | undefined>(undefined);
 
-  if (followers === undefined && open) {
+  if (followers === undefined && props.isOpen) {
     setFollowers(currentFollowers);
   }
 
-  if (isPublic === undefined && open) {
+  if (isPublic === undefined && props.isOpen) {
     setIsPublic(currentIsPublic);
   }
 
@@ -63,7 +59,7 @@ export default function ShareWorkspaceModal(props: Props) {
   }
 
   function onDismiss() {
-    setOpen(false);
+    props.onClose();
     setFollowers(undefined);
     setIsPublic(undefined);
   }
@@ -75,69 +71,52 @@ export default function ShareWorkspaceModal(props: Props) {
   ).filter((u) => u !== props.currentUser.username);
 
   return (
-    <React.Fragment>
-      {/* The component that triggers the modal (pass-through rendering of children) */}
-      {!controlled && (
-        <button
-          className="btn workspace__button"
-          disabled={
-            props.currentUser.username !== props.workspace.owner.username
-          }
-          onClick={() => setOpen(true)}
-          title="Share Workspace"
-        >
-          <MdShare />
-          Share Workspace
-        </button>
-      )}
-
-      <Modal
-        isOpen={open}
-        dismiss={onDismiss}
-        panelClassName="modal-action__panel"
-      >
-        <form onSubmit={onSubmit}>
-          <div className="modal-action__modal">
-            <h2>Share workspace {props.workspace.name}</h2>
-            <div className="form__row">
-              <WorkspacePublicInfoIcon />
-              <Checkbox
-                selected={isPublic}
-                onClick={() => setIsPublic(!isPublic)}
-              >
-                Public
-              </Checkbox>
-            </div>
-            <div className="form__row">
-              <Dropdown
-                fluid
-                multiple
-                selection
-                search
-                disabled={isPublic}
-                placeholder="Select"
-                options={allUsernames.map((value) => ({ value, text: value }))}
-                defaultValue={currentFollowers}
-                onChange={(e, { value }) => setFollowers(value as string[])}
-              />
-            </div>
-            {isPublic ? <WorkspacePublicMessage /> : false}
-            <div className="modal-action__buttons">
-              <button
-                className="btn"
-                onClick={onSubmit}
-                disabled={false}
-                autoFocus={false}
-              >
-                Save
-              </button>
-              <button className="btn" onClick={onDismiss}>
-                Cancel
-              </button>
-            </div>
+    <Modal
+      isOpen={props.isOpen}
+      dismiss={onDismiss}
+      panelClassName="modal-action__panel"
+    >
+      <form onSubmit={onSubmit}>
+        <div className="modal-action__modal">
+          <h2>Share workspace {props.workspace.name}</h2>
+          <div className="form__row">
+            <WorkspacePublicInfoIcon />
+            <Checkbox
+              selected={isPublic}
+              onClick={() => setIsPublic(!isPublic)}
+            >
+              Public
+            </Checkbox>
           </div>
-        </form>
-      </Modal>
-    </React.Fragment>
+          <div className="form__row">
+            <Dropdown
+              fluid
+              multiple
+              selection
+              search
+              disabled={isPublic}
+              placeholder="Select"
+              options={allUsernames.map((value) => ({ value, text: value }))}
+              defaultValue={currentFollowers}
+              onChange={(e, { value }) => setFollowers(value as string[])}
+            />
+          </div>
+          {isPublic ? <WorkspacePublicMessage /> : false}
+          <div className="modal-action__buttons">
+            <button
+              className="btn"
+              onClick={onSubmit}
+              disabled={false}
+              autoFocus={false}
+            >
+              Save
+            </button>
+            <button className="btn" onClick={onDismiss}>
+              Cancel
+            </button>
+          </div>
+        </div>
+      </form>
+    </Modal>
   );
 }
