@@ -39,11 +39,11 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
   implicit val ec: ExecutionContext = executionContext
 
   override def setup(): Either[Failure, Unit] = transaction { tx =>
-      tx.run("CREATE CONSTRAINT ON (resource: Resource)   ASSERT resource.uri   IS UNIQUE")
-      tx.run("CREATE CONSTRAINT ON (extractor: Extractor) ASSERT extractor.name IS UNIQUE")
-      tx.run("CREATE CONSTRAINT ON (tpe: MimeType)        ASSERT tpe.mimeType   IS UNIQUE")
+    tx.run("CREATE CONSTRAINT ON (resource: Resource)   ASSERT resource.uri   IS UNIQUE")
+    tx.run("CREATE CONSTRAINT ON (extractor: Extractor) ASSERT extractor.name IS UNIQUE")
+    tx.run("CREATE CONSTRAINT ON (tpe: MimeType)        ASSERT tpe.mimeType   IS UNIQUE")
 
-      Right(())
+    Right(())
   }
 
   override def insertCollection(uri: String, display: String, createdBy: String): Attempt[Collection] = attemptTransaction { tx =>
@@ -106,14 +106,14 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
       parameters(
         "uri", blobUri,
       )).map { summary =>
-        summary.list().asScala.toList.map { r =>
-          val workspace = r.get("workspace")
-          val creator = DBUser.fromNeo4jValue(r.get("creator"))
-          val owner = DBUser.fromNeo4jValue(r.get("owner"))
-          val followers = r.get("followers").asList[DBUser](DBUser.fromNeo4jValue(_)).asScala.toList
+      summary.list().asScala.toList.map { r =>
+        val workspace = r.get("workspace")
+        val creator = DBUser.fromNeo4jValue(r.get("creator"))
+        val owner = DBUser.fromNeo4jValue(r.get("owner"))
+        val followers = r.get("followers").asList[DBUser](DBUser.fromNeo4jValue(_)).asScala.toList
 
-          WorkspaceMetadata.fromNeo4jValue(workspace, creator, owner, followers)
-        }
+        WorkspaceMetadata.fromNeo4jValue(workspace, creator, owner, followers)
+      }
     }
   }
 
@@ -294,12 +294,12 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
   def insertDirectory(tx: StatementRunner, parentUri: Uri, uri: Uri, display: Option[String] = None): Either[Failure, Unit] = {
     tx.run(
       """
-         |MERGE (parent:Resource {uri: {parentUri}})
-         |MERGE (directory:Resource {uri: {uri}})
-         |SET directory:Directory
-         |MERGE (directory)-[:PARENT]->(parent)
-         |
-         |SET directory.display = {display}
+        |MERGE (parent:Resource {uri: {parentUri}})
+        |MERGE (directory:Resource {uri: {uri}})
+        |SET directory:Directory
+        |MERGE (directory)-[:PARENT]->(parent)
+        |
+        |SET directory.display = {display}
       """.stripMargin,
       parameters(
         "parentUri", parentUri.value,
@@ -348,39 +348,39 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
 
     val result = tx.run(
       s"""
-        |MATCH (parent:Resource {uri: {parentUri}})
-        |
-        |MERGE (file:File:Resource {uri: {fileUri}})
-        |MERGE (blob:Blob:Resource {uri: {blobUri}, size: {size}})
-        |MERGE (mimeType:MimeType {mimeType: {mimeType}})
-        |
-        |MERGE (parent)<-[:PARENT]-(file)
-        |MERGE (file)<-[:PARENT]-(blob)
-        |MERGE (blob)-[:TYPE_OF]-(mimeType)
-        |
-        |WITH {extractorParamsArray} as extractors
-        |UNWIND extractors as extractorParam
-        |  MERGE (extractor :Extractor {name: extractorParam.name, indexing: extractorParam.indexing, priority: extractorParam.extractorPriority, external: extractorParam.external})
-        |    WITH extractor, extractorParam.cost as cost, extractorParam.priority as priority
-        |
-        |  MATCH (unprocessedBlob: Blob:Resource {uri: {blobUri}})
-        |    WHERE
-        |      NOT (unprocessedBlob)<-[:PROCESSED {
-        |        ingestion: {ingestion},
-        |        languages: {languages},
-        |        parentBlobs: {parentBlobs}
-        |        ${maybeWorkspaceProperties}
-        |      } ]-(extractor)
-        |
-        |  MERGE (unprocessedBlob)<-[todo:TODO {
-        |    ingestion: {ingestion},
-        |    languages: {languages},
-        |    parentBlobs: {parentBlobs}
-        |    ${maybeWorkspaceProperties}
-        |  }]-(extractor)
-        |    ON CREATE SET todo.cost = cost,
-        |                  todo.priority = priority,
-        |                  todo.attempts = 0
+         |MATCH (parent:Resource {uri: {parentUri}})
+         |
+         |MERGE (file:File:Resource {uri: {fileUri}})
+         |MERGE (blob:Blob:Resource {uri: {blobUri}, size: {size}})
+         |MERGE (mimeType:MimeType {mimeType: {mimeType}})
+         |
+         |MERGE (parent)<-[:PARENT]-(file)
+         |MERGE (file)<-[:PARENT]-(blob)
+         |MERGE (blob)-[:TYPE_OF]-(mimeType)
+         |
+         |WITH {extractorParamsArray} as extractors
+         |UNWIND extractors as extractorParam
+         |  MERGE (extractor :Extractor {name: extractorParam.name, indexing: extractorParam.indexing, priority: extractorParam.extractorPriority, external: extractorParam.external})
+         |    WITH extractor, extractorParam.cost as cost, extractorParam.priority as priority
+         |
+         |  MATCH (unprocessedBlob: Blob:Resource {uri: {blobUri}})
+         |    WHERE
+         |      NOT (unprocessedBlob)<-[:PROCESSED {
+         |        ingestion: {ingestion},
+         |        languages: {languages},
+         |        parentBlobs: {parentBlobs}
+         |        ${maybeWorkspaceProperties}
+         |      } ]-(extractor)
+         |
+         |  MERGE (unprocessedBlob)<-[todo:TODO {
+         |    ingestion: {ingestion},
+         |    languages: {languages},
+         |    parentBlobs: {parentBlobs}
+         |    ${maybeWorkspaceProperties}
+         |  }]-(extractor)
+         |    ON CREATE SET todo.cost = cost,
+         |                  todo.priority = priority,
+         |                  todo.attempts = 0
       """.stripMargin,
       parameters(
         "parentUri", file.parentUri.value,
@@ -454,21 +454,17 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
   override def fetchWork(workerName: String, workerCount: Int, workerIndex: Int, maxBatchSize: Int, maxCost: Int): Either[Failure, List[WorkItem]] = transaction { tx =>
     val summary = tx.run(
       s"""
-        |MERGE (worker:Worker {name: {workerName}})
-        |  WITH
-        |    worker
-        |
         |MATCH (e: Extractor)-[todo: TODO]->(b: Blob:Resource)
         |  WHERE id(todo) % {workerCount} = {workerIndex} AND
-        |    NOT (b)-[:LOCKED_BY]->(:Worker) AND todo.attempts < {maxExtractionAttempts}
+        |    todo.lockedBy is null AND todo.attempts < {maxExtractionAttempts}
         |
-        |  WITH worker, todo, e, b
+        |  WITH todo, e, b
         |  // priority was originally just defined for extractors, we later extended it out to todos as well
         |  // This maintains roll forward/backward compatibility with both
         |  ORDER BY coalesce(todo.priority, e.priority) DESC
         |  LIMIT {maxBatchSize}
         |
-        |WITH collect({todo: todo, extractor: e, blob: b, worker: worker}) as allTasks
+        |WITH collect({todo: todo, extractor: e, blob: b}) as allTasks
         |WITH reduce(acc = {cost:0, tasks: []}, task in allTasks |
         |    case
         |      when size(acc.tasks) > 0 AND (acc.cost + task.todo.cost) >= {maxCost}
@@ -480,10 +476,10 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
         |
         |UNWIND tasks as task
         |  MATCH (blob: Blob:Resource { uri: task.blob.uri })-[:TYPE_OF]-(m: MimeType)
-        |  MATCH (worker :Worker { name: task.worker.name })
         |
-        |  SET task.todo.attempts = task.todo.attempts + 1
-        |  MERGE (blob)-[:LOCKED_BY {lockedAt: {lockedAt}}]->(worker)
+        |  SET task.todo.attempts = task.todo.attempts + 1,
+        |      task.todo.lockedBy = {workerName}, // TODO make this error if already set at the point of SET
+        |      task.todo.lockedAt = {lockedAt}
         |
         |RETURN
         |    blob,
@@ -548,12 +544,9 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
     logger.info(s"Releasing all locks for $workerName")
     tx.run(
       """
-        |MATCH (resource :Resource)-[lock :LOCKED_BY]->(:Worker {name: {workerName}})
-        |DELETE lock
-        |WITH resource
-        |MATCH (resource :Resource)<-[todo:TODO]-(e:Extractor)
+        |MATCH (resource :Resource)<-[todo:TODO { lockedBy: {workerName} ]-(e:Extractor)
         |WHERE NOT (resource)<-[:EXTRACTION_FAILURE]-(e)
-        |SET todo.attempts = 0
+        |SET todo.attempts = 0, todo.lockedBy = null, todo.lockedAt = null
       """.stripMargin,
       parameters(
         "workerName", workerName
@@ -567,13 +560,9 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
   def releaseLocksForTerminatedWorkers(runningWorkerNames: List[String]): Either[Failure, Unit] = transaction { tx =>
     tx.run(
       """
-        |MATCH (resource :Resource)-[lock:LOCKED_BY]->(w:Worker)
-        |WHERE NOT w.name in {runningWorkerNames}
-        |DELETE lock
-        |WITH resource
         |MATCH (resource :Resource)<-[todo:TODO]-(e:Extractor)
-        |WHERE NOT (resource)<-[:EXTRACTION_FAILURE]-(e)
-        |SET todo.attempts = 0
+        |WHERE NOT (resource)<-[:EXTRACTION_FAILURE]-(e) AND NOT todo.lockedBy in {runningWorkerNames}
+        |SET todo.attempts = 0, todo.lockedBy = null, todo.lockedAt = null
       """.stripMargin,
       parameters(
         "runningWorkerNames", runningWorkerNames.asJava
@@ -658,24 +647,25 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
         |""".stripMargin
     }.getOrElse("")
 
+    // FIXME I think we should match/delete all TODOs for the given extractor and blob on success
     val result = tx.run(
       s"""
-        |MATCH (b :Blob:Resource {uri: {uri}})<-[todo:TODO {
-        |  ingestion: {ingestion},
-        |  parentBlobs: {parentBlobs},
-        |  languages: {languages}
-        |  ${maybeWorkspaceProperties}
-        |}]-(e: Extractor {name: {extractorName}})
-        |
-        |DELETE todo
-        |
-        |MERGE (b)<-[:PROCESSED {
-        |  ingestion: {ingestion},
-        |  parentBlobs: {parentBlobs},
-        |  languages: {languages}
-        |  ${maybeWorkspaceProperties}
-        |}]-(e)
-        |""".stripMargin,
+         |MATCH (b :Blob:Resource {uri: {uri}})<-[todo:TODO {
+         |  ingestion: {ingestion},
+         |  parentBlobs: {parentBlobs},
+         |  languages: {languages}
+         |  ${maybeWorkspaceProperties}
+         |}]-(e: Extractor {name: {extractorName}})
+         |
+         |DELETE todo
+         |
+         |MERGE (b)<-[:PROCESSED {
+         |  ingestion: {ingestion},
+         |  parentBlobs: {parentBlobs},
+         |  languages: {languages}
+         |  ${maybeWorkspaceProperties}
+         |}]-(e)
+         |""".stripMargin,
       parameters(
         "uri", blob.uri.value,
         "extractorName", extractor.name,
@@ -709,6 +699,7 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
         |""".stripMargin
     }.getOrElse("")
 
+    // TODO consider matching all relevant TODOs rather than ingestion/prent/lang/workspace specific ones
     val result = tx.run(
       s"""
          |MATCH (b :Blob:Resource {uri: {uri}})<-[todo:TODO {
@@ -754,6 +745,7 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
   }
 
   override def logExtractionFailure(blobUri: Uri, extractorName: String, stackTrace: String): Either[Failure, Unit] = transaction { tx =>
+    // FIXME this should reset lockedBy and lockedAt
     tx.run(
       """
         |MATCH (b :Blob:Resource {uri: {blobUri}})
@@ -774,10 +766,10 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
   override def getFailedExtractions: Either[Failure, ExtractionFailures] = transaction { tx =>
     val summary = tx.run(
       s"""
-        |MATCH (b:Blob)<-[f:EXTRACTION_FAILURE]-(e: Extractor)
-        |WITH DISTINCT { extractorName: e.name, stackTrace: f.stackTrace } as key, count(DISTINCT b) as numberOfBlobs
-        |RETURN key, numberOfBlobs
-        |ORDER BY numberOfBlobs DESC
+         |MATCH (b:Blob)<-[f:EXTRACTION_FAILURE]-(e: Extractor)
+         |WITH DISTINCT { extractorName: e.name, stackTrace: f.stackTrace } as key, count(DISTINCT b) as numberOfBlobs
+         |RETURN key, numberOfBlobs
+         |ORDER BY numberOfBlobs DESC
       """.stripMargin
     )
 
@@ -934,12 +926,12 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
 
   override def insert(events: Seq[Manifest.Insertion], rootUri: Uri): Either[Failure, Unit] = transaction { tx =>
     def insertions() = events.toList.traverse {
-        case Manifest.InsertDirectory(parentUri, uri) =>
-          insertDirectory(tx, parentUri = parentUri, uri = uri)
-        case Manifest.InsertBlob(file, blobUri, parentBlobs, mimeType, ingestion, languages, extractors, workspace, isFastLane) =>
-          insertBlob(tx, file, blobUri, parentBlobs, mimeType, ingestion, languages, extractors, workspace, isFastLane)
-        case Manifest.InsertEmail(email, parent) =>
-          insertEmail(tx, email, parent)
+      case Manifest.InsertDirectory(parentUri, uri) =>
+        insertDirectory(tx, parentUri = parentUri, uri = uri)
+      case Manifest.InsertBlob(file, blobUri, parentBlobs, mimeType, ingestion, languages, extractors, workspace, isFastLane) =>
+        insertBlob(tx, file, blobUri, parentBlobs, mimeType, ingestion, languages, extractors, workspace, isFastLane)
+      case Manifest.InsertEmail(email, parent) =>
+        insertEmail(tx, email, parent)
     }
 
     def setEndTimeIfComplete() = {
@@ -974,6 +966,9 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
     // CALL apoc.refactor.rename.type("PROCESSED", "TODO", processedRelations)
     // YIELD committedOperations
     // RETURN committedOperations
+    // FIXME do we really need to preserve the properties on the PROCESSED relationship?
+    //  we're massively duplicating work in some cases
+    //  we should only create one TODO per extractor and blob, rather than one per PROCESSED relationship
     tx.run(
       """
         |MATCH (blob :Blob:Resource {uri: {uri}})<-[p :PROCESSED]-(e: Extractor)
@@ -1030,6 +1025,7 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
     // Re-run extractors that failed.
     // Failed extractors leave in place a TODO with attempts > 0 and an EXTRACTION_FAILURE.
     // So we delete the EXTRACTION_FAILUREs and set attempts to 0 on the TODOs.
+    // FIXME we should only create one TODO per extractor and blob, rather than one per EXTRACTION_FAILURE relationship
     tx.run(
       """
         |MATCH (blob :Blob:Resource {uri: {uri}})<-[failure :EXTRACTION_FAILURE]-(failedExtractor :Extractor {external: false})
@@ -1066,6 +1062,8 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
 
   // Reset TODO attempts property for all TODO relations between the blob and an external extractor
   private def resetExternalExtractorTodoAttemptsForBlob(uri: Uri, tx: AttemptWrappedTransaction): Attempt[Unit] =  {
+    // TODO can this be dried out with the similar code in rerunFailedExtractorsForBlob?
+    // FIXME we should only create one TODO per extractor and blob, rather than one per EXTRACTION_FAILURE relationship
     tx.run(
       """
         |MATCH (blob :Blob:Resource {uri: {uri}})<-[failure :EXTRACTION_FAILURE]-(failedExtractor :Extractor {external: true})
@@ -1075,7 +1073,7 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
        """.stripMargin,
       parameters(
         "uri", uri.value
-    )
+      )
     ).flatMap(result => {
       val counters = result.summary().counters()
       val propertiesSet = counters.propertiesSet()
@@ -1191,11 +1189,11 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
     val result = tx.run(
       """
         |OPTIONAL MATCH (:Extractor)-[t:TODO]->(b:Blob)
-        |WHERE (b)-[:LOCKED_BY]->(:Worker)
+        |WHERE t.lockedBy is not null
         |WITH count(t) as inProgress
         |
         |OPTIONAL MATCH (:Extractor)-[t:TODO]->(b:Blob)
-        |WHERE t.attempts < {maxExtractionAttempts} AND NOT (b)-[:LOCKED_BY]->(:Worker) AND NOT (b)<-[:EXTRACTION_FAILURE]-(:Extractor)
+        |WHERE t.attempts < {maxExtractionAttempts} AND t.lockedBy is null AND NOT (b)<-[:EXTRACTION_FAILURE]-(:Extractor)
         |RETURN inProgress, count(t) as outstanding
       """.stripMargin,
       parameters(
