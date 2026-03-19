@@ -8,7 +8,6 @@ type BaseProps = {
   actionDescription: string;
   title: string;
   text?: string;
-  disabled?: boolean;
   isOpen: boolean;
   onClose: () => void;
 };

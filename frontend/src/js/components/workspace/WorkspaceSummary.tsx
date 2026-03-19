@@ -210,7 +210,6 @@ export default function WorkspaceSummary({
         title={`Rename workspace '${workspace.name}'`}
         value={workspace.name}
         onConfirm={(newName) => renameWorkspace(workspace.id, newName)}
-        disabled={!isOwner}
         isOpen={renameModalOpen}
         onClose={() => setRenameModalOpen(false)}
       />
@@ -219,7 +218,6 @@ export default function WorkspaceSummary({
         actionDescription="Delete"
         title={`Delete workspace '${workspace.name}'?`}
         onConfirm={() => deleteWorkspace(workspace.id)}
-        disabled={!canDelete}
         isOpen={deleteModalOpen}
         onClose={() => setDeleteModalOpen(false)}
       />
