@@ -26,10 +26,7 @@
 
 .pfi-page__pdf-text::selection {
   color: transparent;
-  // Can't use opacity with ::selection so this is CSS lightpink
-  // (to match comment selection)
   background-color: rgba(255, 182, 193, 0.4);
-  opacity: 0.5;
 }
 
 .pfi-page-highlight {
