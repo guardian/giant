@@ -58,7 +58,7 @@ export const renderTextOverlays = async (
   }).promise;
 
   return textDivs.map((textDiv) => ({
-    value: textDiv.innerHTML,
+    value: textDiv.textContent ?? "",
     left: textDiv.style.left,
     top: textDiv.style.top,
     fontSize: textDiv.style.fontSize,
