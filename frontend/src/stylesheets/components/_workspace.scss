@@ -1,5 +1,5 @@
 .workspace {
-  width: calc(100vw - #{$sidebarWidth} - 24px);
+  width: calc(100vw - #{$sidebarWidth} - #{$baseSpacing * 4});
   height: calc(100vh - #{$headerHeight} - 115px);
 
   &__header {
@@ -7,8 +7,9 @@
     flex-direction: row;
     gap: $baseSpacing;
     align-items: center;
-    padding-right: $baseSpacing;
-    justify-content: right;
+    width: 100%;
+    box-sizing: border-box;
+    justify-content: flex-end;
   }
 
   &__title {

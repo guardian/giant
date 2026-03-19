@@ -1,6 +1,4 @@
-import React, { useState } from "react";
 import Modal from "../UtilComponents/Modal";
-import MdSupervisorAccount from "react-icons/lib/md/supervisor-account";
 import { Workspace } from "../../types/Workspaces";
 import { PartialUser } from "../../types/User";
 import { takeOwnershipOfWorkspace } from "../../actions/workspaces/takeOwnershipOfWorkspace";
@@ -10,11 +8,11 @@ type Props = {
   isAdmin: Boolean;
   currentUser: PartialUser;
   takeOwnershipOfWorkspace: typeof takeOwnershipOfWorkspace;
+  isOpen: boolean;
+  onClose: () => void;
 };
 
 export default function TakeOwnershipOfWorkspaceModal(props: Props) {
-  const [open, setOpen] = useState(false);
-
   function onSubmit(e?: React.FormEvent) {
     if (e) {
       e.preventDefault();
@@ -30,7 +28,7 @@ export default function TakeOwnershipOfWorkspaceModal(props: Props) {
   }
 
   function onDismiss() {
-    setOpen(false);
+    props.onClose();
   }
 
   if (props.currentUser.username === props.workspace.owner.username)
@@ -38,35 +36,24 @@ export default function TakeOwnershipOfWorkspaceModal(props: Props) {
   if (!props.isAdmin) return null;
 
   return (
-    <React.Fragment>
-      {/* The component that triggers the modal (pass-through rendering of children) */}
-      <button
-        className="btn workspace__button"
-        onClick={() => setOpen(true)}
-        title="Take ownership"
-      >
-        <MdSupervisorAccount /> Take Ownership
-      </button>
-
-      <Modal
-        isOpen={open}
-        dismiss={onDismiss}
-        panelClassName="modal-action__panel"
-      >
-        <form onSubmit={onSubmit}>
-          <div className="modal-action__modal">
-            <h2>Take over workspace {props.workspace.name}</h2>
-            <div className="modal-action__buttons">
-              <button className="btn" onClick={onSubmit} autoFocus={false}>
-                Take Ownership
-              </button>
-              <button className="btn" onClick={onDismiss}>
-                Cancel
-              </button>
-            </div>
+    <Modal
+      isOpen={props.isOpen}
+      dismiss={onDismiss}
+      panelClassName="modal-action__panel"
+    >
+      <form onSubmit={onSubmit}>
+        <div className="modal-action__modal">
+          <h2>Take over workspace {props.workspace.name}</h2>
+          <div className="modal-action__buttons">
+            <button className="btn" onClick={onSubmit} autoFocus={false}>
+              Take Ownership
+            </button>
+            <button className="btn" onClick={onDismiss}>
+              Cancel
+            </button>
           </div>
-        </form>
-      </Modal>
-    </React.Fragment>
+        </div>
+      </form>
+    </Modal>
   );
 }

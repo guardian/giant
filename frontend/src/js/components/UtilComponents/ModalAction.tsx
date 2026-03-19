@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import Modal from "./Modal";
 import { Dropdown } from "semantic-ui-react";
 import _ from "lodash";
@@ -6,10 +6,10 @@ import _ from "lodash";
 type BaseProps = {
   actionType: string;
   actionDescription: string;
-  className: string;
   title: string;
   text?: string;
-  disabled?: boolean;
+  isOpen: boolean;
+  onClose: () => void;
 };
 
 type ConfirmProps = BaseProps & {
@@ -31,11 +31,8 @@ type SelectMultipleProps = BaseProps & {
 };
 
 export default function ModalAction(
-  props: React.PropsWithChildren<
-    ConfirmProps | EditProps | SelectMultipleProps
-  >,
+  props: ConfirmProps | EditProps | SelectMultipleProps,
 ) {
-  const [open, setOpen] = useState(false);
   const [value, setValue] = useState<string | string[] | undefined>(undefined);
 
   function onSubmit(e?: React.FormEvent) {
@@ -67,7 +64,7 @@ export default function ModalAction(
   }
 
   function onDismiss() {
-    setOpen(false);
+    props.onClose();
     setValue(undefined);
   }
 
@@ -75,76 +72,64 @@ export default function ModalAction(
     props.actionType === "edit" ? value !== undefined && value !== "" : true;
 
   return (
-    <React.Fragment>
-      {/* The component that triggers the modal (pass-through rendering of children) */}
-      <button
-        className={props.className}
-        disabled={props.disabled}
-        onClick={() => setOpen(true)}
-        title={props.title}
-      >
-        {props.children}
-      </button>
+    <Modal
+      isOpen={props.isOpen}
+      dismiss={onDismiss}
+      panelClassName="modal-action__panel"
+    >
+      <form onSubmit={onSubmit}>
+        <div className="modal-action__modal">
+          <h2>{props.title}</h2>
 
-      <Modal
-        isOpen={open}
-        dismiss={onDismiss}
-        panelClassName="modal-action__panel"
-      >
-        <form onSubmit={onSubmit}>
-          <div className="modal-action__modal">
-            <h2>{props.title}</h2>
+          {props.text ? (
+            <div className="modal-action__modal-text">{props.text}</div>
+          ) : (
+            false
+          )}
 
-            {props.text ? (
-              <div className="modal-action__modal-text">{props.text}</div>
-            ) : (
-              false
-            )}
+          {props.actionType === "edit" ? (
+            <input
+              type="text"
+              value={value || props.value}
+              onChange={(e) => setValue(e.target.value)}
+              autoFocus={props.actionType === "edit"}
+            />
+          ) : (
+            false
+          )}
 
-            {props.actionType === "edit" ? (
-              <input
-                type="text"
-                value={value || props.value}
-                onChange={(e) => setValue(e.target.value)}
-                autoFocus={props.actionType === "edit"}
-              />
-            ) : (
-              false
-            )}
+          {props.actionType === "select_multiple" ? (
+            <Dropdown
+              fluid
+              multiple
+              selection
+              search
+              placeholder="Select"
+              options={props.possibleValues.map((value) => {
+                return { value, text: value };
+              })}
+              defaultValue={value || props.currentValues}
+              onChange={(e, { value }) => setValue(value as string[])}
+            />
+          ) : (
+            false
+          )}
 
-            {props.actionType === "select_multiple" ? (
-              <Dropdown
-                fluid
-                multiple
-                selection
-                search
-                placeholder="Select"
-                options={props.possibleValues.map((value) => {
-                  return { value, text: value };
-                })}
-                defaultValue={value || props.currentValues}
-                onChange={(e, { value }) => setValue(value as string[])}
-              />
-            ) : (
-              false
-            )}
-
-            <div className="modal-action__buttons">
-              <button
-                className="btn"
-                onClick={onSubmit}
-                disabled={!canSubmit}
-                autoFocus={props.actionType === "confirm"}
-              >
-                {props.actionDescription}
-              </button>
-              <button className="btn" onClick={onDismiss}>
-                Cancel
-              </button>
-            </div>
+          <div className="modal-action__buttons">
+            <button
+              className="btn"
+              onClick={onSubmit}
+              disabled={!canSubmit}
+              autoFocus={props.actionType === "confirm"}
+            >
+              {props.actionDescription}
+            </button>
+            <button className="btn" onClick={onDismiss}>
+              Cancel
+            </button>
           </div>
-        </form>
-      </Modal>
-    </React.Fragment>
+        </div>
+      </form>
+    </Modal>
   );
 }
