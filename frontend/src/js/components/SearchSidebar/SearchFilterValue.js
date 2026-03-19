@@ -3,7 +3,7 @@ import PropTypes from "prop-types";
 import ReactTooltip from "react-tooltip";
 import InfoIcon from "react-icons/lib/md/info-outline";
 
-import { searchFilter, searchFilterOption } from "../../types/SearchFilter.js";
+import { searchFilter, searchFilterOption } from "../../types/SearchFilter";
 import { searchResultsPropType } from "../../types/SearchResults";
 import { MenuChevron } from "../UtilComponents/MenuChevron";
 import { Checkbox } from "../UtilComponents/Checkbox";

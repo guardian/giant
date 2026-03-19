@@ -9,12 +9,12 @@ import { ResourceTrail } from "./ResourceTrail";
 
 type Props = {
   resource: ResourceType;
-  showParents: boolean;
-  showChildren: boolean;
-  showCurrent: boolean;
+  showParents?: boolean;
+  showChildren?: boolean;
+  showCurrent?: boolean;
   className?: string;
-  lastSegmentOnly: boolean;
-  childClass: string;
+  lastSegmentOnly?: boolean;
+  childClass?: string;
 };
 
 const propTypes = {

@@ -1,6 +1,6 @@
 import React from "react";
 import PropTypes from "prop-types";
-import { searchFilterOption } from "../../types/SearchFilter.js";
+import { searchFilterOption } from "../../types/SearchFilter";
 import SearchFilterValue from "./SearchFilterValue";
 import { searchAggBucketPropType } from "../../types/SearchResults";
 

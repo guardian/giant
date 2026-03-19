@@ -48,7 +48,7 @@ export function hrefFromResource(resource: BasicResource): string {
   return `/resources/${resource.uri}`;
 }
 
-export function getCurrentResource(prefix: string): string {
+export function getCurrentResource(prefix?: string): string {
   // We need to take the URI so we can compare it against the one in the Redux
   // resource key and work out whether we need to load it or not.
   //

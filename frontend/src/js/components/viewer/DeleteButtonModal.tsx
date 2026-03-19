@@ -14,7 +14,7 @@ export function DeleteButtonModal({
 }: {
   resource: Resource | null;
   deleteBlob: (blobUri: string) => Promise<Response>;
-  buttonTitle: string | undefined;
+  buttonTitle?: string | undefined;
 }) {
   const [modalOpen, setModalOpen] = useState(false);
   const [deleteStatus, setDeleteStatus] = useState<DeleteStatus>("unconfirmed");

@@ -165,7 +165,7 @@ class Users extends React.Component<Props, State> {
     event: React.FormEvent,
     data: DropdownProps,
   ) {
-    const selectedValues = data.value;
+    const selectedValues = data.value as string[];
     this.props.addCollectionsToUser(username, selectedValues);
   }
 

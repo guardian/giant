@@ -3,7 +3,7 @@ import ChevronIcon from "react-icons/lib/md/expand-more";
 
 type MenuChevronPropTypes = {
   expanded: boolean;
-  onClick: (e: React.MouseEvent<ReactSVGElement>) => void;
+  onClick?: (e: React.MouseEvent<ReactSVGElement>) => void;
 };
 
 export const MenuChevron = (props: MenuChevronPropTypes) => (

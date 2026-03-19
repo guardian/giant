@@ -10,7 +10,7 @@ export function StylesheetLoader({
   children,
 }: {
   eui: boolean;
-  children: React.ReactElement[];
+  children: React.ReactNode;
 }) {
   return (
     <React.Fragment>

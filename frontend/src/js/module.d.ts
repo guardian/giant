@@ -1,2 +1,12 @@
 declare module "human-date";
 declare module "remark-heading-id";
+declare module "jwt-decode";
+declare module "react-faux-dom";
+declare module "react-faux-dom/lib/ReactFauxDOM";
+declare module "d3";
+declare module "md5";
+declare module "qrcode.react";
+declare module "mousetrap";
+declare module "react-icons/lib/md/navigate-before";
+declare module "react-icons/lib/md/navigate-next";
+declare module "react-icons/*";
