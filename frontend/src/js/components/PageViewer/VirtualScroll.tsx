@@ -18,6 +18,7 @@ import { Page } from "./Page";
 import { PageCache } from "./PageCache";
 import styles from "./VirtualScroll.module.css";
 import throttle from "lodash/throttle";
+import { pageSlotHeight } from "./layout";
 
 type VirtualScrollProps = {
   uri: string;
@@ -72,14 +73,12 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
   const MARGIN = 10;
 
   const containerSize = 1000 * scale;
-  // Use the actual page aspect ratio from the backend to calculate slot height.
-  // Falls back to A4 portrait (297/210) if dimensions are not available.
-  const isRotatedSideways = rotation % 180 !== 0;
-  const aspectRatio = firstPageDimensions
-    ? firstPageDimensions.height / firstPageDimensions.width
-    : 297 / 210;
-  const effectiveAspectRatio = isRotatedSideways ? 1 / aspectRatio : aspectRatio;
-  const pageHeight = containerSize * effectiveAspectRatio + MARGIN * 2;
+  const pageHeight = pageSlotHeight(
+    containerSize,
+    MARGIN,
+    rotation,
+    firstPageDimensions,
+  );
 
   const viewport = useRef<HTMLDivElement>(null);
 

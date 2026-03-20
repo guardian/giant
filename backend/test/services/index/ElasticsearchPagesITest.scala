@@ -8,22 +8,26 @@ import org.scalatest.BeforeAndAfterAll
 import org.scalatest.freespec.AnyFreeSpec
 import org.scalatest.matchers.should.Matchers
 import test.integration.{ElasticSearchTestContainer, ElasticsearchTestService}
+import services.index.Pages2
+import test.AttemptValues
 
 import scala.concurrent.ExecutionContext
 
-class ElasticsearchPagesITest extends AnyFreeSpec with Matchers with BeforeAndAfterAll with TestContainersForAll with ElasticSearchTestContainer {
+class ElasticsearchPagesITest extends AnyFreeSpec with Matchers with BeforeAndAfterAll with TestContainersForAll with ElasticSearchTestContainer with AttemptValues {
 
   final implicit def executionContext: ExecutionContext = ExecutionContext.global
 
   override type Containers = ElasticsearchContainer
 
   var elasticsearchTestService: ElasticsearchTestService = _
+  var pages2: Pages2 = _
 
   override def startContainers(): Containers = {
     val elasticContainer = getElasticSearchContainer()
     val url = s"http://${elasticContainer.container.getHttpHostAddress}"
 
     elasticsearchTestService = new ElasticsearchTestService(url)
+    pages2 = new Pages2(elasticsearchTestService.elasticClient, "pfi-pages")
 
     elasticContainer
   }
@@ -99,6 +103,28 @@ class ElasticsearchPagesITest extends AnyFreeSpec with Matchers with BeforeAndAf
         English -> "vases <result-highlight>vase</result-highlight>",
         Russian -> "вазах <result-highlight>ваз</result-highlight>"
       )
+    }
+  }
+
+  "Pages2" - {
+    "getFirstPageDimensions" - {
+      "return dimensions for a document that has pages" in {
+        val uri = Uri("dimensions-test")
+        val dimensions = PageDimensions(612, 792, 0, 792)
+        val page = Page(page = 1, Map(English -> "test content"), dimensions)
+
+        elasticsearchTestService.elasticPages.addPageContents(uri, Seq(page)).successValue
+
+        val result = pages2.getFirstPageDimensions(uri).successValue
+        result shouldBe Some(dimensions)
+      }
+
+      "return None for a document with no pages" in {
+        val uri = Uri("no-pages-dimensions-test")
+
+        val result = pages2.getFirstPageDimensions(uri).successValue
+        result shouldBe None
+      }
     }
   }
 }
