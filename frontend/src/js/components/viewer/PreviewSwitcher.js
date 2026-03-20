@@ -3,7 +3,7 @@ import PropTypes from "prop-types";
 import { resourcePropType } from "../../types/Resource";
 import _ from "lodash";
 
-import { hasTextContent } from "../../util/resourceUtils";
+import { hasTextContent, getDefaultView } from "../../util/resourceUtils";
 import { keyboardShortcuts } from "../../util/keyboardShortcuts";
 import { KeyboardShortcut } from "../UtilComponents/KeyboardShortcut";
 
@@ -66,16 +66,9 @@ class PreviewSwitcher extends React.Component {
       this.props.view &&
       !this.currentViewModeIsValid(this.props.resource)
     ) {
-      // Automatically switch to a valid view when the current one is not available
-      if (hasTextContent(this.props.resource)) {
-        this.props.setResourceView("text");
-      } else if (this.props.resource.ocr) {
-        const languages = Object.keys(this.props.resource.ocr);
-        if (languages.length > 0) {
-          this.props.setResourceView(`ocr.${languages[0]}`);
-        }
-      } else if (this.canPreview(this.props.resource.previewStatus)) {
-        this.props.setResourceView("preview");
+      const fallback = getDefaultView(this.props.resource);
+      if (fallback) {
+        this.props.setResourceView(fallback);
       }
     }
   }
