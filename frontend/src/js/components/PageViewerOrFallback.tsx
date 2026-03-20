@@ -95,7 +95,8 @@ export const PageViewerOrFallback: FC<{}> = () => {
   useEffect(() => {
     authFetch(`/api/pages2/${uri}/pageCount`)
       .then((res) => res.json())
-      .then((obj) => setTotalPages(obj.pageCount));
+      .then((obj) => setTotalPages(obj.pageCount))
+      .catch(() => setTotalPages(0));
   }, [uri]);
 
   // Default to "combined" when we have pages and no view is set.
