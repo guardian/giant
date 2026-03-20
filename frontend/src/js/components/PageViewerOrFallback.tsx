@@ -50,7 +50,7 @@ const PageViewerContent: FC<{
     return <PageViewer uri={uri} totalPages={totalPages} />;
   }
 
-  if (!resource) {
+  if (!resource || !auth.token) {
     return null;
   }
 
@@ -67,7 +67,7 @@ const PageViewerContent: FC<{
     return (
       <TextPreview
         uri={resource.uri}
-        currentUser={auth.token!.user}
+        currentUser={auth.token.user}
         text={highlightableText.contents}
         searchHighlights={highlightableText.highlights}
         view={view!}
