@@ -50,7 +50,7 @@ const PageViewerContent: FC<{
     return <PageViewer uri={uri} totalPages={totalPages} />;
   }
 
-  if (!resource || !auth.token) {
+  if (!resource || !auth.token || !view) {
     return null;
   }
 
@@ -60,7 +60,7 @@ const PageViewerContent: FC<{
     return <Preview resource={resource} />;
   } else {
     const highlightableText =
-      view === "text" ? resource.text : get(resource, view!);
+      view === "text" ? resource.text : get(resource, view);
     if (!highlightableText) {
       return renderNoPreview();
     }
@@ -70,7 +70,7 @@ const PageViewerContent: FC<{
         currentUser={auth.token.user}
         text={highlightableText.contents}
         searchHighlights={highlightableText.highlights}
-        view={view!}
+        view={view}
         comments={resource.comments}
         selection={resource.selection}
         preferences={preferences}
