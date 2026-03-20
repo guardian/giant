@@ -111,10 +111,6 @@ export class DocumentMetadata extends React.Component {
     );
   };
 
-  renderTextViewLink() {
-    return null;
-  }
-
   render() {
     const metadata = Object.keys(this.props.resource.metadata || {}).map(
       (k) => ({ key: k, value: this.props.resource.metadata[k] }),
@@ -143,10 +139,7 @@ export class DocumentMetadata extends React.Component {
           )}
         />
 
-        <div className="sidebar__title">
-          Locations
-          {this.renderTextViewLink()}
-        </div>
+        <div className="sidebar__title">Locations</div>
 
         <ResourceBreadcrumbs
           childClass="sidebar__list-item"
