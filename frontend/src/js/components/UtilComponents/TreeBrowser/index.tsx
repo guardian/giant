@@ -48,6 +48,8 @@ type Props<T> = {
   onContextMenu: (e: React.MouseEvent, entry: TreeEntry<T>) => void;
   /** Optional callback for handling file drops from the file system */
   onDropFiles?: (files: Map<string, File>, targetFolderId: string) => void;
+  /** Optional callback for reporting file drop errors to the user */
+  onDropError?: (message: string) => void;
 };
 
 type State = {
@@ -195,7 +197,11 @@ export default class TreeBrowser<T> extends React.Component<Props<T>, State> {
         })
         .catch((error) => {
           console.error("Failed to read dropped files:", error);
-          window.alert(error instanceof Error ? error.message : String(error));
+          if (this.props.onDropError) {
+            this.props.onDropError(
+              error instanceof Error ? error.message : String(error),
+            );
+          }
         });
       return;
     }

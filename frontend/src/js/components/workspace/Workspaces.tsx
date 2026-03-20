@@ -85,6 +85,7 @@ import {
 import MdGlobeIcon from "react-icons/lib/md/public";
 import { FromNowDurationText } from "../UtilComponents/FromNowDurationText";
 import { DroppedFilesInfo } from "../Uploads/UploadFiles";
+import { createWarning } from "../../actions/problems";
 
 /** Recursively search a tree node for a child node by ID */
 function findNodeById(
@@ -819,6 +820,10 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
     });
   };
 
+  onDropError = (message: string) => {
+    this.props.createWarning(message);
+  };
+
   onContextMenu = (e: React.MouseEvent, entry: TreeEntry<WorkspaceEntry>) => {
     if (e.metaKey && e.shiftKey) {
       // override for devs to do "inspect element"
@@ -1224,6 +1229,7 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
             focusedEntry={this.props.focusedEntry}
             onMoveItems={this.onMoveItems}
             onDropFiles={this.onDropFiles}
+            onDropError={this.onDropError}
             onSelectLeaf={onSelectLeaf}
             columnsConfig={this.state.columnsConfig}
             onClickColumn={this.onClickColumn}
@@ -1286,6 +1292,7 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
           clearFocus={this.clearFocus}
           droppedFiles={this.state.droppedFiles}
           onClearDroppedFiles={this.onClearDroppedFiles}
+          onError={this.onDropError}
         />
         <div className="workspace">
           {this.renderFolderTree(this.props.currentWorkspace)}
@@ -1376,6 +1383,7 @@ function mapDispatchToProps(dispatch: GiantDispatch) {
     setWorkspaceFollowers: bindActionCreators(setWorkspaceFollowers, dispatch),
     setWorkspaceIsPublic: bindActionCreators(setWorkspaceIsPublic, dispatch),
     listUsers: bindActionCreators(listUsers, dispatch),
+    createWarning: bindActionCreators(createWarning, dispatch),
     getCollections: bindActionCreators(getCollections, dispatch),
     getWorkspacesMetadata: bindActionCreators(getWorkspacesMetadata, dispatch),
     getWorkspace: bindActionCreators(getWorkspace, dispatch),

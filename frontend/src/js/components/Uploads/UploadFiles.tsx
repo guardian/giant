@@ -74,6 +74,8 @@ type Props = {
   droppedFiles?: DroppedFilesInfo;
   /** Callback to clear the dropped files after they've been consumed */
   onClearDroppedFiles?: () => void;
+  /** Callback to report errors to the user */
+  onError?: (message: string) => void;
 };
 
 type State = {
@@ -469,6 +471,7 @@ export default function UploadFiles(props: Props) {
               onAddFiles={(files) => {
                 dispatch({ type: "Add_Files", files });
               }}
+              onError={props.onError}
             />
           </Form.Field>
           <Form.Field>

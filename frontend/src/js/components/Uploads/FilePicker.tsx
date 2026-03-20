@@ -5,6 +5,7 @@ import { readFilesFromDragEvent } from "./dropZoneUtils";
 type Props = {
   disabled: boolean;
   onAddFiles: (files: Map<string, File>) => void;
+  onError?: (message: string) => void;
 };
 
 type State = {
@@ -102,7 +103,11 @@ export default class FilePicker extends React.Component<Props, State> {
       })
       .catch((error) => {
         console.error("Failed to read dropped files:", error);
-        window.alert(error instanceof Error ? error.message : String(error));
+        if (this.props.onError) {
+          this.props.onError(
+            error instanceof Error ? error.message : String(error),
+          );
+        }
       })
       .finally(() => {
         this.setState({ readingFiles: false });

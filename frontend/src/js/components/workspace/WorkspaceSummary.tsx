@@ -48,6 +48,8 @@ type Props = {
   droppedFiles?: DroppedFilesInfo;
   /** Callback to clear the dropped files after they've been consumed */
   onClearDroppedFiles?: () => void;
+  /** Callback to report errors to the user */
+  onError?: (message: string) => void;
 };
 
 export default function WorkspaceSummary({
@@ -68,6 +70,7 @@ export default function WorkspaceSummary({
   clearFocus,
   droppedFiles,
   onClearDroppedFiles,
+  onError,
 }: Props) {
   const [downloadTextModalOpen, setDownloadTextModalOpen] = useState(false);
   const [shareModalOpen, setShareModalOpen] = useState(false);
@@ -158,6 +161,7 @@ export default function WorkspaceSummary({
         isAdmin={isAdmin}
         droppedFiles={droppedFiles}
         onClearDroppedFiles={onClearDroppedFiles}
+        onError={onError}
       />
       <CaptureFromUrl maybePreSelectedWorkspace={workspace} withButton />
       <Dropdown
