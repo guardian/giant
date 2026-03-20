@@ -69,9 +69,12 @@ export function buildSegments(resource: BasicResource): PathSegment[] {
   return ret;
 }
 
+// Long enough to show the date and most of the timestamp in ingestion names such as "Upload 2026-03-13T19:58:08.7262"
+const MAX_BREADCRUMB_DISPLAY_LENGTH = 26;
+
 function shrinkDisplay(display: string): string {
-  if (display.length > 26) {
-    return display.substring(0, 26) + "...";
+  if (display.length > MAX_BREADCRUMB_DISPLAY_LENGTH) {
+    return display.substring(0, MAX_BREADCRUMB_DISPLAY_LENGTH) + "...";
   }
 
   return display;
