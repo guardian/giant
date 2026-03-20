@@ -2,7 +2,7 @@ import React, { FC, useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import authFetch from "../util/auth/authFetch";
 import { useParams } from "react-router-dom";
-import _ from "lodash";
+import get from "lodash/get";
 import Viewer from "./viewer/Viewer";
 import { PageViewer } from "./PageViewer/PageViewer";
 import { TextPreview } from "./viewer/TextPreview";
@@ -60,7 +60,7 @@ const PageViewerContent: FC<{
     return <Preview resource={resource} />;
   } else {
     const highlightableText =
-      view === "text" ? resource.text : _.get(resource, view!);
+      view === "text" ? resource.text : get(resource, view!);
     if (!highlightableText) {
       return renderNoPreview();
     }
