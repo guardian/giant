@@ -10,10 +10,12 @@ import {
   CHIP_NAME_CREATED_AFTER,
   CHIP_NAME_CREATED_BEFORE,
   CHIP_NAME_DATE_RANGE,
+  CHIP_NAME_WORKSPACE_FOLDER,
   CHIP_KIND_SINGLE,
   CHIP_KIND_MULTI,
   CHIP_KIND_DATE_RANGE,
   CHIP_TYPE_FILE_TYPE,
+  CHIP_TYPE_WORKSPACE_FOLDER,
   CHIP_TYPE_DATE_RANGE,
   CHIP_TYPE_DATASET,
   CHIP_TYPE_WORKSPACE,
@@ -304,6 +306,57 @@ export function rebuildQ(definedChips: Chip[], textOnlyQ: string): string {
   } catch (e) {
     return textOnlyQ;
   }
+}
+
+// ── Q-building helpers for workspace search entry points ────────────
+
+/**
+ * Build a q string that filters to a single workspace.
+ */
+export function buildWorkspaceSearchQ(workspaceId: string): string {
+  return rebuildQ(
+    [
+      {
+        kind: CHIP_KIND_MULTI,
+        name: CHIP_NAME_WORKSPACE,
+        values: [workspaceId],
+        negate: false,
+        chipType: CHIP_TYPE_WORKSPACE,
+      },
+    ],
+    JSON.stringify([""]),
+  );
+}
+
+/**
+ * Build a q string that filters to a workspace folder within a workspace.
+ */
+export function buildWorkspaceFolderSearchQ(
+  workspaceId: string,
+  folderId: string,
+  folderName: string,
+): string {
+  return rebuildQ(
+    [
+      {
+        kind: CHIP_KIND_MULTI,
+        name: CHIP_NAME_WORKSPACE,
+        values: [workspaceId],
+        negate: false,
+        chipType: CHIP_TYPE_WORKSPACE,
+      },
+      {
+        kind: CHIP_KIND_SINGLE,
+        name: CHIP_NAME_WORKSPACE_FOLDER,
+        value: folderName,
+        negate: false,
+        chipType: CHIP_TYPE_WORKSPACE_FOLDER,
+        workspaceId,
+        folderId,
+      },
+    ],
+    JSON.stringify([""]),
+  );
 }
 
 /**

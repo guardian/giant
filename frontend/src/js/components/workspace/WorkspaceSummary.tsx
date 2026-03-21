@@ -25,6 +25,7 @@ import { EuiText } from "@elastic/eui";
 import { FileAndFolderCounts } from "../UtilComponents/TreeBrowser/FileAndFolderCounts";
 import buildLink from "../../util/buildLink";
 import history from "../../util/history";
+import { buildWorkspaceSearchQ } from "../Search/chipParsing";
 import { workspaceEntryPath } from "../../util/workspaceUtils";
 
 type Props = {
@@ -128,16 +129,7 @@ export default function WorkspaceSummary({
         className="btn"
         onClick={() => {
           const searchUrl = buildLink("/search", {
-            q: JSON.stringify([
-              "",
-              {
-                n: "Workspace",
-                v: workspace.id,
-                op: "+",
-                t: "workspace",
-              },
-              "",
-            ]),
+            q: buildWorkspaceSearchQ(workspace.id),
             page: 1,
           });
           window.open(searchUrl, "_blank", "noopener");
