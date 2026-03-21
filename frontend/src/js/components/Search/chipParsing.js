@@ -1,8 +1,8 @@
 import _isString from "lodash/isString";
 import _isObject from "lodash/isObject";
-import { isMultiValueChip } from "./ActiveFilterChip";
 import { expandFileTypeValues } from "./fileTypeCategories";
 import {
+  isMultiValueChip,
   CHIP_NAME_MIME_TYPE,
   CHIP_NAME_FILE_TYPE,
   CHIP_NAME_DATASET,

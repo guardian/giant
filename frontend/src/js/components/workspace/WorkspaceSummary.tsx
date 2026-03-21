@@ -127,11 +127,19 @@ export default function WorkspaceSummary({
       <button
         className="btn"
         onClick={() => {
-          const searchUrl = buildLink(
-            "/search",
-            {},
-            { filters: { workspace: [workspace.id] } },
-          );
+          const searchUrl = buildLink("/search", {
+            q: JSON.stringify([
+              "",
+              {
+                n: "Workspace",
+                v: workspace.id,
+                op: "+",
+                t: "workspace",
+              },
+              "",
+            ]),
+            page: 1,
+          });
           window.open(searchUrl, "_blank", "noopener");
         }}
         title="Search workspace"

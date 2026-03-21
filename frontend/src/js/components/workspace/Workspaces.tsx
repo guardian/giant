@@ -997,6 +997,12 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
                   q: JSON.stringify([
                     "",
                     {
+                      n: "Workspace",
+                      v: workspace.id,
+                      op: "+",
+                      t: "workspace",
+                    },
+                    {
                       n: "Workspace Folder",
                       v: entry.name,
                       op: "+",
@@ -1004,10 +1010,9 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
                       workspaceId: workspace.id,
                       folderId: entry.id,
                     },
-                    "*",
+                    "",
                   ]),
                   page: 1,
-                  filters: { workspace: [workspace.id] },
                 }),
               );
             }
