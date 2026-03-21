@@ -38,3 +38,23 @@ export const CHIP_TYPE_DATE_RANGE = "date_range";
 export const CHIP_TYPE_WORKSPACE_FOLDER = "workspace_folder";
 export const CHIP_TYPE_DATASET = "dataset";
 export const CHIP_TYPE_WORKSPACE = "workspace";
+
+// ── Multi-value chip names ──────────────────────────────────────────
+
+/**
+ * Chip names that support multiple simultaneous values.
+ * One UI chip ↔ N backend chips of the same name.
+ */
+const MULTI_VALUE_CHIP_NAMES = new Set([
+  CHIP_NAME_MIME_TYPE,
+  CHIP_NAME_HAS_FIELD,
+  CHIP_NAME_FILE_TYPE,
+  CHIP_NAME_DATASET,
+  CHIP_NAME_WORKSPACE,
+  CHIP_NAME_LANGUAGE,
+]);
+
+/** Check whether a given chip name supports multi-value selection. */
+export function isMultiValueChip(name) {
+  return MULTI_VALUE_CHIP_NAMES.has(name);
+}
