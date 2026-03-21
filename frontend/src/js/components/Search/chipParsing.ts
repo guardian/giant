@@ -176,7 +176,7 @@ export function parseChips(
             name,
             values,
             negate,
-            chipType: element.t,
+            chipType: element.t ?? "text",
             options: fieldDef ? fieldDef.options : undefined,
           };
           multiValueGroups.set(groupKey, uiChip);
@@ -199,7 +199,7 @@ export function parseChips(
           name,
           value: element.v,
           negate,
-          chipType: element.t,
+          chipType: element.t ?? "text",
           options: fieldDef ? fieldDef.options : undefined,
           workspaceId: element.workspaceId,
           folderId: element.folderId,
