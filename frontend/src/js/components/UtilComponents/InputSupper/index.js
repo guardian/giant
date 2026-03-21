@@ -27,11 +27,11 @@ export default class InputSupper extends React.Component {
   };
 
   focus = () => {
-    this.currentRef.focus();
+    this.currentRef?.focus();
   };
 
   select = () => {
-    this.currentRef.select();
+    this.currentRef?.select();
   };
 
   UNSAFE_componentWillReceiveProps(nextProps) {
