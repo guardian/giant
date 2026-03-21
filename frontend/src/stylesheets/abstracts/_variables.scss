@@ -51,6 +51,12 @@ $warningColour: rgb(255, 209, 66);
 $accessibleRed: rgb(214, 100, 30);
 $accessibleGreen: rgb(43, 159, 120);
 
+// Shared semantic colours for filter UI
+// Used by both chip negation styling and tri-state checkbox negation
+$excludeColour: $accessibleRed;
+// Used by dormant (unused) chips and unchecked (empty) filter checkboxes
+$filterInactiveColour: lighten($primaryDark, 25%);
+
 :root {
   --color-primary-dark: #{$primaryDark};
   --color-primary: #{$primary};
