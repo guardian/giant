@@ -55,6 +55,6 @@ const MULTI_VALUE_CHIP_NAMES = new Set([
 ]);
 
 /** Check whether a given chip name supports multi-value selection. */
-export function isMultiValueChip(name) {
+export function isMultiValueChip(name: string): boolean {
   return MULTI_VALUE_CHIP_NAMES.has(name);
 }

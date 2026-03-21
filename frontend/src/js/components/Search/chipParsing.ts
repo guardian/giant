@@ -19,6 +19,71 @@ import {
   CHIP_TYPE_WORKSPACE,
 } from "./chipNames";
 
+// ── Type definitions ─────────────────────────────────────────────────
+
+export interface SingleChip {
+  kind: typeof CHIP_KIND_SINGLE;
+  name: string;
+  value: string;
+  negate: boolean;
+  chipType: string;
+  options?: string[];
+  workspaceId?: string;
+  folderId?: string;
+}
+
+export interface MultiChip {
+  kind: typeof CHIP_KIND_MULTI;
+  name: string;
+  values: string[];
+  negate: boolean;
+  chipType: string;
+  options?: string[];
+}
+
+export interface DateRangeChip {
+  kind: typeof CHIP_KIND_DATE_RANGE;
+  name: string;
+  from: string;
+  to: string;
+  negate: boolean;
+  chipType: string;
+}
+
+export type Chip = SingleChip | MultiChip | DateRangeChip;
+
+export interface ParsedChips {
+  definedChips: Chip[];
+  textOnlyQ: string;
+}
+
+interface RawChip {
+  n: string;
+  v: string;
+  op?: string;
+  t?: string;
+  workspaceId?: string;
+  folderId?: string;
+}
+
+interface SuggestedField {
+  name: string;
+  type?: string;
+  options?: string[];
+}
+
+export interface PolarityValues {
+  positive: string[];
+  negative: string[];
+}
+
+export interface ChipFilters {
+  workspace?: string[];
+  ingestion?: string[];
+  workspace_exclude?: string[];
+  ingestion_exclude?: string[];
+}
+
 /**
  * Parse a q value (JSON-encoded array of strings and chip objects)
  * into plain text elements and defined chip elements.
@@ -38,32 +103,42 @@ import {
  * @param {Array} suggestedFields - Available field definitions (for options)
  * @returns {{ definedChips: Array, textOnlyQ: string }}
  */
-export function parseChips(q, suggestedFields) {
+export function parseChips(
+  q: string | null | undefined,
+  suggestedFields: SuggestedField[],
+): ParsedChips {
   if (!q) return { definedChips: [], textOnlyQ: "[]" };
 
   try {
     const parsed = JSON.parse(q);
     if (!Array.isArray(parsed)) return { definedChips: [], textOnlyQ: q };
 
-    const textParts = [];
-    const rawChips = [];
+    const textParts: unknown[] = [];
+    const rawChips: RawChip[] = [];
 
-    parsed.forEach((element) => {
+    parsed.forEach((element: unknown) => {
       if (_isString(element)) {
         textParts.push(element);
-      } else if (_isObject(element) && element.n && element.v !== undefined) {
-        if (element.v !== "") {
-          rawChips.push(element);
+      } else if (
+        _isObject(element) &&
+        (element as RawChip).n &&
+        (element as RawChip).v !== undefined
+      ) {
+        if ((element as RawChip).v !== "") {
+          rawChips.push(element as RawChip);
         } else {
           textParts.push(element);
         }
       }
     });
 
-    const definedChips = [];
-    const multiValueGroups = new Map();
+    const definedChips: Chip[] = [];
+    const multiValueGroups = new Map<string, MultiChip>();
     // Accumulate date range halves by polarity, merge after loop
-    const dateRangeAccum = new Map();
+    const dateRangeAccum = new Map<
+      string,
+      { from: string; to: string; negate: boolean }
+    >();
 
     rawChips.forEach((element) => {
       const negate = element.op === "-";
@@ -77,7 +152,7 @@ export function parseChips(q, suggestedFields) {
         if (!dateRangeAccum.has(polarityKey)) {
           dateRangeAccum.set(polarityKey, { from: "", to: "", negate });
         }
-        const acc = dateRangeAccum.get(polarityKey);
+        const acc = dateRangeAccum.get(polarityKey)!;
         if (element.n === CHIP_NAME_CREATED_AFTER) acc.from = element.v;
         if (element.n === CHIP_NAME_CREATED_BEFORE) acc.to = element.v;
         return;
@@ -86,7 +161,9 @@ export function parseChips(q, suggestedFields) {
       // ── Normal chip handling ──────────────────────────────────
       const name = element.n;
       const groupKey = `${name}|${negate ? "-" : "+"}`;
-      const fieldDef = (suggestedFields || []).find((f) => f.name === name);
+      const fieldDef = (suggestedFields || []).find(
+        (f: SuggestedField) => f.name === name,
+      );
 
       if (isMultiValueChip(name)) {
         if (!multiValueGroups.has(groupKey)) {
@@ -94,7 +171,7 @@ export function parseChips(q, suggestedFields) {
             .split(" OR ")
             .map((v) => v.trim())
             .filter(Boolean);
-          const uiChip = {
+          const uiChip: MultiChip = {
             kind: CHIP_KIND_MULTI,
             name,
             values,
@@ -105,7 +182,7 @@ export function parseChips(q, suggestedFields) {
           multiValueGroups.set(groupKey, uiChip);
           definedChips.push(uiChip);
         } else {
-          const existing = multiValueGroups.get(groupKey);
+          const existing = multiValueGroups.get(groupKey)!;
           const extraValues = element.v
             .split(" OR ")
             .map((v) => v.trim())
@@ -166,10 +243,10 @@ export function parseChips(q, suggestedFields) {
  * @param {string} textOnlyQ - JSON-encoded array of text + in-progress chips
  * @returns {string} - The full serialized q value
  */
-export function rebuildQ(definedChips, textOnlyQ) {
+export function rebuildQ(definedChips: Chip[], textOnlyQ: string): string {
   try {
-    const textParts = textOnlyQ ? JSON.parse(textOnlyQ) : [];
-    const chipParts = [];
+    const textParts: unknown[] = textOnlyQ ? JSON.parse(textOnlyQ) : [];
+    const chipParts: RawChip[] = [];
 
     definedChips.forEach((c) => {
       const op = c.negate ? "-" : "+";
@@ -207,9 +284,16 @@ export function rebuildQ(definedChips, textOnlyQ) {
 
         case CHIP_KIND_SINGLE:
         default: {
-          const chip = { n: c.name, v: c.value, op, t: c.chipType };
-          if (c.workspaceId) chip.workspaceId = c.workspaceId;
-          if (c.folderId) chip.folderId = c.folderId;
+          const chip: RawChip = {
+            n: c.name,
+            v: (c as SingleChip).value,
+            op,
+            t: c.chipType,
+          };
+          if ((c as SingleChip).workspaceId)
+            chip.workspaceId = (c as SingleChip).workspaceId;
+          if ((c as SingleChip).folderId)
+            chip.folderId = (c as SingleChip).folderId;
           chipParts.push(chip);
           break;
         }
@@ -235,18 +319,20 @@ export function rebuildQ(definedChips, textOnlyQ) {
  * @param {string} q - The serialized q value (from rebuildQ or the URL)
  * @returns {string} - Backend-ready q value
  */
-export function toBackendQ(q) {
+export function toBackendQ(
+  q: string | null | undefined,
+): string | null | undefined {
   if (!q) return q;
   try {
     const parsed = JSON.parse(q);
     if (!Array.isArray(parsed)) return q;
 
-    const transformed = parsed.map((element) => {
-      if (!_isObject(element) || element.n !== CHIP_NAME_FILE_TYPE)
+    const transformed = parsed.map((element: unknown) => {
+      if (!_isObject(element) || (element as RawChip).n !== CHIP_NAME_FILE_TYPE)
         return element;
 
       // Expand File Type category keys → concrete MIME types
-      const categoryKeys = (element.v || "")
+      const categoryKeys = ((element as RawChip).v || "")
         .split(" OR ")
         .map((v) => v.trim())
         .filter(Boolean);
@@ -276,20 +362,22 @@ export function toBackendQ(q) {
  * @param {string} q
  * @returns {{ positive: string[], negative: string[] }}
  */
-export function getFileTypeCategoriesFromQ(q) {
-  const empty = { positive: [], negative: [] };
+export function getFileTypeCategoriesFromQ(
+  q: string | null | undefined,
+): PolarityValues {
+  const empty: PolarityValues = { positive: [], negative: [] };
   if (!q) return empty;
   try {
     const parsed = JSON.parse(q);
     if (!Array.isArray(parsed)) return empty;
-    const result = { positive: [], negative: [] };
+    const result: PolarityValues = { positive: [], negative: [] };
     for (const el of parsed) {
-      if (_isObject(el) && el.n === CHIP_NAME_FILE_TYPE) {
-        const values = (el.v || "")
+      if (_isObject(el) && (el as RawChip).n === CHIP_NAME_FILE_TYPE) {
+        const values = ((el as RawChip).v || "")
           .split(" OR ")
-          .map((v) => v.trim())
+          .map((v: string) => v.trim())
           .filter(Boolean);
-        if (el.op === "-") {
+        if ((el as RawChip).op === "-") {
           result.negative.push(...values);
         } else {
           result.positive.push(...values);
@@ -306,7 +394,7 @@ export function getFileTypeCategoriesFromQ(q) {
  * Strip contradictions: if a value appears in both positive and negative,
  * positive wins and the value is removed from negative.
  */
-function stripContradictions(positive, negative) {
+function stripContradictions(positive: string[], negative: string[]): string[] {
   const positiveSet = new Set(positive);
   return negative.filter((v) => !positiveSet.has(v));
 }
@@ -320,7 +408,10 @@ function stripContradictions(positive, negative) {
  * @param {{ positive: string[], negative: string[] }} categories
  * @returns {string} updated q
  */
-export function setFileTypeCategoriesInQ(q, categories) {
+export function setFileTypeCategoriesInQ(
+  q: string,
+  categories: Partial<PolarityValues> | null,
+): string {
   const { positive = [], negative: rawNegative = [] } = categories || {};
   const negative = stripContradictions(positive, rawNegative);
   const { definedChips, textOnlyQ } = parseChips(q, []);
@@ -360,20 +451,23 @@ export function setFileTypeCategoriesInQ(q, categories) {
  * @param {string} q
  * @returns {{ positive: string[], negative: string[] }}
  */
-function getChipValuesFromQ(chipName, q) {
-  const empty = { positive: [], negative: [] };
+function getChipValuesFromQ(
+  chipName: string,
+  q: string | null | undefined,
+): PolarityValues {
+  const empty: PolarityValues = { positive: [], negative: [] };
   if (!q) return empty;
   try {
     const parsed = JSON.parse(q);
     if (!Array.isArray(parsed)) return empty;
-    const result = { positive: [], negative: [] };
+    const result: PolarityValues = { positive: [], negative: [] };
     for (const el of parsed) {
-      if (_isObject(el) && el.n === chipName) {
-        const vals = (el.v || "")
+      if (_isObject(el) && (el as RawChip).n === chipName) {
+        const vals = ((el as RawChip).v || "")
           .split(" OR ")
-          .map((v) => v.trim())
+          .map((v: string) => v.trim())
           .filter(Boolean);
-        if (el.op === "-") {
+        if ((el as RawChip).op === "-") {
           result.negative.push(...vals);
         } else {
           result.positive.push(...vals);
@@ -390,7 +484,7 @@ function getChipValuesFromQ(chipName, q) {
  * Get the currently-selected dataset (collection/ingestion) values from q.
  * Returns { positive: [], negative: [] } when no Dataset chip is active (= "all").
  */
-export function getDatasetsFromQ(q) {
+export function getDatasetsFromQ(q: string | null | undefined): PolarityValues {
   return getChipValuesFromQ(CHIP_NAME_DATASET, q);
 }
 
@@ -398,7 +492,9 @@ export function getDatasetsFromQ(q) {
  * Get the currently-selected workspace IDs from q.
  * Returns { positive: [], negative: [] } when no Workspace chip is active (= "all").
  */
-export function getWorkspacesFromQ(q) {
+export function getWorkspacesFromQ(
+  q: string | null | undefined,
+): PolarityValues {
   return getChipValuesFromQ(CHIP_NAME_WORKSPACE, q);
 }
 
@@ -406,7 +502,10 @@ export function getWorkspacesFromQ(q) {
  * Return a new q string with Dataset chip values set.
  * Pass { positive: [], negative: [] } to remove the chip (= "all").
  */
-export function setDatasetsInQ(q, values) {
+export function setDatasetsInQ(
+  q: string,
+  values: Partial<PolarityValues> | null,
+): string {
   return setMultiChipInQ(q, CHIP_NAME_DATASET, CHIP_TYPE_DATASET, values);
 }
 
@@ -414,7 +513,10 @@ export function setDatasetsInQ(q, values) {
  * Return a new q string with Workspace chip values set.
  * Pass { positive: [], negative: [] } to remove the chip (= "all").
  */
-export function setWorkspacesInQ(q, values) {
+export function setWorkspacesInQ(
+  q: string,
+  values: Partial<PolarityValues> | null,
+): string {
   return setMultiChipInQ(q, CHIP_NAME_WORKSPACE, CHIP_TYPE_WORKSPACE, values);
 }
 
@@ -427,7 +529,12 @@ export function setWorkspacesInQ(q, values) {
  * @param {string} chipType
  * @param {{ positive: string[], negative: string[] }} values
  */
-function setMultiChipInQ(q, chipName, chipType, values) {
+function setMultiChipInQ(
+  q: string,
+  chipName: string,
+  chipType: string,
+  values: Partial<PolarityValues> | null,
+): string {
   const { positive = [], negative: rawNegative = [] } = values || {};
   const negative = stripContradictions(positive, rawNegative);
   const { definedChips, textOnlyQ } = parseChips(q, []);
@@ -465,35 +572,37 @@ function setMultiChipInQ(q, chipName, chipType, values) {
  * workspace[]/ingestion[] (include) and workspace_exclude[]/ingestion_exclude[]
  * (exclude) query params — the backend doesn't handle these as q-string chips.
  */
-export function extractCollectionAndWorkspaceChips(q) {
+export function extractCollectionAndWorkspaceChips(
+  q: string | null | undefined,
+): { cleanedQ: string | null | undefined; chipFilters: ChipFilters } {
   if (!q) return { cleanedQ: q, chipFilters: {} };
   try {
     const parsed = JSON.parse(q);
     if (!Array.isArray(parsed)) return { cleanedQ: q, chipFilters: {} };
 
-    const kept = [];
-    const workspaceValues = [];
-    const ingestionValues = [];
-    const workspaceExcludeValues = [];
-    const ingestionExcludeValues = [];
+    const kept: unknown[] = [];
+    const workspaceValues: string[] = [];
+    const ingestionValues: string[] = [];
+    const workspaceExcludeValues: string[] = [];
+    const ingestionExcludeValues: string[] = [];
 
     for (const el of parsed) {
-      if (_isObject(el) && el.n === CHIP_NAME_WORKSPACE) {
-        const vals = (el.v || "")
+      if (_isObject(el) && (el as RawChip).n === CHIP_NAME_WORKSPACE) {
+        const vals = ((el as RawChip).v || "")
           .split(" OR ")
-          .map((v) => v.trim())
+          .map((v: string) => v.trim())
           .filter(Boolean);
-        if (el.op === "-") {
+        if ((el as RawChip).op === "-") {
           workspaceExcludeValues.push(...vals);
         } else {
           workspaceValues.push(...vals);
         }
-      } else if (_isObject(el) && el.n === CHIP_NAME_DATASET) {
-        const vals = (el.v || "")
+      } else if (_isObject(el) && (el as RawChip).n === CHIP_NAME_DATASET) {
+        const vals = ((el as RawChip).v || "")
           .split(" OR ")
-          .map((v) => v.trim())
+          .map((v: string) => v.trim())
           .filter(Boolean);
-        if (el.op === "-") {
+        if ((el as RawChip).op === "-") {
           ingestionExcludeValues.push(...vals);
         } else {
           ingestionValues.push(...vals);
@@ -513,7 +622,7 @@ export function extractCollectionAndWorkspaceChips(q) {
       ingestionExcludeValues,
     );
 
-    const chipFilters = {};
+    const chipFilters: ChipFilters = {};
     if (workspaceValues.length > 0) chipFilters.workspace = workspaceValues;
     if (ingestionValues.length > 0) chipFilters.ingestion = ingestionValues;
     if (cleanWorkspaceExclude.length > 0)

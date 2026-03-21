@@ -13,7 +13,13 @@
  * chip on re-parse without confusing it with raw Mime Type chips.
  */
 
-export const FILE_TYPE_CATEGORIES = [
+export interface FileTypeCategory {
+  value: string;
+  label: string;
+  mimes: string[];
+}
+
+export const FILE_TYPE_CATEGORIES: FileTypeCategory[] = [
   {
     value: "pdf",
     label: "PDF",
@@ -134,8 +140,10 @@ FILE_TYPE_CATEGORIES.forEach((c) => {
  * Expand an array of category keys into a flat array of MIME types.
  * Unknown keys are silently ignored.
  */
-export function expandFileTypeValues(categoryKeys) {
-  const mimes = [];
+export function expandFileTypeValues(
+  categoryKeys: string[] | null | undefined,
+): string[] {
+  const mimes: string[] = [];
   (categoryKeys || []).forEach((key) => {
     const list = _categoryToMimes.get(key);
     if (list) mimes.push(...list);
@@ -147,7 +155,7 @@ export function expandFileTypeValues(categoryKeys) {
  * Look up the category key for a single MIME type.
  * Returns undefined if the MIME doesn't belong to any category.
  */
-export function mimeToCategory(mime) {
+export function mimeToCategory(mime: string): string | undefined {
   return _mimeToCategory.get(mime);
 }
 
@@ -156,9 +164,11 @@ export function mimeToCategory(mime) {
  * preserving the order in which each category first appears.
  * MIMEs that don't match any category are silently dropped.
  */
-export function collapseMimesToCategories(mimes) {
-  const seen = new Set();
-  const keys = [];
+export function collapseMimesToCategories(
+  mimes: string[] | null | undefined,
+): string[] {
+  const seen = new Set<string>();
+  const keys: string[] = [];
   (mimes || []).forEach((m) => {
     const key = _mimeToCategory.get(m);
     if (key && !seen.has(key)) {
