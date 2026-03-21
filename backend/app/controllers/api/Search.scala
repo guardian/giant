@@ -96,22 +96,28 @@ object Search extends Logging {
     val mimeFilters = req.queryString.getOrElse("mimeType[]", Seq()).toList
     val ingestionFilters = req.queryString.getOrElse("ingestion[]", Seq()).toList
     val workspaceFilters = req.queryString.getOrElse("workspace[]", Seq()).toList
+    val ingestionExcludeFilters = req.queryString.getOrElse("ingestion_exclude[]", Seq()).toList
+    val workspaceExcludeFilters = req.queryString.getOrElse("workspace_exclude[]", Seq()).toList
 
     val createdAtFilters = req.queryString.getOrElse("createdAt[]", Seq()).toList
     val (start, end) = parseCreatedAt(createdAtFilters)
 
     val parsedChips = Chips.parseQueryString(q)
 
-    SearchParameters(parsedChips.query, mimeFilters, ingestionFilters, workspaceFilters, start, end, page, pageSize, sortBy, parsedChips.workspace)
+    SearchParameters(parsedChips.query, mimeFilters, ingestionFilters, workspaceFilters, ingestionExcludeFilters, workspaceExcludeFilters, start, end, page, pageSize, sortBy, parsedChips.workspace)
   }
 
   def verifyParameters(user: User, params: SearchParameters, context: DefaultSearchContext): SearchParameters = {
     val ingestionFilters = params.ingestionFilters.flatMap (verifyIngestionFilter (user, _, context.visibleCollections) )
     val workspaceFilters = params.workspaceFilters.flatMap (verifyWorkspaceFilter (user, _, context.visibleWorkspaces) )
+    val ingestionExcludeFilters = params.ingestionExcludeFilters.flatMap (verifyIngestionFilter (user, _, context.visibleCollections) )
+    val workspaceExcludeFilters = params.workspaceExcludeFilters.flatMap (verifyWorkspaceFilter (user, _, context.visibleWorkspaces) )
 
     params.copy (
       ingestionFilters = ingestionFilters,
-      workspaceFilters = workspaceFilters
+      workspaceFilters = workspaceFilters,
+      ingestionExcludeFilters = ingestionExcludeFilters,
+      workspaceExcludeFilters = workspaceExcludeFilters
     )
   }
 
