@@ -96,7 +96,23 @@ object Chips {
           // which happens when you've inserted the chip but haven't typed into it yet
           val sanitisedValue = if(value.isEmpty) { "\"\"" } else  { value }
 
-          op + template.replace("_word_", sanitisedValue)
+          // If the template contains multiple _word_ placeholders and the value
+          // contains " OR " (multi-value chip), we must expand the template
+          // once per value and OR the expansions together.  Otherwise a value
+          // like "english OR french" substituted into
+          //   (_exists_:(text._word_) OR _exists_:(ocr._word_))
+          // would produce the broken
+          //   (_exists_:(text.english OR french) OR _exists_:(ocr.english OR french))
+          // instead of the correct
+          //   ((_exists_:(text.english) …) OR (_exists_:(text.french) …))
+          val multiWordTemplate = template.indexOf("_word_") != template.lastIndexOf("_word_")
+          val orValues = sanitisedValue.split(" OR ").map(_.trim).filter(_.nonEmpty)
+
+          if (multiWordTemplate && orValues.length > 1) {
+            op + orValues.map(v => template.replace("_word_", v)).mkString("(", " OR ", ")")
+          } else {
+            op + template.replace("_word_", sanitisedValue)
+          }
         case _ => throw new UnsupportedOperationException("Invalid json type in query array")
       }.mkString(" ")
       case _ => throw new UnsupportedOperationException("Outer json type must be an array")
@@ -116,7 +132,18 @@ object Chips {
     DropdownChip("Has Field", List(
       DropdownOption("OCR", "ocr"),
       DropdownOption("Text", "text"),
+      DropdownOption("Transcription", "transcript"),
       DropdownOption("Author", "metadata.enrichedMetadata.author"),
-    ), "_exists_:(_word_)")
+    ), "_exists_:(_word_)"),
+    DropdownChip("Language", List(
+      DropdownOption("Arabic", "arabic"),
+      DropdownOption("English", "english"),
+      DropdownOption("French", "french"),
+      DropdownOption("German", "german"),
+      DropdownOption("Persian", "persian"),
+      DropdownOption("Portuguese", "portuguese"),
+      DropdownOption("Russian", "russian"),
+      DropdownOption("Spanish", "spanish"),
+    ), "(_exists_:(text._word_) OR _exists_:(ocr._word_) OR _exists_:(transcript._word_))")
   )
 }
