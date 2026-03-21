@@ -96,19 +96,14 @@ object Chips {
           // which happens when you've inserted the chip but haven't typed into it yet
           val sanitisedValue = if(value.isEmpty) { "\"\"" } else  { value }
 
-          // If the template contains multiple _word_ placeholders and the value
-          // contains " OR " (multi-value chip), we must expand the template
-          // once per value and OR the expansions together.  Otherwise a value
-          // like "english OR french" substituted into
-          //   (_exists_:(text._word_) OR _exists_:(ocr._word_))
-          // would produce the broken
-          //   (_exists_:(text.english OR french) OR _exists_:(ocr.english OR french))
-          // instead of the correct
-          //   ((_exists_:(text.english) …) OR (_exists_:(text.french) …))
-          val multiWordTemplate = template.indexOf("_word_") != template.lastIndexOf("_word_")
+          // If the value contains " OR " (multi-value chip), expand the template
+          // once per value and OR the expansions together.  For example a value
+          // like "ocr OR transcript" substituted into _exists_:(_word_) must
+          // produce (_exists_:(ocr) OR _exists_:(transcript)) rather than the
+          // invalid _exists_:(ocr OR transcript).
           val orValues = sanitisedValue.split(" OR ").map(_.trim).filter(_.nonEmpty)
 
-          if (multiWordTemplate && orValues.length > 1) {
+          if (orValues.length > 1) {
             op + orValues.map(v => template.replace("_word_", v)).mkString("(", " OR ", ")")
           } else {
             op + template.replace("_word_", sanitisedValue)

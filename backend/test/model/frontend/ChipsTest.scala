@@ -40,22 +40,19 @@ class ChipsTest extends AnyFunSuite with Matchers {
     result.query must be("+(_exists_:(text.english) OR _exists_:(ocr.english) OR _exists_:(transcript.english))")
   }
 
-  // ── Multi-value chips: single-_word_ template (OR in value) ───────
+  // ── Multi-value chips: OR in value always expands template per-value ─
 
-  test("Has Field OR-joined values produce single clause with OR") {
+  test("Has Field OR-joined values expand template per-value") {
     val input = q(chip("Has Field", "ocr OR text", "+", "dropdown"))
     val result = Chips.parseQueryString(input)
-    // Single _word_ in template → simple replacement, OR stays inside
-    result.query must be("+_exists_:(ocr OR text)")
+    result.query must be("+(_exists_:(ocr) OR _exists_:(text))")
   }
 
-  test("negated Has Field OR-joined values") {
+  test("negated Has Field OR-joined values expand correctly") {
     val input = q(chip("Has Field", "ocr OR text", "-", "dropdown"))
     val result = Chips.parseQueryString(input)
-    result.query must be("-_exists_:(ocr OR text)")
+    result.query must be("-(_exists_:(ocr) OR _exists_:(text))")
   }
-
-  // ── Multi-value chips: multi-_word_ template (must expand per-value) ─
 
   test("Language OR-joined values expand template per-value") {
     val input = q(chip("Language", "english OR french", "+", "dropdown"))
