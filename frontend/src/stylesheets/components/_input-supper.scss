@@ -39,9 +39,12 @@
 .input-supper__inline-input {
   display: inline-block;
   background-color: transparent;
-  display: inline-block;
   border: none;
   font-size: 18px;
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 
   &--chip {
     color: white;
@@ -58,11 +61,13 @@
   display: inline-block;
   height: 100%;
   margin: 0 calc($baseSpacing / 2) 0 0;
+  max-width: 100%;
 
   &:last-child {
     flex-grow: 1;
     cursor: text;
     margin: 0;
+    min-width: 100px; // Ensure there's always some space for typing
   }
 }
 
@@ -96,7 +101,8 @@
 }
 
 .input-supper__chip-body {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
   height: 100%;
   margin-left: 2px;
   margin-right: 2px;
@@ -107,6 +113,10 @@
 .input-supper__chip-name {
   margin-right: 2px;
   font-size: 16px;
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 
   &:after {
     content: ":";
