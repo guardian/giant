@@ -68,6 +68,14 @@ interface RawChip {
   folderId?: string;
 }
 
+function isRawChip(el: unknown): el is RawChip {
+  return (
+    _isObject(el) &&
+    typeof (el as RawChip).n === "string" &&
+    (el as RawChip).v !== undefined
+  );
+}
+
 interface SuggestedField {
   name: string;
   type?: string;
@@ -121,13 +129,9 @@ export function parseChips(
     parsed.forEach((element: unknown) => {
       if (_isString(element)) {
         textParts.push(element);
-      } else if (
-        _isObject(element) &&
-        (element as RawChip).n &&
-        (element as RawChip).v !== undefined
-      ) {
-        if ((element as RawChip).v !== "") {
-          rawChips.push(element as RawChip);
+      } else if (isRawChip(element) && element.n) {
+        if (element.v !== "") {
+          rawChips.push(element);
         } else {
           textParts.push(element);
         }
@@ -381,11 +385,11 @@ export function toBackendQ(
     if (!Array.isArray(parsed)) return q;
 
     const transformed = parsed.map((element: unknown) => {
-      if (!_isObject(element) || (element as RawChip).n !== CHIP_NAME_FILE_TYPE)
+      if (!isRawChip(element) || element.n !== CHIP_NAME_FILE_TYPE)
         return element;
 
       // Expand File Type category keys → concrete MIME types
-      const categoryKeys = ((element as RawChip).v || "")
+      const categoryKeys = (element.v || "")
         .split(" OR ")
         .map((v) => v.trim())
         .filter(Boolean);
@@ -425,12 +429,12 @@ export function getFileTypeCategoriesFromQ(
     if (!Array.isArray(parsed)) return empty;
     const result: PolarityValues = { positive: [], negative: [] };
     for (const el of parsed) {
-      if (_isObject(el) && (el as RawChip).n === CHIP_NAME_FILE_TYPE) {
-        const values = ((el as RawChip).v || "")
+      if (isRawChip(el) && el.n === CHIP_NAME_FILE_TYPE) {
+        const values = (el.v || "")
           .split(" OR ")
           .map((v: string) => v.trim())
           .filter(Boolean);
-        if ((el as RawChip).op === "-") {
+        if (el.op === "-") {
           result.negative.push(...values);
         } else {
           result.positive.push(...values);
@@ -515,12 +519,12 @@ function getChipValuesFromQ(
     if (!Array.isArray(parsed)) return empty;
     const result: PolarityValues = { positive: [], negative: [] };
     for (const el of parsed) {
-      if (_isObject(el) && (el as RawChip).n === chipName) {
-        const vals = ((el as RawChip).v || "")
+      if (isRawChip(el) && el.n === chipName) {
+        const vals = (el.v || "")
           .split(" OR ")
           .map((v: string) => v.trim())
           .filter(Boolean);
-        if ((el as RawChip).op === "-") {
+        if (el.op === "-") {
           result.negative.push(...vals);
         } else {
           result.positive.push(...vals);
@@ -640,22 +644,22 @@ export function extractCollectionAndWorkspaceChips(
     const ingestionExcludeValues: string[] = [];
 
     for (const el of parsed) {
-      if (_isObject(el) && (el as RawChip).n === CHIP_NAME_WORKSPACE) {
-        const vals = ((el as RawChip).v || "")
+      if (isRawChip(el) && el.n === CHIP_NAME_WORKSPACE) {
+        const vals = (el.v || "")
           .split(" OR ")
           .map((v: string) => v.trim())
           .filter(Boolean);
-        if ((el as RawChip).op === "-") {
+        if (el.op === "-") {
           workspaceExcludeValues.push(...vals);
         } else {
           workspaceValues.push(...vals);
         }
-      } else if (_isObject(el) && (el as RawChip).n === CHIP_NAME_DATASET) {
-        const vals = ((el as RawChip).v || "")
+      } else if (isRawChip(el) && el.n === CHIP_NAME_DATASET) {
+        const vals = (el.v || "")
           .split(" OR ")
           .map((v: string) => v.trim())
           .filter(Boolean);
-        if ((el as RawChip).op === "-") {
+        if (el.op === "-") {
           ingestionExcludeValues.push(...vals);
         } else {
           ingestionValues.push(...vals);
