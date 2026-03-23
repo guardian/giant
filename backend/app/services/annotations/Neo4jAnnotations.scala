@@ -144,12 +144,14 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
       ))
 
       val entries = realEntries ++ synthesisedEntries
+      val childrenByParent: Map[String, List[TreeEntry[WorkspaceEntry]]] =
+        entries.groupBy(_.data.maybeParentId.getOrElse("noParent"))
 
       def buildNode(currentEntry: TreeEntry[WorkspaceEntry]): TreeEntry[WorkspaceEntry] = {
         currentEntry match {
           case leaf: TreeLeaf[WorkspaceEntry] => leaf
           case node: TreeNode[WorkspaceEntry] => {
-            val children = entries.filter(n => n.data.maybeParentId.contains(currentEntry.id)).map(buildNode)
+            val children = childrenByParent.getOrElse(node.id, List.empty).map(buildNode)
             node.copy(
               children = children,
               data = node.data match {
