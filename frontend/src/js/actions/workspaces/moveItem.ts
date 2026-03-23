@@ -38,6 +38,8 @@ export function moveItems(
               .then(throttledCallback)
               .catch((error) => dispatch(() => errorMovingItem(error)))
               .finally(onEachSettled);
+          } else if (onEachSettled) {
+            onEachSettled();
           }
         }
       }),
