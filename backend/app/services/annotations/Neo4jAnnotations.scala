@@ -113,7 +113,7 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
         |RETURN node, nodeCreator, parentNode.id, remoteIngest.url,
         |	count(todo) AS numberOfTodos,
         |	collect(todo)[0].note as note,
-        |	exists((:Resource {uri: node.uri})<-[:EXTRACTION_FAILURE]-(:Extractor)) AS hasFailures
+        |	exists((:Resource)<-[:EXTRACTION_FAILURE]-(:Extractor)) AS hasFailures
       """.stripMargin,
       parameters(
         "currentUser", currentUser,
