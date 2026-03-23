@@ -113,7 +113,7 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
         |RETURN node, nodeCreator, parentNode.id, remoteIngest.url,
         |	count(todo) AS numberOfTodos,
         |	collect(todo)[0].note as note,
-        |	exists((:Resource {uri: node.uri})<-[:EXTRACTION_FAILURE]-(:Extractor)) AS hasFailures
+        |	EXISTS { (:Resource {uri: node.uri})<-[:EXTRACTION_FAILURE]-(:Extractor) } AS hasFailures
       """.stripMargin,
       parameters(
         "currentUser", currentUser,
@@ -285,7 +285,7 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
     tx.run(
       """
         |MATCH (rootNode :WorkspaceNode)-[:PART_OF]->(workspace :Workspace {id: $workspaceId})<-[:OWNS]-(owner :User {username: $username})
-        |   WHERE NOT exists((rootNode)-[:PARENT]->(:WorkspaceNode))
+        |   WHERE NOT EXISTS { (rootNode)-[:PARENT]->(:WorkspaceNode) }
         |
         |SET workspace.name = $name
         |SET rootNode.name = $name
@@ -490,7 +490,7 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
       """
         |MATCH (rootNode :WorkspaceNode)-[:PART_OF]->(workspace :Workspace {id: $workspaceId})
         |  WHERE ((:User { username: $currentUser })-[:FOLLOWING]->(workspace) OR workspace.isPublic)
-        |  AND NOT exists((rootNode)-[:PARENT]->(:WorkspaceNode))
+        |    AND NOT EXISTS { (rootNode)-[:PARENT]->(:WorkspaceNode) }
         |RETURN rootNode
         |""".stripMargin,
       parameters(
@@ -534,7 +534,7 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
         |MATCH (newParent :WorkspaceNode {id: $newParentId})-[:PART_OF]->(newWorkspace :Workspace {id: $newWorkspaceId})
         |  WHERE (:User { username: $currentUser })-[:FOLLOWING]->(newWorkspace) OR newWorkspace.isPublic
         |
-        |WITH oldParentLink, oldWorkspace, newParent, newWorkspace, item, EXISTS((newParent)-[:PARENT*0..]->(item)) as isNewParentDescendantOfItem
+        |WITH oldParentLink, oldWorkspace, newParent, newWorkspace, item, EXISTS { (newParent)-[:PARENT*0..]->(item) } as isNewParentDescendantOfItem
         |  WHERE isNewParentDescendantOfItem = false
         |
         |  // The zero-length lower bound on the path matches the item itself as well

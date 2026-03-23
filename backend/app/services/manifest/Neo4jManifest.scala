@@ -618,13 +618,13 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
            |  languages: processing.languages
            |  }]-(e)
            |
-           |FOREACH (_ IN CASE WHEN exists(processing.workspaceId) THEN [1] ELSE [] END |
+           |FOREACH (_ IN CASE WHEN processing.workspaceId IS NOT NULL THEN [1] ELSE [] END |
            |  SET processed.workspaceId = processing.workspaceId
            |)
-           |FOREACH (_ IN CASE WHEN exists(processing.workspaceBlobUri) THEN [1] ELSE [] END |
+           |FOREACH (_ IN CASE WHEN processing.workspaceBlobUri IS NOT NULL THEN [1] ELSE [] END |
            |  SET processed.workspaceBlobUri = processing.workspaceBlobUri
            |)
-           |FOREACH (_ IN CASE WHEN exists(processing.workspaceNodeId) THEN [1] ELSE [] END |
+           |FOREACH (_ IN CASE WHEN processing.workspaceNodeId IS NOT NULL THEN [1] ELSE [] END |
            |  SET processed.workspaceNodeId = processing.workspaceNodeId
            |)
            |DELETE processing
