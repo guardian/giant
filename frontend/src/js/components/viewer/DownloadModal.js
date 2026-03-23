@@ -271,6 +271,19 @@ Email Body:
             />
           </div>
         </div>
+        {this.state.downloadType === "original" && (
+          <div
+            className="error-bar__warning"
+            style={{
+              padding: "10px",
+              marginBottom: "10px",
+              borderRadius: "4px",
+            }}
+          >
+            <strong>Warning:</strong> files in their original format could
+            contain malware, macros, web beacons etc. Please exercise caution.
+          </div>
+        )}
         <div className="form__row">
           <span className="form__label required-field">Save As</span>
           <div className="download-modal__name">
