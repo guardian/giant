@@ -32,7 +32,8 @@
   "prettier": "@guardian/prettier",
   "jest": {
     "testMatch": [
-      "<rootDir>/lib/**/*.test.ts"
+      "<rootDir>/lib/**/*.test.ts",
+      "<rootDir>/bin/**/*.test.ts"
     ],
     "transform": {
       "^.+\\.tsx?$": "ts-jest"
