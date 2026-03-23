@@ -199,7 +199,7 @@ class Neo4jHelper(driver: Driver, executionContext: ExecutionContext, queryLoggi
         .toList
         .map(_.get("n").asNode())
 
-      nodes.map(n => s"node (:${n.labels().asScala.toList.mkString(":")} {id: ${n.id()}})")
+      nodes.map(n => s"node (:${n.labels().asScala.toList.mkString(":")} {id: ${n.elementId()}})")
   }
 
   def getDeadlockedRelationships(tx: Transaction, transientException: TransientException): List[String] = {
@@ -220,7 +220,7 @@ class Neo4jHelper(driver: Driver, executionContext: ExecutionContext, queryLoggi
       .toList
       .map(_.get("r").asRelationship())
 
-    relationships.map(r => s"relationship ({id: ${r.startNodeId()}})-[:${r.`type`()}]->({id: ${r.endNodeId()}})")
+    relationships.map(r => s"relationship ({id: ${r.startNodeElementId()}})-[:${r.`type`()}]->({id: ${r.endNodeElementId()}})")
   }
 
   def getDeadlockedNodesAndRelationships(session: Session, transientException: TransientException): List[String] = {

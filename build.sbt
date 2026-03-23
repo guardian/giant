@@ -130,7 +130,7 @@ lazy val backend = (project in file("backend"))
       "com.sksamuel.elastic4s" %% "elastic4s-client-esjava" % "8.11.4",
       "org.elasticsearch.client" % "elasticsearch-rest-client-sniffer" % "8.6.2",
       "org.apache.pekko" %% "pekko-cluster-typed" % "1.0.3", // Needs to match pekko version in Play
-      "org.neo4j.driver" % "neo4j-java-driver" % "4.4.21", // this means we can speak to both neo4j 3.5 AND 4.4 - TODO upgrade to latest [6.0.3] once we've upgraded neo4j to at least 4.4
+      "org.neo4j.driver" % "neo4j-java-driver" % "6.0.3",
       "com.pff" % "java-libpst" % "0.9.3",
       // NOTE: When you update tika you need to check if there are any updates required to be made to the
       // conf/org/apache/tika/mimecustom-mimetypes.xml file
