@@ -6,12 +6,12 @@ services:
 #    image: neo4j:4.1.13
 #    image: neo4j:4.2.19
 #    image: neo4j:4.3.24
-    image: neo4j:4.4.48
-#    image: neo4j:5.26.11
+#    image: neo4j:4.4.48
+    image: neo4j:5.26.11
 #    image: neo4j:2026.02.2
     container_name: neo4j
     environment:
-      NEO4J_AUTH: neo4j/bob
+      NEO4J_AUTH: neo4j/password
       NEO4J_dbms_connector_bolt_advertised__address: bolt.neo4j.pfi.local.dev-gutools.co.uk:443
     volumes:
       - neo4j:/var/lib/neo4j/data
