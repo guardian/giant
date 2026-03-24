@@ -10,7 +10,7 @@ trait Neo4jTestContainer extends AttemptValues {
 
   def getNeo4jContainer() = {
     val neo4jContainerDef = Neo4jContainer.Def(
-      dockerImageName = DockerImageName.parse("neo4j:5.26.11").asCompatibleSubstituteFor("neo4j")
+      dockerImageName = DockerImageName.parse("neo4j:2026.02.2").asCompatibleSubstituteFor("neo4j")
     )
 
     val neo4jContainer = neo4jContainerDef.createContainer()
