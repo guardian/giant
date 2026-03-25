@@ -77,6 +77,10 @@ export function getCurrentResource(prefix: string): string {
   return window.location.pathname.split("/").slice(2).join("/");
 }
 
+export function hasTextContent(resource: Resource): boolean {
+  return resource.text.contents.trim() !== "";
+}
+
 export function getDefaultView(resource: Resource): string | undefined {
   if (resource.type !== "blob") {
     return undefined;
@@ -93,15 +97,20 @@ export function getDefaultView(resource: Resource): string | undefined {
     return undefined;
   }
 
-  if (resource.text.contents.trim().length === 0 && resource.ocr) {
+  if (!hasTextContent(resource) && resource.ocr) {
     const ocrEntries = Object.entries(resource.ocr);
     const firstNonEmptyEntry = ocrEntries.find(
-      ([_, { contents }]) => contents.trim().length > 0,
+      ([_, { contents }]) => contents.trim() !== "",
     );
 
     if (firstNonEmptyEntry) {
       return `ocr.${firstNonEmptyEntry[0]}`;
     }
+  }
+
+  // If text is empty and there's no usable OCR, prefer preview over an empty text view
+  if (!hasTextContent(resource) && resource.previewStatus !== "disabled") {
+    return "preview";
   }
 
   return "text";

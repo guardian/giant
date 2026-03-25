@@ -3,6 +3,7 @@ import PropTypes from "prop-types";
 import { resourcePropType } from "../../types/Resource";
 import _ from "lodash";
 
+import { hasTextContent, getDefaultView } from "../../util/resourceUtils";
 import { keyboardShortcuts } from "../../util/keyboardShortcuts";
 import { KeyboardShortcut } from "../UtilComponents/KeyboardShortcut";
 
@@ -34,7 +35,7 @@ class PreviewSwitcher extends React.Component {
       return false;
     }
 
-    if (this.props.view === "text" && !resource.text) {
+    if (this.props.view === "text" && !hasTextContent(resource)) {
       return false;
     }
 
@@ -65,16 +66,9 @@ class PreviewSwitcher extends React.Component {
       this.props.view &&
       !this.currentViewModeIsValid(this.props.resource)
     ) {
-      // Automatically switch to a preview if you can preview but there's no extracted text or OCR
-      if (this.props.resource.text) {
-        this.props.setResourceView("text");
-      } else if (this.props.resource.ocr) {
-        const languages = Object.keys(this.props.resource.ocr);
-        if (languages.length > 0) {
-          this.props.setResourceView(`ocr.${languages[0]}`);
-        }
-      } else if (this.canPreview(this.props.resource.previewStatus)) {
-        this.props.setResourceView("preview");
+      const fallback = getDefaultView(this.props.resource);
+      if (fallback) {
+        this.props.setResourceView(fallback);
       }
     }
   }
@@ -136,7 +130,8 @@ class PreviewSwitcher extends React.Component {
           shortcut={keyboardShortcuts.showPreview}
           func={this.showPreview}
         />
-        {this.props.resource.text && !this.props.resource.transcript ? (
+        {hasTextContent(this.props.resource) &&
+        !this.props.resource.transcript ? (
           <PreviewLink
             current={current}
             text="Text"
