@@ -32,8 +32,8 @@ jobs:
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
-          java-version: '11'
-          distribution: 'adopt'
+          java-version-file: '.java-version'
+          distribution: corretto
           cache: sbt
 
       - name: Install sbt
