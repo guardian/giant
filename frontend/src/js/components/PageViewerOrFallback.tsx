@@ -129,6 +129,7 @@ export const PageViewerOrFallback: FC<{}> = () => {
         </div>
         {resource && (
           <div className="document__status">
+            {/* Left spacer: document__status uses space-between to match the legacy StatusBar two-span layout */}
             <span />
             <span>
               <PreviewSwitcher
