@@ -96,14 +96,14 @@ export function useWorkspaceNavigation(
   const goToPrevious = hasPrevious
     ? () => {
         const prevUri = leafUris[currentIndex - 1];
-        navigate(`/viewer/${encodeURI(prevUri)}`);
+        navigate(`/viewer/${encodeURIComponent(prevUri)}`);
       }
     : undefined;
 
   const goToNext = hasNext
     ? () => {
         const nextUri = leafUris[currentIndex + 1];
-        navigate(`/viewer/${encodeURI(nextUri)}`);
+        navigate(`/viewer/${encodeURIComponent(nextUri)}`);
       }
     : undefined;
 
