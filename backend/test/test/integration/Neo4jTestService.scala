@@ -1,6 +1,6 @@
 package test.integration
 
-import org.neo4j.driver.v1.{AuthTokens, Driver, GraphDatabase}
+import org.neo4j.driver.{AuthTokens, Driver, GraphDatabase}
 import org.scalatest.EitherValues
 import org.scalatest.time.{Millis, Seconds, Span}
 import services.Neo4jQueryLoggingConfig
@@ -44,7 +44,7 @@ class Neo4jTestService(neo4jUri: String)
             |DETACH DELETE n
           """.stripMargin
         )
-        val c = results.summary().counters()
+        val c = results.consume().counters()
         logger.info(s"${c.nodesDeleted()} nodes deleted, ${c.relationshipsDeleted()} relationships deleted")
         Right(())
       }

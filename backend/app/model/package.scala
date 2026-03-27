@@ -1,6 +1,6 @@
 import org.apache.poi.ss.formula.functions.T
-import org.neo4j.driver.v1.Value
-import org.neo4j.driver.v1.exceptions.value.Uncoercible
+import org.neo4j.driver.Value
+import org.neo4j.driver.exceptions.value.Uncoercible
 import utils.attempt.{Attempt, Neo4JValueFailure}
 
 package object model {

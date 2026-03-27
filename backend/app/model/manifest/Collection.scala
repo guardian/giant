@@ -1,7 +1,7 @@
 package model.manifest
 
 import model.{RichValue, Uri}
-import org.neo4j.driver.v1.{Record, Value}
+import org.neo4j.driver.{Record, Value}
 import play.api.libs.json._
 
 import scala.jdk.CollectionConverters._

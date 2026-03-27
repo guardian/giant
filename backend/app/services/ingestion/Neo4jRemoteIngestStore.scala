@@ -4,8 +4,8 @@ import model.ingestion.{RemoteIngest, RemoteIngestStatus, RemoteIngestTask}
 import model.user.DBUser
 import org.joda.time.DateTime
 import model.ingestion.RemoteIngestStatus.RemoteIngestStatus
-import org.neo4j.driver.v1.Driver
-import org.neo4j.driver.v1.Values.parameters
+import org.neo4j.driver.Driver
+import org.neo4j.driver.Values.parameters
 import services.Neo4jQueryLoggingConfig
 import utils.attempt.{Attempt, Failure, NotFoundFailure}
 import utils.{Logging, Neo4jHelper}
@@ -28,9 +28,9 @@ class Neo4jRemoteIngestStore(driver: Driver, executionContext: ExecutionContext,
   implicit val ec: ExecutionContext = executionContext
 
   override def setup(): Either[Failure, Unit] = transaction { tx =>
-    tx.run("CREATE CONSTRAINT ON (remoteIngest: RemoteIngest)   ASSERT remoteIngest.id   IS UNIQUE")
-    tx.run("CREATE CONSTRAINT ON (task: RemoteIngestTask)   ASSERT task.id   IS UNIQUE")
-    tx.run("CREATE INDEX ON :RemoteIngestTask(status)")
+    tx.run("CREATE CONSTRAINT IF NOT EXISTS FOR (remoteIngest: RemoteIngest)   REQUIRE remoteIngest.id   IS UNIQUE")
+    tx.run("CREATE CONSTRAINT IF NOT EXISTS FOR (task: RemoteIngestTask)   REQUIRE task.id   IS UNIQUE")
+    tx.run("CREATE INDEX IF NOT EXISTS FOR (task:RemoteIngestTask) ON (task.status)")
     Right(())
   }
   override def insertRemoteIngest(
@@ -48,7 +48,7 @@ class Neo4jRemoteIngestStore(driver: Driver, executionContext: ExecutionContext,
 
     val query =
       """
-        |MATCH (user: User { username: { username }})
+        |MATCH (user: User { username: $username})
         |CREATE (wst: RemoteIngestTask {
         |  type: 'WebpageSnapshot',
         |  id: $webpageSnapshotId,
@@ -112,7 +112,7 @@ class Neo4jRemoteIngestStore(driver: Driver, executionContext: ExecutionContext,
     |       COLLECT({id: task.id, status: task.status, blobUris: task.blobUris, type: task.type}) AS tasks
   """.stripMargin
 
-  private def recordToRemoteIngest(record: org.neo4j.driver.v1.Record): RemoteIngest = {
+  private def recordToRemoteIngest(record: org.neo4j.driver.Record): RemoteIngest = {
     val createdAt = new org.joda.time.DateTime(record.get("created_at").asLong(), org.joda.time.DateTimeZone.UTC)
     RemoteIngest(
       id = record.get("id").asString(),

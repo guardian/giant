@@ -23,7 +23,7 @@ import extraction.tables.{CsvTableExtractor, ExcelTableExtractor}
 import extraction.{DocumentBodyExtractor, ExternalTranscriptionExtractor, ExternalTranscriptionWorker, MimeTypeMapper, TranscriptionExtractor, Worker}
 import ingestion.phase2.IngestStorePolling
 import org.bouncycastle.jce.provider.BouncyCastleProvider
-import org.neo4j.driver.v1.{AuthTokens, GraphDatabase}
+import org.neo4j.driver.{AuthTokens, GraphDatabase}
 import play.api.ApplicationLoader.Context
 import play.api.BuiltInComponentsFromContext
 import play.api.libs.ws.ahc.AhcWSComponents

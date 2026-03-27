@@ -13,8 +13,8 @@ import model.ingestion.{IngestionFile, WorkspaceItemContext, WorkspaceItemUpload
 import model.manifest._
 import model.user.DBUser
 import org.joda.time.DateTime
-import org.neo4j.driver.v1.Values.parameters
-import org.neo4j.driver.v1.{Driver, StatementResult, StatementRunner, Value}
+import org.neo4j.driver.Values.parameters
+import org.neo4j.driver.{Driver, Result, QueryRunner, Value}
 import services.Neo4jQueryLoggingConfig
 import services.manifest.Manifest.WorkCounts
 import utils._
@@ -39,16 +39,16 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
   implicit val ec: ExecutionContext = executionContext
 
   override def setup(): Either[Failure, Unit] = transaction { tx =>
-      tx.run("CREATE CONSTRAINT ON (resource: Resource)   ASSERT resource.uri   IS UNIQUE")
-      tx.run("CREATE CONSTRAINT ON (extractor: Extractor) ASSERT extractor.name IS UNIQUE")
-      tx.run("CREATE CONSTRAINT ON (tpe: MimeType)        ASSERT tpe.mimeType   IS UNIQUE")
+      tx.run("CREATE CONSTRAINT IF NOT EXISTS FOR (resource: Resource)   REQUIRE resource.uri   IS UNIQUE")
+      tx.run("CREATE CONSTRAINT IF NOT EXISTS FOR (extractor: Extractor) REQUIRE extractor.name IS UNIQUE")
+      tx.run("CREATE CONSTRAINT IF NOT EXISTS FOR (tpe: MimeType)        REQUIRE tpe.mimeType   IS UNIQUE")
 
       Right(())
   }
 
   override def insertCollection(uri: String, display: String, createdBy: String): Attempt[Collection] = attemptTransaction { tx =>
     tx.run("""
-      CREATE (c:Collection:Resource {uri: {uri}, display: {display}, createdBy: {createdBy}})
+      CREATE (c:Collection:Resource {uri: $uri, display: $display, createdBy: $createdBy})
       RETURN c
       """,
       parameters(
@@ -79,7 +79,7 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
   override def getCollectionsForBlob(blobUri: String): Attempt[Map[Collection, Seq[String]]] = attemptTransaction { tx =>
     val statementResult = tx.run(
       """
-        |MATCH (b:Blob:Resource {uri: {blob}})-[r:PARENT*]->(c:Collection)
+        |MATCH (b:Blob:Resource {uri: $blob})-[r:PARENT*]->(c:Collection)
         |OPTIONAL MATCH (u:User)-[:CAN_SEE]->(c:Collection)
         |RETURN DISTINCT c, COLLECT(DISTINCT u.username) as usernames
       """.stripMargin,
@@ -98,7 +98,7 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
   override def getWorkspacesForBlob(blobUri: String): Attempt[List[WorkspaceMetadata]] = attemptTransaction { tx =>
     tx.run(
       """
-        |MATCH (w:WorkspaceNode {uri: {uri}})-[:PART_OF]->(workspace:Workspace)
+        |MATCH (w:WorkspaceNode {uri: $uri})-[:PART_OF]->(workspace:Workspace)
         |MATCH (creator :User)-[:CREATED]->(workspace)<-[:FOLLOWING]-(follower :User)
         |MATCH (owner :User)-[:OWNS]->(workspace)
         |return  workspace, creator, owner, collect(distinct follower) as followers
@@ -120,7 +120,7 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
   override def getCollection(collection: Uri): Attempt[Collection] = attemptTransaction { tx =>
     val statementResult = tx.run(
       """
-        |MATCH (c:Collection {uri: {collectionName}})
+        |MATCH (c:Collection {uri: $collectionName})
         |OPTIONAL MATCH (c)<-[:PARENT]-(i: Ingestion)
         |RETURN c, i
       """.stripMargin,
@@ -139,7 +139,7 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
   override def getResource(resourceUri: Uri): Either[Failure, BasicResource] = transaction { tx =>
     val result = tx.run(
       """
-        |MATCH (resource: Resource {uri: {resourceUri}})
+        |MATCH (resource: Resource {uri: $resourceUri})
         |OPTIONAL MATCH (parents: Resource)<-[:PARENT]-(resource)
         |OPTIONAL MATCH (resource)<-[:PARENT]-(children: Resource)
         |RETURN resource, parents, children
@@ -163,7 +163,7 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
   }
 
   override def getIngestions(collection: Uri): Attempt[Seq[Ingestion]] = attemptTransaction { tx =>
-    val statementResult = tx.run("MATCH (i :Ingestion)-[:PARENT]->(c :Collection {uri: {collectionName}}) RETURN i, c",
+    val statementResult = tx.run("MATCH (i :Ingestion)-[:PARENT]->(c :Collection {uri: $collectionName}) RETURN i, c",
       parameters("collectionName", collection.value))
 
     for {
@@ -176,7 +176,7 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
   override def getIngestionCount(collection: Uri): Attempt[Int] = attemptTransaction { tx =>
     val statementResult = tx.run(
       """
-        |MATCH (c: Collection {uri: {collection}})
+        |MATCH (c: Collection {uri: $collection})
         |OPTIONAL MATCH (c)<-[:PARENT]-(i: Ingestion)
         |RETURN c, COUNT(i)
       """.stripMargin,
@@ -193,7 +193,7 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
   override def getIngestion(uri: Uri): Attempt[Ingestion] = attemptTransaction { tx =>
     val statementResult = tx.run(
       """
-        | MATCH (i: Ingestion { uri: {uri} }) RETURN i
+        | MATCH (i: Ingestion { uri: $uri }) RETURN i
       """.stripMargin,
       parameters("uri", uri.value)
     )
@@ -209,17 +209,17 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
   override def insertIngestion(collectionUri: Uri, ingestionUri: Uri, display: String, path: Option[Path], languages: List[Language], fixed: Boolean, default: Boolean): Attempt[Uri] = attemptTransaction { tx =>
     val statementResult = tx.run(
       """
-        |MATCH (c: Collection {uri: {collectionUri}})
+        |MATCH (c: Collection {uri: $collectionUri})
         |
         |CREATE (i:Ingestion:Resource {
-        |  uri: {uri},
-        |  display: {display},
-        |  startTime: {startTime},
-        |  endTime: {endTime},
-        |  path: {path},
-        |  languages: {languages},
-        |  fixed: {fixed},
-        |  default: {default}
+        |  uri: $uri,
+        |  display: $display,
+        |  startTime: $startTime,
+        |  endTime: $endTime,
+        |  path: $path,
+        |  languages: $languages,
+        |  fixed: $fixed,
+        |  default: $default
         |})-[:PARENT]->(c)
         |RETURN i, c
       """.stripMargin,
@@ -242,7 +242,7 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
     } yield ingestionUri
   }
 
-  def markResourceAsExpandable(tx: StatementRunner, resourceUri: Uri): Either[Failure, Unit] = {
+  def markResourceAsExpandable(tx: QueryRunner, resourceUri: Uri): Either[Failure, Unit] = {
     // if resource at uri is a blob, both the blob and its parent:File are expandable
     // otherwise it is expandable
 
@@ -254,7 +254,7 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
     //                 (resource:Ingestion)*->(file:File)->(blob:Blob)
     tx.run(
       """
-        |MATCH (resource :Resource {uri: {resourceUri}})
+        |MATCH (resource :Resource {uri: $resourceUri})
         |SET resource.isExpandable = true
       """.stripMargin,
       parameters(
@@ -264,7 +264,7 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
 
     tx.run(
       """
-        |MATCH (blob :Blob:Resource {uri: {resourceUri}})
+        |MATCH (blob :Blob:Resource {uri: $resourceUri})
         |MATCH (parent :File:Resource)<-[:PARENT]-(blob)
         |SET parent.isExpandable = true
       """.stripMargin,
@@ -276,10 +276,10 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
     Right(())
   }
 
-  def markParentFileAsExpandableIfBlobIsExpandable(tx: StatementRunner, blobUri: Uri): Either[Failure, Unit] = {
+  def markParentFileAsExpandableIfBlobIsExpandable(tx: QueryRunner, blobUri: Uri): Either[Failure, Unit] = {
     tx.run(
       """
-        |MATCH (blob :Blob:Resource {isExpandable: true, uri: {blobUri}})
+        |MATCH (blob :Blob:Resource {isExpandable: true, uri: $blobUri})
         |MATCH (parent :File:Resource)<-[:PARENT]-(blob)
         |SET parent.isExpandable = true
       """.stripMargin,
@@ -291,15 +291,15 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
     Right(())
   }
 
-  def insertDirectory(tx: StatementRunner, parentUri: Uri, uri: Uri, display: Option[String] = None): Either[Failure, Unit] = {
+  def insertDirectory(tx: QueryRunner, parentUri: Uri, uri: Uri, display: Option[String] = None): Either[Failure, Unit] = {
     tx.run(
       """
-         |MERGE (parent:Resource {uri: {parentUri}})
-         |MERGE (directory:Resource {uri: {uri}})
+         |MERGE (parent:Resource {uri: $parentUri})
+         |MERGE (directory:Resource {uri: $uri})
          |SET directory:Directory
          |MERGE (directory)-[:PARENT]->(parent)
          |
-         |SET directory.display = {display}
+         |SET directory.display = $display
       """.stripMargin,
       parameters(
         "parentUri", parentUri.value,
@@ -314,7 +314,7 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
   }
 
   def insertBlob(
-    tx: StatementRunner,
+    tx: QueryRunner,
     file: IngestionFile,
     uri: Uri,
     parentBlobs: List[Uri],
@@ -325,7 +325,7 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
     workspace: Option[WorkspaceItemContext],
     isFastLane: Boolean
   ): Either[Failure, Unit] = {
-    val priorityMultiplier = if(isFastLane) { 10 } else { 1 }
+    val priorityMultiplier = if(isFastLane) 10 else 1
     def toParameterMap(e: Extractor): java.util.Map[String, Object] = {
       Map[String, Object](
         "name" -> e.name,
@@ -340,43 +340,43 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
     val maybeWorkspaceProperties = workspace.map { _ =>
       """
         |,
-        |workspaceId: {workspaceId},
-        |workspaceNodeId: {workspaceNodeId},
-        |workspaceBlobUri: {workspaceBlobUri}
+        |workspaceId: $workspaceId,
+        |workspaceNodeId: $workspaceNodeId,
+        |workspaceBlobUri: $workspaceBlobUri
         |""".stripMargin
     }.getOrElse("")
 
-    val result = tx.run(
+    tx.run(
       s"""
-        |MATCH (parent:Resource {uri: {parentUri}})
+        |MATCH (parent:Resource {uri: $$parentUri})
         |
-        |MERGE (file:File:Resource {uri: {fileUri}})
-        |MERGE (blob:Blob:Resource {uri: {blobUri}, size: {size}})
-        |MERGE (mimeType:MimeType {mimeType: {mimeType}})
+        |MERGE (file:File:Resource {uri: $$fileUri})
+        |MERGE (blob:Blob:Resource {uri: $$blobUri, size: $$size})
+        |MERGE (mimeType:MimeType {mimeType: $$mimeType})
         |
         |MERGE (parent)<-[:PARENT]-(file)
         |MERGE (file)<-[:PARENT]-(blob)
         |MERGE (blob)-[:TYPE_OF]-(mimeType)
         |
-        |WITH {extractorParamsArray} as extractors
+        |WITH $$extractorParamsArray as extractors
         |UNWIND extractors as extractorParam
         |  MERGE (extractor :Extractor {name: extractorParam.name, indexing: extractorParam.indexing, priority: extractorParam.extractorPriority, external: extractorParam.external})
         |    WITH extractor, extractorParam.cost as cost, extractorParam.priority as priority
         |
-        |  MATCH (unprocessedBlob: Blob:Resource {uri: {blobUri}})
+        |  MATCH (unprocessedBlob: Blob:Resource {uri: $$blobUri})
         |    WHERE
         |      NOT (unprocessedBlob)<-[:PROCESSED {
-        |        ingestion: {ingestion},
-        |        languages: {languages},
-        |        parentBlobs: {parentBlobs}
-        |        ${maybeWorkspaceProperties}
+        |        ingestion: $$ingestion,
+        |        languages: $$languages,
+        |        parentBlobs: $$parentBlobs
+        |        $maybeWorkspaceProperties
         |      } ]-(extractor)
         |
         |  MERGE (unprocessedBlob)<-[todo:TODO {
-        |    ingestion: {ingestion},
-        |    languages: {languages},
-        |    parentBlobs: {parentBlobs}
-        |    ${maybeWorkspaceProperties}
+        |    ingestion: $$ingestion,
+        |    languages: $$languages,
+        |    parentBlobs: $$parentBlobs
+        |    $maybeWorkspaceProperties
         |  }]-(extractor)
         |    ON CREATE SET todo.cost = cost,
         |                  todo.priority = priority,
@@ -413,26 +413,26 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
     Right(())
   }
 
-  def insertEmail(tx: StatementRunner, email: Email, parent: Uri): Either[Failure, Unit] = {
+  def insertEmail(tx: QueryRunner, email: Email, parent: Uri): Either[Failure, Unit] = {
     // KEEP IN MIND AN EMAIL RECORD IN THE MANIFEST IS A *RECEIVED* EMAIL NOT A SENT EMAIL SO THERE CAN BE MANY COPIES OF IT
 
     tx.run(
       """
-        |MERGE (parent: Resource {uri: {parentUri}})
+        |MERGE (parent: Resource {uri: $parentUri})
         |
-        |MERGE (message:Resource {uri: {uri}})
+        |MERGE (message:Resource {uri: $uri})
         |SET message:Email
         |SET message.haveSource = true
-        |SET message.display = {subject}
+        |SET message.display = $subject
         |
         |MERGE (parent)<-[:PARENT]-(message)
         |
-        |FOREACH(refersToUri in {referenceUrisParam} |
+        |FOREACH(refersToUri in $referenceUrisParam |
         |  MERGE (refersTo:Email:Resource {uri: refersToUri})
         |  MERGE (refersTo)<-[:REFERENCED]-(message)
         |)
         |
-        |FOREACH(repliesToUri in {inReplyToUrisParam} |
+        |FOREACH(repliesToUri in $inReplyToUrisParam |
         |  MERGE (reply:Email:Resource {uri: repliesToUri})
         |  MERGE (reply)<-[:IN_REPLY_TO]-(message)
         |)
@@ -453,25 +453,25 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
 
   override def fetchWork(workerName: String, workerCount: Int, workerIndex: Int, maxBatchSize: Int, maxCost: Int): Either[Failure, List[WorkItem]] = transaction { tx =>
     val summary = tx.run(
-      s"""
-        |MERGE (worker:Worker {name: {workerName}})
+      """
+        |MERGE (worker:Worker {name: $workerName})
         |  WITH
         |    worker
         |
         |MATCH (e: Extractor)-[todo: TODO]->(b: Blob:Resource)
-        |  WHERE id(todo) % {workerCount} = {workerIndex} AND
-        |    NOT (b)-[:LOCKED_BY]->(:Worker) AND todo.attempts < {maxExtractionAttempts}
+        |  WHERE id(todo) % $workerCount = $workerIndex AND
+        |    NOT (b)-[:LOCKED_BY]->(:Worker) AND todo.attempts < $maxExtractionAttempts
         |
         |  WITH worker, todo, e, b
         |  // priority was originally just defined for extractors, we later extended it out to todos as well
         |  // This maintains roll forward/backward compatibility with both
         |  ORDER BY coalesce(todo.priority, e.priority) DESC
-        |  LIMIT {maxBatchSize}
+        |  LIMIT $maxBatchSize
         |
         |WITH collect({todo: todo, extractor: e, blob: b, worker: worker}) as allTasks
         |WITH reduce(acc = {cost:0, tasks: []}, task in allTasks |
         |    case
-        |      when size(acc.tasks) > 0 AND (acc.cost + task.todo.cost) >= {maxCost}
+        |      when size(acc.tasks) > 0 AND (acc.cost + task.todo.cost) >= $maxCost
         |        then acc
         |      else
         |        {cost: acc.cost + task.todo.cost, tasks: acc.tasks + task}
@@ -483,7 +483,7 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
         |  MATCH (worker :Worker { name: task.worker.name })
         |
         |  SET task.todo.attempts = task.todo.attempts + 1
-        |  MERGE (blob)-[:LOCKED_BY {lockedAt: {lockedAt}}]->(worker)
+        |  MERGE (blob)-[:LOCKED_BY {lockedAt: $lockedAt}]->(worker)
         |
         |RETURN
         |    blob,
@@ -520,17 +520,17 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
       val workspaceNodeId = r.get("workspaceNodeId")
       val workspaceBlobUri = r.get("workspaceBlobUri")
 
-      val workspace = if(workspaceId.isNull || workspaceNodeId.isNull || workspaceBlobUri.isNull) {
-        None
-      } else {
-        Some(WorkspaceItemContext(workspaceId.asString(), workspaceNodeId.asString(), workspaceBlobUri.asString()))
-      }
+      val workspace =
+        if(workspaceId.isNull || workspaceNodeId.isNull || workspaceBlobUri.isNull)
+          None
+        else
+          Some(WorkspaceItemContext(workspaceId.asString(), workspaceNodeId.asString(), workspaceBlobUri.asString()))
 
       val rawLanguages = r.get("languages")
       val rawParentBlobs = r.get("parentBlobs")
 
       if(rawLanguages.isNull || rawParentBlobs.isNull) {
-        val message = s"NULL languages or parentBlobs! blob: ${blob}. extractorName: ${extractorName}. ingestion: ${ingestion}. rawParentBlobs: ${rawParentBlobs}. rawLanguages: ${rawLanguages}. workspaceId: ${workspaceId}. workspaceNodeId: ${workspaceNodeId}. workspaceBlobUri: ${workspaceBlobUri}"
+        val message = s"NULL languages or parentBlobs! blob: $blob. extractorName: $extractorName. ingestion: $ingestion. rawParentBlobs: $rawParentBlobs. rawLanguages: $rawLanguages. workspaceId: $workspaceId. workspaceNodeId: $workspaceNodeId. workspaceBlobUri: $workspaceBlobUri"
         logger.error(message)
 
         throw new IllegalStateException(message)
@@ -548,7 +548,7 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
     logger.info(s"Releasing all locks for $workerName")
     tx.run(
       """
-        |MATCH (resource :Resource)-[lock :LOCKED_BY]->(:Worker {name: {workerName}})
+        |MATCH (resource :Resource)-[lock :LOCKED_BY]->(:Worker {name: $workerName})
         |DELETE lock
         |WITH resource
         |MATCH (resource :Resource)<-[todo:TODO]-(e:Extractor)
@@ -568,7 +568,7 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
     tx.run(
       """
         |MATCH (resource :Resource)-[lock:LOCKED_BY]->(w:Worker)
-        |WHERE NOT w.name in {runningWorkerNames}
+        |WHERE NOT w.name in $runningWorkerNames
         |DELETE lock
         |WITH resource
         |MATCH (resource :Resource)<-[todo:TODO]-(e:Extractor)
@@ -585,12 +585,12 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
 
   override def markExternalAsComplete(uri: String, extractorName: String): Either[Failure, Unit] = transaction { tx =>
 
-    logger.info(s"Marking ${uri} / ${extractorName} as complete")
+    logger.info(s"Marking $uri / $extractorName as complete")
 
     // First check if already processed
     val existingProcessed = tx.run(
       """
-        |MATCH (b :Blob:Resource {uri: {uri}})<-[processed:PROCESSED]-(e: Extractor {name: {extractorName}})
+        |MATCH (b :Blob:Resource {uri: $uri})<-[processed:PROCESSED]-(e: Extractor {name: $extractorName})
         |RETURN count(processed) as count
         |""".stripMargin,
       parameters(
@@ -602,15 +602,15 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
     val processedCount = existingProcessed.single().get("count").asInt()
 
     if (processedCount > 0) {
-      logger.info(s"There is already a processed relation between blob ${uri} and extractor ${extractorName}. Doing nothing.")
+      logger.info(s"There is already a processed relation between blob $uri and extractor $extractorName. Doing nothing.")
       Right(())
     } else {
       // TODO: Get the transcription service to sent back the ingestion id so that we only replace the PROCESSING_EXTERNALLY
       // relation that is associated with the current ingestion with a PROCESSED relation
       // (currently, we just replace all of them)
-      val result = tx.run(
-        s"""
-           |MATCH (b :Blob:Resource {uri: {uri}})<-[processing:PROCESSING_EXTERNALLY]-(e: Extractor {name: {extractorName}})
+      val resultSummary = tx.run(
+        """
+           |MATCH (b :Blob:Resource {uri: $uri})<-[processing:PROCESSING_EXTERNALLY]-(e: Extractor {name: $extractorName})
            |
            |MERGE (b)<-[processed:PROCESSED {
            |  ingestion: processing.ingestion,
@@ -633,9 +633,9 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
           "uri", uri,
           "extractorName", extractorName,
         )
-      )
+      ).consume()
 
-      val counters = result.summary().counters()
+      val counters = resultSummary.counters()
 
       if (counters.relationshipsCreated() == 0 || counters.relationshipsDeleted() == 0 || counters.relationshipsCreated() != counters.relationshipsDeleted()) {
         Left(IllegalStateFailure(s"Unexpected number of creates/deletes in markExternalAsComplete. Created: ${counters.relationshipsCreated()}. Deleted: ${counters.relationshipsDeleted()}"))
@@ -652,28 +652,28 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
     val maybeWorkspaceProperties = params.workspace.map { _ =>
       """
         |,
-        |workspaceId: {workspaceId},
-        |workspaceNodeId: {workspaceNodeId},
-        |workspaceBlobUri: {workspaceBlobUri}
+        |workspaceId: $workspaceId,
+        |workspaceNodeId: $workspaceNodeId,
+        |workspaceBlobUri: $workspaceBlobUri
         |""".stripMargin
     }.getOrElse("")
 
-    val result = tx.run(
+    val resultSummary = tx.run(
       s"""
-        |MATCH (b :Blob:Resource {uri: {uri}})<-[todo:TODO {
-        |  ingestion: {ingestion},
-        |  parentBlobs: {parentBlobs},
-        |  languages: {languages}
-        |  ${maybeWorkspaceProperties}
-        |}]-(e: Extractor {name: {extractorName}})
+        |MATCH (b :Blob:Resource {uri: $$uri})<-[todo:TODO {
+        |  ingestion: $$ingestion,
+        |  parentBlobs: $$parentBlobs,
+        |  languages: $$languages
+        |  $maybeWorkspaceProperties
+        |}]-(e: Extractor {name: $$extractorName})
         |
         |DELETE todo
         |
         |MERGE (b)<-[:PROCESSED {
-        |  ingestion: {ingestion},
-        |  parentBlobs: {parentBlobs},
-        |  languages: {languages}
-        |  ${maybeWorkspaceProperties}
+        |  ingestion: $$ingestion,
+        |  parentBlobs: $$parentBlobs,
+        |  languages: $$languages
+        |  $maybeWorkspaceProperties
         |}]-(e)
         |""".stripMargin,
       parameters(
@@ -686,9 +686,9 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
         "workspaceNodeId", params.workspace.map(_.workspaceNodeId).orNull,
         "workspaceBlobUri", params.workspace.map(_.blobAddedToWorkspace).orNull
       )
-    )
+    ).consume()
 
-    val counters = result.summary().counters()
+    val counters = resultSummary.counters()
 
     if(counters.relationshipsCreated() != 1 || counters.relationshipsDeleted() != 1) {
       Left(IllegalStateFailure(s"Unexpected number of creates/deletes in markAsComplete. Created: ${counters.relationshipsCreated()}. Deleted: ${counters.relationshipsDeleted()}"))
@@ -703,29 +703,29 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
     val maybeWorkspaceProperties = params.workspace.map { _ =>
       """
         |,
-        |workspaceId: {workspaceId},
-        |workspaceNodeId: {workspaceNodeId},
-        |workspaceBlobUri: {workspaceBlobUri}
+        |workspaceId: $workspaceId,
+        |workspaceNodeId: $workspaceNodeId,
+        |workspaceBlobUri: $workspaceBlobUri
         |""".stripMargin
     }.getOrElse("")
 
-    val result = tx.run(
+    val resultSummary = tx.run(
       s"""
-         |MATCH (b :Blob:Resource {uri: {uri}})<-[todo:TODO {
-         |  ingestion: {ingestion},
-         |  parentBlobs: {parentBlobs},
-         |  languages: {languages}
-         |  ${maybeWorkspaceProperties}
-         |}]-(e: Extractor {name: {extractorName}})
+         |MATCH (b :Blob:Resource {uri: $$uri})<-[todo:TODO {
+         |  ingestion: $$ingestion,
+         |  parentBlobs: $$parentBlobs,
+         |  languages: $$languages
+         |  $maybeWorkspaceProperties
+         |}]-(e: Extractor {name: $$extractorName})
          |
          |DELETE todo
          |
          |MERGE (b)<-[processing_externally:PROCESSING_EXTERNALLY {
-         |  ingestion: {ingestion},
-         |  parentBlobs: {parentBlobs},
-         |  languages: {languages},
-         |  startTime: {startTime}
-         |  ${maybeWorkspaceProperties}
+         |  ingestion: $$ingestion,
+         |  parentBlobs: $$parentBlobs,
+         |  languages: $$languages,
+         |  startTime: $$startTime
+         |  $maybeWorkspaceProperties
          |}]-(e)
          |    ON CREATE SET processing_externally.attempts = 1,
          |                  processing_externally.cost = e.cost,
@@ -742,9 +742,9 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
         "workspaceBlobUri", params.workspace.map(_.blobAddedToWorkspace).orNull,
         "startTime", DateTime.now().getMillis.asInstanceOf[java.lang.Long]
       )
-    )
+    ).consume()
 
-    val counters = result.summary().counters()
+    val counters = resultSummary.counters()
 
     if (counters.relationshipsCreated() != 1 || counters.relationshipsDeleted() != 1) {
       Left(IllegalStateFailure(s"Unexpected number of creates/deletes in markExternalAsProcessing. Created: ${counters.relationshipsCreated()}. Deleted: ${counters.relationshipsDeleted()}"))
@@ -756,9 +756,9 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
   override def logExtractionFailure(blobUri: Uri, extractorName: String, stackTrace: String): Either[Failure, Unit] = transaction { tx =>
     tx.run(
       """
-        |MATCH (b :Blob:Resource {uri: {blobUri}})
-        |MATCH (e: Extractor {name: {extractorName}})
-        |CREATE (b)<-[:EXTRACTION_FAILURE {stackTrace: {stackTrace}, at: {atTimeStamp}}]-(e)
+        |MATCH (b :Blob:Resource {uri: $blobUri})
+        |MATCH (e: Extractor {name: $extractorName})
+        |CREATE (b)<-[:EXTRACTION_FAILURE {stackTrace: $stackTrace, at: $atTimeStamp}]-(e)
       """.stripMargin,
       parameters(
         "blobUri", blobUri.value,
@@ -796,19 +796,19 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
 
   def getResourcesForExtractionFailure(extractorName: String, stackTrace: String, page: Long, skip: Long, pageSize: Long): Either[Failure, ResourcesForExtractionFailure] = transaction { tx =>
     val summary = tx.run(
-      s"""
-         |MATCH (b:Blob)<-[f:EXTRACTION_FAILURE { stackTrace: {stackTrace} }]-(e: Extractor { name: { extractorName} })
+      """
+         |MATCH (b:Blob)<-[f:EXTRACTION_FAILURE { stackTrace: $stackTrace }]-(e: Extractor { name: $extractorName })
          |WITH count(DISTINCT b) as count
          |
-         |MATCH (b:Blob)<-[f:EXTRACTION_FAILURE { stackTrace: {stackTrace} }]-(e: Extractor { name: { extractorName} })
+         |MATCH (b:Blob)<-[f:EXTRACTION_FAILURE { stackTrace: $stackTrace }]-(e: Extractor { name: $extractorName })
          |WITH collect(b) as blobs, count
          |UNWIND blobs as blob
          |  OPTIONAL MATCH (parent: Resource)<-[:PARENT]-(blob)
          |  OPTIONAL MATCH (blob)<-[:PARENT]-(child: Resource)
          |
          |RETURN blob, collect(parent) as parents, collect(child) as children, count
-         |SKIP {skip}
-         |LIMIT {pageSize}
+         |SKIP $skip
+         |LIMIT $pageSize
       """.stripMargin,
       parameters(
         "extractorName", extractorName,
@@ -895,7 +895,7 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
   def getEmailThread(uri: String): Attempt[List[EmailNeighbours]] = attemptTransaction { tx =>
     val attemptResult = tx.run(
       """
-        |  MATCH (root:Email:Resource {uri: {uri}})
+        |  MATCH (root:Email:Resource {uri: $uri})
         |  OPTIONAL MATCH (root)-[r]->(adjacent)
         |    WHERE type(r) in ['IN_REPLY_TO', 'REFERENCED']
         |  RETURN
@@ -906,7 +906,7 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
         |      []
         |    END as neighbours
         |UNION
-        |  MATCH (root:Email:Resource {uri: {uri}})
+        |  MATCH (root:Email:Resource {uri: $uri})
         |  OPTIONAL MATCH p=(root)-[*0..5]-(e2:Email)
         |    WHERE ALL (rs in relationships(p) WHERE type(rs) in ['IN_REPLY_TO', 'REFERENCED'])
         |  WITH DISTINCT e2, root
@@ -945,8 +945,8 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
     def setEndTimeIfComplete() = {
       tx.run(
         """
-          |MATCH (root: Resource {uri: {uri}})
-          |SET root.endTime = {endTime}
+          |MATCH (root: Resource {uri: $uri})
+          |SET root.endTime = $endTime
         """.stripMargin,
         parameters(
           "uri", rootUri.value,
@@ -976,7 +976,7 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
     // RETURN committedOperations
     tx.run(
       """
-        |MATCH (blob :Blob:Resource {uri: {uri}})<-[p :PROCESSED]-(e: Extractor)
+        |MATCH (blob :Blob:Resource {uri: $uri})<-[p :PROCESSED]-(e: Extractor)
         |
         |WITH blob, collect({relation: p, extractor: e}) as processedRelationsWithExtractors, count(p) as originalNumberOfProcessedRelations
         |UNWIND processedRelationsWithExtractors as processed
@@ -1002,10 +1002,7 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
         "uri", uri.value
       )
     ).flatMap(result => {
-      val counters = result.summary().counters()
-      val relationshipsCreated = counters.relationshipsCreated()
-      val relationshipsDeleted = counters.relationshipsDeleted()
-      val propertiesSet = counters.propertiesSet()
+
       val originalNumberOfProcessedRelations = result
         .list()
         .asScala
@@ -1013,13 +1010,18 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
         .headOption
         .getOrElse(0)
 
+      val counters = result.consume().counters()
+      val relationshipsCreated = counters.relationshipsCreated()
+      val relationshipsDeleted = counters.relationshipsDeleted()
+      val propertiesSet = counters.propertiesSet()
+
       if (relationshipsCreated != originalNumberOfProcessedRelations) {
         Attempt.Left(IllegalStateFailure(
-          s"When re-running successful extractors for blob ${uri.value}, ${relationshipsCreated} TODO relations were created and ${originalNumberOfProcessedRelations} PROCESSED relations deleted. These should be equal"
+          s"When re-running successful extractors for blob ${uri.value}, $relationshipsCreated TODO relations were created and $originalNumberOfProcessedRelations PROCESSED relations deleted. These should be equal"
         ))
       } else {
         logger.info(
-          s"When re-running successful extractors for blob ${uri.value}, ${relationshipsCreated} relations created, ${propertiesSet} properties set and ${relationshipsDeleted} relations deleted"
+          s"When re-running successful extractors for blob ${uri.value}, $relationshipsCreated relations created, $propertiesSet properties set and $relationshipsDeleted relations deleted"
         )
         Attempt.Right(())
       }
@@ -1032,7 +1034,7 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
     // So we delete the EXTRACTION_FAILUREs and set attempts to 0 on the TODOs.
     tx.run(
       """
-        |MATCH (blob :Blob:Resource {uri: {uri}})<-[failure :EXTRACTION_FAILURE]-(failedExtractor :Extractor {external: false})
+        |MATCH (blob :Blob:Resource {uri: $uri})<-[failure :EXTRACTION_FAILURE]-(failedExtractor :Extractor {external: false})
         |DELETE failure
         |
         |// we need DISTINCT because if there are multiple failures
@@ -1045,19 +1047,19 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
       parameters(
         "uri", uri.value
       )
-    ).flatMap(result => {
-      val counters = result.summary().counters()
+    ).map(_.consume()).flatMap(resultSummary => {
+      val counters = resultSummary.counters()
       val relationshipsCreated = counters.relationshipsCreated()
       val relationshipsDeleted = counters.relationshipsDeleted()
       val propertiesSet = counters.propertiesSet()
 
       if (propertiesSet != relationshipsDeleted) {
-        val msg = s"When re-running failed extractors for blob ${uri.value}, ${relationshipsDeleted} EXTRACTION_FAILURE relations were deleted and ${propertiesSet} TODOs had their attempts reset to 0. These should be equal"
+        val msg = s"When re-running failed extractors for blob ${uri.value}, $relationshipsDeleted EXTRACTION_FAILURE relations were deleted and $propertiesSet TODOs had their attempts reset to 0. These should be equal"
         logger.error(msg)
         Attempt.Left(IllegalStateFailure(msg))
       } else {
         logger.info(
-          s"When re-running failed extractors for blob ${uri.value}, ${relationshipsCreated} relations created, ${propertiesSet} properties set and ${relationshipsDeleted} relations deleted"
+          s"When re-running failed extractors for blob ${uri.value}, $relationshipsCreated relations created, $propertiesSet properties set and $relationshipsDeleted relations deleted"
         )
         Attempt.Right(())
       }
@@ -1068,7 +1070,7 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
   private def resetExternalExtractorTodoAttemptsForBlob(uri: Uri, tx: AttemptWrappedTransaction): Attempt[Unit] =  {
     tx.run(
       """
-        |MATCH (blob :Blob:Resource {uri: {uri}})<-[failure :EXTRACTION_FAILURE]-(failedExtractor :Extractor {external: true})
+        |MATCH (blob :Blob:Resource {uri: $uri})<-[failure :EXTRACTION_FAILURE]-(failedExtractor :Extractor {external: true})
         |MATCH (blob)<-[todo :TODO]-(failedExtractor)
         |WHERE todo.attempts > 0
         |SET todo.attempts = 0
@@ -1076,10 +1078,10 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
       parameters(
         "uri", uri.value
     )
-    ).flatMap(result => {
-      val counters = result.summary().counters()
+    ).map(_.consume()).flatMap(resultSummary => {
+      val counters = resultSummary.counters()
       val propertiesSet = counters.propertiesSet()
-      logger.info(s"When resetting TODO attempts for blob ${uri.value}, ${propertiesSet} properties were set")
+      logger.info(s"When resetting TODO attempts for blob ${uri.value}, $propertiesSet properties were set")
       Attempt.Right(())
     })
   }
@@ -1088,7 +1090,7 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
   private def replaceProcessingExternallyWithTodosForBlob(uri: Uri, tx: AttemptWrappedTransaction): Attempt[Unit] =  {
     tx.run(
       """
-        |MATCH (blob :Blob:Resource {uri: {uri}})<-[failure :EXTRACTION_FAILURE]-(failedExtractor :Extractor {external: true})
+        |MATCH (blob :Blob:Resource {uri: $uri})<-[failure :EXTRACTION_FAILURE]-(failedExtractor :Extractor {external: true})
         |MATCH (blob)<-[processing_externally :PROCESSING_EXTERNALLY]-(failedExtractor)
         |MERGE (blob)<-[todo:TODO]-(failedExtractor)
         |ON CREATE SET todo = processing_externally, todo.attempts = 0
@@ -1097,17 +1099,17 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
       parameters(
         "uri", uri.value
       )
-    ).flatMap(result => {
-      val counters = result.summary().counters()
+    ).map(_.consume()).flatMap(resultSummary => {
+      val counters = resultSummary.counters()
       val relationshipsCreated = counters.relationshipsCreated()
       val relationshipsDeleted = counters.relationshipsDeleted()
       if (relationshipsDeleted > 0 && relationshipsCreated != 1) {
         Attempt.Left(IllegalStateFailure(
-          s"When replacing PROCESSING_EXTERNALLY with TODO for blob ${uri.value}, ${relationshipsDeleted} relations were deleted and ${relationshipsCreated} TODOs created. We expect exactly 1 TODO to be created."
+          s"When replacing PROCESSING_EXTERNALLY with TODO for blob ${uri.value}, $relationshipsDeleted relations were deleted and $relationshipsCreated TODOs created. We expect exactly 1 TODO to be created."
         ))
       } else {
         logger.info(
-          s"When replacing PROCESSING_EXTERNALLY with TODO for blob ${uri.value}, ${relationshipsCreated} relations created and ${relationshipsDeleted} relations deleted"
+          s"When replacing PROCESSING_EXTERNALLY with TODO for blob ${uri.value}, $relationshipsCreated relations created and $relationshipsDeleted relations deleted"
         )
         Attempt.Right(())
       }
@@ -1117,17 +1119,17 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
   private def deleteExternalExtractorFailuresForBlob(uri: Uri, tx: AttemptWrappedTransaction): Attempt[Int] =  {
     tx.run(
       """
-        |MATCH (blob :Blob:Resource {uri: {uri}})<-[failure :EXTRACTION_FAILURE]-(failedExtractor :Extractor {external: true})
+        |MATCH (blob :Blob:Resource {uri: $uri})<-[failure :EXTRACTION_FAILURE]-(failedExtractor :Extractor {external: true})
         |DELETE failure
       """.stripMargin,
       parameters(
         "uri", uri.value
       )
-    ).flatMap(result => {
-      val counters = result.summary().counters()
+    ).map(_.consume()).flatMap(resultSummary => {
+      val counters = resultSummary.counters()
       val relationshipsDeleted = counters.relationshipsDeleted()
 
-      logger.info(s"Deleted ${relationshipsDeleted} EXTRACTION_FAILURE relations for blob ${uri.value}")
+      logger.info(s"Deleted $relationshipsDeleted EXTRACTION_FAILURE relations for blob ${uri.value}")
       Attempt.Right(relationshipsDeleted)
     })
   }
@@ -1150,7 +1152,7 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
   override def getBlob(uri: Uri): Either[Failure, Blob] = transaction { tx =>
     val summary = tx.run(
       """
-        |MATCH (b :Blob:Resource {uri: {uri}})-[:TYPE_OF]->(m :MimeType)
+        |MATCH (b :Blob:Resource {uri: $uri})-[:TYPE_OF]->(m :MimeType)
         |RETURN b, m""".stripMargin,
       parameters(
         "uri", uri.value
@@ -1171,7 +1173,7 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
     val result = tx.run(
       """
         |MATCH (b: Blob:Resource)-[:PARENT]->(f: File:Resource)
-        |WHERE f.uri IN {fileUris}
+        |WHERE f.uri IN $fileUris
         |RETURN b,f
       """.stripMargin,
       parameters(
@@ -1195,7 +1197,7 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
         |WITH count(t) as inProgress
         |
         |OPTIONAL MATCH (:Extractor)-[t:TODO]->(b:Blob)
-        |WHERE t.attempts < {maxExtractionAttempts} AND NOT (b)-[:LOCKED_BY]->(:Worker) AND NOT (b)<-[:EXTRACTION_FAILURE]-(:Extractor)
+        |WHERE t.attempts < $maxExtractionAttempts AND NOT (b)-[:LOCKED_BY]->(:Worker) AND NOT (b)<-[:EXTRACTION_FAILURE]-(:Extractor)
         |RETURN inProgress, count(t) as outstanding
       """.stripMargin,
       parameters(
@@ -1214,7 +1216,7 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
   override def getLanguagesProcessedByOcrMyPdf(uri: Uri): Attempt[List[Language]] = attemptTransaction { tx =>
     tx.run(
       """
-        |MATCH (r: Resource { uri: {uri} } )<-[p:PROCESSED]-(e :Extractor {name: "OcrMyPdfExtractor"})
+        |MATCH (r: Resource { uri: $uri } )<-[p:PROCESSED]-(e :Extractor {name: "OcrMyPdfExtractor"})
         |RETURN p.languages as languages
       """.stripMargin,
       parameters(
@@ -1238,9 +1240,9 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
       query,
       parameters(
         "uri", uri.value
-      )).flatMap { result: StatementResult =>
+      )).map(_.consume()).flatMap { resultSummary =>
 
-      val counters = result.summary().counters()
+      val counters = resultSummary.counters()
 
       if (correctResultsCount(counters.nodesDeleted())) Attempt.Right(())
       else {
@@ -1262,10 +1264,10 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
     // we still delete the blob, and vice versa. (The vice versa would be
     // unexpected but maybe you're clearing up a blob that was only partially deleted before).
     """
-      |OPTIONAL MATCH (w: WorkspaceNode { uri: { uri }})
-      |OPTIONAL MATCH (b: Blob:Resource { uri: { uri }})-[:PARENT]->(f: File)
+      |OPTIONAL MATCH (w: WorkspaceNode { uri: $uri})
+      |OPTIONAL MATCH (b: Blob:Resource { uri: $uri})-[:PARENT]->(f: File)
       |OPTIONAL MATCH (descendant :Resource)
-      |  WHERE descendant.uri STARTS WITH {uri}
+      |  WHERE descendant.uri STARTS WITH $uri
       |DETACH DELETE b, f, w, descendant
       """.stripMargin,
     // Always consider the deletion a success.
@@ -1285,14 +1287,14 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
     tx.run(
       """
         |MATCH (r: Resource)
-        |WHERE r.uri STARTS WITH {uri}
+        |WHERE r.uri STARTS WITH $uri
         |DETACH DELETE r
       """.stripMargin,
       parameters(
         "uri", uri.value
       )
-    ).flatMap { result =>
-      val counters = result.summary().counters()
+    ).map(_.consume()).flatMap { resultSummary =>
+      val counters = resultSummary.counters()
 
       if(counters.nodesDeleted() < 1) {
         Attempt.Left(IllegalStateFailure(s"Error deleting ingestion $uri. Nodes deleted: ${counters.nodesDeleted()}"))
@@ -1303,19 +1305,17 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
   }
 
   override def setProgressNote(blobUri: Uri, extractor: Extractor, note: String): Either[Failure, Unit] = transaction { tx =>
-    val result = tx.run(
+    val counters = tx.run(
       """
-        |MATCH (b :Blob :Resource { uri: {blobUri} })<-[todo:TODO]-(:Extractor { name: {extractorName} })
-        |SET todo.note = {note}
+        |MATCH (b :Blob :Resource { uri: $blobUri })<-[todo:TODO]-(:Extractor { name: $extractorName })
+        |SET todo.note = $note
         |""".stripMargin,
       parameters(
         "blobUri", blobUri.value,
         "extractorName", extractor.name,
         "note", note
       )
-    )
-
-    val counters = result.summary().counters()
+    ).consume().counters()
 
     if(counters.propertiesSet() != 1) {
       Left(IllegalStateFailure(s"Error in setProgressNote: unexpected properties set ${counters.propertiesSet()}"))
@@ -1328,14 +1328,14 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
     if (workspaceContext.isDefined) {
       tx.run(
         """
-          |match (workspaceNode:WorkspaceNode {id: {workspaceNodeId} })<-[:PARENT]-(child:WorkspaceNode {uri: {childUri} })
+          |match (workspaceNode:WorkspaceNode {id: $workspaceNodeId })<-[:PARENT]-(child:WorkspaceNode {uri: $childUri })
           |return child
           |""".stripMargin,
         parameters(
           "workspaceNodeId", workspaceContext.get.workspaceParentNodeId,
           "childUri", childUri
         )
-      ).map { result: StatementResult =>
+      ).map { result: Result =>
         val children = result.list().asScala.toList
 
         val childrenUris = children.map { c =>
@@ -1362,8 +1362,8 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
       // Step 1: Update the PARENT relationship - delete old, create new
       result <- tx.run(
         """
-          |MATCH (ingestion:Ingestion {uri: {oldUri}})-[oldParent:PARENT]->(oldCollection:Collection)
-          |MATCH (newCollection:Collection {uri: {newCollectionUri}})
+          |MATCH (ingestion:Ingestion {uri: $oldUri})-[oldParent:PARENT]->(oldCollection:Collection)
+          |MATCH (newCollection:Collection {uri: $newCollectionUri})
           |DELETE oldParent
           |CREATE (ingestion)-[:PARENT]->(newCollection)
           |RETURN ingestion, newCollection
@@ -1384,8 +1384,8 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
       _ = logger.info(s"Updating ingestion URI from ${ingestionUri.value} to ${newIngestionUri.value}")
       uriUpdateResult <- tx.run(
         """
-          |MATCH (ingestion:Ingestion {uri: {oldUri}})
-          |SET ingestion.uri = {newUri}
+          |MATCH (ingestion:Ingestion {uri: $oldUri})
+          |SET ingestion.uri = $newUri
           |RETURN ingestion
         """.stripMargin,
         parameters(

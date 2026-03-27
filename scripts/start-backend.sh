@@ -1,14 +1,6 @@
 #!/usr/bin/env bash
 SCRIPTPATH=$( cd $(dirname $0) ; pwd -P )
 
-
-ARCHITECTURE=$(uname -m)
-
-if [ "$ARCHITECTURE" != "arm64" ]; then
-  echo "Running on x86 architecture - using standard neo4j image image."
-  export NEO4J_IMAGE_OVERRIDE=neo4j:3.4.0
-fi
-
 if (! docker stats --no-stream 1>/dev/null 2>&1); then
   echo "Starting docker..."
   # On Mac OS this would be the terminal command to launch Docker

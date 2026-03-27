@@ -1,7 +1,7 @@
 package model.annotations
 import model._
 import model.frontend.user.PartialUser
-import org.neo4j.driver.v1.Value
+import org.neo4j.driver.Value
 import play.api.libs.json.{Format, JsError, JsObject, JsResult, JsString, JsValue, Json}
 
 case class Comment(id: String, author: PartialUser, postedAt: Long, text: String, anchor: Option[CommentAnchor])

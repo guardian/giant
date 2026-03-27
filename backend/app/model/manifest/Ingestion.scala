@@ -2,7 +2,7 @@ package model.manifest
 
 import java.time.OffsetDateTime
 import model._
-import org.neo4j.driver.v1.Value
+import org.neo4j.driver.Value
 import play.api.libs.json.{Format, Json}
 import utils.Time._
 

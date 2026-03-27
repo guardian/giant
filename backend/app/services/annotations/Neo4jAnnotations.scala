@@ -8,8 +8,8 @@ import model.annotations._
 import model.frontend.{TreeEntry, TreeLeaf, TreeNode}
 import model.ingestion.RemoteIngest
 import model.user.DBUser
-import org.neo4j.driver.v1.{Driver, Record, Value}
-import org.neo4j.driver.v1.Values.parameters
+import org.neo4j.driver.{Driver, Record, Value}
+import org.neo4j.driver.Values.parameters
 import play.api.libs.json.Json
 import services.Neo4jQueryLoggingConfig
 import services.annotations.Annotations.{AffectedResource, CopyDestination, DeleteItemResult, MoveItemResult}
@@ -36,10 +36,10 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
   override def setup(): Either[Failure, Unit] = {
     for {
       _ <- transaction { tx =>
-        tx.run("CREATE CONSTRAINT ON (dictionary :Dictionary) ASSERT dictionary.id IS UNIQUE")
-        tx.run("CREATE CONSTRAINT ON (workspace :Workspace) ASSERT workspace.id IS UNIQUE")
-        tx.run("CREATE CONSTRAINT ON (node :WorkspaceNode) ASSERT node.id IS UNIQUE")
-        tx.run("CREATE CONSTRAINT ON (comment :Comment) ASSERT comment.id IS UNIQUE")
+        tx.run("CREATE CONSTRAINT IF NOT EXISTS FOR (dictionary :Dictionary) REQUIRE dictionary.id IS UNIQUE")
+        tx.run("CREATE CONSTRAINT IF NOT EXISTS FOR (workspace :Workspace) REQUIRE workspace.id IS UNIQUE")
+        tx.run("CREATE CONSTRAINT IF NOT EXISTS FOR (node :WorkspaceNode) REQUIRE node.id IS UNIQUE")
+        tx.run("CREATE CONSTRAINT IF NOT EXISTS FOR (comment :Comment) REQUIRE comment.id IS UNIQUE")
         Right(())
       }
     } yield Right(())
@@ -49,7 +49,7 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
     tx.run(
       """
         |MATCH (workspace :Workspace)
-        |WHERE (:User { username: {currentUser} })-[:FOLLOWING|:OWNS]->(workspace) OR workspace.isPublic
+        |WHERE (:User { username: $currentUser })-[:FOLLOWING|OWNS]->(workspace) OR workspace.isPublic
         |MATCH (creator :User)-[:CREATED]->(workspace)<-[:FOLLOWING]-(follower :User)
         |MATCH (owner :User)-[:OWNS]->(workspace)
         |RETURN workspace, creator, owner, collect(distinct follower) as followers
@@ -72,8 +72,8 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
   override def getWorkspaceMetadata(currentUser: String, id: String): Attempt[WorkspaceMetadata] = attemptTransaction { tx =>
     tx.run(
       """
-        |MATCH (workspace :Workspace {id: {id} })
-        |WHERE (:User { username: {currentUser} })-[:FOLLOWING|:OWNS]->(workspace) OR workspace.isPublic
+        |MATCH (workspace :Workspace {id: $id })
+        |WHERE (:User { username: $currentUser })-[:FOLLOWING|OWNS]->(workspace) OR workspace.isPublic
         |MATCH (creator :User)-[:CREATED]->(workspace)<-[:FOLLOWING]-(follower :User)
         |MATCH (owner :User)-[:OWNS]->(workspace)
         |RETURN workspace, creator, owner, collect(distinct follower) as followers
@@ -100,8 +100,8 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
   override def getWorkspaceContents(currentUser: String, id: String, remoteIngestsToMixin: List[RemoteIngest] = List.empty): Attempt[TreeEntry[WorkspaceEntry]] = attemptTransaction { tx =>
     tx.run(
       """
-        |MATCH (workspace: Workspace { id: {id} })
-        |WHERE (:User { username: {currentUser} })-[:FOLLOWING|:OWNS]->(workspace) OR workspace.isPublic
+        |MATCH (workspace: Workspace { id: $id })
+        |WHERE (:User { username: $currentUser })-[:FOLLOWING|OWNS]->(workspace) OR workspace.isPublic
         |
         |OPTIONAL MATCH (workspace)<-[:PART_OF]-(node :WorkspaceNode)<-[:CREATED]-(nodeCreator :User)
         |
@@ -109,7 +109,7 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
         |
         |OPTIONAL MATCH (node)-[:FROM]->(remoteIngest: RemoteIngest)
         |
-        |OPTIONAL MATCH (:Resource {uri: node.uri})<-[todo:TODO|:PROCESSING_EXTERNALLY]-(:Extractor)
+        |OPTIONAL MATCH (:Resource {uri: node.uri})<-[todo:TODO|PROCESSING_EXTERNALLY]-(:Extractor)
         |RETURN node, nodeCreator, parentNode.id, remoteIngest.url,
         |	count(todo) AS numberOfTodos,
         |	collect(todo)[0].note as note,
@@ -204,13 +204,13 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
   override def insertWorkspace(username: String, id: String, name: String, isPublic: Boolean, tagColor: String): Attempt[Unit] = attemptTransaction { tx =>
     tx.run(
       """
-        |MATCH (u: User {username: {username}})
-        |CREATE (w: Workspace {id: {id}, name: {name}, isPublic: {isPublic}, tagColor: {tagColor}})
+        |MATCH (u: User {username: $username})
+        |CREATE (w: Workspace {id: $id, name: $name, isPublic: $isPublic, tagColor: $tagColor})
         |CREATE (w)<-[:CREATED]-(u)
         |CREATE (w)<-[:FOLLOWING]-(u)
         |CREATE (w)<-[:OWNS]-(u)
         |
-        |CREATE (u)-[:CREATED]->(f: WorkspaceNode {id: {rootFolderId}, name: {name}, type: 'folder'})-[:PART_OF]->(w)
+        |CREATE (u)-[:CREATED]->(f: WorkspaceNode {id: $rootFolderId, name: $name, type: 'folder'})-[:PART_OF]->(w)
         |
       """.stripMargin,
       parameters(
@@ -222,7 +222,7 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
         "tagColor", tagColor
       )
     ).flatMap {
-      case r if r.summary().counters().nodesCreated() == 0 =>
+      case r if r.consume().counters().nodesCreated() == 0 =>
         Attempt.Left(IllegalStateFailure("Did not create new workspace"))
       case _ =>
         Attempt.Right(())
@@ -232,13 +232,13 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
   override def updateWorkspaceFollowers(currentUser: String, id: String, followers: List[String]): Attempt[Unit] = attemptTransaction { tx =>
     tx.run(
       """
-        |MATCH (workspace :Workspace {id: {workspaceId}})<-[:OWNS]-(owner :User {username: {username}})
+        |MATCH (workspace :Workspace {id: $workspaceId})<-[:OWNS]-(owner :User {username: $username})
         |
         |OPTIONAL MATCH (existingFollower :User)-[existingFollow :FOLLOWING]->(workspace)
         |  WHERE existingFollower.username <> owner.username
         |
         |OPTIONAL MATCH (newFollower :User)
-        |  WHERE newFollower.username IN {followers}
+        |  WHERE newFollower.username IN $followers
         |
         |DELETE existingFollow
         |
@@ -252,9 +252,9 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
         "username", currentUser,
         "followers", followers.toArray
       )
-    ).flatMap {
-      case r if r.summary().counters().relationshipsCreated() != followers.length =>
-        Attempt.Left(IllegalStateFailure(s"Error when updating workspace followers, unexpected relationships created ${r.summary().counters().relationshipsCreated()}"))
+    ).map(_.consume()).flatMap {
+      case r if r.counters().relationshipsCreated() != followers.length =>
+        Attempt.Left(IllegalStateFailure(s"Error when updating workspace followers, unexpected relationships created ${r.counters().relationshipsCreated()}"))
       case _ =>
         Attempt.Right(())
     }
@@ -263,9 +263,9 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
   override def updateWorkspaceIsPublic(currentUser: String, id: String, isPublic: Boolean): Attempt[Unit] = attemptTransaction { tx =>
     tx.run(
       """
-        |MATCH (workspace :Workspace {id: {workspaceId}})<-[:OWNS]-(owner :User {username: {username}})
+        |MATCH (workspace :Workspace {id: $workspaceId})<-[:OWNS]-(owner :User {username: $username})
         |
-        |SET workspace.isPublic = {isPublic}
+        |SET workspace.isPublic = $isPublic
         |
       """.stripMargin,
       parameters(
@@ -273,9 +273,9 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
         "username", currentUser,
         "isPublic", Boolean.box(isPublic)
       )
-    ).flatMap {
-      case r if r.summary().counters().propertiesSet() != 1 =>
-        Attempt.Left(IllegalStateFailure(s"Error when updating workspace isPublic, unexpected properties set ${r.summary().counters().propertiesSet()}"))
+    ).map(_.consume()).flatMap {
+      case r if r.counters().propertiesSet() != 1 =>
+        Attempt.Left(IllegalStateFailure(s"Error when updating workspace isPublic, unexpected properties set ${r.counters().propertiesSet()}"))
       case _ =>
         Attempt.Right(())
     }
@@ -284,20 +284,20 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
   override def updateWorkspaceName(currentUser: String, id: String, name: String): Attempt[Unit] = attemptTransaction { tx =>
     tx.run(
       """
-        |MATCH (rootNode :WorkspaceNode)-[:PART_OF]->(workspace :Workspace {id: {workspaceId}})<-[:OWNS]-(owner :User {username: {username}})
+        |MATCH (rootNode :WorkspaceNode)-[:PART_OF]->(workspace :Workspace {id: $workspaceId})<-[:OWNS]-(owner :User {username: $username})
         |   WHERE NOT exists((rootNode)-[:PARENT]->(:WorkspaceNode))
         |
-        |SET workspace.name = {name}
-        |SET rootNode.name = {name}
+        |SET workspace.name = $name
+        |SET rootNode.name = $name
       """.stripMargin,
       parameters(
         "workspaceId", id,
         "name", name,
         "username", currentUser
       )
-    ).flatMap {
-      case r if r.summary().counters().propertiesSet() != 2 =>
-        Attempt.Left(IllegalStateFailure(s"Error when updating workspace name, unexpected properties set ${r.summary().counters().propertiesSet()}"))
+    ).map(_.consume()).flatMap {
+      case r if r.counters().propertiesSet() != 2 =>
+        Attempt.Left(IllegalStateFailure(s"Error when updating workspace name, unexpected properties set ${r.counters().propertiesSet()}"))
       case _ =>
         Attempt.Right(())
     }
@@ -305,9 +305,9 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
 
   override def updateWorkspaceOwner(currentUser: String, id: String, owner: String): Attempt[Unit] = attemptTransaction { tx =>
     val query = """
-                  MATCH (user: User { username: {username}})
-                  |MATCH (newOwner: User { username: {owner}})
-                  |MATCH (workspace: Workspace {id:{workspaceId}} )<-[ownsRelationship:OWNS]-(currentOwner:User)
+                  MATCH (user: User { username: $username})
+                  |MATCH (newOwner: User { username: $owner})
+                  |MATCH (workspace: Workspace {id:$workspaceId} )<-[ownsRelationship:OWNS]-(currentOwner:User)
                   |WHERE (:Permission {name: "CanPerformAdminOperations"})<-[:HAS_PERMISSION]-(user)
                   |CREATE (workspace)<-[:FOLLOWING]-(newOwner)
                   |CREATE (workspace)<-[:OWNS]-(newOwner)
@@ -320,9 +320,9 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
         "owner", owner,
         "username", currentUser
       )
-    ).flatMap {
-      case r if r.summary().counters().relationshipsCreated() != 2 =>
-        Attempt.Left(IllegalStateFailure(s"Error when updating workspace owner, unexpected properties set ${r.summary().counters().propertiesSet()}"))
+    ).map(_.consume()).flatMap {
+      case r if r.counters().relationshipsCreated() != 2 =>
+        Attempt.Left(IllegalStateFailure(s"Error when updating workspace owner, unexpected properties set ${r.counters().propertiesSet()}"))
       case _ =>
         Attempt.Right(())
     }
@@ -331,9 +331,9 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
   override def deleteWorkspace(currentUser: String, workspace: String): Attempt[Unit] = attemptTransaction { tx =>
     tx.run(
       """
-        |MATCH (user: User { username: {username} })
-        |MATCH (workspace: Workspace {id: {workspaceId}})<-[:OWNS]-(u:User)
-        |WHERE u.username = {username} OR (workspace.isPublic and (:Permission {name: "CanPerformAdminOperations"})<-[:HAS_PERMISSION]-(user))
+        |MATCH (user: User { username: $username })
+        |MATCH (workspace: Workspace {id: $workspaceId})<-[:OWNS]-(u:User)
+        |WHERE u.username = $username OR (workspace.isPublic and (:Permission {name: "CanPerformAdminOperations"})<-[:HAS_PERMISSION]-(user))
         |MATCH (workspace)<-[:PART_OF]-(node: WorkspaceNode)
         |
         |DETACH DELETE node
@@ -343,8 +343,8 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
         "workspaceId", workspace,
         "username", currentUser
       )
-    ).flatMap {
-      case r if r.summary().counters().nodesDeleted() < 1 =>
+    ).map(_.consume()).flatMap {
+      case r if r.counters().nodesDeleted() < 1 =>
         Attempt.Left(IllegalStateFailure("Failed to delete workspace"))
       case _ =>
         Attempt.Right(())
@@ -354,11 +354,11 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
   private def addFolder(tx: AttemptWrappedTransaction, currentUser: String, workspaceId: String, parentFolderId: String, folderName: String): Attempt[String] = {
     tx.run(
       """
-        |MATCH (p :WorkspaceNode {id: {parentFolderId}})-[:PART_OF]->(w: Workspace {id: {workspaceId}})
-        |MATCH (currentUser :User {username: {currentUser}})
+        |MATCH (p :WorkspaceNode {id: $parentFolderId})-[:PART_OF]->(w: Workspace {id: $workspaceId})
+        |MATCH (currentUser :User {username: $currentUser})
         |  WHERE (currentUser)-[:FOLLOWING]->(w) OR w.isPublic
         |
-        |CREATE (f :WorkspaceNode {id: {folderId}, name: {folderName}, type: 'folder', addedOn: {addedOn}})
+        |CREATE (f :WorkspaceNode {id: $folderId, name: $folderName, type: 'folder', addedOn: $addedOn})
         |CREATE (f)-[:PARENT]->(p)
         |CREATE (f)-[:PART_OF]->(w)
         |CREATE (f)<-[:CREATED]-(currentUser)
@@ -373,13 +373,13 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
         "folderName", folderName,
         "addedOn", Long.box(System.currentTimeMillis())
       )
-    ).flatMap {
-      case r if r.summary().counters().nodesCreated() == 0 =>
+    ).map(_.list().asScala.headOption).flatMap {
+      case None =>
         // This is the expected failure case on lack of permissions.
         // But we return a 404 to not leak information to the client
         Attempt.Left(NotFoundFailure("Could not find node to create folder at"))
-      case r =>
-        Attempt.Right(r.single().get("f").get("id").asString())
+      case Some(r) =>
+        Attempt.Right(r.get("f").get("id").asString())
     }
     }
 
@@ -392,8 +392,8 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
   private def getFolder(tx: AttemptWrappedTransaction, workspaceId: String, parentFolderId: String, folderName: String): Attempt[String] = {
     tx.run(
       """
-      | MATCH  (parentFolder :WorkspaceNode {id: {parentFolderId}})-[:PART_OF]->(w: Workspace {id: {workspaceId}})
-      | MATCH  (folder :WorkspaceNode {name: {folderName}, type: 'folder'})-[:PARENT]->(parentFolder)
+      | MATCH  (parentFolder :WorkspaceNode {id: $parentFolderId})-[:PART_OF]->(w: Workspace {id: $workspaceId})
+      | MATCH  (folder :WorkspaceNode {name: $folderName, type: 'folder'})-[:PARENT]->(parentFolder)
       | RETURN folder
       """.stripMargin,
       parameters(
@@ -419,8 +419,8 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
   }
 
   override def addResourceToWorkspaceFolder(currentUser: String, fileName: String, uri: Uri, size: Option[Long], mimeType: Option[String], icon: String, workspaceId: String, folderId: String, nodeId: String): Attempt[String] = attemptTransaction { tx =>
-    val sizePart = if (size.isDefined) ", size: {size}" else ""
-    val mimeTypePart = if(mimeType.isDefined) ", mimeType: {mimeType}" else ""
+    val sizePart = if (size.isDefined) ", size: $size" else ""
+    val mimeTypePart = if(mimeType.isDefined) ", mimeType: $mimeType" else ""
 
     val params = List(
       "parentFolderId", folderId,
@@ -435,16 +435,16 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
 
     tx.run(
       s"""
-         |MATCH (parentNode: WorkspaceNode {id: {parentFolderId}})
+         |MATCH (parentNode: WorkspaceNode {id: $$parentFolderId})
          |  WHERE parentNode.type = 'folder'
          |
-         |MATCH (parentNode)-[:PART_OF]->(workspace: Workspace {id: {workspaceId}})<-[:FOLLOWING]-(user: User)
-         |  WHERE user.username = {currentUser} OR workspace.isPublic
+         |MATCH (parentNode)-[:PART_OF]->(workspace: Workspace {id: $$workspaceId})<-[:FOLLOWING]-(user: User)
+         |  WHERE user.username = $$currentUser OR workspace.isPublic
          |WITH DISTINCT parentNode, workspace
          |
-         |MATCH (currentUser:User {username: {currentUser}})
+         |MATCH (currentUser:User {username: $$currentUser})
          |
-         |CREATE (file: WorkspaceNode {id: {fileId}, name: {fileName}, type: 'file', icon: {icon}, uri: {blobUri}, addedOn: {addedOn}$sizePart$mimeTypePart})
+         |CREATE (file: WorkspaceNode {id: $$fileId, name: $$fileName, type: 'file', icon: $$icon, uri: $$blobUri, addedOn: $$addedOn$sizePart$mimeTypePart})
          |
          |CREATE (file)<-[:CREATED]-(currentUser)
          |CREATE (file)-[:PARENT]->(parentNode)
@@ -455,21 +455,21 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
       parameters(
         params:_*
       )
-    ).flatMap {
-      case r if r.summary().counters().nodesCreated() == 0 =>
+    ).map(_.list().asScala.headOption).flatMap {
+      case None =>
         Attempt.Left(IllegalStateFailure("Did not create new workspace resource"))
-      case r =>
-        Attempt.Right(r.single().get("file").get("id").asString())
+      case Some(r) =>
+        Attempt.Right(r.get("file").get("id").asString())
     }
   }
 
   override def renameWorkspaceItem(currentUser: String, workspaceId: String, itemId: String, name: String): Attempt[Unit] = attemptTransaction { tx =>
     tx.run(
       """
-        |MATCH (item: WorkspaceNode {id: {itemId}})-[:PART_OF]->(workspace: Workspace {id: {workspaceId}})<-[:FOLLOWING]-(user: User)
-        |  WHERE user.username = {currentUser} OR workspace.isPublic
+        |MATCH (item: WorkspaceNode {id: $itemId})-[:PART_OF]->(workspace: Workspace {id: $workspaceId})<-[:FOLLOWING]-(user: User)
+        |  WHERE user.username = $currentUser OR workspace.isPublic
         |
-        |SET item.name = {name}
+        |SET item.name = $name
       """.stripMargin,
       parameters(
         "currentUser", currentUser,
@@ -477,8 +477,8 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
         "itemId", itemId,
         "name", name
       )
-    ).flatMap {
-      case r if r.summary().counters().propertiesSet() == 0 =>
+    ).map(_.consume()).flatMap {
+      case r if r.counters().propertiesSet() == 0 =>
         Attempt.Left(IllegalStateFailure("Failed to change item name"))
       case _ =>
         Attempt.Right(())
@@ -488,8 +488,8 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
   private def getWorkspaceRootNodeId(currentUser: String, workspaceId: String): Attempt[String] = attemptTransaction { tx =>
     tx.run(
       """
-        |MATCH (rootNode :WorkspaceNode)-[:PART_OF]->(workspace :Workspace {id: {workspaceId}})
-        |  WHERE ((:User { username: {currentUser} })-[:FOLLOWING]->(workspace) OR workspace.isPublic)
+        |MATCH (rootNode :WorkspaceNode)-[:PART_OF]->(workspace :Workspace {id: $workspaceId})
+        |  WHERE ((:User { username: $currentUser })-[:FOLLOWING]->(workspace) OR workspace.isPublic)
         |  AND NOT exists((rootNode)-[:PARENT]->(:WorkspaceNode))
         |RETURN rootNode
         |""".stripMargin,
@@ -528,11 +528,11 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
   private def move(currentUser: String, workspaceId: String, itemId: String, newWorkspaceId: String, newParentId: String): Attempt[MoveItemResult] = attemptTransaction { tx =>
     tx.run(
       """
-        |MATCH (:WorkspaceNode)<-[oldParentLink:PARENT]-(item: WorkspaceNode {id: {itemId}})-[:PART_OF]->(oldWorkspace: Workspace {id: {workspaceId}})
-        |  WHERE (:User { username: {currentUser} })-[:FOLLOWING]->(oldWorkspace) OR oldWorkspace.isPublic
+        |MATCH (:WorkspaceNode)<-[oldParentLink:PARENT]-(item: WorkspaceNode {id: $itemId})-[:PART_OF]->(oldWorkspace: Workspace {id: $workspaceId})
+        |  WHERE (:User { username: $currentUser })-[:FOLLOWING]->(oldWorkspace) OR oldWorkspace.isPublic
         |
-        |MATCH (newParent :WorkspaceNode {id: {newParentId}})-[:PART_OF]->(newWorkspace :Workspace {id: {newWorkspaceId}})
-        |  WHERE (:User { username: {currentUser} })-[:FOLLOWING]->(newWorkspace) OR newWorkspace.isPublic
+        |MATCH (newParent :WorkspaceNode {id: $newParentId})-[:PART_OF]->(newWorkspace :Workspace {id: $newWorkspaceId})
+        |  WHERE (:User { username: $currentUser })-[:FOLLOWING]->(newWorkspace) OR newWorkspace.isPublic
         |
         |WITH oldParentLink, oldWorkspace, newParent, newWorkspace, item, EXISTS((newParent)-[:PARENT*0..]->(item)) as isNewParentDescendantOfItem
         |  WHERE isNewParentDescendantOfItem = false
@@ -562,8 +562,9 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
       val records = statementResult.list().asScala.toList
       val entriesMoved = records.map(_.get("itemAndItsDescendants"))
       val resourcesMoved = entriesMoved.flatMap(AffectedResource.fromNeo4jValue)
-      val relationshipsCreated = statementResult.summary().counters().relationshipsCreated()
-      val relationshipsDeleted = statementResult.summary().counters().relationshipsDeleted()
+      val counters = statementResult.consume().counters()
+      val relationshipsCreated = counters.relationshipsCreated()
+      val relationshipsDeleted = counters.relationshipsDeleted()
 
       if (entriesMoved.isEmpty) {
         // checking r.single().get("isNewParentDescendantOfItem").asBoolean() would be helpful for reporting the
@@ -594,8 +595,8 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
   def deleteWorkspaceItem(currentUser: String, workspaceId: String, itemId: String): Attempt[DeleteItemResult] = attemptTransaction { tx =>
     tx.run(
       """
-        |MATCH (item: WorkspaceNode {id: {itemId}})-[:PART_OF]->(workspace:Workspace {id: {workspaceId}})<-[:FOLLOWING]-(user: User)
-        | WHERE user.username = {currentUser} OR workspace.isPublic
+        |MATCH (item: WorkspaceNode {id: $itemId})-[:PART_OF]->(workspace:Workspace {id: $workspaceId})<-[:FOLLOWING]-(user: User)
+        | WHERE user.username = $currentUser OR workspace.isPublic
         |
         |OPTIONAL MATCH (child: WorkspaceNode)-[:PARENT*]->(item)
         |WITH child, item, { id: item.id, uri: item.uri } as removedItem, { id: child.id, uri: child.uri } as removedChild
@@ -608,26 +609,29 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
         "workspaceId", workspaceId,
         "itemId", itemId
       )
-    ).flatMap {
-      case r if r.summary().counters().nodesDeleted() < 1 =>
-        Attempt.Left(IllegalStateFailure("Failed to delete item"))
+    ).flatMap { result =>
 
-      case r =>
-        val entries = r.list().asScala.toList
+      val entries = result.list().asScala.toList
 
-        val removedItems = entries.head.get("removedItem") +: entries.map(_.get("removedChild"))
-        val removedResources = removedItems.flatMap(AffectedResource.fromNeo4jValue)
+      result match {
+        case r if r.consume().counters().nodesDeleted() < 1 =>
+          Attempt.Left(IllegalStateFailure("Failed to delete item"))
 
-        Attempt.Right(DeleteItemResult(removedResources))
+        case _ =>
+          val removedItems = entries.head.get("removedItem") +: entries.map(_.get("removedChild"))
+          val removedResources = removedItems.flatMap(AffectedResource.fromNeo4jValue)
+
+          Attempt.Right(DeleteItemResult(removedResources))
+      }
     }
   }
 
   override def postComment(currentUser: String, uri: Uri, text: String, anchor: Option[CommentAnchor]): Attempt[Unit] = attemptTransaction { tx =>
     tx.run(
       """
-        |MATCH (u :User {username: {currentUser}})
-        |MATCH (r :Resource {uri: {uri}})
-        |CREATE (c: Comment {id: {id}, postedAt: {postedAt}, text: {text}, anchor: {anchor}})-[:POSTED_ON]->(r)
+        |MATCH (u :User {username: $currentUser})
+        |MATCH (r :Resource {uri: $uri})
+        |CREATE (c: Comment {id: $id, postedAt: $postedAt, text: $text, anchor: $anchor})-[:POSTED_ON]->(r)
         |CREATE (c)-[:POSTED_BY]->(u)
       """.stripMargin,
       parameters(
@@ -638,8 +642,8 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
         "uri", uri.value,
         "anchor", anchor.map { a => Json.stringify(Json.toJson(a)) }.orNull
       )
-    ).flatMap {
-      case r if r.summary().counters().nodesCreated() == 0 =>
+    ).map(_.consume()).flatMap {
+      case r if r.counters().nodesCreated() == 0 =>
         Attempt.Left(IllegalStateFailure("Failed to insert new comment"))
       case _ =>
         Attempt.Right(())
@@ -649,7 +653,7 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
   override def getComments(uri: Uri): Attempt[List[Comment]] = attemptTransaction { tx =>
     tx.run(
       """
-        MATCH (:Resource {uri: {uri}})<-[:POSTED_ON]-(c:Comment)-[:POSTED_BY]->(u: User)
+        MATCH (:Resource {uri: $uri})<-[:POSTED_ON]-(c:Comment)-[:POSTED_BY]->(u: User)
         RETURN c, u
       """.stripMargin,
       parameters(
@@ -671,7 +675,7 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
   override def deleteComment(currentUser: String, commentId: String): Attempt[Unit] = attemptTransaction { tx =>
     tx.run(
       """
-        |MATCH (c: Comment {id: {commentId}})-[:POSTED_BY]->(u: User {username: {currentUser}})
+        |MATCH (c: Comment {id: $commentId})-[:POSTED_BY]->(u: User {username: $currentUser})
         |DETACH DELETE (c)
         |RETURN u
       """.stripMargin,
@@ -684,7 +688,7 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
       (dbUser, summary) match {
         case (None, _) =>
           Attempt.Left(NotFoundFailure("Not found"))
-        case (Some(_), r) if r.summary().counters().nodesDeleted() != 1 =>
+        case (Some(_), r) if r.consume().counters().nodesDeleted() != 1 =>
           Attempt.Left(IllegalStateFailure("Failed to delete comment"))
         case _ =>
           Attempt.Right(())
@@ -695,7 +699,7 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
   override def getBlobOwners(blobUri: String): Attempt[Set[String]] = attemptTransaction { tx =>
     tx.run(
       """
-        | MATCH (b:Blob:Resource {uri: {blob}})-[r:PARENT*]->(c:Collection)
+        | MATCH (b:Blob:Resource {uri: $blob})-[r:PARENT*]->(c:Collection)
         | RETURN DISTINCT c.createdBy AS owner
         """.stripMargin,
       parameters(

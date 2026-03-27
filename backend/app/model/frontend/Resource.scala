@@ -4,7 +4,7 @@ import extraction.EnrichedMetadata
 import model._
 import model.annotations.Comment
 import model.index.{Document, IndexedResource}
-import org.neo4j.driver.v1.Value
+import org.neo4j.driver.Value
 import play.api.libs.json._
 import services.previewing.{PreviewService, PreviewStatus}
 
