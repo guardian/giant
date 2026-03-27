@@ -29,9 +29,5 @@ export default function buildLink(to, urlParams, overrides) {
     params.details = urlParams.details;
   }
 
-  if (!params.view && urlParams.view) {
-    params.view = urlParams.view;
-  }
-
   return params ? `${encodedUri}?${objectToParamString(params)}` : encodedUri;
 }

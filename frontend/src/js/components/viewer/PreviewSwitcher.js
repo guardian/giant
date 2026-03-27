@@ -12,16 +12,32 @@ import { bindActionCreators } from "redux";
 
 import { setResourceView } from "../../actions/urlParams/setViews";
 
+/** @param {string[]} mimeTypes @returns {string} */
+export function previewLabelForMimeTypes(mimeTypes) {
+  if (mimeTypes.some((m) => m.startsWith("video/"))) {
+    return "Video";
+  }
+  if (mimeTypes.some((m) => m.startsWith("audio/"))) {
+    return "Audio";
+  }
+  return "Preview";
+}
+
 class PreviewSwitcher extends React.Component {
   static propTypes = {
     resource: resourcePropType,
     view: PropTypes.string,
+    totalPages: PropTypes.number,
     setResourceView: PropTypes.func.isRequired,
   };
 
   currentViewModeIsValid(resource) {
     if (!this.props.view) {
       return false;
+    }
+
+    if (this.props.view === "combined" && this.props.totalPages > 0) {
+      return true;
     }
 
     if (
@@ -58,6 +74,10 @@ class PreviewSwitcher extends React.Component {
 
   canPreview(previewStatus) {
     return previewStatus !== "disabled";
+  }
+
+  previewLabel() {
+    return previewLabelForMimeTypes(this.props.resource?.mimeTypes ?? []);
   }
 
   componentDidUpdateOrMount() {
@@ -130,6 +150,14 @@ class PreviewSwitcher extends React.Component {
           shortcut={keyboardShortcuts.showPreview}
           func={this.showPreview}
         />
+        {this.props.totalPages > 0 && (
+          <PreviewLink
+            current={current}
+            text="Combined"
+            to="combined"
+            navigate={this.props.setResourceView}
+          />
+        )}
         {hasTextContent(this.props.resource) &&
         !this.props.resource.transcript ? (
           <PreviewLink
@@ -156,7 +184,7 @@ class PreviewSwitcher extends React.Component {
         {this.canPreview(this.props.resource.previewStatus) ? (
           <PreviewLink
             current={current}
-            text="Preview"
+            text={this.previewLabel()}
             to="preview"
             navigate={this.props.setResourceView}
           />
