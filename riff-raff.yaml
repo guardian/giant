@@ -22,9 +22,9 @@ deployments:
     parameters:
       amiEncrypted: true
       amiTags:
-        Recipe: investigations-neo4j-jammy
+        Recipe: investigations-neo4j-2026-jammy-java25
         AmigoStage: PROD
-        Encrypted: investigations
+        Encrypted: true
 
   pfi-elasticsearch-ami-update:
     type: ami-cloudformation-parameter
