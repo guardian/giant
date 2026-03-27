@@ -17,16 +17,29 @@ import { setCurrentHighlight } from "../../actions/highlights";
 
 function DocNavButton({ title, onClick, direction }) {
   const isActive = !!onClick;
-  const className = isActive
-    ? "doc-nav-button doc-nav-button--active"
-    : "doc-nav-button doc-nav-button--inactive";
-  const rotation = direction === "previous" ? "doc-nav-button--previous" : "";
+  const classes = [
+    "doc-nav-button",
+    isActive ? "doc-nav-button--active" : "doc-nav-button--inactive",
+    direction === "previous" && "doc-nav-button--previous",
+  ]
+    .filter(Boolean)
+    .join(" ");
+
+  const handleKeyDown = isActive
+    ? (e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onClick();
+        }
+      }
+    : undefined;
 
   return (
     <span
       title={title}
-      className={`${className} ${rotation}`}
+      className={classes}
       onClick={isActive ? onClick : undefined}
+      onKeyDown={handleKeyDown}
       role="button"
       tabIndex={isActive ? 0 : -1}
     >
