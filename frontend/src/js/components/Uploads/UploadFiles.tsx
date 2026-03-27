@@ -1,13 +1,13 @@
-import React, { useReducer, useState } from "react";
+import React, { useEffect, useReducer, useState } from "react";
 import uuid from "uuid/v4";
 import MdFileUpload from "react-icons/lib/md/file-upload";
 import Modal from "../UtilComponents/Modal";
 import FilePicker from "./FilePicker";
 import FileList from "./FileList";
-import { Button, Form, Progress } from "semantic-ui-react";
+import { Button, Dropdown, Form, Progress } from "semantic-ui-react";
 import { getUploadTarget, WorkspaceTarget } from "./UploadTarget";
 import { getCollection } from "../../actions/collections/getCollection";
-import { uploadFileWithNewIngestion } from "../../services/CollectionsApi";
+import { uploadFileWithNewIngestion, fetchSupportedLanguages } from "../../services/CollectionsApi";
 import history from "../../util/history";
 import { displayRelativePath } from "../../util/workspaceUtils";
 import { Collection } from "../../types/Collection";
@@ -180,6 +180,7 @@ async function uploadFiles(
   files: Map<string, UploadFile>,
   dispatch: React.Dispatch<Action>,
   isFastLane: boolean,
+  language: string,
 ): Promise<void> {
   const uploadId = uuid();
   let workspaceFolderCache: Map<string, string> = new Map();
@@ -231,6 +232,7 @@ async function uploadFiles(
           file,
           path,
           isFastLane,
+          language,
           metadata,
           onProgress,
         );
@@ -305,6 +307,22 @@ export default function UploadFiles(props: Props) {
   const isUploading = currentUpload !== undefined;
 
   const [shouldUseFastLane, setShouldUseFastLane] = useState(false);
+  const [selectedLanguage, setSelectedLanguage] = useState("english");
+  const [languageOptions, setLanguageOptions] = useState<
+    { key: string; value: string; text: string }[]
+  >([]);
+
+  useEffect(() => {
+    fetchSupportedLanguages().then((languages) => {
+      setLanguageOptions(
+        languages.map((lang) => ({
+          key: lang,
+          value: lang,
+          text: lang.charAt(0).toUpperCase() + lang.slice(1),
+        })),
+      );
+    });
+  }, []);
 
   const completeCount = [...state.files.values()].filter(
     ({ state }) => state.description === "uploaded",
@@ -318,6 +336,7 @@ export default function UploadFiles(props: Props) {
   function dismissAndResetModal() {
     setOpen(false);
     setShouldUseFastLane(false);
+    setSelectedLanguage("english");
     dispatch({ type: "Reset", state: { files: new Map(), target: undefined } });
   }
 
@@ -348,6 +367,7 @@ export default function UploadFiles(props: Props) {
           state.files,
           dispatch,
           shouldUseFastLane,
+          selectedLanguage,
         ).then(() => {
           getResource(workspace.id);
         });
@@ -365,6 +385,7 @@ export default function UploadFiles(props: Props) {
     setOpen(false);
 
     setShouldUseFastLane(false);
+    setSelectedLanguage("english");
 
     setFocusedWorkspaceFolder(null);
     dispatch({ type: "Reset", state: { files: new Map(), target: undefined } });
@@ -439,6 +460,21 @@ export default function UploadFiles(props: Props) {
                 dispatch({ type: "Remove_Path", path });
               }}
             />
+          </Form.Field>
+          <Form.Field>
+            <label>Language</label>
+            <Dropdown
+              selection
+              compact
+              style={{ width: "10em" }}
+              options={languageOptions}
+              value={selectedLanguage}
+              onChange={(_e, { value }) => setSelectedLanguage(value as string)}
+              disabled={isEditDisabled}
+            />
+            <small style={{ color: "grey", marginTop: "0.25em", display: "block" }}>
+              Setting a language can improve OCR/translation quality. If you are unsure, leave as English.
+            </small>
           </Form.Field>
           {!!currentUpload && (
             <FileUploadProgressBar

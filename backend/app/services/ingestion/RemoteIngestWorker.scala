@@ -127,7 +127,7 @@ class RemoteIngestWorker(
           job <- remoteIngestStore.getRemoteIngestJob(remoteIngestOutput.id)
           workspaceMetadata <- annotations.getWorkspaceMetadata(job.addedBy.username, job.workspaceId)
           _ <- remoteIngestStore.updateRemoteIngestTaskStatus(remoteIngestOutput.taskId, RemoteIngestStatus.Ingesting)
-          ingestion <- Collections.createIngestionIfNotExists(Uri(job.collection), job.ingestion, manifest, index, pages, s3Config)
+          ingestion <- Collections.createIngestionIfNotExists(Uri(job.collection), job.ingestion, "english", manifest, index, pages, s3Config)
           folderId <- annotations.addOrGetFolder(job.addedBy.username, job.workspaceId, job.parentFolderId, job.title)
           _ <- remoteIngestStore.linkRemoteIngestToWorkspaceNode(job.id, folderId)
           _ <- IngestStorePolling.fetchData(job.taskKey(remoteIngestOutput.taskId), remoteIngestStorage, scratchSpace){ (path, fingerprint) =>

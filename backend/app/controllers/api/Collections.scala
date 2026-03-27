@@ -130,6 +130,7 @@ class Collections(override val controllerComponents: AuthControllerComponents, m
         (req.headers.get(CONTENT_LOCATION), req.headers.get("X-PFI-Upload-Id"), req.headers.get("X-PFI-Ingestion-Name")) match {
           case (Some(rawOriginalPath), Some(uploadId), Some(ingestionName)) =>
             val maybeWorkspaceContext = buildWorkspaceItemContext(req.headers)
+            val language = req.headers.get("X-PFI-Language").getOrElse("english")
             val temporaryFilePath = req.body.path
             val fingerprint = FingerprintServices.createFingerprintFromFile(temporaryFilePath.toFile)
 
@@ -138,7 +139,7 @@ class Collections(override val controllerComponents: AuthControllerComponents, m
               if (blobs.length > 0) {
                 reprocess(fingerprint, blobs.head)
               } else {
-                val ingestionAttempt = Collections.createIngestionIfNotExists(collection, ingestionName, manifest, index, pages, s3Config)
+                val ingestionAttempt = Collections.createIngestionIfNotExists(collection, ingestionName, language, manifest, index, pages, s3Config)
 
                 ingestionAttempt.flatMap { ingestion =>
                   processIngestion(req, collection, Uri(ingestion.uri), uploadId, maybeWorkspaceContext, rawOriginalPath, Some(fingerprint))
@@ -267,9 +268,9 @@ class Collections(override val controllerComponents: AuthControllerComponents, m
 }
 
 object Collections {
-  def createIngestionIfNotExists(collection: Uri, ingestionName: String, manifest: Manifest, index: Index, pages:Pages, s3Config: S3Config)(implicit executionContext: ExecutionContext): Attempt[CreateIngestionResponse] = {
+  def createIngestionIfNotExists(collection: Uri, ingestionName: String, language: String, manifest: Manifest, index: Index, pages:Pages, s3Config: S3Config)(implicit executionContext: ExecutionContext): Attempt[CreateIngestionResponse] = {
     // TODO: the language fixed values used to come from client. Though the only variable was the ingestion name
-    val data = CreateIngestionRequest(None, Some(ingestionName), List("english"), Some(false), None)
+    val data = CreateIngestionRequest(None, Some(ingestionName), List(language), Some(false), None)
     val command = CreateIngestion(data, collection, manifest, index, pages)
     for {
       id <- command.createOrGet()

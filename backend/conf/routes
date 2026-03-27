@@ -14,6 +14,7 @@ DELETE        /api/collections/:collection/:ingestion                       cont
 POST          /api/collections/:collection/:ingestion/verifyFiles           controllers.api.Collections.verifyFiles(collection, ingestion)
 
 POST          /api/ingestion/retry-dead-letter-files                        controllers.api.Ingestion.retryDeadLetterFiles()
+GET           /api/ingestion/languages                                      controllers.api.Ingestion.getSupportedLanguages()
 
 GET           /api/ingestion-events/:collection                             controllers.api.IngestionEvents.getCollectionEvents(collection)
 GET           /api/ingestion-events/:collection/:ingestion                controllers.api.IngestionEvents.getIngestionEvents(collection, ingestion)
