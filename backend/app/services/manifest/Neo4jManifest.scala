@@ -618,13 +618,13 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
            |  languages: processing.languages
            |  }]-(e)
            |
-           |FOREACH (_ IN CASE WHEN exists(processing.workspaceId) THEN [1] ELSE [] END |
+           |FOREACH (_ IN CASE WHEN processing.workspaceId IS NOT NULL THEN [1] ELSE [] END |
            |  SET processed.workspaceId = processing.workspaceId
            |)
-           |FOREACH (_ IN CASE WHEN exists(processing.workspaceBlobUri) THEN [1] ELSE [] END |
+           |FOREACH (_ IN CASE WHEN processing.workspaceBlobUri IS NOT NULL THEN [1] ELSE [] END |
            |  SET processed.workspaceBlobUri = processing.workspaceBlobUri
            |)
-           |FOREACH (_ IN CASE WHEN exists(processing.workspaceNodeId) THEN [1] ELSE [] END |
+           |FOREACH (_ IN CASE WHEN processing.workspaceNodeId IS NOT NULL THEN [1] ELSE [] END |
            |  SET processed.workspaceNodeId = processing.workspaceNodeId
            |)
            |DELETE processing
@@ -898,13 +898,10 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
         |  MATCH (root:Email:Resource {uri: $uri})
         |  OPTIONAL MATCH (root)-[r]->(adjacent)
         |    WHERE type(r) in ['IN_REPLY_TO', 'REFERENCED']
+        |  WITH root as node, collect(DISTINCT { relation: type(r), uri: adjacent.uri}) as rawNeighbours, count(adjacent) as adjCount
         |  RETURN
-        |    root as node,
-        |    CASE WHEN adjacent IS NOT NULL THEN
-        |      collect(DISTINCT { relation: type(r), uri: adjacent.uri})
-        |    ELSE
-        |      []
-        |    END as neighbours
+        |    node,
+        |    CASE WHEN adjCount > 0 THEN rawNeighbours ELSE [] END as neighbours
         |UNION
         |  MATCH (root:Email:Resource {uri: $uri})
         |  OPTIONAL MATCH p=(root)-[*0..5]-(e2:Email)
@@ -912,13 +909,10 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
         |  WITH DISTINCT e2, root
         |  OPTIONAL MATCH (e2)-[r]->(adjacent:Email)
         |    WHERE type(r) in ['IN_REPLY_TO', 'REFERENCED']
+        |  WITH e2 as node, collect(DISTINCT { relation: type(r), uri: adjacent.uri}) as rawNeighbours, count(adjacent) as adjCount
         |  RETURN
-        |    e2 as node,
-        |    CASE WHEN adjacent IS NOT NULL THEN
-        |      collect(DISTINCT { relation: type(r), uri: adjacent.uri})
-        |    ELSE
-        |      []
-        |    END as neighbours
+        |    node,
+        |    CASE WHEN adjCount > 0 THEN rawNeighbours ELSE [] END as neighbours
       """.stripMargin,
       "uri" -> uri
     )
