@@ -7,7 +7,10 @@ import FileList from "./FileList";
 import { Button, Dropdown, Form, Progress } from "semantic-ui-react";
 import { getUploadTarget, WorkspaceTarget } from "./UploadTarget";
 import { getCollection } from "../../actions/collections/getCollection";
-import { uploadFileWithNewIngestion, fetchSupportedLanguages } from "../../services/CollectionsApi";
+import {
+  uploadFileWithNewIngestion,
+  fetchSupportedLanguages,
+} from "../../services/CollectionsApi";
 import history from "../../util/history";
 import { displayRelativePath } from "../../util/workspaceUtils";
 import { Collection } from "../../types/Collection";
@@ -472,8 +475,11 @@ export default function UploadFiles(props: Props) {
               onChange={(_e, { value }) => setSelectedLanguage(value as string)}
               disabled={isEditDisabled}
             />
-            <small style={{ color: "grey", marginTop: "0.25em", display: "block" }}>
-              Setting a language can improve OCR/translation quality. If you are unsure, leave as English.
+            <small
+              style={{ color: "grey", marginTop: "0.25em", display: "block" }}
+            >
+              Setting a language can improve OCR/translation quality. If you are
+              unsure, leave as English.
             </small>
           </Form.Field>
           {!!currentUpload && (
