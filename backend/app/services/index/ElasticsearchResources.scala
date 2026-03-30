@@ -410,18 +410,14 @@ class ElasticsearchResources(override val client: ElasticClient, indexName: Stri
           )
         )
 
-    val requestWithSorting = parameters.sortBy match {
-      case Relevance => req
-      case SizeAsc => req.sortBy(fieldSort(IndexFields.metadataField + "." + IndexFields.metadata.fileSize).asc())
-      case SizeDesc => req.sortBy(fieldSort(IndexFields.metadataField + "." + IndexFields.metadata.fileSize).desc())
-      case CreatedAtAsc => req.sortBy(fieldSort(IndexFields.createdAt).asc())
-      case CreatedAtDesc => req.sortBy(fieldSort(IndexFields.createdAt).desc())
-    }
-
-    logger.info(s"Elasticsearch query: ${requestWithSorting.show}")
-
     execute {
-      requestWithSorting
+      parameters.sortBy match {
+        case Relevance => req
+        case SizeAsc => req.sortBy(fieldSort(IndexFields.metadataField + "." + IndexFields.metadata.fileSize).asc())
+        case SizeDesc => req.sortBy(fieldSort(IndexFields.metadataField + "." + IndexFields.metadata.fileSize).desc())
+        case CreatedAtAsc => req.sortBy(fieldSort(IndexFields.createdAt).asc())
+        case CreatedAtDesc => req.sortBy(fieldSort(IndexFields.createdAt).desc())
+      }
     }.map { resp =>
       val hits = resp.totalHits
       val took = resp.took
