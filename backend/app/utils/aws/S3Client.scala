@@ -10,7 +10,7 @@ import software.amazon.awssdk.transfer.s3.progress.TransferListener.Context.Byte
 import software.amazon.awssdk.transfer.s3.progress.{LoggingTransferListener, TransferListener}
 
 import scala.concurrent.Await
-import com.amazonaws.{AmazonServiceException, event}
+import software.amazon.awssdk.awscore.exception.AwsServiceException
 import services.S3Config
 import software.amazon.awssdk.core.sync.RequestBody
 import utils.attempt.Attempt
@@ -32,10 +32,10 @@ class S3Client(config: S3Config)(implicit executionContext: ExecutionContext) {
     s3.headBucket(HeadBucketRequest.builder().bucket(bucket).build())
     true
   } catch {
-    case ase: AmazonServiceException if ase.getStatusCode == 301 || ase.getStatusCode == 403 =>
+    case ase: AwsServiceException if ase.statusCode() == 301 || ase.statusCode() == 403 =>
       true
 
-    case ase: AmazonServiceException if ase.getStatusCode == 404 =>
+    case ase: AwsServiceException if ase.statusCode() == 404 =>
       false
   }
 
