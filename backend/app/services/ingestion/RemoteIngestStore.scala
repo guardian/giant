@@ -18,7 +18,8 @@ trait RemoteIngestStore {
     url: String,
     username:String,
     mediaDownloadId: String,
-    webpageSnapshotId: String
+    webpageSnapshotId: String,
+    language: String
   ): Attempt[String]
   def getRemoteIngestJob(id: String): Attempt[RemoteIngest]
   def getRemoteIngestJobs(maybeWorkspaceId: Option[String], maybeSinceUTCEpoch: Option[Long], maybeContainsTaskWithStatusIn: Option[List[RemoteIngestStatus]]): Attempt[List[RemoteIngest]]

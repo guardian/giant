@@ -43,7 +43,8 @@ class Neo4jRemoteIngestStore(driver: Driver, executionContext: ExecutionContext,
     url: String,
     username:String,
     mediaDownloadId: String,
-    webpageSnapshotId: String
+    webpageSnapshotId: String,
+    language: String
   ): Attempt[String] = attemptTransaction { tx =>
 
     val query =
@@ -72,7 +73,8 @@ class Neo4jRemoteIngestStore(driver: Driver, executionContext: ExecutionContext,
         |  createdAt: $createdAt,
         |  url: $url,
         |  mediaDownloadId: $mediaDownloadId,
-        |  webpageSnapshotId: $webpageSnapshotId
+        |  webpageSnapshotId: $webpageSnapshotId,
+        |  language: $language
         |})
         |CREATE (ri)<-[:CREATED]-(user)
         |CREATE (ri)-[:HAS_TASK]->(mdt)
@@ -92,7 +94,8 @@ class Neo4jRemoteIngestStore(driver: Driver, executionContext: ExecutionContext,
       "createdAt", createdAt.getMillis,
       "url", url,
       "mediaDownloadId", mediaDownloadId,
-      "webpageSnapshotId", webpageSnapshotId
+      "webpageSnapshotId", webpageSnapshotId,
+      "language", language
     )
 
     tx.run(query, params).map(res => res.single().get("id").asString())
@@ -108,6 +111,7 @@ class Neo4jRemoteIngestStore(driver: Driver, executionContext: ExecutionContext,
     |       ri.ingestion AS ingestion,
     |       ri.createdAt AS created_at,
     |       ri.url AS url,
+    |       ri.language AS language,
     |       addedBy as added_by,
     |       COLLECT({id: task.id, status: task.status, blobUris: task.blobUris, type: task.type}) AS tasks
   """.stripMargin
@@ -126,7 +130,8 @@ class Neo4jRemoteIngestStore(driver: Driver, executionContext: ExecutionContext,
       addedBy = DBUser.fromNeo4jValue(record.get("added_by")).toPartial,
       tasks = record.get("tasks").asList().asScala.map(RemoteIngestTask(
         new DateTime().minusHours(2).isAfter(createdAt)
-      )).toMap
+      )).toMap,
+      language = if (record.get("language").isNull) "english" else record.get("language").asString()
     )
   }
   override def getRemoteIngestJob(id: String): Attempt[RemoteIngest] = attemptTransaction { tx =>

@@ -1,16 +1,14 @@
-import React, { useEffect, useReducer, useState } from "react";
+import React, { useReducer, useState } from "react";
 import uuid from "uuid/v4";
 import MdFileUpload from "react-icons/lib/md/file-upload";
 import Modal from "../UtilComponents/Modal";
 import FilePicker from "./FilePicker";
 import FileList from "./FileList";
-import { Button, Dropdown, Form, Progress } from "semantic-ui-react";
+import LanguagePicker from "./LanguagePicker";
+import { Button, Form, Progress } from "semantic-ui-react";
 import { getUploadTarget, WorkspaceTarget } from "./UploadTarget";
 import { getCollection } from "../../actions/collections/getCollection";
-import {
-  uploadFileWithNewIngestion,
-  fetchSupportedLanguages,
-} from "../../services/CollectionsApi";
+import { uploadFileWithNewIngestion } from "../../services/CollectionsApi";
 import history from "../../util/history";
 import { displayRelativePath } from "../../util/workspaceUtils";
 import { Collection } from "../../types/Collection";
@@ -311,21 +309,6 @@ export default function UploadFiles(props: Props) {
 
   const [shouldUseFastLane, setShouldUseFastLane] = useState(false);
   const [selectedLanguage, setSelectedLanguage] = useState("english");
-  const [languageOptions, setLanguageOptions] = useState<
-    { key: string; value: string; text: string }[]
-  >([]);
-
-  useEffect(() => {
-    fetchSupportedLanguages().then((languages) => {
-      setLanguageOptions(
-        languages.map((lang) => ({
-          key: lang,
-          value: lang,
-          text: lang.charAt(0).toUpperCase() + lang.slice(1),
-        })),
-      );
-    });
-  }, []);
 
   const completeCount = [...state.files.values()].filter(
     ({ state }) => state.description === "uploaded",
@@ -465,22 +448,11 @@ export default function UploadFiles(props: Props) {
             />
           </Form.Field>
           <Form.Field>
-            <label>Language</label>
-            <Dropdown
-              selection
-              compact
-              style={{ width: "10em" }}
-              options={languageOptions}
+            <LanguagePicker
               value={selectedLanguage}
-              onChange={(_e, { value }) => setSelectedLanguage(value as string)}
+              onChange={setSelectedLanguage}
               disabled={isEditDisabled}
             />
-            <small
-              style={{ color: "grey", marginTop: "0.25em", display: "block" }}
-            >
-              Setting a language can improve OCR/translation quality. If you are
-              unsure, leave as English.
-            </small>
           </Form.Field>
           {!!currentUpload && (
             <FileUploadProgressBar

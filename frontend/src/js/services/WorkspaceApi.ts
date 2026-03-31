@@ -141,6 +141,7 @@ export async function captureFromUrl(
     url: string;
     title: string;
     parentFolderId: string;
+    language: string;
   },
 ) {
   const response = await authFetch(`/api/workspaces/${workspaceId}/remoteUrl`, {

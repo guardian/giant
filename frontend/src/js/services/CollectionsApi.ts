@@ -27,8 +27,18 @@ export function fetchCollection(uri: string): Promise<Collection | undefined> {
   });
 }
 
-export function fetchSupportedLanguages(): Promise<string[]> {
-  return authFetch("/api/ingestion/languages").then((res) => res.json());
+export type LanguageOption = { key: string; value: string; text: string };
+
+export function fetchSupportedLanguages(): Promise<LanguageOption[]> {
+  return authFetch("/api/ingestion/languages")
+    .then((res) => res.json())
+    .then((languages: string[]) =>
+      languages.map((lang) => ({
+        key: lang,
+        value: lang,
+        text: lang.charAt(0).toUpperCase() + lang.slice(1),
+      })),
+    );
 }
 
 export function uploadFileWithNewIngestion(
