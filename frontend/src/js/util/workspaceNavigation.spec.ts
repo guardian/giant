@@ -2,6 +2,7 @@ import {
   leafUrisOfChildren,
   findNodeById,
   storeWorkspaceSiblingUris,
+  computeWorkspaceNavigation,
 } from "./workspaceNavigation";
 import { ColumnsConfig, TreeEntry, TreeNode } from "../types/Tree";
 import { WorkspaceEntry, WorkspaceNode } from "../types/Workspaces";
@@ -186,5 +187,88 @@ describe("storeWorkspaceSiblingUris", () => {
     const id2 = storeWorkspaceSiblingUris(root, entry, nameAscColumnsConfig);
 
     expect(id1).not.toEqual(id2);
+  });
+});
+
+describe("computeWorkspaceNavigation", () => {
+  const leafUris = ["uri-a", "uri-b", "uri-c"];
+  const navId = "test-nav-id";
+
+  test("returns hasPrevious and hasNext for a middle item", () => {
+    const nav = computeWorkspaceNavigation(leafUris, "uri-b", navId, jest.fn());
+    expect(nav.hasPrevious).toBe(true);
+    expect(nav.hasNext).toBe(true);
+    expect(nav.goToPrevious).toBeDefined();
+    expect(nav.goToNext).toBeDefined();
+  });
+
+  test("first item has no previous", () => {
+    const nav = computeWorkspaceNavigation(leafUris, "uri-a", navId, jest.fn());
+    expect(nav.hasPrevious).toBe(false);
+    expect(nav.hasNext).toBe(true);
+    expect(nav.goToPrevious).toBeUndefined();
+    expect(nav.goToNext).toBeDefined();
+  });
+
+  test("last item has no next", () => {
+    const nav = computeWorkspaceNavigation(leafUris, "uri-c", navId, jest.fn());
+    expect(nav.hasPrevious).toBe(true);
+    expect(nav.hasNext).toBe(false);
+    expect(nav.goToPrevious).toBeDefined();
+    expect(nav.goToNext).toBeUndefined();
+  });
+
+  test("unknown URI returns no navigation", () => {
+    const nav = computeWorkspaceNavigation(
+      leafUris,
+      "uri-unknown",
+      navId,
+      jest.fn(),
+    );
+    expect(nav.hasPrevious).toBe(false);
+    expect(nav.hasNext).toBe(false);
+    expect(nav.goToPrevious).toBeUndefined();
+    expect(nav.goToNext).toBeUndefined();
+  });
+
+  test("empty leaf list returns no navigation", () => {
+    const nav = computeWorkspaceNavigation([], "uri-a", navId, jest.fn());
+    expect(nav.hasPrevious).toBe(false);
+    expect(nav.hasNext).toBe(false);
+  });
+
+  test("single item has neither previous nor next", () => {
+    const nav = computeWorkspaceNavigation(
+      ["uri-a"],
+      "uri-a",
+      navId,
+      jest.fn(),
+    );
+    expect(nav.hasPrevious).toBe(false);
+    expect(nav.hasNext).toBe(false);
+  });
+
+  test("goToNext navigates to the correct URI with navId", () => {
+    const navigate = jest.fn();
+    const nav = computeWorkspaceNavigation(leafUris, "uri-a", navId, navigate);
+    nav.goToNext!();
+    expect(navigate).toHaveBeenCalledWith(
+      `/viewer/${encodeURIComponent("uri-b")}?navId=${navId}`,
+    );
+  });
+
+  test("goToPrevious navigates to the correct URI with navId", () => {
+    const navigate = jest.fn();
+    const nav = computeWorkspaceNavigation(leafUris, "uri-c", navId, navigate);
+    nav.goToPrevious!();
+    expect(navigate).toHaveBeenCalledWith(
+      `/viewer/${encodeURIComponent("uri-b")}?navId=${navId}`,
+    );
+  });
+
+  test("null navId returns no navigation", () => {
+    const nav = computeWorkspaceNavigation([], "uri-a", null, jest.fn());
+    expect(nav.hasPrevious).toBe(false);
+    expect(nav.hasNext).toBe(false);
   });
 });

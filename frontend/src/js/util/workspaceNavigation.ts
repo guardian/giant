@@ -121,13 +121,12 @@ export type WorkspaceNavigation = {
   goToNext: (() => void) | undefined;
 };
 
-export function useWorkspaceNavigation(
+export function computeWorkspaceNavigation(
+  leafUris: string[],
   currentUri: string,
   navId: string | null,
   navigate: (path: string) => void,
 ): WorkspaceNavigation {
-  const leafUris = useMemo(() => readWorkspaceSiblingUris(navId), [navId]);
-
   const currentIndex = leafUris.indexOf(currentUri);
   const hasPrevious = currentIndex > 0;
   const hasNext = currentIndex >= 0 && currentIndex < leafUris.length - 1;
@@ -147,4 +146,13 @@ export function useWorkspaceNavigation(
     : undefined;
 
   return { hasPrevious, hasNext, goToPrevious, goToNext };
+}
+
+export function useWorkspaceNavigation(
+  currentUri: string,
+  navId: string | null,
+  navigate: (path: string) => void,
+): WorkspaceNavigation {
+  const leafUris = useMemo(() => readWorkspaceSiblingUris(navId), [navId]);
+  return computeWorkspaceNavigation(leafUris, currentUri, navId, navigate);
 }
