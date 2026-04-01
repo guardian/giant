@@ -7,8 +7,12 @@ const STORAGE_KEY_PREFIX = "workspaceSiblingUris:";
 const MAX_STORED_NAV_ENTRIES = 20;
 
 function generateNavId(): string {
-  if (typeof crypto !== "undefined" && crypto.randomUUID) {
-    return crypto.randomUUID();
+  if (
+    typeof crypto !== "undefined" &&
+    "randomUUID" in crypto &&
+    typeof (crypto as any).randomUUID === "function"
+  ) {
+    return (crypto as any).randomUUID();
   }
   return Math.random().toString(36).slice(2) + Date.now().toString(36);
 }
