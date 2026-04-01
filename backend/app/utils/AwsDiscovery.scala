@@ -24,7 +24,7 @@ object AwsDiscovery extends Logging {
     // We won't have an instance ID if running locally but against databases in S3
     val maybeInstanceId = Option(EC2MetadataUtils.getInstanceId)
 
-    val AWSDiscoveryConfig(region, stack, app, stage, _, _) = discoveryConfig
+    val AWSDiscoveryConfig(region, stack, app, stage, _, _, _) = discoveryConfig
     val runningLocally = discoveryConfig.runningLocally.getOrElse(false)
     val regionV2 = discoveryConfig.regionV2
 
