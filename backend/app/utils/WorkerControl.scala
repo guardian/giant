@@ -55,7 +55,7 @@ class AWSWorkerControl(config: WorkerConfig, discoveryConfig: AWSDiscoveryConfig
   def getWorkerDetails(implicit ec: ExecutionContext): Attempt[WorkerDetails] = for {
     myInstanceId <- Attempt.catchNonFatalBlasé { EC2MetadataUtils.getInstanceId }
     instances <- Attempt.catchNonFatalBlasé {
-      AwsDiscovery.findRunningInstances(discoveryConfig.stack, app = "pfi-worker", discoveryConfig.stage, ec2)
+      AwsDiscovery.findRunningInstances(discoveryConfig.stack, app = List("pfi-worker", "pfi-spot-worker"), discoveryConfig.stage, ec2)
     }
   } yield {
     WorkerDetails(instances.map(_.instanceId()).toSet, myInstanceId)
@@ -98,7 +98,7 @@ class AWSWorkerControl(config: WorkerConfig, discoveryConfig: AWSDiscoveryConfig
 
   private def runningOnOldestInstance()(implicit ec: ExecutionContext): Boolean = {
     val myInstanceId = EC2MetadataUtils.getInstanceId
-    val otherInstances =  AwsDiscovery.findRunningInstances(discoveryConfig.stack, app = "pfi", discoveryConfig.stage, ec2)
+    val otherInstances =  AwsDiscovery.findRunningInstances(discoveryConfig.stack, app = List("pfi"), discoveryConfig.stage, ec2)
 
     val oldestInstance = otherInstances.toList.sortBy(_.launchTime()).headOption.map(_.instanceId())
 
@@ -201,7 +201,8 @@ class AWSWorkerControl(config: WorkerConfig, discoveryConfig: AWSDiscoveryConfig
 
   private def breakLocksOnTerminatedWorkers(): Attempt[Unit] = {
     Attempt.catchNonFatalBlasé {
-      val runningWorkers = AwsDiscovery.findRunningInstances(discoveryConfig.stack, app = "pfi-worker", discoveryConfig.stage, ec2)
+      val runningWorkers =
+        AwsDiscovery.findRunningInstances(discoveryConfig.stack, app = List("pfi-worker", "pfi-spot-worker"), discoveryConfig.stage, ec2)
       val runningInstanceIds = runningWorkers.map(_.instanceId()).toList
 
       logger.info(s"Breaking locks for any worker not running. Running: [${runningInstanceIds.mkString(", ")}]")
