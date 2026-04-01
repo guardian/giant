@@ -30,9 +30,7 @@ export default function LanguagePicker({ value, onChange, disabled }: Props) {
         onChange={(_e, { value }) => onChange(value as string)}
         disabled={disabled}
       />
-      <small
-        style={{ color: "grey", marginTop: "0.25em", display: "block" }}
-      >
+      <small style={{ color: "grey", marginTop: "0.25em", display: "block" }}>
         Setting a language can improve OCR/translation quality
       </small>
     </>
