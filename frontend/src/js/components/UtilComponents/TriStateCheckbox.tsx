@@ -3,7 +3,7 @@ import React from "react";
 import BlankCheckboxIcon from "react-icons/lib/md/check-box-outline-blank";
 import CheckBoxIcon from "react-icons/lib/md/check-box";
 import IndeterminateCheckBoxIcon from "react-icons/lib/md/indeterminate-check-box";
-import { TriState } from "./triStateCycle";
+import { TriState } from "../Search/triStateCycle";
 
 interface TriStateCheckboxProps {
   state: TriState;
