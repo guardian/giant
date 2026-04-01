@@ -29,7 +29,7 @@ export interface SingleChip {
   value: string;
   negate: boolean;
   chipType: string;
-  options?: string[];
+  options?: string[] | { value: string; label: string }[];
   workspaceId?: string;
   folderId?: string;
 }
@@ -40,7 +40,7 @@ export interface MultiChip {
   values: string[];
   negate: boolean;
   chipType: string;
-  options?: string[];
+  options?: string[] | { value: string; label: string }[];
 }
 
 export interface DateRangeChip {
@@ -76,10 +76,10 @@ function isRawChip(el: unknown): el is RawChip {
   );
 }
 
-interface SuggestedField {
+export interface SuggestedField {
   name: string;
   type?: string;
-  options?: string[];
+  options?: string[] | { value: string; label: string }[];
 }
 
 export interface PolarityValues {
