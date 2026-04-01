@@ -140,7 +140,15 @@ class ExternalTranscriptionExtractor(index: Index, transcribeConfig: TranscribeC
         userEmail = "giant",
         transcriptDestinationService = "Giant",
         combinedOutputUrl = CombinedOutputUrl(url = combinedOutputUrl,key = combinedOutputKey),
-        languageCode = "auto",
+        languageCode = params.languages.headOption.map { lang: Language =>
+          if (lang.iso6391Code == English.iso6391Code) {
+            // We only recently added language support to workspace uploads, previously we set the language of the ingestion
+            // for every upload to English, so we can't rely on the language if it is set to English
+            "auto"
+          } else {
+            lang.iso6391Code
+          }
+        }.getOrElse("auto"),
         translate = true,
         diarize = true,
         engine = "whisperx",

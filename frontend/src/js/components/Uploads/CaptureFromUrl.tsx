@@ -1,6 +1,7 @@
 import MdGlobeIcon from "react-icons/lib/md/public";
 
 import React, { FormEvent, useEffect, useMemo, useState } from "react";
+import LanguagePicker from "./LanguagePicker";
 import {
   isWorkspaceNode,
   Workspace,
@@ -132,6 +133,7 @@ export const CaptureFromUrl = connect(
   const workspace = currentWorkspace || maybePreSelectedWorkspace;
 
   const [saveAs, setSaveAs] = useState<string>("");
+  const [selectedLanguage, setSelectedLanguage] = useState("english");
 
   useEffect(() => {
     if (maybeCaptureFromUrlViaQueryParamValue) {
@@ -168,6 +170,7 @@ export const CaptureFromUrl = connect(
       url,
       title: saveAs,
       parentFolderId: parentFolder.id,
+      language: selectedLanguage,
     })
       .then((json) => {
         console.log(json);
@@ -190,6 +193,7 @@ export const CaptureFromUrl = connect(
         // clear fields ready for next use
         setUrl("");
         setSaveAs("");
+        setSelectedLanguage("english");
       });
   };
 
@@ -257,7 +261,8 @@ export const CaptureFromUrl = connect(
           </div>
 
           {currentWorkspace &&
-            currentWorkspace.rootNode.children.length > 0 && (
+            currentWorkspace.rootNode.children.filter((c) => isTreeNode(c))
+              .length > 0 && (
               <div className="form__row">
                 <span className="form__label">
                   Folder
@@ -333,6 +338,13 @@ export const CaptureFromUrl = connect(
                 </div>
               </div>
             )}
+
+          <div className="form__row">
+            <LanguagePicker
+              value={selectedLanguage}
+              onChange={setSelectedLanguage}
+            />
+          </div>
 
           <div className="form__row">
             <span className="form__label required-field">New folder name</span>

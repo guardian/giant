@@ -27,6 +27,20 @@ export function fetchCollection(uri: string): Promise<Collection | undefined> {
   });
 }
 
+export type LanguageOption = { key: string; value: string; text: string };
+
+export function fetchSupportedLanguages(): Promise<LanguageOption[]> {
+  return authFetch("/api/ingestion/languages")
+    .then((res) => res.json())
+    .then((languages: string[]) =>
+      languages.map((lang) => ({
+        key: lang,
+        value: lang,
+        text: lang.charAt(0).toUpperCase() + lang.slice(1),
+      })),
+    );
+}
+
 export function uploadFileWithNewIngestion(
   collectionUri: string,
   ingestionName: string,
@@ -34,6 +48,7 @@ export function uploadFileWithNewIngestion(
   file: File,
   path: string,
   isFastLane: boolean,
+  language: string,
   workspace?: WorkspaceUploadMetadata,
   onProgress?: ProgressHandler,
 ) {
@@ -43,6 +58,7 @@ export function uploadFileWithNewIngestion(
     file,
     path,
     isFastLane,
+    language,
     workspace,
     onProgress,
     ingestionName,

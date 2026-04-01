@@ -55,7 +55,7 @@ object AddItemParameters {
   implicit val format: Format[AddItemParameters] = Json.format[AddItemParameters]
 }
 
-case class AddRemoteUrlData(url: String, title: String, parentFolderId: String)
+case class AddRemoteUrlData(url: String, title: String, parentFolderId: String, language: String)
 object AddRemoteUrlData {
   implicit val format: Format[AddRemoteUrlData] = Json.format[AddRemoteUrlData]
 }
@@ -321,7 +321,8 @@ class Workspaces(
         createdAt = createdAt,
         username = req.user.username,
         mediaDownloadId = mediaDownloadId,
-        webpageSnapshotId = webpageSnapshotId
+        webpageSnapshotId = webpageSnapshotId,
+        language = data.language
       )
       _ <- RemoteIngest.sendRemoteIngestJob(id, data.url, createdAt, mediaDownloadId, webpageSnapshotId, remoteIngestConfig, snsClient, remoteIngestStorage).toAttempt(msg => SQSSendMessageFailure(msg))
     } yield {

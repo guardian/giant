@@ -69,7 +69,8 @@ case class RemoteIngest(
   createdAt: DateTime,
   url: String,
   addedBy: PartialUser,
-  tasks: Map[String, RemoteIngestTask]
+  tasks: Map[String, RemoteIngestTask],
+  language: String
 ) {
 
   def taskKey(taskId: String): (Long, UUID) = RemoteIngest.ingestionKey(createdAt, taskId)

@@ -11,6 +11,7 @@ export default function authUploadWithProgress(
   file: File,
   path: string,
   isFastLane: boolean,
+  language: string,
   workspace?: WorkspaceUploadMetadata,
   onProgress?: ProgressHandler,
   ingestionName?: string,
@@ -37,6 +38,7 @@ export default function authUploadWithProgress(
       resolve,
       reject,
       isFastLane,
+      language,
       workspace,
       ingestionName,
     );
@@ -53,6 +55,7 @@ const processRequest = (
   resolve: (value: unknown) => void,
   reject: (reason?: any) => void,
   isFastLane: boolean,
+  language: string,
   workspace?: WorkspaceUploadMetadata,
   ingestionName?: string,
 ) => {
@@ -75,6 +78,7 @@ const processRequest = (
           resolve,
           reject,
           isFastLane,
+          language,
           workspace,
           ingestionName,
         );
@@ -95,6 +99,7 @@ const processRequest = (
     uploadId,
     retryCount,
     isFastLane,
+    language,
     workspace,
     ingestionName,
   );
@@ -110,6 +115,7 @@ const retryRequest = (
   resolve: (value: unknown) => void,
   reject: (reason?: any) => void,
   isFastLane: boolean,
+  language: string,
   workspace?: WorkspaceUploadMetadata,
   ingestionName?: string,
 ) => {
@@ -127,6 +133,7 @@ const retryRequest = (
       resolve,
       reject,
       isFastLane,
+      language,
       workspace,
       ingestionName,
     );
@@ -141,6 +148,7 @@ const sendRequest = (
   uploadId: string,
   retryCount: number,
   isFastLane: boolean,
+  language: string,
   workspace?: WorkspaceUploadMetadata,
   ingestionName?: string,
 ) => {
@@ -167,6 +175,8 @@ const sendRequest = (
   if (isFastLane) {
     xhr.setRequestHeader("X-PFI-Fast-Lane", "true");
   }
+
+  xhr.setRequestHeader("X-PFI-Language", language);
 
   if (ingestionName) {
     xhr.setRequestHeader("X-PFI-Ingestion-Name", ingestionName);
