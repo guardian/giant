@@ -145,7 +145,7 @@ describe("findNodeById", () => {
 describe("storeWorkspaceSiblingUris", () => {
   beforeEach(() => sessionStorage.clear());
 
-  test("stores sibling leaf URIs of a leaf with a parent", () => {
+  test("returns a navId and stores sibling URIs keyed by it", () => {
     const parentNode = folder("parent", [
       leaf("a.pdf", "uri-a", "parent"),
       leaf("b.pdf", "uri-b", "parent"),
@@ -153,9 +153,12 @@ describe("storeWorkspaceSiblingUris", () => {
     const root = folder("root", [parentNode]);
     const entry = leaf("a.pdf", "uri-a", "parent");
 
-    storeWorkspaceSiblingUris(root, entry, nameAscColumnsConfig);
+    const navId = storeWorkspaceSiblingUris(root, entry, nameAscColumnsConfig);
 
-    const stored = JSON.parse(sessionStorage.getItem("workspaceSiblingUris")!);
+    expect(navId).toBeDefined();
+    const stored = JSON.parse(
+      sessionStorage.getItem(`workspaceSiblingUris:${navId}`)!,
+    );
     expect(stored).toEqual(["uri-a", "uri-b"]);
   });
 
@@ -166,9 +169,22 @@ describe("storeWorkspaceSiblingUris", () => {
     ]);
     const entry = leaf("a.pdf", "uri-a");
 
-    storeWorkspaceSiblingUris(root, entry, nameAscColumnsConfig);
+    const navId = storeWorkspaceSiblingUris(root, entry, nameAscColumnsConfig);
 
-    const stored = JSON.parse(sessionStorage.getItem("workspaceSiblingUris")!);
+    expect(navId).toBeDefined();
+    const stored = JSON.parse(
+      sessionStorage.getItem(`workspaceSiblingUris:${navId}`)!,
+    );
     expect(stored).toEqual(["uri-a", "uri-b"]);
+  });
+
+  test("each call produces a unique navId", () => {
+    const root = folder("root", [leaf("a.pdf", "uri-a")]);
+    const entry = leaf("a.pdf", "uri-a");
+
+    const id1 = storeWorkspaceSiblingUris(root, entry, nameAscColumnsConfig);
+    const id2 = storeWorkspaceSiblingUris(root, entry, nameAscColumnsConfig);
+
+    expect(id1).not.toEqual(id2);
   });
 });

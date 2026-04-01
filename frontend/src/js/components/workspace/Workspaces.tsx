@@ -1034,12 +1034,13 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
       // if it could know that because it's a TreeLeaf the type parameter is a WorkspaceLeaf.
       // don't know of a way to do it though...
       if (isWorkspaceLeaf(entry.data) && !this.props.entryBeingRenamed) {
-        storeWorkspaceSiblingUris(
+        const navId = storeWorkspaceSiblingUris(
           workspace.rootNode,
           entry,
           this.state.columnsConfig,
         );
-        window.open(`/viewer/${entry.data.uri}`, "_blank");
+        const navParam = navId ? `?navId=${navId}` : "";
+        window.open(`/viewer/${entry.data.uri}${navParam}`, "_blank");
       }
     };
 

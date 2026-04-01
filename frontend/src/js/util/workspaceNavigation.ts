@@ -3,7 +3,37 @@ import { ColumnsConfig, TreeEntry, TreeNode, isTreeNode } from "../types/Tree";
 import { WorkspaceEntry, isWorkspaceLeaf } from "../types/Workspaces";
 import { sortEntries } from "./treeUtils";
 
-const STORAGE_KEY = "workspaceSiblingUris";
+const STORAGE_KEY_PREFIX = "workspaceSiblingUris:";
+const MAX_STORED_NAV_ENTRIES = 20;
+
+function generateNavId(): string {
+  if (typeof crypto !== "undefined" && crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
+  return Math.random().toString(36).slice(2) + Date.now().toString(36);
+}
+
+/**
+ * Remove the oldest entries when we exceed the limit, to avoid filling sessionStorage.
+ */
+function pruneOldNavEntries(): void {
+  try {
+    const keys = [];
+    for (let i = 0; i < sessionStorage.length; i++) {
+      const key = sessionStorage.key(i);
+      if (key?.startsWith(STORAGE_KEY_PREFIX)) {
+        keys.push(key);
+      }
+    }
+    if (keys.length > MAX_STORED_NAV_ENTRIES) {
+      keys
+        .slice(0, keys.length - MAX_STORED_NAV_ENTRIES)
+        .forEach((key) => sessionStorage.removeItem(key));
+    }
+  } catch {
+    // best-effort cleanup
+  }
+}
 
 /**
  * Given a tree node, return the URIs of its immediate leaf children
@@ -43,30 +73,38 @@ export function findNodeById(
 
 /**
  * Called from the workspace page before opening a document in a new tab.
- * Writes the sibling leaf URIs to sessionStorage so the viewer can read them
- * without re-fetching the workspace tree.
+ * Writes the sibling leaf URIs to sessionStorage keyed by a unique nonce,
+ * and returns the nonce so it can be passed to the viewer via query param.
  */
 export function storeWorkspaceSiblingUris(
   rootNode: TreeNode<WorkspaceEntry>,
   entry: TreeEntry<WorkspaceEntry>,
   columnsConfig: ColumnsConfig<WorkspaceEntry>,
-): void {
+): string | undefined {
   const parentId = entry.data.maybeParentId;
   const parentNode = parentId ? findNodeById(rootNode, parentId) : rootNode;
 
-  if (!parentNode) return;
+  if (!parentNode) return undefined;
 
   const siblingUris = leafUrisOfChildren(parentNode, columnsConfig);
+  const navId = generateNavId();
   try {
-    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(siblingUris));
+    pruneOldNavEntries();
+    sessionStorage.setItem(
+      `${STORAGE_KEY_PREFIX}${navId}`,
+      JSON.stringify(siblingUris),
+    );
   } catch {
     // sessionStorage may be full or unavailable — degrade gracefully
+    return undefined;
   }
+  return navId;
 }
 
-function readWorkspaceSiblingUris(): string[] {
+function readWorkspaceSiblingUris(navId: string | null): string[] {
+  if (!navId) return [];
   try {
-    const stored = sessionStorage.getItem(STORAGE_KEY);
+    const stored = sessionStorage.getItem(`${STORAGE_KEY_PREFIX}${navId}`);
     if (stored) {
       return JSON.parse(stored);
     }
@@ -85,9 +123,10 @@ export type WorkspaceNavigation = {
 
 export function useWorkspaceNavigation(
   currentUri: string,
+  navId: string | null,
   navigate: (path: string) => void,
 ): WorkspaceNavigation {
-  const leafUris = useMemo(() => readWorkspaceSiblingUris(), []);
+  const leafUris = useMemo(() => readWorkspaceSiblingUris(navId), [navId]);
 
   const currentIndex = leafUris.indexOf(currentUri);
   const hasPrevious = currentIndex > 0;
@@ -96,14 +135,14 @@ export function useWorkspaceNavigation(
   const goToPrevious = hasPrevious
     ? () => {
         const prevUri = leafUris[currentIndex - 1];
-        navigate(`/viewer/${encodeURIComponent(prevUri)}`);
+        navigate(`/viewer/${encodeURIComponent(prevUri)}?navId=${navId}`);
       }
     : undefined;
 
   const goToNext = hasNext
     ? () => {
         const nextUri = leafUris[currentIndex + 1];
-        navigate(`/viewer/${encodeURIComponent(nextUri)}`);
+        navigate(`/viewer/${encodeURIComponent(nextUri)}?navId=${navId}`);
       }
     : undefined;
 

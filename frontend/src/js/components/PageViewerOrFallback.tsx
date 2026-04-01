@@ -85,8 +85,9 @@ const PageViewerContent: FC<{
 
 export const PageViewerOrFallback: FC<{}> = () => {
   const { uri } = useParams<{ uri: string }>();
+  const navId = new URLSearchParams(window.location.search).get("navId");
 
-  const workspaceNav = useWorkspaceNavigation(uri, history.push);
+  const workspaceNav = useWorkspaceNavigation(uri, navId, history.push);
   const [totalPages, setTotalPages] = useState<number | null>(null);
   const view = useSelector<GiantState, string | undefined>(
     (state) => state.urlParams.view,
