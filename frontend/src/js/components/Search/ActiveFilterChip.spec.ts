@@ -1,0 +1,107 @@
+import { truncateChipDisplay } from "./chipDisplayUtils";
+import { isMultiValueChip } from "./chipNames";
+
+describe("isMultiValueChip", () => {
+  test("Mime Type is multi-value", () => {
+    expect(isMultiValueChip("Mime Type")).toBe(true);
+  });
+
+  test("Has Field is multi-value", () => {
+    expect(isMultiValueChip("Has Field")).toBe(true);
+  });
+
+  test("File Type is multi-value", () => {
+    expect(isMultiValueChip("File Type")).toBe(true);
+  });
+
+  test("Language is multi-value", () => {
+    expect(isMultiValueChip("Language")).toBe(true);
+  });
+
+  test("Dataset is multi-value", () => {
+    expect(isMultiValueChip("Dataset")).toBe(true);
+  });
+
+  test("Workspace is multi-value", () => {
+    expect(isMultiValueChip("Workspace")).toBe(true);
+  });
+
+  test("Created After is not multi-value", () => {
+    expect(isMultiValueChip("Created After")).toBe(false);
+  });
+
+  test("Created Before is not multi-value", () => {
+    expect(isMultiValueChip("Created Before")).toBe(false);
+  });
+
+  test("workspace_folder is not multi-value", () => {
+    expect(isMultiValueChip("workspace_folder")).toBe(false);
+  });
+
+  test("unknown names are not multi-value", () => {
+    expect(isMultiValueChip("Something Random")).toBe(false);
+  });
+
+  test("empty string is not multi-value", () => {
+    expect(isMultiValueChip("")).toBe(false);
+  });
+});
+
+describe("truncateChipDisplay", () => {
+  test("returns 'all' for empty labels", () => {
+    expect(truncateChipDisplay([], 36)).toBe("all");
+  });
+
+  test("returns all labels when they fit within budget", () => {
+    expect(truncateChipDisplay(["1", "2", "3", "5"], 20)).toBe("1, 2, 3, 5");
+  });
+
+  test("returns single short label without truncation", () => {
+    expect(truncateChipDisplay(["Alpha"], 36)).toBe("Alpha");
+  });
+
+  test("truncates a single very long label with ellipsis", () => {
+    const longName =
+      "This is the workspace in which we have all the details about John Smith";
+    const result = truncateChipDisplay([longName], 36);
+    expect(result.length).toBeLessThanOrEqual(36);
+    expect(result).toContain("\u2026");
+  });
+
+  test("shows +N more when not all labels fit", () => {
+    const labels = [
+      "Alpha Workspace",
+      "Beta Workspace",
+      "Gamma Workspace",
+      "Delta Workspace",
+    ];
+    const result = truncateChipDisplay(labels, 36);
+    expect(result).toMatch(/\+\d+ more/);
+    expect(result.length).toBeLessThanOrEqual(36);
+  });
+
+  test("short labels that fit together are all shown", () => {
+    expect(truncateChipDisplay(["A", "B", "C"], 10)).toBe("A, B, C");
+  });
+
+  test("fits as many labels as possible before adding +N more", () => {
+    const result = truncateChipDisplay(["Alpha", "Beta", "Gamma", "Delta"], 20);
+    expect(result).toBe("Alpha, Beta, +2 more");
+  });
+
+  test("truncates first label when it alone exceeds budget with suffix", () => {
+    const labels = ["VeryLongWorkspaceName", "Other"];
+    const result = truncateChipDisplay(labels, 20);
+    expect(result).toMatch(/\+1 more/);
+    expect(result.length).toBeLessThanOrEqual(20);
+    expect(result).toContain("\u2026");
+  });
+
+  test("handles exactly-at-budget labels", () => {
+    expect(truncateChipDisplay(["Hello", "World"], 12)).toBe("Hello, World");
+  });
+
+  test("handles single label at exactly the budget", () => {
+    expect(truncateChipDisplay(["abc"], 3)).toBe("abc");
+  });
+});
