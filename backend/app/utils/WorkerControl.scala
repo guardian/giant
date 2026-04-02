@@ -235,10 +235,10 @@ object AWSWorkerControl {
   ) {
     override def toString: String =
       s"desiredNumberOfWorkers=$desiredNumberOfWorkers, " +
-        s"lastEventTime=${new Date(lastEventTime)}, " +
+        s"actualNumberOfWorkers=$actualNumberOfWorkers " +
         s"minimumNumberOfWorkers=$minimumNumberOfWorkers, " +
-        s"maximumNumberOfWorkers=$maximumNumberOfWorkers" +
-        s"actualNumberOfWorkers=$actualNumberOfWorkers"
+        s"maximumNumberOfWorkers=$maximumNumberOfWorkers, " +
+        s"lastEventTime=${new Date(lastEventTime)}, "
   }
 
   case class State(
