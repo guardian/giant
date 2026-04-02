@@ -18,7 +18,7 @@ import { Page } from "./Page";
 import { PageCache } from "./PageCache";
 import styles from "./VirtualScroll.module.css";
 import throttle from "lodash/throttle";
-import { pageSlotHeight } from "./layout";
+import { pageSlotHeight, pageTransform } from "./layout";
 
 type VirtualScrollProps = {
   uri: string;
@@ -79,6 +79,7 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
     rotation,
     firstPageDimensions,
   );
+  const transform = pageTransform(containerSize, rotation, firstPageDimensions);
 
   const viewport = useRef<HTMLDivElement>(null);
 
@@ -315,7 +316,7 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
             key={page.pageNumber}
             style={{
               top: (page.pageNumber - 1) * pageHeight,
-              transform: `rotate(${rotation}deg)`,
+              transform,
               left: `${scale > 1 ? "0" : ""}`,
             }}
             className={styles.pageContainer}
