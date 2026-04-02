@@ -8,11 +8,17 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { CachedPreview, HighlightForSearchNavigation, PageData } from "./model";
+import {
+  CachedPreview,
+  HighlightForSearchNavigation,
+  PageData,
+  PageDimensions,
+} from "./model";
 import { Page } from "./Page";
 import { PageCache } from "./PageCache";
 import styles from "./VirtualScroll.module.css";
 import throttle from "lodash/throttle";
+import { pageSlotHeight, pageTransform } from "./layout";
 
 type VirtualScrollProps = {
   uri: string;
@@ -28,6 +34,7 @@ type VirtualScrollProps = {
 
   rotation: number;
   scale: number;
+  firstPageDimensions?: PageDimensions;
 };
 
 type RenderedPage = {
@@ -55,6 +62,7 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
 
   rotation,
   scale,
+  firstPageDimensions,
 }) => {
   // Tweaked this and 2 seems to be a good amount on a regular monitor
   // The fewer pages we preload the faster the initial paint will be
@@ -65,7 +73,13 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
   const MARGIN = 10;
 
   const containerSize = 1000 * scale;
-  const pageHeight = containerSize + MARGIN * 2;
+  const pageHeight = pageSlotHeight(
+    containerSize,
+    MARGIN,
+    rotation,
+    firstPageDimensions,
+  );
+  const transform = pageTransform(containerSize, rotation, firstPageDimensions);
 
   const viewport = useRef<HTMLDivElement>(null);
 
@@ -302,7 +316,7 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
             key={page.pageNumber}
             style={{
               top: (page.pageNumber - 1) * pageHeight,
-              transform: `rotate(${rotation}deg)`,
+              transform,
               left: `${scale > 1 ? "0" : ""}`,
             }}
             className={styles.pageContainer}

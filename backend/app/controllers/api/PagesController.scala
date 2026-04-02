@@ -20,8 +20,18 @@ class PagesController(val controllerComponents: AuthControllerComponents, manife
     index: Index, pagesService: Pages2, annotations: Annotations, previewStorage: ObjectStorage) extends AuthApiController {
 
   def getPageCount(uri: Uri) = ApiAction.attempt { req =>
-
-    pagesService.getPageCount(uri).map(count => Ok(Json.obj("pageCount" -> count)))
+    val countAttempt = pagesService.getPageCount(uri)
+    val dimensionsAttempt = pagesService.getFirstPageDimensions(uri)
+      .recoverWith { case _ => Attempt.Right(None) }
+    for {
+      count <- countAttempt
+      dimensions <- dimensionsAttempt
+    } yield {
+      Ok(Json.obj(
+        "pageCount" -> count,
+        "dimensions" -> dimensions
+      ))
+    }
   }
 
   // Get language and highlight data for a given page

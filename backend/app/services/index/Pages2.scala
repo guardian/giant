@@ -2,12 +2,13 @@ package services.index
 
 import com.sksamuel.elastic4s.ElasticClient
 import com.sksamuel.elastic4s.ElasticDsl._
+import com.sksamuel.elastic4s.{Hit, HitReader}
 import services.index.HitReaders.{HitToRichFieldMap, PageHitReader, RichFieldMap}
 import com.sksamuel.elastic4s.requests.searches.queries.Query
 import com.sksamuel.elastic4s.requests.searches.{HighlightField, MultisearchResponseItem, SearchRequest}
 import model.Uri
 import model.frontend.Highlight
-import model.index.{Page, PageWithFind}
+import model.index.{Page, PageDimensions, PageWithFind}
 import services.ElasticsearchSyntax
 import utils.Logging
 import utils.attempt.{Attempt, ElasticSearchQueryFailure, MultipleFailures, NotFoundFailure}
@@ -17,6 +18,17 @@ import scala.concurrent.ExecutionContext
 class Pages2(val client: ElasticClient, indexNamePrefix: String)(implicit val ex: ExecutionContext)
   extends ElasticsearchSyntax with Logging {
   val textIndexName = s"$indexNamePrefix-text"
+
+  private implicit object PageDimensionsHitReader extends HitReader[PageDimensions] {
+    override def read(hit: Hit): scala.util.Try[PageDimensions] = {
+      import scala.util.Success
+      val width = hit.doubleField(s"${PagesFields.dimensions}.${PagesFields.width}")
+      val height = hit.doubleField(s"${PagesFields.dimensions}.${PagesFields.height}")
+      val top = hit.doubleField(s"${PagesFields.dimensions}.${PagesFields.top}")
+      val bottom = hit.doubleField(s"${PagesFields.dimensions}.${PagesFields.bottom}")
+      Success(PageDimensions(width, height, top, bottom))
+    }
+  }
 
   private def firstPageExistsInNewIdFormat(uri: Uri): Attempt[Boolean] = {
     // Only count documents whose id is of the format `{documentHash}-{pageNumber}`,
@@ -51,6 +63,18 @@ class Pages2(val client: ElasticClient, indexNamePrefix: String)(implicit val ex
       } else {
         count
       }
+    }
+  }
+
+  def getFirstPageDimensions(uri: Uri): Attempt[Option[PageDimensions]] = {
+    val indexId = s"${uri.value}-1"
+    execute {
+      search(textIndexName)
+        .termQuery("_id", indexId)
+        .sourceInclude(s"${PagesFields.dimensions}")
+        .size(1)
+    }.map { response =>
+      response.to[PageDimensions].headOption
     }
   }
 

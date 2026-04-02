@@ -12,6 +12,7 @@ import PreviewSwitcher from "./viewer/PreviewSwitcher";
 import DownloadButton from "./viewer/DownloadButton";
 import { GiantState } from "../types/redux/GiantState";
 import { Resource } from "../types/Resource";
+import { PageDimensions } from "./PageViewer/model";
 import { setResourceView } from "../actions/urlParams/setViews";
 import { getComments } from "../actions/resources/getComments";
 import { setSelection } from "../actions/resources/setSelection";
@@ -37,8 +38,9 @@ function renderNoPreview() {
 const PageViewerContent: FC<{
   uri: string;
   totalPages: number;
+  firstPageDimensions?: PageDimensions;
   view: string | undefined;
-}> = ({ uri, totalPages, view }) => {
+}> = ({ uri, totalPages, firstPageDimensions, view }) => {
   const dispatch = useDispatch();
   const resource = useSelector<GiantState, Resource | null>(
     (state) => state.resource,
@@ -47,7 +49,13 @@ const PageViewerContent: FC<{
   const preferences = useSelector((state: GiantState) => state.app.preferences);
 
   if (isCombinedOrUnset(view)) {
-    return <PageViewer uri={uri} totalPages={totalPages} />;
+    return (
+      <PageViewer
+        uri={uri}
+        totalPages={totalPages}
+        firstPageDimensions={firstPageDimensions}
+      />
+    );
   }
 
   if (!resource || !auth.token || !view) {
@@ -81,9 +89,15 @@ const PageViewerContent: FC<{
   }
 };
 
+type PageCountResponse = {
+  pageCount: number;
+  dimensions: PageDimensions | null;
+};
+
 export const PageViewerOrFallback: FC<{}> = () => {
   const { uri } = useParams<{ uri: string }>();
-  const [totalPages, setTotalPages] = useState<number | null>(null);
+
+  const [response, setResponse] = useState<PageCountResponse | null>(null);
   const view = useSelector<GiantState, string | undefined>(
     (state) => state.urlParams.view,
   );
@@ -95,9 +109,11 @@ export const PageViewerOrFallback: FC<{}> = () => {
   useEffect(() => {
     authFetch(`/api/pages2/${uri}/pageCount`)
       .then((res) => res.json())
-      .then((obj) => setTotalPages(obj.pageCount))
-      .catch(() => setTotalPages(0));
+      .then((obj: PageCountResponse) => setResponse(obj))
+      .catch(() => setResponse({ pageCount: 0, dimensions: null }));
   }, [uri]);
+
+  const totalPages = response?.pageCount ?? null;
 
   // Default to "combined" when we have pages and no view is set.
   useEffect(() => {
@@ -106,9 +122,9 @@ export const PageViewerOrFallback: FC<{}> = () => {
     }
   }, [totalPages, view, dispatch]);
 
-  if (totalPages === null) {
+  if (response === null) {
     return null;
-  } else if (totalPages === 0) {
+  } else if (response.pageCount === 0) {
     return <Viewer match={{ params: { uri } }} />;
   } else {
     const showTextContent = !isCombinedOrUnset(view);
@@ -119,12 +135,18 @@ export const PageViewerOrFallback: FC<{}> = () => {
             <div className="document">
               <PageViewerContent
                 uri={uri}
-                totalPages={totalPages}
+                totalPages={response.pageCount}
+                firstPageDimensions={response.dimensions ?? undefined}
                 view={view}
               />
             </div>
           ) : (
-            <PageViewerContent uri={uri} totalPages={totalPages} view={view} />
+            <PageViewerContent
+              uri={uri}
+              totalPages={response.pageCount}
+              firstPageDimensions={response.dimensions ?? undefined}
+              view={view}
+            />
           )}
         </div>
         {resource && (
@@ -135,7 +157,7 @@ export const PageViewerOrFallback: FC<{}> = () => {
               <PreviewSwitcher
                 view={view}
                 resource={resource}
-                totalPages={totalPages}
+                totalPages={response.pageCount}
               />
             </span>
           </div>
