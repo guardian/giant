@@ -110,17 +110,26 @@ class AWSWorkerControl(config: WorkerConfig, discoveryConfig: AWSDiscoveryConfig
       
       logger.info(s"AWSWorkerControl on-demand asg: ${state.workerAsg} spot asg: ${state.spotWorkerAsg} inProgress: ${state.inProgress}, outstandingFromIngestStore: ${state.outstandingFromIngestStore}, outstandingFromTodos: ${state.outstandingFromTodos}, operation: $operation")
 
+    // as this check runs every minute, we assume that if there's a difference between actual/desired workers then
+    // there's a spot capacity problem, in which case we scale on demand instead of spot. Capacity is still constrained
+    // by the maximum size of the spot ASG via the check in decideOperation
+    val spotCapacityProblems = state.spotWorkerAsg.actualNumberOfWorkers < state.spotWorkerAsg.desiredNumberOfWorkers
+
       val scaleResult = operation match {
         // we scale up using the spot ASG
-        case Some(AddNewWorker) if state.spotWorkerAsg.desiredNumberOfWorkers < state.spotWorkerAsg.maximumNumberOfWorkers =>
+        case Some(AddNewWorker) if !spotCapacityProblems && state.spotWorkerAsg.desiredNumberOfWorkers < state.spotWorkerAsg.maximumNumberOfWorkers =>
           setNumberOfWorkers(state.spotWorkerAsg.desiredNumberOfWorkers + 1, spotWorkerAutoscalingGroupName)
-          // when scaling down, start with the spot ASG
+
+        case Some(AddNewWorker) if state.workerAsg.desiredNumberOfWorkers < state.workerAsg.maximumNumberOfWorkers =>
+          setNumberOfWorkers(state.workerAsg.desiredNumberOfWorkers + 1, workerAutoScalingGroupName)
+
+        // when scaling down, start with the on demand ASG
+        case Some(RemoveWorker) if state.workerAsg.desiredNumberOfWorkers > state.workerAsg.minimumNumberOfWorkers =>
+          setNumberOfWorkers(state.workerAsg.desiredNumberOfWorkers - 1, workerAutoScalingGroupName)
+
         case Some(RemoveWorker) if state.spotWorkerAsg.desiredNumberOfWorkers > state.spotWorkerAsg.minimumNumberOfWorkers =>
           setNumberOfWorkers(state.spotWorkerAsg.desiredNumberOfWorkers - 1, spotWorkerAutoscalingGroupName)
 
-          // we only expect to need to scale down the on-demand ASG in the event that we've manually scaled it up
-        case Some(RemoveWorker) if state.workerAsg.desiredNumberOfWorkers > state.workerAsg.minimumNumberOfWorkers =>
-          setNumberOfWorkers(state.workerAsg.desiredNumberOfWorkers - 1, workerAutoScalingGroupName)
 
         case _ =>
           Attempt.Right(())
@@ -137,6 +146,7 @@ class AWSWorkerControl(config: WorkerConfig, discoveryConfig: AWSDiscoveryConfig
     for {
       asg <- getAutoScalingGroup(asgName)
       desiredNumberOfWorkers = asg.desiredCapacity().intValue()
+      actualNumberOfWorkers = asg.instances().size()
       minimumNumberOfWorkers = asg.minSize().intValue()
       // This is not the same as the max in the auto-scaling group as we
       // need to maintain headroom to accommodate new workers during a
@@ -144,7 +154,7 @@ class AWSWorkerControl(config: WorkerConfig, discoveryConfig: AWSDiscoveryConfig
       maximumNumberOfWorkers = Math.max(asg.minSize(), asg.maxSize() / 2)
       lastEventTime <- getLastEventTime(asg.autoScalingGroupName())
     } yield {
-      AWSWorkerControl.AsgState(desiredNumberOfWorkers, lastEventTime, minimumNumberOfWorkers, maximumNumberOfWorkers)
+      AWSWorkerControl.AsgState(desiredNumberOfWorkers, lastEventTime, minimumNumberOfWorkers, maximumNumberOfWorkers, actualNumberOfWorkers)
       }
     }
 
@@ -220,13 +230,15 @@ object AWSWorkerControl {
     desiredNumberOfWorkers: Int,
     lastEventTime: Long,
     minimumNumberOfWorkers: Int,
-    maximumNumberOfWorkers: Int
+    maximumNumberOfWorkers: Int,
+    actualNumberOfWorkers: Int
   ) {
     override def toString: String =
       s"desiredNumberOfWorkers=$desiredNumberOfWorkers, " +
         s"lastEventTime=${new Date(lastEventTime)}, " +
         s"minimumNumberOfWorkers=$minimumNumberOfWorkers, " +
-        s"maximumNumberOfWorkers=$maximumNumberOfWorkers"
+        s"maximumNumberOfWorkers=$maximumNumberOfWorkers" +
+        s"actualNumberOfWorkers=$actualNumberOfWorkers"
   }
 
   case class State(
@@ -249,7 +261,7 @@ object AWSWorkerControl {
 
     if(inCooldown || manuallyScaledDown) {
       None
-      // we only ever automatically scale up the spot asg
+      // we scale to the maximum size of the spot ASG (capacity might end up being met in the on demand ASG if no spot capacity is availalbe)
     } else if(outstandingInTotal > 0 && state.spotWorkerAsg.desiredNumberOfWorkers < state.spotWorkerAsg.maximumNumberOfWorkers) {
       Some(AddNewWorker)
       // when scaling down automatically we check both asgs for excess capacity
