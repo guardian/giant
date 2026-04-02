@@ -107,16 +107,18 @@ class AWSWorkerControl(config: WorkerConfig, discoveryConfig: AWSDiscoveryConfig
 
   private def scaleUpOrDownIfNeeded(state: AWSWorkerControl.State, workerAutoScalingGroupName: String, spotWorkerAutoscalingGroupName: String)(implicit ec: ExecutionContext): Unit = {
       val operation = AWSWorkerControl.decideOperation(state, Instant.now().toEpochMilli, config.controlCooldown.toMillis)
-    
-      logger.info(s"AWSWorkerControl ${state.workerAsg.toString} ${state.spotWorkerAsg.toString} desiredNumberOfWorkers: ${state.workerAsg.desiredNumberOfWorkers} spotDesiredNumberOfWorkers: ${state.spotWorkerAsg.desiredNumberOfWorkers}, inProgress: ${state.inProgress}, outstandingFromIngestStore: ${state.outstandingFromIngestStore}, outstandingFromTodos: ${state.outstandingFromTodos}, operation: $operation")
+      
+      logger.info(s"AWSWorkerControl on-demand asg: ${state.workerAsg} spot asg: ${state.spotWorkerAsg} inProgress: ${state.inProgress}, outstandingFromIngestStore: ${state.outstandingFromIngestStore}, outstandingFromTodos: ${state.outstandingFromTodos}, operation: $operation")
 
       val scaleResult = operation match {
+        // we scale up using the spot ASG
         case Some(AddNewWorker) if state.spotWorkerAsg.desiredNumberOfWorkers < state.spotWorkerAsg.maximumNumberOfWorkers =>
-          setNumberOfWorkers(state.spotWorkerAsg.desiredNumberOfWorkers + 1, workerAutoScalingGroupName)
-
+          setNumberOfWorkers(state.spotWorkerAsg.desiredNumberOfWorkers + 1, spotWorkerAutoscalingGroupName)
+          // when scaling down, start with the spot ASG
         case Some(RemoveWorker) if state.spotWorkerAsg.desiredNumberOfWorkers > state.spotWorkerAsg.minimumNumberOfWorkers =>
           setNumberOfWorkers(state.spotWorkerAsg.desiredNumberOfWorkers - 1, spotWorkerAutoscalingGroupName)
 
+          // we only expect to need to scale down the on-demand ASG in the event that we've manually scaled it up
         case Some(RemoveWorker) if state.workerAsg.desiredNumberOfWorkers > state.workerAsg.minimumNumberOfWorkers =>
           setNumberOfWorkers(state.workerAsg.desiredNumberOfWorkers - 1, workerAutoScalingGroupName)
 
@@ -149,7 +151,7 @@ class AWSWorkerControl(config: WorkerConfig, discoveryConfig: AWSDiscoveryConfig
 
   private def getCurrentState(workerAutoScalingGroupName: String, workerSpotAutoscalingGroupName: String)(implicit ec: ExecutionContext): Attempt[AWSWorkerControl.State] = {
     for {
-      workerAutoScalingGroup <- getAsgState(workerSpotAutoscalingGroupName)
+      workerAutoScalingGroup <- getAsgState(workerAutoScalingGroupName)
       spotWorkerAutoscalingGroup <- getAsgState(workerSpotAutoscalingGroupName)
       extractorWorkCounts <- Attempt.fromEither(manifest.getWorkCounts())
       filesLeftInS3UploadBucket <- Attempt.fromEither(ingestStorage.list)
@@ -221,10 +223,10 @@ object AWSWorkerControl {
     maximumNumberOfWorkers: Int
   ) {
     override def toString: String =
-      s"AsgState(desiredNumberOfWorkers=$desiredNumberOfWorkers, " +
+      s"desiredNumberOfWorkers=$desiredNumberOfWorkers, " +
         s"lastEventTime=${new Date(lastEventTime)}, " +
         s"minimumNumberOfWorkers=$minimumNumberOfWorkers, " +
-        s"maximumNumberOfWorkers=$maximumNumberOfWorkers)"
+        s"maximumNumberOfWorkers=$maximumNumberOfWorkers"
   }
 
   case class State(
