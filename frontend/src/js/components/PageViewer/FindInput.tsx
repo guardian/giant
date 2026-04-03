@@ -7,8 +7,8 @@ import React, {
   useMemo,
   useState,
 } from "react";
-import DownIcon from "react-icons/lib/md/arrow-downward";
-import UpIcon from "react-icons/lib/md/arrow-upward";
+import ChevronLeft from "react-icons/lib/fa/chevron-left";
+import ChevronRight from "react-icons/lib/fa/chevron-right";
 import styles from "./FindInput.module.css";
 import { HighlightForSearchNavigation } from "./model";
 import { Loader } from "semantic-ui-react";
@@ -119,11 +119,19 @@ export const FindInput: FC<FindInputProps> = ({
           )}
         </div>
       </div>
-      <button onClick={jumpToPreviousFindHit}>
-        <UpIcon />
+      <button
+        onClick={jumpToPreviousFindHit}
+        className={styles.navButton}
+        title="Previous match in document (shift enter)"
+      >
+        <ChevronLeft />
       </button>
-      <button onClick={jumpToNextFindHit}>
-        <DownIcon />
+      <button
+        onClick={jumpToNextFindHit}
+        className={styles.navButton}
+        title="Next match in document (enter)"
+      >
+        <ChevronRight />
       </button>
       <div
         data-visible={showWarning || null}

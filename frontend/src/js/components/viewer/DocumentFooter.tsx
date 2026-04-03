@@ -175,7 +175,7 @@ export const DocumentFooter: FC<DocumentFooterProps> = ({
         </span>
       )}
       {!pageFind && !pageViewControls && <span />}
-      <span className="doc-nav-buttons">
+      <span className="doc-nav-buttons" style={{ marginLeft: "auto" }}>
         <PreviewSwitcher
           view={urlParams.view}
           resource={resource}
