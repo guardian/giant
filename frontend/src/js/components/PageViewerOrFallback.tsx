@@ -146,7 +146,7 @@ export const PageViewerOrFallback: FC<{}> = () => {
             func={workspaceNav.goToPrevious}
           />
         )}
-        <Viewer match={{ params: { uri } }} />
+        <Viewer key={uri} match={{ params: { uri } }} />
         <div className="document__status">
           <span />
           <span className="doc-nav-buttons">
@@ -172,6 +172,7 @@ export const PageViewerOrFallback: FC<{}> = () => {
           {showTextContent ? (
             <div className="document">
               <PageViewerContent
+                key={uri}
                 uri={uri}
                 totalPages={response.pageCount}
                 firstPageDimensions={response.dimensions ?? undefined}
@@ -180,6 +181,7 @@ export const PageViewerOrFallback: FC<{}> = () => {
             </div>
           ) : (
             <PageViewerContent
+              key={uri}
               uri={uri}
               totalPages={response.pageCount}
               firstPageDimensions={response.dimensions ?? undefined}
