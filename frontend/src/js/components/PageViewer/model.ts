@@ -1,4 +1,5 @@
 import { PDFPageProxy } from "pdfjs-dist";
+import { range, uniq } from "lodash";
 
 // Copy-pasta from the old reducer
 export type PageDimensions = {
@@ -70,3 +71,38 @@ export type HighlightForSearchNavigation = {
     width: number;
   } | null;
 };
+
+export type HighlightsState = {
+  // Beware !focusedIndex for checking null, since it can be 0
+  focusedIndex: number | null;
+  highlights: HighlightForSearchNavigation[];
+};
+
+export function getPreloadPages(highlightState: HighlightsState): number[] {
+  if (
+    highlightState.focusedIndex === null ||
+    highlightState.highlights.length === 0
+  ) {
+    return [];
+  }
+
+  const length = highlightState.highlights.length;
+
+  // From three highlights before to three highlights after,
+  // wrapping if we hit an edge. If there are fewer than seven highlights,
+  // we'll get them all, the uniq() call will prevent duplicates.
+  const indexesOfHighlightsToPreload = uniq(
+    range(-3, 3).map((offset) => {
+      // type guard does not extend into .map() it seems
+      const offsetIndex = (highlightState.focusedIndex ?? 0) + offset;
+      // modulo - the regular % is 'remainder' in JS which is different
+      return ((offsetIndex % length) + length) % length;
+    }),
+  );
+
+  return uniq(
+    indexesOfHighlightsToPreload.map(
+      (idx) => highlightState.highlights[idx].pageNumber,
+    ),
+  );
+}

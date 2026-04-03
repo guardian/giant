@@ -5,10 +5,9 @@ import ZoomInIcon from "react-icons/lib/md/zoom-in";
 import ZoomOutIcon from "react-icons/lib/md/zoom-out";
 import styles from "./Controls.module.css";
 import { FindInput } from "./FindInput";
-import { HighlightForSearchNavigation } from "./model";
+import { HighlightForSearchNavigation, HighlightsState } from "./model";
 import { removeLastUnmatchedQuote } from "../../util/stringUtils";
 import authFetch from "../../util/auth/authFetch";
-import { HighlightsState } from "./PageViewer";
 
 type ControlsProps = {
   // Rotation

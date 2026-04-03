@@ -2,49 +2,19 @@ import React, { FC, useCallback, useEffect, useState } from "react";
 import { Controls } from "./Controls";
 import styles from "./PageViewer.module.css";
 import { VirtualScroll } from "./VirtualScroll";
-import { HighlightForSearchNavigation, PageDimensions } from "./model";
-import { range, uniq } from "lodash";
+import {
+  HighlightForSearchNavigation,
+  HighlightsState,
+  PageDimensions,
+  getPreloadPages,
+} from "./model";
+import { uniq } from "lodash";
 
 type PageViewerProps = {
   uri: string;
   totalPages: number;
   firstPageDimensions?: PageDimensions;
 };
-
-export type HighlightsState = {
-  // Beware !focusedIndex for checking null, since it can be 0
-  focusedIndex: number | null;
-  highlights: HighlightForSearchNavigation[];
-};
-
-function getPreloadPages(highlightState: HighlightsState): number[] {
-  if (
-    highlightState.focusedIndex === null ||
-    highlightState.highlights.length === 0
-  ) {
-    return [];
-  }
-
-  const length = highlightState.highlights.length;
-
-  // From three highlights before to three highlights after,
-  // wrapping if we hit an edge. If there are fewer than seven highlights,
-  // we'll get them all, the uniq() call will prevent duplicates.
-  const indexesOfHighlightsToPreload = uniq(
-    range(-3, 3).map((offset) => {
-      // type guard does not extend into .map() it seems
-      const offsetIndex = (highlightState.focusedIndex ?? 0) + offset;
-      // modulo - the regular % is 'remainder' in JS which is different
-      return ((offsetIndex % length) + length) % length;
-    }),
-  );
-
-  return uniq(
-    indexesOfHighlightsToPreload.map(
-      (idx) => highlightState.highlights[idx].pageNumber,
-    ),
-  );
-}
 
 export const PageViewer: FC<PageViewerProps> = ({
   uri,
