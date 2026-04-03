@@ -93,6 +93,31 @@
   user-select: none;
 }
 
+.document__footer-find {
+  flex: 1;
+  min-width: 0;
+}
+
+.document__footer-view-controls {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+
+  button {
+    background: none;
+    border: none;
+    color: white;
+    cursor: pointer;
+    padding: 2px;
+    display: flex;
+    align-items: center;
+
+    &:hover {
+      opacity: 0.8;
+    }
+  }
+}
+
 .search-stepper-overlay {
   position: absolute;
   right: 20px;

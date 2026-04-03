@@ -285,6 +285,10 @@ export const PageViewerOrFallback: FC<{}> = () => {
             uri={uri}
             workspaceNav={workspaceNav}
             totalPages={response.pageCount}
+            pageFind={isCombinedOrUnset(view) ? pageFind : undefined}
+            pageViewControls={
+              isCombinedOrUnset(view) ? pageViewControls : undefined
+            }
           />
         )}
       </div>
