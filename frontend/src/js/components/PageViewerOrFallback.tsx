@@ -16,6 +16,11 @@ import { PageDimensions } from "./PageViewer/model";
 import { setResourceView } from "../actions/urlParams/setViews";
 import { getComments } from "../actions/resources/getComments";
 import { setSelection } from "../actions/resources/setSelection";
+import history from "../util/history";
+import { useWorkspaceNavigation } from "../util/workspaceNavigation";
+import { DocNavButton } from "./viewer/DocNavButton";
+import { keyboardShortcuts } from "../util/keyboardShortcuts";
+import { KeyboardShortcut } from "./UtilComponents/KeyboardShortcut";
 
 const COMBINED_VIEW = "combined";
 
@@ -96,6 +101,8 @@ type PageCountResponse = {
 
 export const PageViewerOrFallback: FC<{}> = () => {
   const { uri } = useParams<{ uri: string }>();
+  const navId = new URLSearchParams(window.location.search).get("navId");
+  const workspaceNav = useWorkspaceNavigation(uri, navId, history.push);
 
   const [response, setResponse] = useState<PageCountResponse | null>(null);
   const view = useSelector<GiantState, string | undefined>(
@@ -125,7 +132,38 @@ export const PageViewerOrFallback: FC<{}> = () => {
   if (response === null) {
     return null;
   } else if (response.pageCount === 0) {
-    return <Viewer match={{ params: { uri } }} />;
+    return (
+      <div>
+        {workspaceNav.goToNext && (
+          <KeyboardShortcut
+            shortcut={keyboardShortcuts.nextResult}
+            func={workspaceNav.goToNext}
+          />
+        )}
+        {workspaceNav.goToPrevious && (
+          <KeyboardShortcut
+            shortcut={keyboardShortcuts.previousResult}
+            func={workspaceNav.goToPrevious}
+          />
+        )}
+        <Viewer match={{ params: { uri } }} />
+        <div className="document__status">
+          <span />
+          <span className="doc-nav-buttons">
+            <DocNavButton
+              direction="previous"
+              title="Previous in folder"
+              onClick={workspaceNav.goToPrevious}
+            />
+            <DocNavButton
+              direction="next"
+              title="Next in folder"
+              onClick={workspaceNav.goToNext}
+            />
+          </span>
+        </div>
+      </div>
+    );
   } else {
     const showTextContent = !isCombinedOrUnset(view);
     return (
@@ -151,13 +189,35 @@ export const PageViewerOrFallback: FC<{}> = () => {
         </div>
         {resource && (
           <div className="document__status">
+            {workspaceNav.goToNext && (
+              <KeyboardShortcut
+                shortcut={keyboardShortcuts.nextResult}
+                func={workspaceNav.goToNext}
+              />
+            )}
+            {workspaceNav.goToPrevious && (
+              <KeyboardShortcut
+                shortcut={keyboardShortcuts.previousResult}
+                func={workspaceNav.goToPrevious}
+              />
+            )}
             {/* Left spacer: document__status uses space-between to match the legacy StatusBar two-span layout */}
             <span />
-            <span>
+            <span className="doc-nav-buttons">
               <PreviewSwitcher
                 view={view}
                 resource={resource}
                 totalPages={response.pageCount}
+              />
+              <DocNavButton
+                direction="previous"
+                title="Previous in folder"
+                onClick={workspaceNav.goToPrevious}
+              />
+              <DocNavButton
+                direction="next"
+                title="Next in folder"
+                onClick={workspaceNav.goToNext}
               />
             </span>
           </div>
