@@ -132,6 +132,7 @@ export const PageViewerOrFallback: FC<{}> = () => {
   if (response === null) {
     return null;
   } else if (response.pageCount === 0) {
+    const hasWorkspaceNav = workspaceNav.hasPrevious || workspaceNav.hasNext;
     return (
       <div>
         {workspaceNav.goToNext && (
@@ -147,21 +148,23 @@ export const PageViewerOrFallback: FC<{}> = () => {
           />
         )}
         <Viewer key={uri} match={{ params: { uri } }} />
-        <div className="document__status">
-          <span />
-          <span className="doc-nav-buttons">
-            <DocNavButton
-              direction="previous"
-              title="Previous in folder"
-              onClick={workspaceNav.goToPrevious}
-            />
-            <DocNavButton
-              direction="next"
-              title="Next in folder"
-              onClick={workspaceNav.goToNext}
-            />
-          </span>
-        </div>
+        {hasWorkspaceNav && (
+          <div className="document__status">
+            <span />
+            <span className="doc-nav-buttons">
+              <DocNavButton
+                direction="previous"
+                title="Previous in folder"
+                onClick={workspaceNav.goToPrevious}
+              />
+              <DocNavButton
+                direction="next"
+                title="Next in folder"
+                onClick={workspaceNav.goToNext}
+              />
+            </span>
+          </div>
+        )}
       </div>
     );
   } else {
@@ -211,16 +214,20 @@ export const PageViewerOrFallback: FC<{}> = () => {
                 resource={resource}
                 totalPages={response.pageCount}
               />
-              <DocNavButton
-                direction="previous"
-                title="Previous in folder"
-                onClick={workspaceNav.goToPrevious}
-              />
-              <DocNavButton
-                direction="next"
-                title="Next in folder"
-                onClick={workspaceNav.goToNext}
-              />
+              {(workspaceNav.hasPrevious || workspaceNav.hasNext) && (
+                <>
+                  <DocNavButton
+                    direction="previous"
+                    title="Previous in folder"
+                    onClick={workspaceNav.goToPrevious}
+                  />
+                  <DocNavButton
+                    direction="next"
+                    title="Next in folder"
+                    onClick={workspaceNav.goToNext}
+                  />
+                </>
+              )}
             </span>
           </div>
         )}
