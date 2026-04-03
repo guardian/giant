@@ -82,6 +82,13 @@
   user-select: none;
 }
 
+.search-stepper-overlay {
+  position: absolute;
+  right: 20px;
+  top: 0;
+  z-index: 1000;
+}
+
 .document__status-icon {
   height: 20px;
   margin-right: 5px;

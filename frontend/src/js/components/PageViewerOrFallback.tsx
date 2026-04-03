@@ -8,19 +8,20 @@ import { PageViewer } from "./PageViewer/PageViewer";
 import { TextPreview } from "./viewer/TextPreview";
 import { Preview } from "./viewer/Preview";
 import { TablePreview } from "./viewer/TablePreview";
-import PreviewSwitcher from "./viewer/PreviewSwitcher";
 import DownloadButton from "./viewer/DownloadButton";
+import { DocumentFooter } from "./viewer/DocumentFooter";
+import { SearchStepper } from "./PageViewer/SearchStepper";
+import { useSearchHighlightStepper } from "./viewer/useSearchHighlightStepper";
 import { GiantState } from "../types/redux/GiantState";
 import { Resource } from "../types/Resource";
 import { PageDimensions } from "./PageViewer/model";
 import { setResourceView } from "../actions/urlParams/setViews";
 import { getComments } from "../actions/resources/getComments";
 import { setSelection } from "../actions/resources/setSelection";
-import history from "../util/history";
-import { useWorkspaceNavigation } from "../util/workspaceNavigation";
-import { DocNavButton } from "./viewer/DocNavButton";
 import { keyboardShortcuts } from "../util/keyboardShortcuts";
 import { KeyboardShortcut } from "./UtilComponents/KeyboardShortcut";
+import history from "../util/history";
+import { useWorkspaceNavigation } from "../util/workspaceNavigation";
 
 const COMBINED_VIEW = "combined";
 
@@ -111,6 +112,7 @@ export const PageViewerOrFallback: FC<{}> = () => {
     Number.isFinite(navIndex) ? navIndex : null,
     history.push,
   );
+  const highlightStepper = useSearchHighlightStepper();
 
   const [response, setResponse] = useState<PageCountResponse | null>(null);
   const view = useSelector<GiantState, string | undefined>(
@@ -141,16 +143,55 @@ export const PageViewerOrFallback: FC<{}> = () => {
     return null;
   } else if (response.pageCount === 0) {
     return (
-      <Viewer
-        key={uri}
-        match={{ params: { uri } }}
-        workspaceNav={workspaceNav}
-      />
+      <div style={{ position: "relative" }}>
+        <KeyboardShortcut
+          shortcut={keyboardShortcuts.previousHighlight}
+          func={highlightStepper.previous}
+        />
+        <KeyboardShortcut
+          shortcut={keyboardShortcuts.nextHighlight}
+          func={highlightStepper.next}
+        />
+        <div className="search-stepper-overlay">
+          <SearchStepper
+            query={highlightStepper.query}
+            current={highlightStepper.currentHighlight}
+            total={highlightStepper.totalHighlights}
+            onNext={highlightStepper.next}
+            onPrevious={highlightStepper.previous}
+          />
+        </div>
+        <Viewer key={uri} match={{ params: { uri } }} workspaceNav={workspaceNav} />
+      </div>
     );
   } else {
     const showTextContent = !isCombinedOrUnset(view);
     return (
-      <div className="document__page-viewer-wrapper">
+      <div
+        className="document__page-viewer-wrapper"
+        style={{ position: "relative" }}
+      >
+        {showTextContent && (
+          <>
+            <KeyboardShortcut
+              shortcut={keyboardShortcuts.previousHighlight}
+              func={highlightStepper.previous}
+            />
+            <KeyboardShortcut
+              shortcut={keyboardShortcuts.nextHighlight}
+              func={highlightStepper.next}
+            />
+            <div className="search-stepper-overlay">
+              <SearchStepper
+                query={highlightStepper.query}
+                current={highlightStepper.currentHighlight}
+                total={highlightStepper.totalHighlights}
+                onNext={highlightStepper.next}
+                onPrevious={highlightStepper.previous}
+              />
+            </div>
+          </>
+        )}
         <div className="document__page-viewer-content">
           {showTextContent ? (
             <div className="document">
@@ -173,44 +214,11 @@ export const PageViewerOrFallback: FC<{}> = () => {
           )}
         </div>
         {resource && (
-          <div className="document__status">
-            {/* Left spacer: document__status uses space-between to match the legacy StatusBar two-span layout */}
-            <span />
-            <span className="doc-nav-buttons">
-              <PreviewSwitcher
-                view={view}
-                resource={resource}
-                totalPages={response.pageCount}
-              />
-              {workspaceNav &&
-                (workspaceNav.goToPrevious || workspaceNav.goToNext) && (
-                  <>
-                    {workspaceNav.goToNext && (
-                      <KeyboardShortcut
-                        shortcut={keyboardShortcuts.nextResult}
-                        func={workspaceNav.goToNext}
-                      />
-                    )}
-                    {workspaceNav.goToPrevious && (
-                      <KeyboardShortcut
-                        shortcut={keyboardShortcuts.previousResult}
-                        func={workspaceNav.goToPrevious}
-                      />
-                    )}
-                    <DocNavButton
-                      direction="previous"
-                      title="Previous in folder"
-                      onClick={workspaceNav.goToPrevious}
-                    />
-                    <DocNavButton
-                      direction="next"
-                      title="Next in folder"
-                      onClick={workspaceNav.goToNext}
-                    />
-                  </>
-                )}
-            </span>
-          </div>
+          <DocumentFooter
+            uri={uri}
+            workspaceNav={workspaceNav}
+            totalPages={response.pageCount}
+          />
         )}
       </div>
     );
