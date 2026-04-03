@@ -43,9 +43,11 @@ import LazyTreeBrowser from "./LazyTreeBrowser";
 import { SearchResults } from "../../types/SearchResults";
 import { getDefaultView } from "../../util/resourceUtils";
 import DownloadButton from "./DownloadButton";
+import { WorkspaceNavigation } from "../../util/workspaceNavigation";
 
 type Props = {
   match: { params: { uri: string } };
+  workspaceNav?: WorkspaceNavigation;
   auth: Auth;
   preferences: any;
   urlParams: UrlParamsState;
@@ -441,11 +443,19 @@ class Viewer extends React.Component<Props, State> {
       <div className="viewer">
         <KeyboardShortcut
           shortcut={keyboardShortcuts.nextResult}
-          func={this.nextResult}
+          func={
+            this.hasNextResult()
+              ? this.nextResult
+              : this.props.workspaceNav?.goToNext
+          }
         />
         <KeyboardShortcut
           shortcut={keyboardShortcuts.previousResult}
-          func={this.previousResult}
+          func={
+            this.hasPreviousResult()
+              ? this.previousResult
+              : this.props.workspaceNav?.goToPrevious
+          }
         />
 
         {this.renderResource(this.props.resource)}
@@ -456,9 +466,15 @@ class Viewer extends React.Component<Props, State> {
             currentHighlight={this.props.currentHighlight}
             totalHighlights={this.props.totalHighlights}
             previousFn={
-              this.hasPreviousResult() ? () => this.previousResult() : undefined
+              this.hasPreviousResult()
+                ? () => this.previousResult()
+                : this.props.workspaceNav?.goToPrevious
             }
-            nextFn={this.hasNextResult() ? () => this.nextResult() : undefined}
+            nextFn={
+              this.hasNextResult()
+                ? () => this.nextResult()
+                : this.props.workspaceNav?.goToNext
+            }
           />
         </div>
       </div>

@@ -132,40 +132,12 @@ export const PageViewerOrFallback: FC<{}> = () => {
   if (response === null) {
     return null;
   } else if (response.pageCount === 0) {
-    const hasWorkspaceNav = workspaceNav.hasPrevious || workspaceNav.hasNext;
     return (
-      <div>
-        {workspaceNav.goToNext && (
-          <KeyboardShortcut
-            shortcut={keyboardShortcuts.nextResult}
-            func={workspaceNav.goToNext}
-          />
-        )}
-        {workspaceNav.goToPrevious && (
-          <KeyboardShortcut
-            shortcut={keyboardShortcuts.previousResult}
-            func={workspaceNav.goToPrevious}
-          />
-        )}
-        <Viewer key={uri} match={{ params: { uri } }} />
-        {hasWorkspaceNav && (
-          <div className="document__status">
-            <span />
-            <span className="doc-nav-buttons">
-              <DocNavButton
-                direction="previous"
-                title="Previous in folder"
-                onClick={workspaceNav.goToPrevious}
-              />
-              <DocNavButton
-                direction="next"
-                title="Next in folder"
-                onClick={workspaceNav.goToNext}
-              />
-            </span>
-          </div>
-        )}
-      </div>
+      <Viewer
+        key={uri}
+        match={{ params: { uri } }}
+        workspaceNav={workspaceNav}
+      />
     );
   } else {
     const showTextContent = !isCombinedOrUnset(view);
