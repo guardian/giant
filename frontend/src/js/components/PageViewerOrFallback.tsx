@@ -114,6 +114,25 @@ export const PageViewerOrFallback: FC<{}> = () => {
   );
   const highlightStepper = useSearchHighlightStepper();
 
+  // Scroll to the focused search highlight in text views of paged documents
+  useEffect(() => {
+    if (
+      highlightStepper.totalHighlights > 0 &&
+      highlightStepper.currentHighlight !== undefined
+    ) {
+      const highlights = document.querySelectorAll("result-highlight");
+      const prev = document.querySelector(".result-highlight--focused");
+      if (prev) {
+        prev.classList.remove("result-highlight--focused");
+      }
+      const el = highlights[highlightStepper.currentHighlight];
+      if (el) {
+        el.classList.add("result-highlight--focused");
+        el.scrollIntoView({ inline: "center", block: "center" });
+      }
+    }
+  }, [highlightStepper.currentHighlight, highlightStepper.totalHighlights]);
+
   const [response, setResponse] = useState<PageCountResponse | null>(null);
   const view = useSelector<GiantState, string | undefined>(
     (state) => state.urlParams.view,
@@ -161,7 +180,11 @@ export const PageViewerOrFallback: FC<{}> = () => {
             onPrevious={highlightStepper.previous}
           />
         </div>
-        <Viewer key={uri} match={{ params: { uri } }} workspaceNav={workspaceNav} />
+        <Viewer
+          key={uri}
+          match={{ params: { uri } }}
+          workspaceNav={workspaceNav}
+        />
       </div>
     );
   } else {
@@ -194,7 +217,7 @@ export const PageViewerOrFallback: FC<{}> = () => {
         )}
         <div className="document__page-viewer-content">
           {showTextContent ? (
-            <div className="document">
+            <div className="document" style={{ flexGrow: 1 }}>
               <PageViewerContent
                 key={uri}
                 uri={uri}

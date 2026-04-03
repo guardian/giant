@@ -90,7 +90,7 @@ export const DocumentFooter: FC<DocumentFooterProps> = ({
   }
 
   return (
-    <div className="document__status">
+    <div className="document__status" style={{ flexShrink: 0 }}>
       {effectiveNextFn && (
         <KeyboardShortcut
           shortcut={keyboardShortcuts.nextResult}

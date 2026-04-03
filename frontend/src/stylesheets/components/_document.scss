@@ -72,10 +72,11 @@
 .document__status {
   position: relative;
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
   align-items: center;
   padding: 5px;
-  height: 30px;
+  min-height: 30px;
   font-weight: bold;
   background-color: $primaryDark;
   color: white;
@@ -103,12 +104,17 @@
 }
 
 .preview__links {
-  display: inline;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  row-gap: 2px;
 }
 
 .preview__link {
   margin: 0 5px;
   padding: 0 20px;
+  height: 24px;
+  line-height: 24px;
   text-decoration: none;
   cursor: pointer;
   font-weight: bold;
@@ -276,7 +282,9 @@ comment-highlight.comment-highlight--focused {
 
 .doc-nav-buttons {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
+  justify-content: flex-end;
   gap: 2px;
 }
 
