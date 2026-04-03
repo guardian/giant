@@ -24,6 +24,7 @@ import { CaptureFromUrl } from "../Uploads/CaptureFromUrl";
 import { EuiText } from "@elastic/eui";
 import { FileAndFolderCounts } from "../UtilComponents/TreeBrowser/FileAndFolderCounts";
 import buildLink from "../../util/buildLink";
+import { buildWorkspaceSearchQ } from "../Search/chipParsing";
 import history from "../../util/history";
 import { workspaceEntryPath } from "../../util/workspaceUtils";
 import { DownloadTextModal } from "./DownloadTextModal";
@@ -138,11 +139,10 @@ export default function WorkspaceSummary({
       <button
         className="btn"
         onClick={() => {
-          const searchUrl = buildLink(
-            "/search",
-            {},
-            { filters: { workspace: [workspace.id] } },
-          );
+          const searchUrl = buildLink("/search", {
+            q: buildWorkspaceSearchQ(workspace.id),
+            page: 1,
+          });
           window.open(searchUrl, "_blank", "noopener");
         }}
         title="Search workspace"
