@@ -101,8 +101,16 @@ type PageCountResponse = {
 
 export const PageViewerOrFallback: FC<{}> = () => {
   const { uri } = useParams<{ uri: string }>();
-  const navId = new URLSearchParams(window.location.search).get("navId");
-  const workspaceNav = useWorkspaceNavigation(uri, navId, history.push);
+  const searchParams = new URLSearchParams(window.location.search);
+  const navId = searchParams.get("navId");
+  const navIndexParam = searchParams.get("navIndex");
+  const navIndex = navIndexParam !== null ? parseInt(navIndexParam, 10) : null;
+  const workspaceNav = useWorkspaceNavigation(
+    uri,
+    navId,
+    Number.isFinite(navIndex) ? navIndex : null,
+    history.push,
+  );
 
   const [response, setResponse] = useState<PageCountResponse | null>(null);
   const view = useSelector<GiantState, string | undefined>(

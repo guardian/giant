@@ -146,7 +146,7 @@ describe("findNodeById", () => {
 describe("storeWorkspaceSiblingUris", () => {
   beforeEach(() => sessionStorage.clear());
 
-  test("returns a navId and stores sibling URIs keyed by it", () => {
+  test("returns a navId and navIndex and stores sibling URIs", () => {
     const parentNode = folder("parent", [
       leaf("a.pdf", "uri-a", "parent"),
       leaf("b.pdf", "uri-b", "parent"),
@@ -154,13 +154,27 @@ describe("storeWorkspaceSiblingUris", () => {
     const root = folder("root", [parentNode]);
     const entry = leaf("a.pdf", "uri-a", "parent");
 
-    const navId = storeWorkspaceSiblingUris(root, entry, nameAscColumnsConfig);
+    const result = storeWorkspaceSiblingUris(root, entry, nameAscColumnsConfig);
 
-    expect(navId).toBeDefined();
+    expect(result).toBeDefined();
+    expect(result!.navIndex).toBe(0);
     const stored = JSON.parse(
-      sessionStorage.getItem(`workspaceSiblingUris:${navId}`)!,
+      sessionStorage.getItem(`workspaceSiblingUris:${result!.navId}`)!,
     );
     expect(stored).toEqual(["uri-a", "uri-b"]);
+  });
+
+  test("returns correct navIndex for second entry", () => {
+    const parentNode = folder("parent", [
+      leaf("a.pdf", "uri-a", "parent"),
+      leaf("b.pdf", "uri-b", "parent"),
+    ]);
+    const root = folder("root", [parentNode]);
+    const entry = leaf("b.pdf", "uri-b", "parent");
+
+    const result = storeWorkspaceSiblingUris(root, entry, nameAscColumnsConfig);
+
+    expect(result!.navIndex).toBe(1);
   });
 
   test("uses root node when entry has no parent id", () => {
@@ -170,11 +184,11 @@ describe("storeWorkspaceSiblingUris", () => {
     ]);
     const entry = leaf("a.pdf", "uri-a");
 
-    const navId = storeWorkspaceSiblingUris(root, entry, nameAscColumnsConfig);
+    const result = storeWorkspaceSiblingUris(root, entry, nameAscColumnsConfig);
 
-    expect(navId).toBeDefined();
+    expect(result).toBeDefined();
     const stored = JSON.parse(
-      sessionStorage.getItem(`workspaceSiblingUris:${navId}`)!,
+      sessionStorage.getItem(`workspaceSiblingUris:${result!.navId}`)!,
     );
     expect(stored).toEqual(["uri-a", "uri-b"]);
   });
@@ -183,10 +197,10 @@ describe("storeWorkspaceSiblingUris", () => {
     const root = folder("root", [leaf("a.pdf", "uri-a")]);
     const entry = leaf("a.pdf", "uri-a");
 
-    const id1 = storeWorkspaceSiblingUris(root, entry, nameAscColumnsConfig);
-    const id2 = storeWorkspaceSiblingUris(root, entry, nameAscColumnsConfig);
+    const r1 = storeWorkspaceSiblingUris(root, entry, nameAscColumnsConfig);
+    const r2 = storeWorkspaceSiblingUris(root, entry, nameAscColumnsConfig);
 
-    expect(id1).not.toEqual(id2);
+    expect(r1!.navId).not.toEqual(r2!.navId);
   });
 });
 
@@ -195,7 +209,13 @@ describe("computeWorkspaceNavigation", () => {
   const navId = "test-nav-id";
 
   test("returns hasPrevious and hasNext for a middle item", () => {
-    const nav = computeWorkspaceNavigation(leafUris, "uri-b", navId, jest.fn());
+    const nav = computeWorkspaceNavigation(
+      leafUris,
+      "uri-b",
+      navId,
+      1,
+      jest.fn(),
+    );
     expect(nav.hasPrevious).toBe(true);
     expect(nav.hasNext).toBe(true);
     expect(nav.goToPrevious).toBeDefined();
@@ -203,7 +223,13 @@ describe("computeWorkspaceNavigation", () => {
   });
 
   test("first item has no previous", () => {
-    const nav = computeWorkspaceNavigation(leafUris, "uri-a", navId, jest.fn());
+    const nav = computeWorkspaceNavigation(
+      leafUris,
+      "uri-a",
+      navId,
+      0,
+      jest.fn(),
+    );
     expect(nav.hasPrevious).toBe(false);
     expect(nav.hasNext).toBe(true);
     expect(nav.goToPrevious).toBeUndefined();
@@ -211,7 +237,13 @@ describe("computeWorkspaceNavigation", () => {
   });
 
   test("last item has no next", () => {
-    const nav = computeWorkspaceNavigation(leafUris, "uri-c", navId, jest.fn());
+    const nav = computeWorkspaceNavigation(
+      leafUris,
+      "uri-c",
+      navId,
+      2,
+      jest.fn(),
+    );
     expect(nav.hasPrevious).toBe(true);
     expect(nav.hasNext).toBe(false);
     expect(nav.goToPrevious).toBeDefined();
@@ -223,6 +255,7 @@ describe("computeWorkspaceNavigation", () => {
       leafUris,
       "uri-unknown",
       navId,
+      null,
       jest.fn(),
     );
     expect(nav.hasPrevious).toBe(false);
@@ -232,7 +265,7 @@ describe("computeWorkspaceNavigation", () => {
   });
 
   test("empty leaf list returns no navigation", () => {
-    const nav = computeWorkspaceNavigation([], "uri-a", navId, jest.fn());
+    const nav = computeWorkspaceNavigation([], "uri-a", navId, null, jest.fn());
     expect(nav.hasPrevious).toBe(false);
     expect(nav.hasNext).toBe(false);
   });
@@ -242,33 +275,93 @@ describe("computeWorkspaceNavigation", () => {
       ["uri-a"],
       "uri-a",
       navId,
+      0,
       jest.fn(),
     );
     expect(nav.hasPrevious).toBe(false);
     expect(nav.hasNext).toBe(false);
   });
 
-  test("goToNext navigates to the correct URI with navId", () => {
+  test("goToNext navigates with navId and navIndex", () => {
     const navigate = jest.fn();
-    const nav = computeWorkspaceNavigation(leafUris, "uri-a", navId, navigate);
+    const nav = computeWorkspaceNavigation(
+      leafUris,
+      "uri-a",
+      navId,
+      0,
+      navigate,
+    );
     nav.goToNext!();
     expect(navigate).toHaveBeenCalledWith(
-      `/viewer/${encodeURIComponent("uri-b")}?navId=${navId}`,
+      `/viewer/${encodeURIComponent("uri-b")}?navId=${navId}&navIndex=1`,
     );
   });
 
-  test("goToPrevious navigates to the correct URI with navId", () => {
+  test("goToPrevious navigates with navId and navIndex", () => {
     const navigate = jest.fn();
-    const nav = computeWorkspaceNavigation(leafUris, "uri-c", navId, navigate);
+    const nav = computeWorkspaceNavigation(
+      leafUris,
+      "uri-c",
+      navId,
+      2,
+      navigate,
+    );
     nav.goToPrevious!();
     expect(navigate).toHaveBeenCalledWith(
-      `/viewer/${encodeURIComponent("uri-b")}?navId=${navId}`,
+      `/viewer/${encodeURIComponent("uri-b")}?navId=${navId}&navIndex=1`,
     );
   });
 
   test("null navId returns no navigation", () => {
-    const nav = computeWorkspaceNavigation([], "uri-a", null, jest.fn());
+    const nav = computeWorkspaceNavigation([], "uri-a", null, null, jest.fn());
     expect(nav.hasPrevious).toBe(false);
     expect(nav.hasNext).toBe(false);
+  });
+
+  test("falls back to indexOf when navIndex is null", () => {
+    const nav = computeWorkspaceNavigation(
+      leafUris,
+      "uri-b",
+      navId,
+      null,
+      jest.fn(),
+    );
+    expect(nav.hasPrevious).toBe(true);
+    expect(nav.hasNext).toBe(true);
+  });
+
+  test("uses navIndex to distinguish duplicate URIs", () => {
+    const dupes = ["uri-a", "uri-dup", "uri-dup", "uri-b"];
+    const navigate = jest.fn();
+    // At index 2 (the second "uri-dup")
+    const nav = computeWorkspaceNavigation(
+      dupes,
+      "uri-dup",
+      navId,
+      2,
+      navigate,
+    );
+    expect(nav.hasPrevious).toBe(true);
+    expect(nav.hasNext).toBe(true);
+    nav.goToNext!();
+    expect(navigate).toHaveBeenCalledWith(
+      `/viewer/${encodeURIComponent("uri-b")}?navId=${navId}&navIndex=3`,
+    );
+  });
+
+  test("navigates past duplicates from first occurrence", () => {
+    const dupes = ["uri-a", "uri-dup", "uri-dup", "uri-b"];
+    const navigate = jest.fn();
+    const nav = computeWorkspaceNavigation(
+      dupes,
+      "uri-dup",
+      navId,
+      1,
+      navigate,
+    );
+    nav.goToNext!();
+    expect(navigate).toHaveBeenCalledWith(
+      `/viewer/${encodeURIComponent("uri-dup")}?navId=${navId}&navIndex=2`,
+    );
   });
 });

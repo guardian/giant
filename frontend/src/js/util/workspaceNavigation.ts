@@ -40,6 +40,19 @@ function pruneOldNavEntries(): void {
 }
 
 /**
+ * Return the immediate leaf children of a node sorted by the given config.
+ */
+function sortedLeafChildren(
+  node: TreeNode<WorkspaceEntry>,
+  columnsConfig: ColumnsConfig<WorkspaceEntry>,
+): (TreeEntry<WorkspaceEntry> & { data: { uri: string } })[] {
+  return sortEntries(node.children, columnsConfig).filter(
+    (child): child is TreeEntry<WorkspaceEntry> & { data: { uri: string } } =>
+      !isTreeNode(child) && isWorkspaceLeaf(child.data),
+  );
+}
+
+/**
  * Given a tree node, return the URIs of its immediate leaf children
  * (i.e. files, not folders) in the provided sort order.
  */
@@ -47,12 +60,7 @@ export function leafUrisOfChildren(
   node: TreeNode<WorkspaceEntry>,
   columnsConfig: ColumnsConfig<WorkspaceEntry>,
 ): string[] {
-  return sortEntries(node.children, columnsConfig)
-    .filter(
-      (child): child is TreeEntry<WorkspaceEntry> & { data: { uri: string } } =>
-        !isTreeNode(child) && isWorkspaceLeaf(child.data),
-    )
-    .map((child) => child.data.uri);
+  return sortedLeafChildren(node, columnsConfig).map((child) => child.data.uri);
 }
 
 /**
@@ -78,19 +86,22 @@ export function findNodeById(
 /**
  * Called from the workspace page before opening a document in a new tab.
  * Writes the sibling leaf URIs to sessionStorage keyed by a unique nonce,
- * and returns the nonce so it can be passed to the viewer via query param.
+ * and returns the nonce plus the index of the clicked entry so both can be
+ * passed to the viewer via query params.
  */
 export function storeWorkspaceSiblingUris(
   rootNode: TreeNode<WorkspaceEntry>,
   entry: TreeEntry<WorkspaceEntry>,
   columnsConfig: ColumnsConfig<WorkspaceEntry>,
-): string | undefined {
+): { navId: string; navIndex: number } | undefined {
   const parentId = entry.data.maybeParentId;
   const parentNode = parentId ? findNodeById(rootNode, parentId) : rootNode;
 
   if (!parentNode) return undefined;
 
-  const siblingUris = leafUrisOfChildren(parentNode, columnsConfig);
+  const leaves = sortedLeafChildren(parentNode, columnsConfig);
+  const siblingUris = leaves.map((child) => child.data.uri);
+  const navIndex = leaves.findIndex((child) => child.id === entry.id);
   const navId = generateNavId();
   try {
     pruneOldNavEntries();
@@ -102,7 +113,7 @@ export function storeWorkspaceSiblingUris(
     // sessionStorage may be full or unavailable — degrade gracefully
     return undefined;
   }
-  return navId;
+  return { navId, navIndex: navIndex >= 0 ? navIndex : 0 };
 }
 
 function readWorkspaceSiblingUris(navId: string | null): string[] {
@@ -129,23 +140,38 @@ export function computeWorkspaceNavigation(
   leafUris: string[],
   currentUri: string,
   navId: string | null,
+  navIndex: number | null,
   navigate: (path: string) => void,
 ): WorkspaceNavigation {
-  const currentIndex = leafUris.indexOf(currentUri);
+  // Use the explicit index when it's valid (matching the current URI),
+  // otherwise fall back to indexOf — which still works when URIs are unique.
+  const currentIndex =
+    navIndex !== null &&
+    navIndex >= 0 &&
+    navIndex < leafUris.length &&
+    leafUris[navIndex] === currentUri
+      ? navIndex
+      : leafUris.indexOf(currentUri);
   const hasPrevious = currentIndex > 0;
   const hasNext = currentIndex >= 0 && currentIndex < leafUris.length - 1;
 
   const goToPrevious = hasPrevious
     ? () => {
-        const prevUri = leafUris[currentIndex - 1];
-        navigate(`/viewer/${encodeURIComponent(prevUri)}?navId=${navId}`);
+        const prevIndex = currentIndex - 1;
+        const prevUri = leafUris[prevIndex];
+        navigate(
+          `/viewer/${encodeURIComponent(prevUri)}?navId=${navId}&navIndex=${prevIndex}`,
+        );
       }
     : undefined;
 
   const goToNext = hasNext
     ? () => {
-        const nextUri = leafUris[currentIndex + 1];
-        navigate(`/viewer/${encodeURIComponent(nextUri)}?navId=${navId}`);
+        const nextIndex = currentIndex + 1;
+        const nextUri = leafUris[nextIndex];
+        navigate(
+          `/viewer/${encodeURIComponent(nextUri)}?navId=${navId}&navIndex=${nextIndex}`,
+        );
       }
     : undefined;
 
@@ -155,8 +181,15 @@ export function computeWorkspaceNavigation(
 export function useWorkspaceNavigation(
   currentUri: string,
   navId: string | null,
+  navIndex: number | null,
   navigate: (path: string) => void,
 ): WorkspaceNavigation {
   const leafUris = useMemo(() => readWorkspaceSiblingUris(navId), [navId]);
-  return computeWorkspaceNavigation(leafUris, currentUri, navId, navigate);
+  return computeWorkspaceNavigation(
+    leafUris,
+    currentUri,
+    navId,
+    navIndex,
+    navigate,
+  );
 }
