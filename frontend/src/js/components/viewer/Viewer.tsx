@@ -1,19 +1,14 @@
 import React from "react";
 
-import history from "../../util/history";
-import buildLink from "../../util/buildLink";
-
 import { HighlightableText, Resource } from "../../types/Resource";
 
 import { TablePreview } from "./TablePreview";
-import StatusBar from "./StatusBar";
+import { DocumentFooter } from "./DocumentFooter";
 import { Preview } from "./Preview";
 import { EmailDetails } from "./EmailDetails";
 import { TextPreview } from "./TextPreview";
 import { calculateResourceTitle } from "../UtilComponents/documentTitle";
 
-import { keyboardShortcuts } from "../../util/keyboardShortcuts";
-import { KeyboardShortcut } from "../UtilComponents/KeyboardShortcut";
 import _ from "lodash";
 
 import { connect } from "react-redux";
@@ -40,7 +35,6 @@ import {
 import { Auth } from "../../types/Auth";
 import { GiantDispatch } from "../../types/redux/GiantDispatch";
 import LazyTreeBrowser from "./LazyTreeBrowser";
-import { SearchResults } from "../../types/SearchResults";
 import { getDefaultView } from "../../util/resourceUtils";
 import DownloadButton from "./DownloadButton";
 import { WorkspaceNavigation } from "../../util/workspaceNavigation";
@@ -54,7 +48,6 @@ type Props = {
   resource: Resource | null;
   isLoadingResource: boolean;
   descendantResources: DescendantResources;
-  currentResults?: SearchResults;
   currentHighlight?: number;
   totalHighlights?: number;
   getResource: typeof getResource;
@@ -68,32 +61,11 @@ type Props = {
   setSelection: typeof setSelection;
 };
 
-type State = {
-  resultIdx: number;
-};
+type State = {};
 
 // A viewport for the current search result
 class Viewer extends React.Component<Props, State> {
-  state = {
-    // Default to negative number to prevent next-previous when you're outside the context of a search set
-    resultIdx: -10,
-  };
-
-  setupSearchContext(props: Props) {
-    if (!props.currentResults) {
-      return;
-    }
-
-    const currentSearchIndex = props.currentResults.results.findIndex(
-      (result) => result.uri === props.match.params.uri,
-    );
-
-    if (currentSearchIndex !== -1) {
-      this.setState({
-        resultIdx: currentSearchIndex,
-      });
-    }
-  }
+  state = {};
 
   UNSAFE_componentWillReceiveProps(props: Props) {
     if (
@@ -103,23 +75,9 @@ class Viewer extends React.Component<Props, State> {
       // See comment below in componentDidMount about not racing these two requests
       this.props.getResource(props.match.params.uri, props.urlParams.q);
     }
-
-    const currentUri = this.props.resource
-      ? this.props.resource.uri
-      : undefined;
-
-    if (
-      props.resource &&
-      props.currentResults &&
-      props.resource.uri !== currentUri
-    ) {
-      this.setupSearchContext(props);
-    }
   }
 
   componentDidMount() {
-    this.setupSearchContext(this.props);
-
     // This has to happen early, because otherwise state changes will get synced to the URL
     // (and the URL state thus lost) before we have a chance to do it the other way round
 
@@ -238,66 +196,6 @@ class Viewer extends React.Component<Props, State> {
   componentWillUnmount() {
     document.title = "Giant";
     this.props.resetResource();
-  }
-
-  previousResult = () => {
-    const currentHits = this.props.currentResults
-      ? this.props.currentResults.results
-      : undefined;
-    if (currentHits) {
-      const idx = this.state.resultIdx - 1;
-      if (idx >= 0) {
-        const to = `${currentHits[idx].uri}`;
-        history.push(buildLink(to, this.props.urlParams, {}));
-      }
-    }
-  };
-
-  nextResult = () => {
-    const currentHits = this.props.currentResults
-      ? this.props.currentResults.results
-      : undefined;
-    if (currentHits) {
-      const idx = this.state.resultIdx + 1;
-      if (idx < currentHits.length) {
-        const to = `${currentHits[idx].uri}`;
-        history.push(buildLink(to, this.props.urlParams, {}));
-      }
-    }
-  };
-
-  hasPreviousResult() {
-    if (!this.props.currentResults || this.props.resource === undefined) {
-      return false;
-    }
-
-    const { page, results } = this.props.currentResults;
-
-    if (page > 1) {
-      return true;
-    } else {
-      const ix = results.findIndex(
-        ({ uri }) => uri === this.props.resource!.uri,
-      );
-      return ix !== -1 && ix > 0;
-    }
-  }
-
-  hasNextResult() {
-    if (!this.props.currentResults || this.props.resource === undefined) {
-      return false;
-    }
-
-    const { page, pages, results } = this.props.currentResults;
-
-    if (page < pages) {
-      return true;
-    } else {
-      const ix = results.findIndex(
-        ({ uri }) => uri === this.props.resource!.uri,
-      );
-      return ix !== -1 && ix < results.length - 1;
-    }
   }
 
   renderTextPreview(
@@ -441,39 +339,17 @@ class Viewer extends React.Component<Props, State> {
 
     return (
       <div className="viewer">
-        <KeyboardShortcut
-          shortcut={keyboardShortcuts.nextResult}
-          func={
-            this.hasNextResult()
-              ? this.nextResult
-              : this.props.workspaceNav?.goToNext
-          }
-        />
-        <KeyboardShortcut
-          shortcut={keyboardShortcuts.previousResult}
-          func={
-            this.hasPreviousResult()
-              ? this.previousResult
-              : this.props.workspaceNav?.goToPrevious
-          }
-        />
-
         {this.renderResource(this.props.resource)}
         <div className="viewer__footer">
-          <StatusBar
-            resource={this.props.resource}
-            view={this.props.urlParams.view}
-            currentHighlight={this.props.currentHighlight}
-            totalHighlights={this.props.totalHighlights}
-            previousFn={
-              this.hasPreviousResult()
-                ? () => this.previousResult()
-                : this.props.workspaceNav?.goToPrevious
-            }
-            nextFn={
-              this.hasNextResult()
-                ? () => this.nextResult()
-                : this.props.workspaceNav?.goToNext
+          <DocumentFooter
+            uri={this.props.match.params.uri}
+            workspaceNav={
+              this.props.workspaceNav ?? {
+                hasPrevious: false,
+                hasNext: false,
+                goToPrevious: undefined,
+                goToNext: undefined,
+              }
             }
           />
         </div>
@@ -506,7 +382,6 @@ function mapStateToProps(state: GiantState) {
     resource: state.resource,
     isLoadingResource: state.isLoadingResource,
     descendantResources: state.descendantResources,
-    currentResults: state.search.currentResults,
     preferences: state.app.preferences,
     currentHighlight,
     totalHighlights,
