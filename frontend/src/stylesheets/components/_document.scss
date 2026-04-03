@@ -267,42 +267,40 @@ comment-highlight.comment-highlight--focused {
   }
 }
 
-comment-highlight {
-  position: relative;
-  display: inline-block;
-  font-weight: bold;
-  font-style: italic;
-  z-index: 2;
-  white-space: pre;
+.doc-nav-buttons {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
 
-  &:nth-of-type(4n-3):before {
-    transform: rotate(-3deg);
-  }
+.doc-nav-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 4px;
+  cursor: default;
 
-  &:nth-of-type(4n-2):before {
-    transform: rotate(2deg);
-  }
-
-  &:nth-of-type(4n-1):before {
-    transform: rotate(-1deg);
-  }
-
-  &:before {
-    content: " ";
-    background-color: lightpink;
-    position: absolute;
-    width: calc(100% + 5px);
-    left: -3px;
-    top: 1px;
-    height: 100%;
-    opacity: 0.5;
-    transform: rotate(-2deg);
-    pointer-events: none;
+  svg {
+    font-size: 20px;
   }
 }
 
-comment-highlight.comment-highlight--focused {
-  &:before {
-    background-color: hotpink;
+.doc-nav-button--active {
+  cursor: pointer;
+  color: white;
+
+  &:hover {
+    background-color: rgba(255, 255, 255, 0.15);
   }
+}
+
+.doc-nav-button--inactive {
+  color: rgba(255, 255, 255, 0.3);
+  pointer-events: none;
+}
+
+.doc-nav-button--previous {
+  transform: rotate(180deg);
 }
