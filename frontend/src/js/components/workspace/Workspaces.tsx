@@ -78,9 +78,9 @@ import {
   EuiLoadingSpinner,
   EuiProgress,
   EuiText,
+  EuiToolTip,
 } from "@elastic/eui";
 import MdGlobeIcon from "react-icons/lib/md/public";
-import ReactTooltip from "react-tooltip";
 import { FromNowDurationText } from "../UtilComponents/FromNowDurationText";
 
 type Props = ReturnType<typeof mapStateToProps> &
@@ -271,21 +271,21 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
           <React.Fragment>
             {this.renderIcon(entry)}
             {entry.data.maybeCapturedFromURL && (
-              <>
-                <span data-tip>
-                  <MdGlobeIcon
-                    className="file-upload__icon"
-                    style={{ color: "grey", marginLeft: "5px" }}
-                  />
-                </span>
-                <ReactTooltip place="left">
+              <EuiToolTip
+                position="left"
+                content={
                   <div style={{ textAlign: "center" }}>
                     <strong>Captured from URL</strong>
                     <br />
                     {entry.data.maybeCapturedFromURL}
                   </div>
-                </ReactTooltip>
-              </>
+                }
+              >
+                <MdGlobeIcon
+                  className="file-upload__icon"
+                  style={{ color: "grey", marginLeft: "5px" }}
+                />
+              </EuiToolTip>
             )}
             <ItemName
               canEdit={canEdit}
