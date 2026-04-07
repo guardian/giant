@@ -29,9 +29,7 @@ trait ObjectStorage {
 
 class S3ObjectStorage private(client: S3Client, presigner: S3Presigner,  bucket: String) extends ObjectStorage {
   def create(key: String, path: Path, mimeType: Option[String] = None): Either[Failure, Unit] = run {
-    println(s"**************** putLargeObject")
     client.putLargeObject(bucket, key, contentType = mimeType, path)
-    println(s"**************** putLargeObject done")
 
     ()
   }

@@ -1,9 +1,8 @@
 package services
 
-import com.amazonaws.auth.AWSCredentialsProvider
 import software.amazon.awssdk.services.cloudwatch.CloudWatchClient
 import software.amazon.awssdk.services.cloudwatch.model.{Dimension, MetricDatum, PutMetricDataRequest}
-import utils.{AwsCredentials, Logging}
+import utils.Logging
 
 import java.time.Instant
 
@@ -50,7 +49,6 @@ class NoOpMetricsService() extends MetricsService {
 
 class CloudwatchMetricsService(config: AWSDiscoveryConfig) extends MetricsService with Logging {
 
-  private val credentials: AWSCredentialsProvider = AwsCredentials()
   private val cloudwatch: CloudWatchClient = CloudWatchClient.builder()
     .region(config.regionV2)
     .build()
