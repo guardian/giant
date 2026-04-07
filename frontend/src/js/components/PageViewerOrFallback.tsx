@@ -105,12 +105,14 @@ export const PageViewerOrFallback: FC<{}> = () => {
   const navId = searchParams.get("navId");
   const navIndexParam = searchParams.get("navIndex");
   const navIndex = navIndexParam !== null ? parseInt(navIndexParam, 10) : null;
-  const workspaceNav = useWorkspaceNavigation(
-    uri,
-    navId,
-    Number.isFinite(navIndex) ? navIndex : null,
-    history.push,
-  );
+  const workspaceNav = navId
+    ? useWorkspaceNavigation(
+        uri,
+        navId,
+        Number.isFinite(navIndex) ? navIndex : null,
+        history.push,
+      )
+    : undefined;
 
   const [response, setResponse] = useState<PageCountResponse | null>(null);
   const view = useSelector<GiantState, string | undefined>(
@@ -174,18 +176,6 @@ export const PageViewerOrFallback: FC<{}> = () => {
         </div>
         {resource && (
           <div className="document__status">
-            {workspaceNav.goToNext && (
-              <KeyboardShortcut
-                shortcut={keyboardShortcuts.nextResult}
-                func={workspaceNav.goToNext}
-              />
-            )}
-            {workspaceNav.goToPrevious && (
-              <KeyboardShortcut
-                shortcut={keyboardShortcuts.previousResult}
-                func={workspaceNav.goToPrevious}
-              />
-            )}
             {/* Left spacer: document__status uses space-between to match the legacy StatusBar two-span layout */}
             <span />
             <span className="doc-nav-buttons">
@@ -194,20 +184,33 @@ export const PageViewerOrFallback: FC<{}> = () => {
                 resource={resource}
                 totalPages={response.pageCount}
               />
-              {(workspaceNav.hasPrevious || workspaceNav.hasNext) && (
-                <>
-                  <DocNavButton
-                    direction="previous"
-                    title="Previous in folder"
-                    onClick={workspaceNav.goToPrevious}
-                  />
-                  <DocNavButton
-                    direction="next"
-                    title="Next in folder"
-                    onClick={workspaceNav.goToNext}
-                  />
-                </>
-              )}
+              {workspaceNav &&
+                (workspaceNav.goToPrevious || workspaceNav.goToNext) && (
+                  <>
+                    {workspaceNav.goToNext && (
+                      <KeyboardShortcut
+                        shortcut={keyboardShortcuts.nextResult}
+                        func={workspaceNav.goToNext}
+                      />
+                    )}
+                    {workspaceNav.goToPrevious && (
+                      <KeyboardShortcut
+                        shortcut={keyboardShortcuts.previousResult}
+                        func={workspaceNav.goToPrevious}
+                      />
+                    )}
+                    <DocNavButton
+                      direction="previous"
+                      title="Previous in folder"
+                      onClick={workspaceNav.goToPrevious}
+                    />
+                    <DocNavButton
+                      direction="next"
+                      title="Next in folder"
+                      onClick={workspaceNav.goToNext}
+                    />
+                  </>
+                )}
             </span>
           </div>
         )}

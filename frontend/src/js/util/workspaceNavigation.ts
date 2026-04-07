@@ -78,7 +78,7 @@ export function storeWorkspaceSiblingUris(
   return { navId, navIndex: navIndex };
 }
 
-function readWorkspaceSiblingUris(navId: string | null): string[] {
+function readWorkspaceSiblingUris(navId: string): string[] {
   if (!navId) return [];
   const stored = sessionStorage.getItem(`${STORAGE_KEY_PREFIX}${navId}`);
   if (stored) {
@@ -88,35 +88,33 @@ function readWorkspaceSiblingUris(navId: string | null): string[] {
 }
 
 export type WorkspaceNavigation = {
-  hasPrevious: boolean;
-  hasNext: boolean;
   goToPrevious: (() => void) | undefined;
   goToNext: (() => void) | undefined;
 };
 
 export function computeWorkspaceNavigation(
-  leafUris: string[],
+  siblingUris: string[],
   currentUri: string,
   navId: string | null,
   navIndex: number | null,
   navigate: (path: string) => void,
 ): WorkspaceNavigation {
-  // Use the explicit index when it's valid (matching the current URI),
-  // otherwise fall back to indexOf — which still works when URIs are unique.
+  // In the (impossible via the UI) event that we have a navId but no navIndex then we can just search the list of siblings
+  // for it. navIndex is preferred as there may be lots of siblings to search through
   const currentIndex =
     navIndex !== null &&
     navIndex >= 0 &&
-    navIndex < leafUris.length &&
-    leafUris[navIndex] === currentUri
+    navIndex < siblingUris.length &&
+    siblingUris[navIndex] === currentUri
       ? navIndex
-      : leafUris.indexOf(currentUri);
+      : siblingUris.indexOf(currentUri);
   const hasPrevious = currentIndex > 0;
-  const hasNext = currentIndex >= 0 && currentIndex < leafUris.length - 1;
+  const hasNext = currentIndex >= 0 && currentIndex < siblingUris.length - 1;
 
   const goToPrevious = hasPrevious
     ? () => {
         const prevIndex = currentIndex - 1;
-        const prevUri = leafUris[prevIndex];
+        const prevUri = siblingUris[prevIndex];
         navigate(
           `/viewer/${encodeURIComponent(prevUri)}?navId=${navId}&navIndex=${prevIndex}`,
         );
@@ -126,25 +124,25 @@ export function computeWorkspaceNavigation(
   const goToNext = hasNext
     ? () => {
         const nextIndex = currentIndex + 1;
-        const nextUri = leafUris[nextIndex];
+        const nextUri = siblingUris[nextIndex];
         navigate(
           `/viewer/${encodeURIComponent(nextUri)}?navId=${navId}&navIndex=${nextIndex}`,
         );
       }
     : undefined;
 
-  return { hasPrevious, hasNext, goToPrevious, goToNext };
+  return { goToPrevious, goToNext };
 }
 
 export function useWorkspaceNavigation(
   currentUri: string,
-  navId: string | null,
+  navId: string,
   navIndex: number | null,
   navigate: (path: string) => void,
 ): WorkspaceNavigation {
-  const leafUris = useMemo(() => readWorkspaceSiblingUris(navId), [navId]);
+  const siblingUris = useMemo(() => readWorkspaceSiblingUris(navId), [navId]);
   return computeWorkspaceNavigation(
-    leafUris,
+    siblingUris,
     currentUri,
     navId,
     navIndex,
