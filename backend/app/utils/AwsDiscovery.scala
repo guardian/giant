@@ -5,12 +5,12 @@ import software.amazon.awssdk.services.ec2.model.{DescribeInstancesRequest, Filt
 import software.amazon.awssdk.services.ec2.Ec2Client
 import software.amazon.awssdk.services.ssm.model.GetParameterRequest
 import software.amazon.awssdk.services.ssm.SsmClient
-import com.amazonaws.util.EC2MetadataUtils
+import software.amazon.awssdk.imds.Ec2MetadataClient
 import com.typesafe.config.ConfigValueFactory.fromAnyRef
 import org.apache.commons.lang3.StringUtils
 import services.{AWSDiscoveryConfig, BucketConfig, Config, DatabaseAuthConfig, PostgresConfig}
-import com.amazonaws.services.secretsmanager.{AWSSecretsManager, AWSSecretsManagerClientBuilder}
-import com.amazonaws.services.secretsmanager.model.GetSecretValueRequest
+import software.amazon.awssdk.services.secretsmanager.SecretsManagerClient
+import software.amazon.awssdk.services.secretsmanager.model.GetSecretValueRequest
 import play.api.libs.json.Json
 import software.amazon.awssdk.auth.credentials.ProfileCredentialsProvider
 
@@ -22,13 +22,13 @@ case class DiscoveryResult(updatedConfig: Config, jsonLoggingProperties: Map[Str
 object AwsDiscovery extends Logging {
   def build(config: Config, discoveryConfig: AWSDiscoveryConfig): DiscoveryResult = {
     // We won't have an instance ID if running locally but against databases in S3
-    val maybeInstanceId = Option(EC2MetadataUtils.getInstanceId)
+    val metadataClient = Ec2MetadataClient.create()
+    val maybeInstanceId = Option(metadataClient.get("/latest/meta-data/instance-id").asString())
 
     val AWSDiscoveryConfig(region, stack, app, stage, _, _, _) = discoveryConfig
     val runningLocally = discoveryConfig.runningLocally.getOrElse(false)
     val regionV2 = discoveryConfig.regionV2
 
-    val credentials = AwsCredentials(profile = if(runningLocally) { Some("investigations") } else { None })
     val credentialsV2 = AwsCredentials.credentialsV2(profile = if(runningLocally) { Some("investigations") } else { None })
 
     val ec2Client = Ec2Client.builder()
@@ -36,7 +36,10 @@ object AwsDiscovery extends Logging {
       .credentialsProvider(credentialsV2)
       .build()
     val ssmClient = SsmClient.builder().credentialsProvider(credentialsV2).region(regionV2).build()
-    val secretsManagerClient = AWSSecretsManagerClientBuilder.standard().withCredentials(credentials).withRegion(region).build()
+    val secretsManagerClient = SecretsManagerClient.builder()
+      .credentialsProvider(credentialsV2)
+      .region(regionV2)
+      .build()
 
     logger.info(s"AWS discovery stack: $stack app: $app stage: $stage region: $regionV2 runningLocally: $runningLocally")
 
@@ -226,7 +229,7 @@ object AwsDiscovery extends Logging {
     response.parameter().value()
   }
 
-  private def getDbSecrets(stack: String, secretsManagerClient: AWSSecretsManager): Option[PostgresConfig] = {
+  private def getDbSecrets(stack: String, secretsManagerClient: SecretsManagerClient): Option[PostgresConfig] = {
     val secretStagePath = stack match {
       case "pfi-giant" => Some("PROD")
       case "pfi-playground" => Some("CODE")
@@ -235,11 +238,13 @@ object AwsDiscovery extends Logging {
 
     secretStagePath.flatMap { stage =>
       val secretId = s"pfi-giant-postgres-${stage}"
-      val getSecretValueRequest = new GetSecretValueRequest().withSecretId(secretId)
+      val getSecretValueRequest = GetSecretValueRequest.builder()
+        .secretId(secretId)
+        .build()
 
       val result = Try {
         val secret = secretsManagerClient.getSecretValue(getSecretValueRequest)
-        Json.parse(secret.getSecretString).asOpt[PostgresConfig].orElse {
+        Json.parse(secret.secretString()).asOpt[PostgresConfig].orElse {
           logger.error(s"Unable to parse credentials retrieved from secret  $secretId")
           None
         }

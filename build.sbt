@@ -151,9 +151,8 @@ lazy val backend = (project in file("backend"))
       "software.amazon.awssdk" % "cloudwatch" % awsSdkVersion2,
       "software.amazon.awssdk" % "sqs" % awsSdkVersion2,
       "software.amazon.awssdk" % "sns" % awsSdkVersion2,
-      // remove the below once s3 has been upgraded to v2
-      "com.amazonaws" % "aws-java-sdk-cloudwatch" % awsVersion,
-      "com.amazonaws" % "aws-java-sdk-cloudwatchmetrics" % awsVersion,
+      "software.amazon.awssdk" % "secretsmanager" % awsSdkVersion2,
+      "software.amazon.awssdk" % "imds" % awsSdkVersion2,
       "com.beachape" %% "enumeratum-play" % "1.8.0",
       "com.iheart" %% "ficus" % "1.5.2",
       "org.jsoup" % "jsoup" % "1.14.2",
@@ -162,7 +161,6 @@ lazy val backend = (project in file("backend"))
       "org.eclipse.angus" % "angus-mail" % "2.0.2",
       "com.sun.mail" % "javax.mail" % "1.6.2",
       "com.gu" %% "pan-domain-auth-verification" % "15.0.0",
-      "com.amazonaws" % "aws-java-sdk-secretsmanager" % "1.12.528",
 
       // this is needed to override the 2.11.4 version of jackson-module used in various play libraries (including jwt-play)
       // as 2.11.4 is only compatible with versions of jackson databind up to 2.12.0 - and we're using 2.12.7 (Phil thinks
