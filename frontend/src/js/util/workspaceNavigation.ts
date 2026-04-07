@@ -1,92 +1,59 @@
 import { useMemo } from "react";
-import { ColumnsConfig, TreeEntry, TreeNode, isTreeNode } from "../types/Tree";
-import { WorkspaceEntry, isWorkspaceLeaf } from "../types/Workspaces";
+import {
+  ColumnsConfig,
+  TreeEntry,
+  TreeNode,
+  isTreeNode,
+  isTreeLeaf,
+  TreeLeaf,
+} from "../types/Tree";
+import {
+  WorkspaceEntry,
+  WorkspaceLeaf,
+  isWorkspaceLeaf,
+} from "../types/Workspaces";
 import { sortEntries } from "./treeUtils";
+import { uuidOrFallback } from "./uuid";
+import { findNodeById } from "./workspaceUtils";
 
 const STORAGE_KEY_PREFIX = "workspaceSiblingUris:";
 const MAX_STORED_NAV_ENTRIES = 20;
-
-function generateNavId(): string {
-  if (
-    typeof crypto !== "undefined" &&
-    "randomUUID" in crypto &&
-    typeof (crypto as any).randomUUID === "function"
-  ) {
-    return (crypto as any).randomUUID();
-  }
-  return Math.random().toString(36).slice(2) + Date.now().toString(36);
-}
 
 /**
  * Remove the oldest entries when we exceed the limit, to avoid filling sessionStorage.
  */
 function pruneOldNavEntries(): void {
-  try {
-    const keys = [];
-    for (let i = 0; i < sessionStorage.length; i++) {
-      const key = sessionStorage.key(i);
-      if (key?.startsWith(STORAGE_KEY_PREFIX)) {
-        keys.push(key);
-      }
+  const keys = [];
+  for (let i = 0; i < sessionStorage.length; i++) {
+    const key = sessionStorage.key(i);
+    if (key?.startsWith(STORAGE_KEY_PREFIX)) {
+      keys.push(key);
     }
-    if (keys.length > MAX_STORED_NAV_ENTRIES) {
-      keys
-        .slice(0, keys.length - MAX_STORED_NAV_ENTRIES)
-        .forEach((key) => sessionStorage.removeItem(key));
-    }
-  } catch {
-    // best-effort cleanup
+  }
+  if (keys.length > MAX_STORED_NAV_ENTRIES) {
+    keys
+      .slice(0, keys.length - MAX_STORED_NAV_ENTRIES)
+      .forEach((key) => sessionStorage.removeItem(key));
   }
 }
 
 /**
  * Return the immediate leaf children of a node sorted by the given config.
  */
-function sortedLeafChildren(
+export function sortedLeafChildren(
   node: TreeNode<WorkspaceEntry>,
   columnsConfig: ColumnsConfig<WorkspaceEntry>,
-): (TreeEntry<WorkspaceEntry> & { data: { uri: string } })[] {
+): TreeLeaf<WorkspaceLeaf>[] {
   return sortEntries(node.children, columnsConfig).filter(
-    (child): child is TreeEntry<WorkspaceEntry> & { data: { uri: string } } =>
-      !isTreeNode(child) && isWorkspaceLeaf(child.data),
+    (child): child is TreeLeaf<WorkspaceLeaf> =>
+      isTreeLeaf(child) && isWorkspaceLeaf(child.data),
   );
 }
 
 /**
- * Given a tree node, return the URIs of its immediate leaf children
- * (i.e. files, not folders) in the provided sort order.
- */
-export function leafUrisOfChildren(
-  node: TreeNode<WorkspaceEntry>,
-  columnsConfig: ColumnsConfig<WorkspaceEntry>,
-): string[] {
-  return sortedLeafChildren(node, columnsConfig).map((child) => child.data.uri);
-}
-
-/**
- * Find the parent node of an entry by its maybeParentId.
- * Returns the matching node, or undefined if not found.
- */
-export function findNodeById(
-  root: TreeNode<WorkspaceEntry>,
-  targetId: string,
-): TreeNode<WorkspaceEntry> | undefined {
-  if (root.id === targetId) {
-    return root;
-  }
-  for (const child of root.children) {
-    if (isTreeNode(child)) {
-      const found = findNodeById(child, targetId);
-      if (found) return found;
-    }
-  }
-  return undefined;
-}
-
-/**
  * Called from the workspace page before opening a document in a new tab.
- * Writes the sibling leaf URIs to sessionStorage keyed by a unique nonce,
- * and returns the nonce plus the index of the clicked entry so both can be
+ * Writes the sibling leaf URIs to sessionStorage keyed by a unique uuid,
+ * and returns the uuid plus the index of the clicked entry so both can be
  * passed to the viewer via query params.
  */
 export function storeWorkspaceSiblingUris(
@@ -95,36 +62,27 @@ export function storeWorkspaceSiblingUris(
   columnsConfig: ColumnsConfig<WorkspaceEntry>,
 ): { navId: string; navIndex: number } | undefined {
   const parentId = entry.data.maybeParentId;
-  const parentNode = parentId ? findNodeById(rootNode, parentId) : rootNode;
+  const parentNode = parentId ? findNodeById(rootNode, parentId) : undefined;
 
   if (!parentNode) return undefined;
 
   const leaves = sortedLeafChildren(parentNode, columnsConfig);
-  const siblingUris = leaves.map((child) => child.data.uri);
   const navIndex = leaves.findIndex((child) => child.id === entry.id);
-  const navId = generateNavId();
-  try {
-    pruneOldNavEntries();
-    sessionStorage.setItem(
-      `${STORAGE_KEY_PREFIX}${navId}`,
-      JSON.stringify(siblingUris),
-    );
-  } catch {
-    // sessionStorage may be full or unavailable — degrade gracefully
-    return undefined;
-  }
-  return { navId, navIndex: navIndex >= 0 ? navIndex : 0 };
+  const siblingUris = leaves.map((child) => child.data.uri);
+  const navId = uuidOrFallback();
+  pruneOldNavEntries();
+  sessionStorage.setItem(
+    `${STORAGE_KEY_PREFIX}${navId}`,
+    JSON.stringify(siblingUris),
+  );
+  return { navId, navIndex: navIndex };
 }
 
 function readWorkspaceSiblingUris(navId: string | null): string[] {
   if (!navId) return [];
-  try {
-    const stored = sessionStorage.getItem(`${STORAGE_KEY_PREFIX}${navId}`);
-    if (stored) {
-      return JSON.parse(stored);
-    }
-  } catch {
-    // corrupt or unavailable — degrade gracefully
+  const stored = sessionStorage.getItem(`${STORAGE_KEY_PREFIX}${navId}`);
+  if (stored) {
+    return JSON.parse(stored);
   }
   return [];
 }

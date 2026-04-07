@@ -107,7 +107,7 @@ class AWSWorkerControl(config: WorkerConfig, discoveryConfig: AWSDiscoveryConfig
 
   private def scaleUpOrDownIfNeeded(state: AWSWorkerControl.State, workerAutoScalingGroupName: String)(implicit ec: ExecutionContext): Unit = {
       val operation = AWSWorkerControl.decideOperation(state, Instant.now().toEpochMilli, config.controlCooldown.toMillis)
-      
+
       logger.info(s"AWSWorkerControl desiredNumberOfWorkers: ${state.desiredNumberOfWorkers}, inProgress: ${state.inProgress}, outstandingFromIngestStore: ${state.outstandingFromIngestStore}, outstandingFromTodos: ${state.outstandingFromTodos} lastEventTime: ${new Date(state.lastEventTime)}, minimumNumberOfWorkers: ${state.minimumNumberOfWorkers}, maximumNumberOfWorkers: ${state.maximumNumberOfWorkers}, operation: $operation")
 
       val scaleResult = operation match {

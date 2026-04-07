@@ -8,6 +8,22 @@ import { isTreeLeaf, isTreeNode, TreeEntry, TreeNode } from "../types/Tree";
 import { ProcessingStage } from "../types/Resource";
 import { useRouteMatch } from "react-router-dom";
 
+export function findNodeById(
+  root: TreeNode<WorkspaceEntry>,
+  targetId: string,
+): TreeNode<WorkspaceEntry> | undefined {
+  if (root.id === targetId) {
+    return root;
+  }
+  for (const child of root.children) {
+    if (isTreeNode(child)) {
+      const found = findNodeById(child, targetId);
+      if (found) return found;
+    }
+  }
+  return undefined;
+}
+
 export const findPath = (
   targetId: string,
   currentParents: TreeEntry<WorkspaceEntry>[],

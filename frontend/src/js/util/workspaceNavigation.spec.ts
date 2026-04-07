@@ -1,8 +1,7 @@
 import {
-  leafUrisOfChildren,
-  findNodeById,
   storeWorkspaceSiblingUris,
   computeWorkspaceNavigation,
+  sortedLeafChildren,
 } from "./workspaceNavigation";
 import { ColumnsConfig, TreeEntry, TreeNode } from "../types/Tree";
 import { WorkspaceEntry, WorkspaceNode } from "../types/Workspaces";
@@ -30,7 +29,18 @@ const nameAscColumnsConfig: ColumnsConfig<WorkspaceEntry> = {
   ],
 };
 
-function leaf(
+/**
+ * Given a tree node, return the URIs of its immediate leaf children
+ * (i.e. files, not folders) in the provided sort order.
+ */
+function leafUrisOfChildren(
+  node: TreeNode<WorkspaceEntry>,
+  columnsConfig: ColumnsConfig<WorkspaceEntry>,
+): string[] {
+  return sortedLeafChildren(node, columnsConfig).map((child) => child.data.uri);
+}
+
+export function makeLeaf(
   name: string,
   uri: string,
   maybeParentId?: string,
@@ -49,7 +59,7 @@ function leaf(
   };
 }
 
-function folder(
+export function makeNode(
   name: string,
   children: TreeEntry<WorkspaceEntry>[],
 ): TreeNode<WorkspaceEntry> {
@@ -64,15 +74,15 @@ function folder(
 describe("leafUrisOfChildren", () => {
   test("returns empty array for an empty folder", () => {
     expect(
-      leafUrisOfChildren(folder("root", []), nameAscColumnsConfig),
+      leafUrisOfChildren(makeNode("root", []), nameAscColumnsConfig),
     ).toEqual([]);
   });
 
   test("returns URIs of immediate leaf children only", () => {
-    const root = folder("root", [
-      leaf("a.pdf", "uri-a"),
-      folder("sub", [leaf("b.pdf", "uri-b")]),
-      leaf("c.pdf", "uri-c"),
+    const root = makeNode("root", [
+      makeLeaf("a.pdf", "uri-a"),
+      makeNode("sub", [makeLeaf("b.pdf", "uri-b")]),
+      makeLeaf("c.pdf", "uri-c"),
     ]);
     expect(leafUrisOfChildren(root, nameAscColumnsConfig)).toEqual([
       "uri-a",
@@ -81,18 +91,18 @@ describe("leafUrisOfChildren", () => {
   });
 
   test("skips sub-folder entries", () => {
-    const root = folder("root", [
-      folder("empty", []),
-      leaf("doc.pdf", "uri-1"),
+    const root = makeNode("root", [
+      makeNode("empty", []),
+      makeLeaf("doc.pdf", "uri-1"),
     ]);
     expect(leafUrisOfChildren(root, nameAscColumnsConfig)).toEqual(["uri-1"]);
   });
 
   test("respects sort order", () => {
-    const root = folder("root", [
-      leaf("c.pdf", "uri-c"),
-      leaf("a.pdf", "uri-a"),
-      leaf("b.pdf", "uri-b"),
+    const root = makeNode("root", [
+      makeLeaf("c.pdf", "uri-c"),
+      makeLeaf("a.pdf", "uri-a"),
+      makeLeaf("b.pdf", "uri-b"),
     ]);
     expect(leafUrisOfChildren(root, nameAscColumnsConfig)).toEqual([
       "uri-a",
@@ -106,10 +116,10 @@ describe("leafUrisOfChildren", () => {
       ...nameAscColumnsConfig,
       sortDescending: true,
     };
-    const root = folder("root", [
-      leaf("a.pdf", "uri-a"),
-      leaf("c.pdf", "uri-c"),
-      leaf("b.pdf", "uri-b"),
+    const root = makeNode("root", [
+      makeLeaf("a.pdf", "uri-a"),
+      makeLeaf("c.pdf", "uri-c"),
+      makeLeaf("b.pdf", "uri-b"),
     ]);
     expect(leafUrisOfChildren(root, descConfig)).toEqual([
       "uri-c",
@@ -119,40 +129,16 @@ describe("leafUrisOfChildren", () => {
   });
 });
 
-describe("findNodeById", () => {
-  test("returns the root when id matches", () => {
-    const root = folder("root", []);
-    expect(findNodeById(root, "root")).toBe(root);
-  });
-
-  test("returns a nested node", () => {
-    const inner = folder("inner", [leaf("doc.pdf", "uri-1")]);
-    const root = folder("root", [inner]);
-    expect(findNodeById(root, "inner")).toBe(inner);
-  });
-
-  test("returns undefined when not found", () => {
-    const root = folder("root", [leaf("doc.pdf", "uri-1")]);
-    expect(findNodeById(root, "nonexistent")).toBeUndefined();
-  });
-
-  test("finds deeply nested node", () => {
-    const deep = folder("deep", []);
-    const root = folder("root", [folder("a", [folder("b", [deep])])]);
-    expect(findNodeById(root, "deep")).toBe(deep);
-  });
-});
-
 describe("storeWorkspaceSiblingUris", () => {
   beforeEach(() => sessionStorage.clear());
 
   test("returns a navId and navIndex and stores sibling URIs", () => {
-    const parentNode = folder("parent", [
-      leaf("a.pdf", "uri-a", "parent"),
-      leaf("b.pdf", "uri-b", "parent"),
+    const parentNode = makeNode("parent", [
+      makeLeaf("a.pdf", "uri-a", "parent"),
+      makeLeaf("b.pdf", "uri-b", "parent"),
     ]);
-    const root = folder("root", [parentNode]);
-    const entry = leaf("a.pdf", "uri-a", "parent");
+    const root = makeNode("root", [parentNode]);
+    const entry = makeLeaf("a.pdf", "uri-a", "parent");
 
     const result = storeWorkspaceSiblingUris(root, entry, nameAscColumnsConfig);
 
@@ -165,37 +151,33 @@ describe("storeWorkspaceSiblingUris", () => {
   });
 
   test("returns correct navIndex for second entry", () => {
-    const parentNode = folder("parent", [
-      leaf("a.pdf", "uri-a", "parent"),
-      leaf("b.pdf", "uri-b", "parent"),
+    const parentNode = makeNode("parent", [
+      makeLeaf("a.pdf", "uri-a", "parent"),
+      makeLeaf("b.pdf", "uri-b", "parent"),
     ]);
-    const root = folder("root", [parentNode]);
-    const entry = leaf("b.pdf", "uri-b", "parent");
+    const root = makeNode("root", [parentNode]);
+    const entry = makeLeaf("b.pdf", "uri-b", "parent");
 
     const result = storeWorkspaceSiblingUris(root, entry, nameAscColumnsConfig);
 
     expect(result!.navIndex).toBe(1);
   });
 
-  test("uses root node when entry has no parent id", () => {
-    const root = folder("root", [
-      leaf("a.pdf", "uri-a"),
-      leaf("b.pdf", "uri-b"),
+  test("uses undefined when entry has no parent id", () => {
+    const root = makeNode("root", [
+      makeLeaf("a.pdf", "uri-a"),
+      makeLeaf("b.pdf", "uri-b"),
     ]);
-    const entry = leaf("a.pdf", "uri-a");
+    const entry = makeLeaf("a.pdf", "uri-a");
 
     const result = storeWorkspaceSiblingUris(root, entry, nameAscColumnsConfig);
 
-    expect(result).toBeDefined();
-    const stored = JSON.parse(
-      sessionStorage.getItem(`workspaceSiblingUris:${result!.navId}`)!,
-    );
-    expect(stored).toEqual(["uri-a", "uri-b"]);
+    expect(result).toBeUndefined();
   });
 
   test("each call produces a unique navId", () => {
-    const root = folder("root", [leaf("a.pdf", "uri-a")]);
-    const entry = leaf("a.pdf", "uri-a");
+    const root = makeNode("root", [makeLeaf("a.pdf", "uri-a")]);
+    const entry = makeLeaf("a.pdf", "uri-a");
 
     const r1 = storeWorkspaceSiblingUris(root, entry, nameAscColumnsConfig);
     const r2 = storeWorkspaceSiblingUris(root, entry, nameAscColumnsConfig);
