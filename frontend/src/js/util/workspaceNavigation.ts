@@ -139,13 +139,16 @@ export function useWorkspaceNavigation(
   navIndex: number | null,
   navigate: (path: string) => void,
 ): WorkspaceNavigation {
+  const siblingUris = useMemo(
+    () => (navId ? readWorkspaceSiblingUris(navId) : []),
+    [navId],
+  );
   if (!navId) {
     return {
       goToPrevious: undefined,
       goToNext: undefined,
     };
   }
-  const siblingUris = useMemo(() => readWorkspaceSiblingUris(navId), [navId]);
   return computeWorkspaceNavigation(
     siblingUris,
     currentUri,
