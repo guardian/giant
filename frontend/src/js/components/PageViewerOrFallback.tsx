@@ -105,14 +105,12 @@ export const PageViewerOrFallback: FC<{}> = () => {
   const navId = searchParams.get("navId");
   const navIndexParam = searchParams.get("navIndex");
   const navIndex = navIndexParam !== null ? parseInt(navIndexParam, 10) : null;
-  const workspaceNav = navId
-    ? useWorkspaceNavigation(
-        uri,
-        navId,
-        Number.isFinite(navIndex) ? navIndex : null,
-        history.push,
-      )
-    : undefined;
+  const workspaceNav = useWorkspaceNavigation(
+    uri,
+    navId,
+    Number.isFinite(navIndex) ? navIndex : null,
+    history.push,
+  );
 
   const [response, setResponse] = useState<PageCountResponse | null>(null);
   const view = useSelector<GiantState, string | undefined>(
