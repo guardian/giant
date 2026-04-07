@@ -3,7 +3,7 @@ package services
 import java.io.{InputStream, StringWriter}
 import java.nio.file.Path
 import cats.syntax.either._
-import com.amazonaws.util.StringInputStream
+import software.amazon.awssdk.utils.StringInputStream
 import extraction.email.mbox.MBoxEmailDetector
 import extraction.email.olm.OlmEmailDetector
 import org.apache.tika.config.TikaConfig

@@ -1,6 +1,6 @@
 package test
 
-import com.amazonaws.util.StringInputStream
+import software.amazon.awssdk.utils.StringInputStream
 import model.{ObjectData, ObjectMetadata, Uri}
 import services.previewing.PreviewService
 import utils.attempt.Attempt
