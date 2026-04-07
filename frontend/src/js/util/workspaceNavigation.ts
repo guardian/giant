@@ -3,7 +3,6 @@ import {
   ColumnsConfig,
   TreeEntry,
   TreeNode,
-  isTreeNode,
   isTreeLeaf,
   TreeLeaf,
 } from "../types/Tree";
@@ -95,12 +94,12 @@ export type WorkspaceNavigation = {
 export function computeWorkspaceNavigation(
   siblingUris: string[],
   currentUri: string,
-  navId: string | null,
+  navId: string,
   navIndex: number | null,
   navigate: (path: string) => void,
 ): WorkspaceNavigation {
   // In the (impossible via the UI) event that we have a navId but no navIndex then we can just search the list of siblings
-  // for it. navIndex is preferred as there may be lots of siblings to search through
+  // for it. navIndex is preferred as there may be lots of siblings to search through, or siblings with the same uri
   const currentIndex =
     navIndex !== null &&
     navIndex >= 0 &&
