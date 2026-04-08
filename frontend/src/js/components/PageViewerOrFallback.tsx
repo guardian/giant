@@ -244,6 +244,20 @@ export const PageViewerOrFallback: FC<{}> = () => {
     );
   } else {
     const showTextContent = !isCombinedOrUnset(view);
+    const pageViewerContent = (
+      <PageViewerContent
+        key={uri}
+        uri={uri}
+        totalPages={response.pageCount}
+        firstPageDimensions={response.dimensions ?? undefined}
+        view={view}
+        findQuery={pageFind.findQuery}
+        findHighlightsState={pageFind.highlightsState}
+        focusedFindHighlight={pageFind.focusedHighlight}
+        rotation={rotation}
+        scale={scale}
+      />
+    );
     return (
       <div className="document__page-viewer-wrapper">
         {showTextContent && (
@@ -252,32 +266,10 @@ export const PageViewerOrFallback: FC<{}> = () => {
         <div className="document__page-viewer-content">
           {showTextContent ? (
             <div className="document document--text-content">
-              <PageViewerContent
-                key={uri}
-                uri={uri}
-                totalPages={response.pageCount}
-                firstPageDimensions={response.dimensions ?? undefined}
-                view={view}
-                findQuery={pageFind.findQuery}
-                findHighlightsState={pageFind.highlightsState}
-                focusedFindHighlight={pageFind.focusedHighlight}
-                rotation={rotation}
-                scale={scale}
-              />
+              {pageViewerContent}
             </div>
           ) : (
-            <PageViewerContent
-              key={uri}
-              uri={uri}
-              totalPages={response.pageCount}
-              firstPageDimensions={response.dimensions ?? undefined}
-              view={view}
-              findQuery={pageFind.findQuery}
-              findHighlightsState={pageFind.highlightsState}
-              focusedFindHighlight={pageFind.focusedHighlight}
-              rotation={rotation}
-              scale={scale}
-            />
+            pageViewerContent
           )}
         </div>
         {resource && (
