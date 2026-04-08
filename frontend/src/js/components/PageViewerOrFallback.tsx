@@ -100,6 +100,30 @@ type PageCountResponse = {
   dimensions: PageDimensions | null;
 };
 
+const SearchStepperOverlay: FC<{
+  highlightStepper: ReturnType<typeof useSearchHighlightStepper>;
+}> = ({ highlightStepper }) => (
+  <>
+    <KeyboardShortcut
+      shortcut={keyboardShortcuts.previousHighlight}
+      func={highlightStepper.previous}
+    />
+    <KeyboardShortcut
+      shortcut={keyboardShortcuts.nextHighlight}
+      func={highlightStepper.next}
+    />
+    <div className="search-stepper-overlay">
+      <SearchStepper
+        query={highlightStepper.query}
+        current={highlightStepper.currentHighlight}
+        total={highlightStepper.totalHighlights}
+        onNext={highlightStepper.next}
+        onPrevious={highlightStepper.previous}
+      />
+    </div>
+  </>
+);
+
 export const PageViewerOrFallback: FC<{}> = () => {
   const { uri } = useParams<{ uri: string }>();
   const searchParams = new URLSearchParams(window.location.search);
@@ -163,23 +187,7 @@ export const PageViewerOrFallback: FC<{}> = () => {
   } else if (response.pageCount === 0) {
     return (
       <div style={{ position: "relative" }}>
-        <KeyboardShortcut
-          shortcut={keyboardShortcuts.previousHighlight}
-          func={highlightStepper.previous}
-        />
-        <KeyboardShortcut
-          shortcut={keyboardShortcuts.nextHighlight}
-          func={highlightStepper.next}
-        />
-        <div className="search-stepper-overlay">
-          <SearchStepper
-            query={highlightStepper.query}
-            current={highlightStepper.currentHighlight}
-            total={highlightStepper.totalHighlights}
-            onNext={highlightStepper.next}
-            onPrevious={highlightStepper.previous}
-          />
-        </div>
+        <SearchStepperOverlay highlightStepper={highlightStepper} />
         <Viewer
           key={uri}
           match={{ params: { uri } }}
@@ -195,25 +203,7 @@ export const PageViewerOrFallback: FC<{}> = () => {
         style={{ position: "relative" }}
       >
         {showTextContent && (
-          <>
-            <KeyboardShortcut
-              shortcut={keyboardShortcuts.previousHighlight}
-              func={highlightStepper.previous}
-            />
-            <KeyboardShortcut
-              shortcut={keyboardShortcuts.nextHighlight}
-              func={highlightStepper.next}
-            />
-            <div className="search-stepper-overlay">
-              <SearchStepper
-                query={highlightStepper.query}
-                current={highlightStepper.currentHighlight}
-                total={highlightStepper.totalHighlights}
-                onNext={highlightStepper.next}
-                onPrevious={highlightStepper.previous}
-              />
-            </div>
-          </>
+          <SearchStepperOverlay highlightStepper={highlightStepper} />
         )}
         <div className="document__page-viewer-content">
           {showTextContent ? (
