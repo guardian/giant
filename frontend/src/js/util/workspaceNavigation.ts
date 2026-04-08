@@ -87,6 +87,8 @@ function readWorkspaceSiblingUris(navId: string): string[] {
 }
 
 export type WorkspaceNavigation = {
+  hasPrevious: boolean;
+  hasNext: boolean;
   goToPrevious: (() => void) | undefined;
   goToNext: (() => void) | undefined;
 };
@@ -130,7 +132,7 @@ export function computeWorkspaceNavigation(
       }
     : undefined;
 
-  return { goToPrevious, goToNext };
+  return { hasPrevious, hasNext, goToPrevious, goToNext };
 }
 
 export function useWorkspaceNavigation(
@@ -145,6 +147,8 @@ export function useWorkspaceNavigation(
   );
   if (!navId) {
     return {
+      hasPrevious: false,
+      hasNext: false,
       goToPrevious: undefined,
       goToNext: undefined,
     };

@@ -200,6 +200,8 @@ describe("computeWorkspaceNavigation", () => {
     );
     expect(nav.goToPrevious).toBeDefined();
     expect(nav.goToNext).toBeDefined();
+    expect(nav.hasPrevious).toBe(true);
+    expect(nav.hasNext).toBe(true);
   });
 
   test("first item has no previous", () => {
@@ -212,6 +214,8 @@ describe("computeWorkspaceNavigation", () => {
     );
     expect(nav.goToPrevious).toBeUndefined();
     expect(nav.goToNext).toBeDefined();
+    expect(nav.hasPrevious).toBe(false);
+    expect(nav.hasNext).toBe(true);
   });
 
   test("last item has no next", () => {
@@ -224,6 +228,8 @@ describe("computeWorkspaceNavigation", () => {
     );
     expect(nav.goToPrevious).toBeDefined();
     expect(nav.goToNext).toBeUndefined();
+    expect(nav.hasPrevious).toBe(true);
+    expect(nav.hasNext).toBe(false);
   });
 
   test("unknown URI returns no navigation", () => {
@@ -236,6 +242,8 @@ describe("computeWorkspaceNavigation", () => {
     );
     expect(nav.goToPrevious).toBeUndefined();
     expect(nav.goToNext).toBeUndefined();
+    expect(nav.hasPrevious).toBe(false);
+    expect(nav.hasNext).toBe(false);
   });
 
   test("single item has neither previous nor next", () => {
@@ -248,6 +256,8 @@ describe("computeWorkspaceNavigation", () => {
     );
     expect(nav.goToPrevious).toBeUndefined();
     expect(nav.goToNext).toBeUndefined();
+    expect(nav.hasPrevious).toBe(false);
+    expect(nav.hasNext).toBe(false);
   });
 
   test("goToNext navigates with navId and navIndex", () => {
