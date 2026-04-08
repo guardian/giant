@@ -186,7 +186,7 @@ export const PageViewerOrFallback: FC<{}> = () => {
     return null;
   } else if (response.pageCount === 0) {
     return (
-      <div style={{ position: "relative" }}>
+      <div className="document__viewer-fallback">
         <SearchStepperOverlay highlightStepper={highlightStepper} />
         <Viewer
           key={uri}
@@ -198,16 +198,13 @@ export const PageViewerOrFallback: FC<{}> = () => {
   } else {
     const showTextContent = !isCombinedOrUnset(view);
     return (
-      <div
-        className="document__page-viewer-wrapper"
-        style={{ position: "relative" }}
-      >
+      <div className="document__page-viewer-wrapper">
         {showTextContent && (
           <SearchStepperOverlay highlightStepper={highlightStepper} />
         )}
         <div className="document__page-viewer-content">
           {showTextContent ? (
-            <div className="document" style={{ flexGrow: 1 }}>
+            <div className="document document--text-content">
               <PageViewerContent
                 key={uri}
                 uri={uri}
