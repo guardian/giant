@@ -1,4 +1,4 @@
-import React, { FC, useCallback, useEffect, useMemo } from "react";
+import React, { FC, useCallback, useEffect, useMemo, useRef } from "react";
 import { useSelector } from "react-redux";
 import RotateLeft from "react-icons/lib/md/rotate-left";
 import RotateRight from "react-icons/lib/md/rotate-right";
@@ -101,15 +101,15 @@ export const DocumentFooter: FC<DocumentFooterProps> = ({
 
   // --- Cmd+F handler for find-in-document (combined view only) ---
 
+  const findInputRef = useRef<HTMLInputElement>(null);
+
   const handleCmdF = useCallback((e: KeyboardEvent) => {
     if ((e.ctrlKey || e.metaKey) && e.key === "f") {
       e.preventDefault();
-      const maybeInput = document.getElementById(
-        "find-search-input",
-      ) as HTMLInputElement;
-      if (maybeInput) {
-        maybeInput.focus();
-        maybeInput.setSelectionRange(0, maybeInput.value.length);
+      const input = findInputRef.current;
+      if (input) {
+        input.focus();
+        input.setSelectionRange(0, input.value.length);
       }
     }
   }, []);
@@ -143,6 +143,7 @@ export const DocumentFooter: FC<DocumentFooterProps> = ({
       {pageFind && (
         <span className="document__footer-find">
           <FindInput
+            ref={findInputRef}
             performFind={pageFind.performFind}
             isPending={pageFind.isPending}
             jumpToNextFindHit={pageFind.jumpToNext}
@@ -175,7 +176,7 @@ export const DocumentFooter: FC<DocumentFooterProps> = ({
         </span>
       )}
       {!pageFind && !pageViewControls && <span />}
-      <span className="doc-nav-buttons" style={{ marginLeft: "auto" }}>
+      <span className="doc-nav-buttons">
         <PreviewSwitcher
           view={urlParams.view}
           resource={resource}
