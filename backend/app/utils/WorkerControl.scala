@@ -16,7 +16,6 @@ import utils.attempt.{Attempt, Failure, IllegalStateFailure}
 
 import scala.jdk.CollectionConverters._
 import scala.concurrent.{ExecutionContext, Future}
-import scala.util.Using
 
 case class WorkerDetails(nodes: Set[String], thisNode: String)
 
@@ -56,9 +55,7 @@ class AWSWorkerControl(config: WorkerConfig, discoveryConfig: AWSDiscoveryConfig
 
   def getWorkerDetails(implicit ec: ExecutionContext): Attempt[WorkerDetails] = for {
     myInstanceId <- Attempt.catchNonFatalBlasé {
-      Using(metadataClient) { metadataClient =>
         metadataClient.get("/latest/meta-data/instance-id").asString()
-      }.get
     }
 
     instances <- Attempt.catchNonFatalBlasé {
