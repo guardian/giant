@@ -73,6 +73,7 @@ import history from "../../util/history";
 import { takeOwnershipOfWorkspace } from "../../actions/workspaces/takeOwnershipOfWorkspace";
 import { setNodesAsExpanded } from "../../actions/workspaces/setNodesAsExpanded";
 import { FileAndFolderCounts } from "../UtilComponents/TreeBrowser/FileAndFolderCounts";
+import { storeWorkspaceSiblingUris } from "../../util/workspaceNavigation";
 import {
   EuiButtonIcon,
   EuiLoadingSpinner,
@@ -1033,7 +1034,15 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
       // if it could know that because it's a TreeLeaf the type parameter is a WorkspaceLeaf.
       // don't know of a way to do it though...
       if (isWorkspaceLeaf(entry.data) && !this.props.entryBeingRenamed) {
-        window.open(`/viewer/${entry.data.uri}`, "_blank");
+        const result = storeWorkspaceSiblingUris(
+          workspace.rootNode,
+          entry,
+          this.state.columnsConfig,
+        );
+        const navParam = result
+          ? `?navId=${result.navId}&navIndex=${result.navIndex}`
+          : "";
+        window.open(`/viewer/${entry.data.uri}${navParam}`, "_blank");
       }
     };
 

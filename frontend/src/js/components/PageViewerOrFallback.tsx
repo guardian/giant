@@ -16,6 +16,11 @@ import { PageDimensions } from "./PageViewer/model";
 import { setResourceView } from "../actions/urlParams/setViews";
 import { getComments } from "../actions/resources/getComments";
 import { setSelection } from "../actions/resources/setSelection";
+import history from "../util/history";
+import { useWorkspaceNavigation } from "../util/workspaceNavigation";
+import { DocNavButton } from "./viewer/DocNavButton";
+import { keyboardShortcuts } from "../util/keyboardShortcuts";
+import { KeyboardShortcut } from "./UtilComponents/KeyboardShortcut";
 
 const COMBINED_VIEW = "combined";
 
@@ -96,6 +101,16 @@ type PageCountResponse = {
 
 export const PageViewerOrFallback: FC<{}> = () => {
   const { uri } = useParams<{ uri: string }>();
+  const searchParams = new URLSearchParams(window.location.search);
+  const navId = searchParams.get("navId");
+  const navIndexParam = searchParams.get("navIndex");
+  const navIndex = navIndexParam !== null ? parseInt(navIndexParam, 10) : null;
+  const workspaceNav = useWorkspaceNavigation(
+    uri,
+    navId,
+    Number.isFinite(navIndex) ? navIndex : null,
+    history.push,
+  );
 
   const [response, setResponse] = useState<PageCountResponse | null>(null);
   const view = useSelector<GiantState, string | undefined>(
@@ -125,7 +140,13 @@ export const PageViewerOrFallback: FC<{}> = () => {
   if (response === null) {
     return null;
   } else if (response.pageCount === 0) {
-    return <Viewer match={{ params: { uri } }} />;
+    return (
+      <Viewer
+        key={uri}
+        match={{ params: { uri } }}
+        workspaceNav={workspaceNav}
+      />
+    );
   } else {
     const showTextContent = !isCombinedOrUnset(view);
     return (
@@ -134,6 +155,7 @@ export const PageViewerOrFallback: FC<{}> = () => {
           {showTextContent ? (
             <div className="document">
               <PageViewerContent
+                key={uri}
                 uri={uri}
                 totalPages={response.pageCount}
                 firstPageDimensions={response.dimensions ?? undefined}
@@ -142,6 +164,7 @@ export const PageViewerOrFallback: FC<{}> = () => {
             </div>
           ) : (
             <PageViewerContent
+              key={uri}
               uri={uri}
               totalPages={response.pageCount}
               firstPageDimensions={response.dimensions ?? undefined}
@@ -153,12 +176,39 @@ export const PageViewerOrFallback: FC<{}> = () => {
           <div className="document__status">
             {/* Left spacer: document__status uses space-between to match the legacy StatusBar two-span layout */}
             <span />
-            <span>
+            <span className="doc-nav-buttons">
               <PreviewSwitcher
                 view={view}
                 resource={resource}
                 totalPages={response.pageCount}
               />
+              {workspaceNav &&
+                (workspaceNav.goToPrevious || workspaceNav.goToNext) && (
+                  <>
+                    {workspaceNav.goToNext && (
+                      <KeyboardShortcut
+                        shortcut={keyboardShortcuts.nextResult}
+                        func={workspaceNav.goToNext}
+                      />
+                    )}
+                    {workspaceNav.goToPrevious && (
+                      <KeyboardShortcut
+                        shortcut={keyboardShortcuts.previousResult}
+                        func={workspaceNav.goToPrevious}
+                      />
+                    )}
+                    <DocNavButton
+                      direction="previous"
+                      title="Previous in folder"
+                      onClick={workspaceNav.goToPrevious}
+                    />
+                    <DocNavButton
+                      direction="next"
+                      title="Next in folder"
+                      onClick={workspaceNav.goToNext}
+                    />
+                  </>
+                )}
             </span>
           </div>
         )}
