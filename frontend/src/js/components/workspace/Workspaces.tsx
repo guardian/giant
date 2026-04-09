@@ -69,6 +69,7 @@ import {
 import { PartialUser } from "../../types/User";
 import { getMyPermissions } from "../../actions/users/getMyPermissions";
 import buildLink from "../../util/buildLink";
+import { buildWorkspaceFolderSearchQ } from "../Search/chipParsing";
 import history from "../../util/history";
 import { takeOwnershipOfWorkspace } from "../../actions/workspaces/takeOwnershipOfWorkspace";
 import { setNodesAsExpanded } from "../../actions/workspaces/setNodesAsExpanded";
@@ -995,20 +996,12 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
             if (menuItemProps.content === "Search in folder") {
               history.push(
                 buildLink("/search", {
-                  q: JSON.stringify([
-                    "",
-                    {
-                      n: "Workspace Folder",
-                      v: entry.name,
-                      op: "+",
-                      t: "workspace_folder",
-                      workspaceId: workspace.id,
-                      folderId: entry.id,
-                    },
-                    "*",
-                  ]),
+                  q: buildWorkspaceFolderSearchQ(
+                    workspace.id,
+                    entry.id,
+                    entry.name,
+                  ),
                   page: 1,
-                  filters: { workspace: [workspace.id] },
                 }),
               );
             }
