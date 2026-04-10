@@ -112,11 +112,11 @@
 }
 
 .file-browser__cell {
-  padding-left: $baseSpacing;
-  padding-right: $baseSpacing;
+  padding: 2px $baseSpacing;
   text-overflow: ellipsis;
   white-space: nowrap;
   overflow: hidden;
+  vertical-align: middle;
 }
 
 .file-browser__cell-flex-container {
