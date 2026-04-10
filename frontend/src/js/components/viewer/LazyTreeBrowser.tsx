@@ -9,6 +9,7 @@ import { ResourceBreadcrumbs } from "../ResourceBreadcrumbs";
 import DetectClickOutside from "../UtilComponents/DetectClickOutside";
 import AddToWorkspaceModal from "./AddToWorkspaceModal";
 import { fetchResource } from "../../services/ResourceApi";
+import { hasSingleBlobChild } from "../../util/resourceUtils";
 import sortBy from "lodash/sortBy";
 import {
   Tree,
@@ -120,7 +121,7 @@ export default function LazyTreeBrowser({
 
   const [addToWorkspaceModal, setAddToWorkspaceModal] = useState<{
     isOpen: boolean;
-    resource: Resource | null;
+    resource: Resource | BasicResource | null;
   }>({ isOpen: false, resource: null });
 
   function onExpandNode(node: TreeNode<BasicResource>) {
@@ -165,7 +166,15 @@ export default function LazyTreeBrowser({
 
   function onAddToWorkspace(entry: TreeEntry<BasicResource>) {
     closeContextMenu();
-    fetchResource(entry.data.uri, false).then((resource) => {
+    // Fetch the resource, then resolve file → blob if needed.
+    // Workspaces store references to blobs, not their parent file nodes.
+    fetchResource(entry.data.uri, true).then((resource) => {
+      if (hasSingleBlobChild(resource)) {
+        const blobUri = resource.children[0].uri;
+        return fetchResource(blobUri, false).then((blobResource) => {
+          setAddToWorkspaceModal({ isOpen: true, resource: blobResource });
+        });
+      }
       setAddToWorkspaceModal({ isOpen: true, resource });
     });
   }
