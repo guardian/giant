@@ -209,9 +209,7 @@ export default class TreeBrowser<T> extends React.Component<Props<T>, State> {
                 // selectedEntries because these can be nodes or leaves
                 selectedEntries={this.props.selectedEntries}
                 focusedEntry={this.props.focusedEntry}
-                // expandedNodes because leaves can't be expanded but the LazyTreeBrowser does
-                // mark them as expanded in anticipation of them loading and becoming nodes
-                expandedNodes={this.props.expandedEntries.filter(isTreeNode)}
+                expandedNodes={this.props.expandedEntries}
                 onFocus={this.props.onFocus}
                 onSelectLeaf={this.props.onSelectLeaf}
                 onExpandLeaf={this.props.onExpandLeaf}
