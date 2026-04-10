@@ -1,5 +1,5 @@
 import React from "react";
-import { Resource } from "../../types/Resource";
+import { BasicResource, Resource } from "../../types/Resource";
 import Modal from "../UtilComponents/Modal";
 import Select from "react-select";
 import TreeBrowser from "../UtilComponents/TreeBrowser";
@@ -20,7 +20,7 @@ import { ValueType } from "react-select/src/types";
 import { getWorkspace } from "../../actions/workspaces/getWorkspace";
 
 interface PropsFromParent {
-  resource: Resource;
+  resource: Resource | BasicResource;
   isOpen: boolean;
   dismissModal: () => void;
 }
@@ -54,6 +54,7 @@ class AddToWorkspaceModalUnconnected extends React.Component<Props, State> {
   componentDidMountOrUpdate(prevProps?: Props, prevState?: State) {
     if (
       (!prevProps || this.props.resource.uri !== prevProps.resource.uri) &&
+      this.props.resource.parents &&
       this.props.resource.parents.length > 0
     ) {
       const parentUriParts = this.props.resource.parents[0].uri.split("/");
@@ -91,13 +92,18 @@ class AddToWorkspaceModalUnconnected extends React.Component<Props, State> {
       };
     } else if (this.props.resource.type === "blob") {
       icon = "document";
+      const resource = this.props.resource as Resource;
+      params = {
+        uri: resource.uri,
+        mimeType:
+          resource.mimeTypes && resource.mimeTypes.length > 1
+            ? "multiple types detected"
+            : resource.mimeTypes?.[0],
+        size: resource.fileSize,
+      };
+    } else {
       params = {
         uri: this.props.resource.uri,
-        mimeType:
-          this.props.resource.mimeTypes.length > 1
-            ? "multiple types detected"
-            : this.props.resource.mimeTypes[0],
-        size: this.props.resource.fileSize,
       };
     }
 
