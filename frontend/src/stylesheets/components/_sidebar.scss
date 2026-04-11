@@ -113,6 +113,13 @@
   &__title__spacer {
     flex-grow: 1;
   }
+
+  &__mime-info {
+    padding-left: $baseSpacing * 2;
+    cursor: default;
+    opacity: 0.75;
+    font-size: 12px;
+  }
 }
 
 .sidebar__actions {
