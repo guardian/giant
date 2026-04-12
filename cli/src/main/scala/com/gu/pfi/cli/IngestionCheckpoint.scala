@@ -1,6 +1,6 @@
 package com.gu.pfi.cli
 
-import java.io.{BufferedWriter, FileWriter}
+import java.io.{BufferedReader, BufferedWriter, FileReader, FileWriter}
 import java.nio.file.{Files, Path, Paths}
 
 import com.amazonaws.services.s3.AmazonS3
@@ -29,21 +29,34 @@ class IngestionCheckpoint(ingestionUri: String) extends Logging {
   /**
    * Load a previous checkpoint from disk.
    * Returns the set of local file paths that were previously uploaded.
+   * Streams the file line-by-line to avoid loading it all into memory at once.
    */
   def load(): Set[String] = {
     if (Files.exists(checkpointFile)) {
-      val entries = new String(Files.readAllBytes(checkpointFile)).linesIterator
-        .filter(_.nonEmpty)
-        .map { line =>
-          val parts = line.split('\t')
-          if (parts.length >= 2) (parts(0), parts(1))
-          else (parts(0), "") // legacy checkpoint without S3 key
+      val entries = Map.newBuilder[String, String]
+      var count = 0
+      val reader = new BufferedReader(new FileReader(checkpointFile.toFile))
+      try {
+        var line = reader.readLine()
+        while (line != null) {
+          if (line.nonEmpty) {
+            val tab = line.indexOf('\t')
+            if (tab >= 0) {
+              entries += (line.substring(0, tab) -> line.substring(tab + 1))
+            } else {
+              entries += (line -> "") // legacy checkpoint without S3 key
+            }
+            count += 1
+          }
+          line = reader.readLine()
         }
-        .toMap
+      } finally {
+        reader.close()
+      }
 
-      completedEntries = entries
-      logger.info(ConsoleColors.info(s"Loaded checkpoint with ${entries.size} previously uploaded files"))
-      entries.keySet
+      completedEntries = entries.result()
+      logger.info(ConsoleColors.info(s"Loaded checkpoint with $count previously uploaded files"))
+      completedEntries.keySet
     } else {
       Set.empty
     }
