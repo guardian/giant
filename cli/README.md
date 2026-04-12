@@ -147,6 +147,27 @@ pfi-cli status --ingestionUri "BinLaden/ingestion" \
 
 With `--path`, this shows the number of files on disk vs in S3, a progress percentage, and lists the first 20 missing files.
 
+#### Recovering a Partial Upload from the Old Client
+
+If an ingestion was started with an older version of the CLI (which had no checkpointing), you can generate a checkpoint from what's already in S3 and then resume with the new client:
+
+```bash
+# 1. Scan S3 and generate a checkpoint file
+pfi-cli status --ingestionUri "BinLaden/ingestion" \
+  --bucket pfi-giant-ingest-data-rex \
+  --path /data/BinLaden \
+  --generate-checkpoint
+
+# 2. Re-run ingest — it will pick up the checkpoint and skip already-uploaded files
+pfi-cli ingest \
+  --ingestionUri "BinLaden/ingestion" \
+  --bucket pfi-giant-ingest-data-rex \
+  --sseAlgorithm aws:kms \
+  --path /data/BinLaden
+```
+
+The `--generate-checkpoint` flag reads every metadata file in the S3 bucket (parallelised across 20 threads for speed), maps them back to local file paths, and writes a checkpoint to `~/.pfi-checkpoints/`. This works even for very large ingestions with hundreds of thousands of files.
+
 ### Browsing Ingestions
 
 ```bash
