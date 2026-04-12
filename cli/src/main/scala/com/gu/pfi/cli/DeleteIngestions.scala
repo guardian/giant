@@ -20,7 +20,18 @@ class DeleteIngestions(ingestions: List[(String, String)], ingestionService: Cli
     ingestions.foreach { case (collection, ingestion) =>
       logger.info(ConsoleColors.dim(s"Processing $collection/$ingestion..."))
       deleteBlobsInBatches(collection, ingestion).await()
+
+      if (skippedCount > 0) {
+        logger.warn(ConsoleColors.warning(
+          s"⚠ $skippedCount blob(s) were skipped due to conflicts — they will become orphaned if the ingestion is deleted"
+        ))
+        logger.warn(ConsoleColors.warning(
+          "  Consider re-running with --conflictBehaviour delete, or cleaning up conflicting ingestions first"
+        ))
+      }
+
       ingestionService.deleteIngestion(collection, ingestion).await()
+      logger.info(ConsoleColors.dim(s"  Deleted ingestion $collection/$ingestion"))
     }
     
     logger.info(ConsoleColors.success(s"✓ Deletion complete: $deletedCount blobs deleted, $skippedCount skipped"))
@@ -32,7 +43,12 @@ class DeleteIngestions(ingestions: List[(String, String)], ingestionService: Cli
         Attempt.Right(())
 
       case blobs =>
-        deleteBatchOfBlobs(blobs).flatMap(_ => deleteBlobsInBatches(collection, ingestion))
+        deleteBatchOfBlobs(blobs).flatMap { _ =>
+          if (deletedCount % 1000 < 200) {
+            logger.info(ConsoleColors.dim(s"  $deletedCount deleted, $skippedCount skipped so far..."))
+          }
+          deleteBlobsInBatches(collection, ingestion)
+        }
     }
   }
 
