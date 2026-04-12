@@ -86,7 +86,7 @@ class CliIngestionService(http: CliHttpClient)(implicit ec: ExecutionContext) ex
 
     // Setting checkChildren to false means that we delete this blob
     // regardless of whether or not it has children.
-    http.delete(s"/api/blobs/${URLEncoder.encode(id, "UTF-8")}?checkChildren=false&isAdminDelete=false").map { r =>
+    http.delete(s"/api/blobs/${URLEncoder.encode(id, "UTF-8")}?checkChildren=false&isAdminDelete=false").flatMap { r =>
       if(r.code() == 204) {
         Attempt.Right(())
       } else {
@@ -96,7 +96,10 @@ class CliIngestionService(http: CliHttpClient)(implicit ec: ExecutionContext) ex
   }
 
   def deleteIngestion(collection: String, ingestion: String): Attempt[Unit] = {
-    http.delete(s"/api/collections/$collection/$ingestion").map { r =>
+    val encodedCollection = URLEncoder.encode(collection, "UTF-8")
+    val encodedIngestion = URLEncoder.encode(ingestion, "UTF-8")
+
+    http.delete(s"/api/collections/$encodedCollection/$encodedIngestion").flatMap { r =>
       if(r.code() == 204) {
         Attempt.Right(())
       } else {
