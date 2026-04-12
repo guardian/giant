@@ -158,9 +158,19 @@ object Main extends App with Logging {
 
             statusArgs.path.toOption match {
               case Some(localPath) =>
-                logger.info(IngestionStatus.formatComparison(result, Paths.get(localPath), uri))
+                val local = Paths.get(localPath)
+                logger.info(IngestionStatus.formatComparison(result, local, uri))
+
+                if (statusArgs.generateCheckpoint()) {
+                  IngestionStatus.generateCheckpoint(result, local, uri)
+                }
+
               case None =>
                 logger.info(IngestionStatus.formatStatus(result, uri))
+
+                if (statusArgs.generateCheckpoint()) {
+                  logger.warn(ConsoleColors.warning("--generate-checkpoint requires --path to map S3 files back to local paths"))
+                }
             }
           }
         }

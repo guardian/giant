@@ -130,6 +130,9 @@ class Options(args: Seq[String]) extends ScallopConf(args) {
     val path = opt[String]("path", noshort = true,
       descr = "Local source directory to compare against. If provided, shows which files are missing from S3.")
 
+    val generateCheckpoint = opt[Boolean]("generate-checkpoint", noshort = true, default = Some(false),
+      descr = "Generate a checkpoint file from S3 state, so a subsequent ingest will skip already-uploaded files. Requires --path.")
+
     val bucket = opt[String]("bucket", noshort = true, default = Some("ingest-data"),
       descr = "Ingestion S3 bucket")
 
