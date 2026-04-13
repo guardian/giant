@@ -4,6 +4,7 @@ import java.net.URLEncoder
 import java.nio.file.{Files, Path, Paths}
 
 import com.google.common.io.{Files => GuavaFiles}
+import com.gu.pfi.cli.FileFilters
 import com.gu.pfi.cli.model.VerifyIngestionResult
 import model._
 import model.index.IndexedBlob
@@ -122,7 +123,7 @@ class CliIngestionService(val http: CliHttpClient)(implicit ec: ExecutionContext
 
   private def verifyPath(ingestion: CliIngestion, root: Path, checkDigest: Boolean): VerifyIngestionResult = {
     val fsIterator = GuavaFiles.fileTraverser().depthFirstPreOrder(root.toFile).iterator().asScala
-    val files = fsIterator.filter(f => Files.isRegularFile(f.toPath)).grouped(IngestionVerification.BATCH_SIZE)
+    val files = fsIterator.filter(f => Files.isRegularFile(f.toPath)).filterNot(f => FileFilters.isJunkFile(f.toPath)).grouped(IngestionVerification.BATCH_SIZE)
 
     val base = VerifyIngestionResult(
       numberOfFilesOnDisk = 0,

@@ -4,7 +4,7 @@ import java.nio.file.{Files, LinkOption, Path}
 import java.util.UUID
 
 import com.google.common.io.ByteStreams
-import com.gu.pfi.cli.{ConsoleColors, IngestionCheckpoint, ProgressTracker}
+import com.gu.pfi.cli.{ConsoleColors, FileFilters, IngestionCheckpoint, ProgressTracker}
 import com.gu.pfi.cli.service.{CliIngestionService, IngestionS3Client}
 import model._
 import model.ingestion.{IngestionFile, Key, OnDiskFileContext, dataKey}
@@ -103,7 +103,7 @@ class CliIngestionPipeline(ingestionService: CliIngestionService, s3Client: Inge
       }
     }
 
-    val finalAttempt = files.filter(_.isRegularFile).filterNot { file =>
+    val finalAttempt = files.filter(_.isRegularFile).filterNot(f => FileFilters.isJunkFile(f.path)).filterNot { file =>
       checkpoint.isAlreadyUploaded(file.path.toString)
     }.map { file =>
       file -> processFile(file, languages)

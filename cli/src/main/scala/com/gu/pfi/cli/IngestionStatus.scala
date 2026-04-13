@@ -118,6 +118,7 @@ object IngestionStatus extends Logging {
     val localFiles: List[String] = try {
       stream.iterator().asScala
         .filter(p => Files.isRegularFile(p))
+        .filterNot(FileFilters.isJunkFile)
         .map(_.toAbsolutePath.toString)
         .toList
     } finally {
@@ -344,6 +345,7 @@ object IngestionStatus extends Logging {
     val allFiles: List[Path] = try {
       stream.iterator().asScala
         .filter(p => Files.isRegularFile(p))
+        .filterNot(FileFilters.isJunkFile)
         .toList
     } finally {
       stream.close()
@@ -448,6 +450,7 @@ object IngestionStatus extends Logging {
     try {
       stream.iterator().asScala
         .filter(p => Files.isRegularFile(p))
+        .filterNot(FileFilters.isJunkFile)
         .map { p =>
           val relative = localPath.relativize(p).toString
           s"$ingestionUri/$relative"
