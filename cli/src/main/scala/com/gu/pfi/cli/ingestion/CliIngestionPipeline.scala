@@ -20,17 +20,20 @@ class CliIngestionPipeline(ingestionService: CliIngestionService, s3Client: Inge
                            ingestionContext: ExecutionContext, nonBlockingContext: ExecutionContext) extends Logging {
 
   def crawlFromFile(rootPath: Path, rootUri: Uri, languages: List[Language]): Future[Unit] = {
-    crawlIterator(filesIterator(rootPath, rootUri, languages), rootUri, languages)
+    crawlIterator(filesIterator(rootPath, rootUri, languages), rootUri, languages, Some(rootPath))
   }
 
-  def crawlIterator(files: Iterator[OnDiskFileContext], rootUri: Uri, languages: List[Language]): Future[Unit] = {
-    ingest(files, rootUri, inMemoryThreshold, languages)
+  def crawlIterator(files: Iterator[OnDiskFileContext], rootUri: Uri, languages: List[Language], rootPath: Option[Path] = None): Future[Unit] = {
+    ingest(files, rootUri, inMemoryThreshold, languages, rootPath)
   }
 
-  private def ingest(files: Iterator[OnDiskFileContext], rootUri: Uri, inMemorySize: Long, languages: List[Language]): Future[Unit] = {
+  private def ingest(files: Iterator[OnDiskFileContext], rootUri: Uri, inMemorySize: Long, languages: List[Language], rootPath: Option[Path] = None): Future[Unit] = {
     implicit val ec: ExecutionContext = nonBlockingContext // this is the default context for when we are not doing IO
     
-    val progressTracker = ProgressTracker(s"Phase I ingestion of $rootUri")
+    val progressTracker = rootPath match {
+      case Some(rp) => new ProgressTracker(s"Phase I ingestion of $rootUri", rootPath = Some(rp))
+      case _ => ProgressTracker(s"Phase I ingestion of $rootUri")
+    }
     progressTracker.start()
 
     // this lock is used to prevent interleaved reads
@@ -108,6 +111,7 @@ class CliIngestionPipeline(ingestionService: CliIngestionService, s3Client: Inge
       file -> processFile(file, languages)
     }.grouped(batchSize).foldLeft(Attempt.Right(0 -> 0)) { (accAttempt, fileToAttemptedResults) =>
       val (files, attemptedResults) = fileToAttemptedResults.unzip
+      files.foreach(f => progressTracker.noteDirectory(f.path))
       val batchSizeAttempt = Attempt.sequenceWithFailures(attemptedResults.toList)
         .map{ r => files.zip(r) }
         .map{ results =>
