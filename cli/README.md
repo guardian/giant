@@ -115,6 +115,44 @@ the pre-flight summary reports how many were excluded. Pass `--include-junk` to 
 
 9. Once the phase 1 ingestion is complete, you'll need to look in the Giant logs to monitor phase 2 ingestion progress. These can be found at `/var/log/pfi/frontend.log`
 
+### Resuming an Interrupted Ingestion
+
+If an ingestion is interrupted (network failure, process killed, etc.), simply re-run the same `ingest` command. The CLI saves a checkpoint file that tracks which files have been successfully uploaded. On resume it will:
+
+1. Load the checkpoint from `~/.pfi-checkpoints/`
+2. Skip files that are already uploaded
+3. Continue from where it left off
+
+**Important:** Checkpointing relies on absolute local file paths matching between runs. The same `--path` must be used each time — if you move the source files or upload from a different directory, the checkpoint won't recognise the files and will re-upload everything. If you need to add files from a different path to the same ingestion, use `--no-checkpointing`.
+
+```
+# Just re-run the same command
+pfi-cli ingest \
+  --uri https://giant.pfi.gutools.co.uk \
+  --ingestionUri "BinLaden/ingestion" \
+  --bucket pfi-giant-ingest-data-rex \
+  --sseAlgorithm aws:kms \
+  --path /data/BinLaden
+```
+
+The checkpoint is deleted automatically when the ingestion completes successfully.
+
+#### Disabling Checkpointing
+
+Use `--no-checkpointing` to skip checkpoint read/write entirely. This is useful when:
+- Topping up an ingestion with additional files from a different source directory
+- Making small one-off additions where checkpoint overhead isn't needed
+- The local path doesn't correspond exactly to the original ingestion path
+
+```bash
+pfi-cli ingest \
+  --ingestionUri "BinLaden/ingestion" \
+  --bucket pfi-giant-ingest-data-rex \
+  --sseAlgorithm aws:kms \
+  --path /data/BinLaden-extras \
+  --no-checkpointing
+```
+
 ### Browsing Ingestions
 
 ```bash

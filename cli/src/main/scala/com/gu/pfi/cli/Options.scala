@@ -83,6 +83,10 @@ class IngestCommandOptions extends Subcommand("ingest") with CommonOptions with 
 
     val includeJunk = opt[Boolean]("include-junk", noshort = true, default = Some(false),
       descr = "Also upload OS junk files (.DS_Store, Thumbs.db etc), which are excluded by default")
+
+    val noCheckpointing = opt[Boolean]("no-checkpointing", noshort = true, default = Some(false),
+      descr = "Disable checkpoint read/write. Checkpointing requires the same --path between runs; " +
+        "use this flag when adding files from a different source path to an existing ingestion")
 }
 
 class Options(args: Seq[String]) extends ScallopConf(args) {
