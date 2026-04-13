@@ -4,7 +4,7 @@ import java.nio.file.{Files, LinkOption, Path}
 import java.util.UUID
 
 import com.google.common.io.ByteStreams
-import com.gu.pfi.cli.{ConsoleColors, ProgressTracker}
+import com.gu.pfi.cli.{ConsoleColors, FileFilters, ProgressTracker}
 import com.gu.pfi.cli.service.{CliIngestionService, IngestionS3Client}
 import model._
 import model.ingestion.{IngestionFile, Key, OnDiskFileContext}
@@ -107,7 +107,7 @@ class CliIngestionPipeline(ingestionService: CliIngestionService, s3Client: Inge
       }
     }
 
-    val finalAttempt = files.filter(_.isRegularFile).map { file =>
+    val finalAttempt = files.filter(_.isRegularFile).filterNot(f => FileFilters.isJunkFile(f.path)).map { file =>
       file -> processFile(file, languages)
     }.grouped(batchSize).foldLeft(Attempt.Right(0 -> 0)) { (accAttempt, fileToAttemptedResults) =>
       val (files, attemptedResults) = fileToAttemptedResults.unzip

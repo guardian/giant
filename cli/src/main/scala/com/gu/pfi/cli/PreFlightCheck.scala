@@ -18,7 +18,7 @@ object PreFlightCheck {
     val stream = Files.walk(root)
     try {
       stream.toScala(LazyList).foreach { path =>
-        if (Files.isRegularFile(path)) {
+        if (Files.isRegularFile(path) && !FileFilters.isJunkFile(path)) {
           fileCount += 1
           totalBytes += Files.size(path)
         } else if (Files.isDirectory(path) && path != root) {
