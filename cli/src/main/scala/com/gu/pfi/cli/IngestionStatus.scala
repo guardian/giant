@@ -1,15 +1,20 @@
 package com.gu.pfi.cli
 
+import java.io.{BufferedReader, BufferedWriter, FileReader, FileWriter}
 import java.nio.file.{Files, Path}
 import java.util.concurrent.{ConcurrentLinkedQueue, Executors}
 import java.util.concurrent.atomic.AtomicInteger
 
 import com.amazonaws.services.s3.AmazonS3
 import com.amazonaws.services.s3.model.ListObjectsV2Request
+import com.gu.pfi.cli.service.CliIngestionService
+import _root_.model.{VerifyRequest, VerifyRequestFile, VerifyResponse}
 import _root_.model.ingestion.{IngestMetadata, dataPrefix, dataSuffix, metadataPrefix, metadataSuffix}
 import play.api.libs.json.Json
-import utils.Logging
+import utils.{IngestionVerification, Logging}
+import utils.attempt.AttemptAwait._
 
+import scala.concurrent.ExecutionContext
 import scala.jdk.CollectionConverters._
 
 /**
@@ -85,23 +90,111 @@ object IngestionStatus extends Logging {
       lines += s"  Progress:             ${f"$pct%.1f"}%%"
     }
 
-    if (missing.nonEmpty) {
+    // Per-directory breakdown
+    lines ++= formatDirectoryBreakdown(localFiles, uploadedUris, ingestionUri)
+
+    if (missing.nonEmpty && missing.size <= 20) {
       lines += ""
-      val displayCount = Math.min(missing.size, 20)
-      lines += ConsoleColors.warning(s"First $displayCount missing files:")
-      missing.take(20).foreach { f =>
+      lines += ConsoleColors.warning(s"Missing files:")
+      missing.foreach { f =>
         lines += s"  $f"
       }
-      if (missing.size > 20) {
-        lines += ConsoleColors.dim(s"  ... and ${missing.size - 20} more")
-      }
-    } else if (localFiles.nonEmpty) {
-      lines += ""
-      lines += ConsoleColors.success("✓ All local files are present in S3")
     }
 
     lines += ""
     lines.result().mkString("\n")
+  }
+
+  /**
+   * After generating a checkpoint (S3 + index), print a per-directory summary
+   * based on the checkpoint file.  This gives the most complete picture of
+   * which directories still need uploading.
+   */
+  def printCheckpointSummary(checkpointPath: Path, localPath: Path, ingestionUri: String): Unit = {
+    val checkpointed = loadCheckpointPaths(checkpointPath)
+    val prefix = ingestionUri + "/"
+
+    val stream = Files.walk(localPath)
+    val localFiles: List[String] = try {
+      stream.iterator().asScala
+        .filter(p => Files.isRegularFile(p))
+        .map(_.toAbsolutePath.toString)
+        .toList
+    } finally {
+      stream.close()
+    }
+
+    val uploaded = localFiles.filter(checkpointed.contains).size
+    val total = localFiles.size
+
+    logger.info("")
+    logger.info(ConsoleColors.bold(s"Checkpoint summary for $ingestionUri"))
+    logger.info(s"  Files on disk:         $total")
+    logger.info(s"  Files in checkpoint:   $uploaded")
+    logger.info(s"  Files still to upload: ${total - uploaded}")
+
+    if (total > 0) {
+      val pct = uploaded * 100.0 / total
+      logger.info(s"  Progress:              ${f"$pct%.1f"}%%")
+    }
+
+    // Group by top-level directory
+    val byDir = localFiles.groupBy { absolutePath =>
+      val relative = localPath.toAbsolutePath.relativize(java.nio.file.Paths.get(absolutePath))
+      if (relative.getNameCount > 1) relative.getName(0).toString else "."
+    }.toList.sortBy(_._1)
+
+    if (byDir.size > 1) {
+      logger.info("")
+      logger.info(ConsoleColors.bold("  Directory breakdown:"))
+
+      // Find max directory name length for alignment
+      val maxNameLen = byDir.map(_._1.length).max.min(40)
+
+      byDir.foreach { case (dir, files) =>
+        val dirUploaded = files.count(checkpointed.contains)
+        val dirTotal = files.size
+        val pct = if (dirTotal > 0) dirUploaded * 100.0 / dirTotal else 100.0
+        val status = if (dirUploaded == dirTotal) ConsoleColors.green("✓") else " "
+        val paddedDir = dir.padTo(maxNameLen, ' ')
+        logger.info(f"  $status $paddedDir  $dirUploaded%6d / $dirTotal%-6d  ($pct%.0f%%)")
+      }
+    }
+  }
+
+  /**
+   * Group files by their first path component after the ingestion URI prefix
+   * and return formatted lines showing per-directory upload status.
+   */
+  private def formatDirectoryBreakdown(
+    localFiles: List[String], uploadedUris: Set[String], ingestionUri: String
+  ): List[String] = {
+    val prefix = ingestionUri + "/"
+
+    val byDir = localFiles.groupBy { uri =>
+      val relative = uri.stripPrefix(prefix)
+      val slash = relative.indexOf('/')
+      if (slash > 0) relative.substring(0, slash) else "."
+    }.toList.sortBy(_._1)
+
+    if (byDir.size <= 1) return Nil
+
+    val lines = List.newBuilder[String]
+    lines += ""
+    lines += ConsoleColors.bold("  Directory breakdown:")
+
+    val maxNameLen = byDir.map(_._1.length).max.min(40)
+
+    byDir.foreach { case (dir, files) =>
+      val dirUploaded = files.count(uploadedUris.contains)
+      val dirTotal = files.size
+      val pct = if (dirTotal > 0) dirUploaded * 100.0 / dirTotal else 100.0
+      val status = if (dirUploaded == dirTotal) ConsoleColors.green("✓") else " "
+      val paddedDir = dir.padTo(maxNameLen, ' ')
+      lines += f"  $status $paddedDir  $dirUploaded%6d / $dirTotal%-6d  ($pct%.0f%%)"
+    }
+
+    lines.result()
   }
 
   private def listMetadataKeys(s3: AmazonS3, bucket: String): List[String] = {
@@ -226,12 +319,110 @@ object IngestionStatus extends Logging {
 
     checkpoint.close()
     logger.info(ConsoleColors.success(
-      s"✓ Generated checkpoint with $count files at ${checkpoint.checkpointPath}"
-    ))
-    logger.info(ConsoleColors.dim(
-      "  Re-run your ingest command — it will skip these files and only upload what's missing"
+      s"✓ Generated checkpoint with $count files from S3 at ${checkpoint.checkpointPath}"
     ))
     checkpoint.checkpointPath
+  }
+
+  /**
+   * Augment an existing checkpoint with files that have already been processed
+   * by the backend into the index.  These files are no longer in the S3 ingest
+   * bucket but don't need to be re-uploaded either.
+   *
+   * Walks the local directory, batch-checks every file against the backend's
+   * verify endpoint, and appends any file that IS in the index to the checkpoint.
+   */
+  def augmentCheckpointFromIndex(
+    ingestionService: CliIngestionService, checkpointPath: Path, localPath: Path, ingestionUri: String
+  )(implicit ec: ExecutionContext): Unit = {
+    logger.info(ConsoleColors.dim("\nChecking backend index for files already processed..."))
+
+    // Load existing checkpoint entries to avoid duplicates
+    val existing = loadCheckpointPaths(checkpointPath)
+
+    val rootName = localPath.getFileName.toString
+    val stream = Files.walk(localPath)
+    val allFiles: List[Path] = try {
+      stream.iterator().asScala
+        .filter(p => Files.isRegularFile(p))
+        .toList
+    } finally {
+      stream.close()
+    }
+
+    val writer = new BufferedWriter(new FileWriter(checkpointPath.toFile, true))
+    var addedFromIndex = 0
+    var totalChecked = 0
+
+    try {
+      allFiles.grouped(IngestionVerification.BATCH_SIZE).foreach { batch =>
+        val filePaths = batch.map { file =>
+          val relativePath = s"$rootName/${localPath.relativize(file)}"
+          (file, relativePath)
+        }
+
+        val request = VerifyRequest(filePaths.map { case (_, relPath) =>
+          VerifyRequestFile(relPath, None)
+        })
+
+        try {
+          val requestJson = Json.stringify(Json.toJson(request))
+          val rawResponse = ingestionService.http.post(
+            s"/api/collections/$ingestionUri/verifyFiles", requestJson
+          ).await()
+          val response = Json.parse(rawResponse.body().string()).as[VerifyResponse]
+
+          val notIndexed = response.filesNotIndexed.toSet
+          filePaths.foreach { case (file, relPath) =>
+            val absolutePath = file.toAbsolutePath.toString
+            if (!notIndexed.contains(relPath) && !existing.contains(absolutePath)) {
+              writer.write(s"$absolutePath\tindexed")
+              writer.newLine()
+              addedFromIndex += 1
+            }
+          }
+        } catch {
+          case e: Exception =>
+            logger.warn(ConsoleColors.dim(s"  Failed to verify batch: ${e.getMessage}"))
+        }
+
+        totalChecked += batch.size
+        if (totalChecked % 5000 == 0) {
+          logger.info(ConsoleColors.dim(
+            s"  Checked $totalChecked/${allFiles.size} files against index ($addedFromIndex found in index)"
+          ))
+        }
+      }
+    } finally {
+      writer.flush()
+      writer.close()
+    }
+
+    logger.info(ConsoleColors.success(
+      s"✓ Added $addedFromIndex files from backend index to checkpoint (total checked: $totalChecked)"
+    ))
+    logger.info(ConsoleColors.dim(
+      "  Re-run your ingest command — it will skip all checkpointed files and only upload what's missing"
+    ))
+  }
+
+  private def loadCheckpointPaths(checkpointPath: Path): Set[String] = {
+    if (!Files.exists(checkpointPath)) return Set.empty
+    val paths = Set.newBuilder[String]
+    val reader = new BufferedReader(new FileReader(checkpointPath.toFile))
+    try {
+      var line = reader.readLine()
+      while (line != null) {
+        if (line.nonEmpty) {
+          val tab = line.indexOf('\t')
+          if (tab >= 0) paths += line.substring(0, tab) else paths += line
+        }
+        line = reader.readLine()
+      }
+    } finally {
+      reader.close()
+    }
+    paths.result()
   }
 
   /**

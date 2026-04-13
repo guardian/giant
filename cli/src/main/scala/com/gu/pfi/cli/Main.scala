@@ -128,7 +128,7 @@ object Main extends App with Logging {
       }
 
     case Some(_ @ options.statusCmd) =>
-      run("Status", options.statusCmd) { _ =>
+      run("Status", options.statusCmd) { services =>
         val statusArgs = options.statusCmd
         val uri = statusArgs.ingestionUri()
 
@@ -162,7 +162,10 @@ object Main extends App with Logging {
                 logger.info(IngestionStatus.formatComparison(result, local, uri))
 
                 if (statusArgs.generateCheckpoint()) {
-                  IngestionStatus.generateCheckpoint(result, local, uri)
+                  val checkpointPath = IngestionStatus.generateCheckpoint(result, local, uri)
+                  // Also add files already processed by the backend (no longer in S3)
+                  IngestionStatus.augmentCheckpointFromIndex(services.ingestion, checkpointPath, local, uri)
+                  IngestionStatus.printCheckpointSummary(checkpointPath, local, uri)
                 }
 
               case None =>

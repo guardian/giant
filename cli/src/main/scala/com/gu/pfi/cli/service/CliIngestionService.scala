@@ -17,7 +17,7 @@ import utils.{IngestionVerification, Logging}
 import scala.jdk.CollectionConverters._
 import scala.concurrent.ExecutionContext
 
-class CliIngestionService(http: CliHttpClient)(implicit ec: ExecutionContext) extends Logging {
+class CliIngestionService(val http: CliHttpClient)(implicit ec: ExecutionContext) extends Logging {
   def listCollections(): Attempt[List[CliCollection]] = {
     http.get("/api/collections").flatMap { response =>
       response.validate[List[CliCollection]].toAttempt
