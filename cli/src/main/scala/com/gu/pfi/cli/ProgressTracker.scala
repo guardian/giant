@@ -1,17 +1,32 @@
 package com.gu.pfi.cli
 
+import java.nio.file.Path
+
 /**
  * Tracks and formats progress information for long-running operations
  */
-class ProgressTracker(operationName: String) {
+class ProgressTracker(operationName: String, totalExpected: Long = 0, rootPath: Option[Path] = None) {
   private var startTime: Long = System.currentTimeMillis()
   private var totalProcessed: Int = 0
   private var totalFailed: Int = 0
   private var totalSizeBytes: Long = 0
+  private var currentTopDir: String = ""
   
   def start(): Unit = {
     startTime = System.currentTimeMillis()
     println(ConsoleColors.info(s"Starting $operationName..."))
+  }
+
+  def noteDirectory(filePath: Path): Unit = {
+    rootPath.foreach { root =>
+      val relative = root.relativize(filePath)
+      val topDir = if (relative.getNameCount > 1) relative.getName(0).toString else "."
+      if (topDir != currentTopDir) {
+        currentTopDir = topDir
+        val pct = if (totalExpected > 0) f" (${(totalProcessed + totalFailed) * 100.0 / totalExpected}%.0f%% of this run done)" else ""
+        println(ConsoleColors.info(s"  → $topDir$pct"))
+      }
+    }
   }
   
   def updateBatch(successful: Int, failed: Int, bytesProcessed: Long): Unit = {
@@ -28,7 +43,8 @@ class ProgressTracker(operationName: String) {
       ConsoleColors.green(s"✓ $totalProcessed processed")
     }
     
-    val throughput = ConsoleColors.dim(f"(${rate}%.1f files/sec, ${formatBytes(totalSizeBytes)})")
+    val pct = if (totalExpected > 0) f" ${(totalProcessed + totalFailed) * 100.0 / totalExpected}%.1f%% of this run" else ""
+    val throughput = ConsoleColors.dim(f"(${rate}%.1f files/sec, ${formatBytes(totalSizeBytes)}$pct)")
     
     println(s"$status $throughput")
   }
@@ -74,4 +90,6 @@ class ProgressTracker(operationName: String) {
 
 object ProgressTracker {
   def apply(operationName: String): ProgressTracker = new ProgressTracker(operationName)
+  def apply(operationName: String, totalExpected: Long, rootPath: Path): ProgressTracker =
+    new ProgressTracker(operationName, totalExpected, Some(rootPath))
 }

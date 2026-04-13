@@ -19,18 +19,21 @@ class CliIngestionPipeline(ingestionService: CliIngestionService, s3Client: Inge
                            batchSize: Int, inMemoryThreshold: Long,
                            ingestionContext: ExecutionContext, nonBlockingContext: ExecutionContext) extends Logging {
 
-  def crawlFromFile(rootPath: Path, rootUri: Uri, languages: List[Language], checkpoint: IngestionCheckpoint): Future[(Int, Int)] = {
-    crawlIterator(filesIterator(rootPath, rootUri, languages), rootUri, languages, checkpoint)
+  def crawlFromFile(rootPath: Path, rootUri: Uri, languages: List[Language], checkpoint: IngestionCheckpoint, totalExpected: Long = 0): Future[(Int, Int)] = {
+    crawlIterator(filesIterator(rootPath, rootUri, languages), rootUri, languages, checkpoint, totalExpected, rootPath)
   }
 
-  def crawlIterator(files: Iterator[OnDiskFileContext], rootUri: Uri, languages: List[Language], checkpoint: IngestionCheckpoint): Future[(Int, Int)] = {
-    ingest(files, rootUri, inMemoryThreshold, languages, checkpoint)
+  def crawlIterator(files: Iterator[OnDiskFileContext], rootUri: Uri, languages: List[Language], checkpoint: IngestionCheckpoint, totalExpected: Long = 0, rootPath: Path = null): Future[(Int, Int)] = {
+    ingest(files, rootUri, inMemoryThreshold, languages, checkpoint, totalExpected, Option(rootPath))
   }
 
-  private def ingest(files: Iterator[OnDiskFileContext], rootUri: Uri, inMemorySize: Long, languages: List[Language], checkpoint: IngestionCheckpoint): Future[(Int, Int)] = {
+  private def ingest(files: Iterator[OnDiskFileContext], rootUri: Uri, inMemorySize: Long, languages: List[Language], checkpoint: IngestionCheckpoint, totalExpected: Long = 0, rootPath: Option[Path] = None): Future[(Int, Int)] = {
     implicit val ec: ExecutionContext = nonBlockingContext // this is the default context for when we are not doing IO
     
-    val progressTracker = ProgressTracker(s"Phase I ingestion of $rootUri")
+    val progressTracker = rootPath match {
+      case Some(rp) if totalExpected > 0 => ProgressTracker(s"Phase I ingestion of $rootUri", totalExpected, rp)
+      case _ => ProgressTracker(s"Phase I ingestion of $rootUri")
+    }
     progressTracker.start()
 
     // this lock is used to prevent interleaved reads
@@ -106,6 +109,7 @@ class CliIngestionPipeline(ingestionService: CliIngestionService, s3Client: Inge
       file -> processFile(file, languages)
     }.grouped(batchSize).foldLeft(Attempt.Right(0 -> 0)) { (accAttempt, fileToAttemptedResults) =>
       val (files, attemptedResults) = fileToAttemptedResults.unzip
+      files.foreach(f => progressTracker.noteDirectory(f.path))
       val batchSizeAttempt = Attempt.sequenceWithFailures(attemptedResults.toList)
         .map{ r => files.zip(r) }
         .map{ results =>

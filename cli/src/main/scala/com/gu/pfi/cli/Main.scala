@@ -260,7 +260,8 @@ object Main extends App with Logging {
             checkpoint.start()
 
             val command = new RunIngestion(services.ingestion, ingestionS3Client, services.veracrypt)
-            command.run(Uri(ingestArgs.ingestionUri()), source, options.ingestCmd.languages, checkpoint).map { case (successes, failures) =>
+            val totalExpected = scanResult.fileCount - previouslyUploaded.size
+            command.run(Uri(ingestArgs.ingestionUri()), source, options.ingestCmd.languages, checkpoint, totalExpected).map { case (successes, failures) =>
               if (failures > 0) {
                 checkpoint.close()
                 logger.info(ConsoleColors.dim(s"\nCheckpoint saved to ${checkpoint.checkpointPath}"))

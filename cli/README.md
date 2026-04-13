@@ -32,7 +32,7 @@ pfi-cli login --token YOUR_TOKEN --verbose
 | `logout` | Remove saved credentials |
 | `list` | Show all collections and ingestions |
 | `show` | Show details of a specific ingestion |
-| `status` | Check upload progress in S3 (useful after interruptions) |
+| `status` | Check upload progress (S3 bucket and backend index) |
 | `create-ingestion` | Create a new ingestion |
 | `ingest` | Upload files into an ingestion |
 | `verify` | Check that all source files have been indexed |
@@ -105,6 +105,7 @@ nohup pfi-cli ingest \
 
 The ingest command will:
 - Scan the source directory and show a summary before uploading
+- Show which top-level directory is currently being uploaded, with a percentage of this run completed
 - Track progress (files processed, throughput, data volume)
 - Save a checkpoint to `~/.pfi-checkpoints/` so uploads can be resumed
 
@@ -115,7 +116,7 @@ The ingest command will:
 If an ingestion is interrupted (network failure, process killed, etc.), simply re-run the same `ingest` command. The CLI saves a checkpoint file that tracks which files have been successfully uploaded. On resume it will:
 
 1. Load the checkpoint from `~/.pfi-checkpoints/`
-2. Spot-check a sample of previously uploaded files against S3 to verify the checkpoint is valid
+2. Spot-check a sample of previously uploaded files against the S3 ingest bucket (note: missing files are expected here since the backend removes files from the ingest bucket after processing them)
 3. Skip files that are already uploaded
 4. Continue from where it left off
 
@@ -132,28 +133,29 @@ The checkpoint is deleted automatically when the ingestion completes successfull
 
 ### Checking Upload Status
 
-If you're unsure where a partial upload got to (e.g. the checkpoint file is missing, or you're diagnosing an old upload), the `status` command reads the S3 ingest bucket directly:
+The `status` command checks how many files are in the S3 ingest bucket for an ingestion. Note that the S3 ingest bucket is **transient** — the backend removes files after processing them. Files missing from the bucket may already be fully indexed in Giant.
 
 ```bash
-# See how many files made it to S3
+# See how many files are currently in the S3 ingest bucket
 pfi-cli status --ingestionUri "BinLaden/ingestion" \
   --bucket pfi-giant-ingest-data-rex
 
-# Compare against local files to see what's missing
+# Compare against local files
 pfi-cli status --ingestionUri "BinLaden/ingestion" \
   --bucket pfi-giant-ingest-data-rex \
   --path /data/BinLaden
 ```
 
-With `--path`, this shows the number of files on disk vs in S3, a progress percentage, and lists the first 20 missing files.
+With `--path`, this shows per-directory breakdowns of upload progress.
 
 #### Recovering a Partial Upload from the Old Client
 
-If an ingestion was started with an older version of the CLI (which had no checkpointing), you can generate a checkpoint from what's already in S3 and then resume with the new client:
+If an ingestion was started with an older version of the CLI (which had no checkpointing), or the checkpoint file has been lost, you can generate one from what's already been uploaded:
 
 ```bash
-# 1. Scan S3 and generate a checkpoint file
+# 1. Generate a checkpoint from S3 + the backend index
 pfi-cli status --ingestionUri "BinLaden/ingestion" \
+  --uri https://giant.pfi.gutools.co.uk \
   --bucket pfi-giant-ingest-data-rex \
   --path /data/BinLaden \
   --generate-checkpoint
@@ -166,7 +168,11 @@ pfi-cli ingest \
   --path /data/BinLaden
 ```
 
-The `--generate-checkpoint` flag reads every metadata file in the S3 bucket (parallelised across 20 threads for speed), maps them back to local file paths, and writes a checkpoint to `~/.pfi-checkpoints/`. This works even for very large ingestions with hundreds of thousands of files.
+The `--generate-checkpoint` flag checks two sources:
+1. **S3 ingest bucket** — reads metadata files (parallelised across 20 threads) to find files still waiting to be processed
+2. **Backend index** — queries the Giant API to find files that have already been processed and removed from S3
+
+This provides complete coverage even when the S3 bucket has been partially or fully cleaned up by the backend. The `--uri` flag is needed so the command can query the backend index.
 
 ### Browsing Ingestions
 

@@ -122,7 +122,8 @@ class Options(args: Seq[String]) extends ScallopConf(args) {
 
   val statusCmd = new Subcommand("status") with CommonOptions {
     descr("Check the ingest S3 bucket to see which files have been uploaded for an ingestion. " +
-      "Useful for diagnosing interrupted uploads — shows exactly which files made it to S3.")
+      "Note: the S3 ingest bucket is transient — the backend removes files after processing them, " +
+      "so files missing from S3 may already be fully indexed.")
 
     val ingestionUri = opt[String]("ingestionUri", required = true, noshort = true,
       descr = "Ingestion URI (<collection>/<ingestion>)")
@@ -131,7 +132,8 @@ class Options(args: Seq[String]) extends ScallopConf(args) {
       descr = "Local source directory to compare against. If provided, shows which files are missing from S3.")
 
     val generateCheckpoint = opt[Boolean]("generate-checkpoint", noshort = true, default = Some(false),
-      descr = "Generate a checkpoint file from S3 state, so a subsequent ingest will skip already-uploaded files. Requires --path.")
+      descr = "Generate a checkpoint file from S3 and the backend index, so a subsequent ingest will skip already-uploaded files. " +
+        "Checks both the S3 ingest bucket and the backend's file index for maximum coverage. Requires --path.")
 
     val bucket = opt[String]("bucket", noshort = true, default = Some("ingest-data"),
       descr = "Ingestion S3 bucket")

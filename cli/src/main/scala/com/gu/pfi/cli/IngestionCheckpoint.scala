@@ -86,14 +86,13 @@ class IngestionCheckpoint(ingestionUri: String) extends Logging {
     }
 
     if (missing > 0) {
-      logger.warn(ConsoleColors.warning(
-        s"⚠ Checkpoint validation: $missing of ${sample.size} sampled files not found in S3"
-      ))
-      logger.warn(ConsoleColors.warning(
-        "The checkpoint may be stale. Consider deleting it and re-running, or run 'verify' after indexing completes."
+      logger.warn(ConsoleColors.dim(
+        s"Note: $missing of ${sample.size} sampled files not found in the S3 ingest bucket. " +
+        "This is expected — the backend removes files from the ingest bucket after processing. " +
+        "This check only reflects what is waiting to be processed, not what has been successfully uploaded."
       ))
     } else {
-      logger.info(ConsoleColors.dim(s"Checkpoint validated: ${sample.size} sampled files confirmed in S3"))
+      logger.info(ConsoleColors.dim(s"Checkpoint validated: ${sample.size} sampled files confirmed in S3 ingest bucket"))
     }
 
     missing
