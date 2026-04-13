@@ -63,10 +63,11 @@ sudo aws s3 cp s3://investigations-testing-data/BinLaden/Everything.20171105.zip
 ```
 
 5. Login to Giant using a token which you can find in Settings > About in the UI. (Make sure you use the relevant stack, i.e. the Playground frontend if you're ingesting data with a Playground worker).
-All these commands default the `--uri` parameter to `http://localhost:9001`
+
+> **Note:** The `--uri` parameter defaults to `http://localhost:9001`, so it can be omitted when running directly on a Giant worker instance. All examples below include it explicitly for clarity.
 
 ```
-pfi-cli login --token YOUR_TOKEN_HERE
+pfi-cli login --uri https://giant.pfi.gutools.co.uk --token YOUR_TOKEN_HERE
 ```
 
 The above command writes to `~/.pfi-token`
@@ -74,7 +75,8 @@ The above command writes to `~/.pfi-token`
 6. Create the ingestion
 
 ```
-pfi-cli create-ingestion --ingestionUri "BinLaden/ingestion"
+pfi-cli create-ingestion --uri https://giant.pfi.gutools.co.uk \
+  --ingestionUri "BinLaden/ingestion"
 ```
 
 This will confirm the collection and ingestion names and print the next command to run.
@@ -83,6 +85,7 @@ This will confirm the collection and ingestion names and print the next command 
 
 ```
 pfi-cli ingest \
+  --uri https://giant.pfi.gutools.co.uk \
   --ingestionUri "BinLaden/ingestion" \
   --bucket pfi-giant-ingest-data-rex \
   --sseAlgorithm aws:kms \
@@ -96,6 +99,7 @@ This scans the source directory and shows a summary (file count, total size, des
 
 ```
 nohup pfi-cli ingest \
+  --uri https://giant.pfi.gutools.co.uk \
   --ingestionUri "BinLaden/ingestion" \
   --bucket pfi-giant-ingest-data-rex \
   --sseAlgorithm aws:kms \
@@ -125,6 +129,7 @@ If an ingestion is interrupted (network failure, process killed, etc.), simply r
 ```
 # Just re-run the same command
 pfi-cli ingest \
+  --uri https://giant.pfi.gutools.co.uk \
   --ingestionUri "BinLaden/ingestion" \
   --bucket pfi-giant-ingest-data-rex \
   --sseAlgorithm aws:kms \
@@ -142,6 +147,7 @@ Use `--no-checkpointing` to skip checkpoint read/write entirely. This is useful 
 
 ```bash
 pfi-cli ingest \
+  --uri https://giant.pfi.gutools.co.uk \
   --ingestionUri "BinLaden/ingestion" \
   --bucket pfi-giant-ingest-data-rex \
   --sseAlgorithm aws:kms \
@@ -155,11 +161,15 @@ The `status` command checks how many files are in the S3 ingest bucket for an in
 
 ```bash
 # See how many files are currently in the S3 ingest bucket
-pfi-cli status --ingestionUri "BinLaden/ingestion" \
+pfi-cli status \
+  --uri https://giant.pfi.gutools.co.uk \
+  --ingestionUri "BinLaden/ingestion" \
   --bucket pfi-giant-ingest-data-rex
 
 # Compare against local files
-pfi-cli status --ingestionUri "BinLaden/ingestion" \
+pfi-cli status \
+  --uri https://giant.pfi.gutools.co.uk \
+  --ingestionUri "BinLaden/ingestion" \
   --bucket pfi-giant-ingest-data-rex \
   --path /data/BinLaden
 ```
@@ -180,6 +190,7 @@ pfi-cli status --ingestionUri "BinLaden/ingestion" \
 
 # 2. Re-run ingest — it will pick up the checkpoint and skip already-uploaded files
 pfi-cli ingest \
+  --uri https://giant.pfi.gutools.co.uk \
   --ingestionUri "BinLaden/ingestion" \
   --bucket pfi-giant-ingest-data-rex \
   --sseAlgorithm aws:kms \
@@ -196,13 +207,15 @@ This provides complete coverage even when the S3 bucket has been partially or fu
 
 ```bash
 # List all collections and ingestions
-pfi-cli list
+pfi-cli list --uri https://giant.pfi.gutools.co.uk
 
 # Show details of a specific ingestion (including indexed file count)
-pfi-cli show --ingestionUri "BinLaden/ingestion"
+pfi-cli show --uri https://giant.pfi.gutools.co.uk \
+  --ingestionUri "BinLaden/ingestion"
 
 # Verify all source files have been indexed after phase 2 completes
-pfi-cli verify --ingestion "BinLaden/ingestion"
+pfi-cli verify --uri https://giant.pfi.gutools.co.uk \
+  --ingestion "BinLaden/ingestion"
 ```
 
 ### Running pfi-cli locally
