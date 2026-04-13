@@ -79,8 +79,18 @@ object Main extends App with Logging {
           if (collections.isEmpty) {
             logger.info(ConsoleColors.dim("No collections found"))
           } else {
-            collections.sortBy(_.uri.toLowerCase(Locale.UK)).foreach { collection =>
-              logger.info(ConsoleColors.bold(s"📁 ${collection.uri}"))
+          val collectionFilter = options.listCmd.collection.toOption
+          val filtered = collectionFilter match {
+            case Some(name) => collections.filter(_.uri.equalsIgnoreCase(name))
+            case None => collections
+          }
+
+          if (filtered.isEmpty && collectionFilter.isDefined) {
+            logger.info(ConsoleColors.warning(s"No collection found matching '${collectionFilter.get}'"))
+            logger.info(ConsoleColors.dim("Use 'list' without --collection to see all collections"))
+          } else {
+            filtered.sortBy(_.uri.toLowerCase(Locale.UK)).foreach { collection =>
+              logger.info(ConsoleColors.bold(s"\uD83D\uDCC1 ${collection.uri}"))
               if (collection.ingestions.isEmpty) {
                 logger.info(ConsoleColors.dim("   (no ingestions)"))
               } else {
@@ -90,8 +100,9 @@ object Main extends App with Logging {
                 }
               }
             }
-            val totalIngestions = collections.map(_.ingestions.size).sum
-            logger.info(ConsoleColors.dim(s"\n${collections.size} collection(s), $totalIngestions ingestion(s)"))
+            val totalIngestions = filtered.map(_.ingestions.size).sum
+            logger.info(ConsoleColors.dim(s"\n${filtered.size} collection(s), $totalIngestions ingestion(s)"))
+          }
           }
         }
       }
