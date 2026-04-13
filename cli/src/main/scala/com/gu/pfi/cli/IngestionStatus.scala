@@ -340,7 +340,6 @@ object IngestionStatus extends Logging {
     // Load existing checkpoint entries to avoid duplicates
     val existing = loadCheckpointPaths(checkpointPath)
 
-    val rootName = localPath.getFileName.toString
     val stream = Files.walk(localPath)
     val allFiles: List[Path] = try {
       stream.iterator().asScala
@@ -357,7 +356,10 @@ object IngestionStatus extends Logging {
     try {
       allFiles.grouped(IngestionVerification.BATCH_SIZE).foreach { batch =>
         val filePaths = batch.map { file =>
-          val relativePath = s"$rootName/${localPath.relativize(file)}"
+          // Use just the relative path from the local root, matching how the
+          // ingestion pipeline creates blob URIs (ingestionUri + relativePath).
+          // The backend's verifyFiles endpoint prepends collection/ingestion/ itself.
+          val relativePath = localPath.relativize(file).toString
           (file, relativePath)
         }
 
