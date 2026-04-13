@@ -3,16 +3,16 @@ package extraction
 import cats.syntax.either._
 import extraction.Worker.Batch
 import model.manifest.{Blob, WorkItem}
+import org.neo4j.driver.exceptions.TransientException
 import services.manifest.WorkerManifest
 import services.observability._
 import services.{Metrics, MetricsService, ObjectStorage}
-import utils.{Logging, WorkerControl}
 import utils.attempt._
+import utils.{Logging, WorkerControl}
 
 import java.io.InputStream
 import scala.concurrent.ExecutionContext
 import scala.language.postfixOps
-import scala.util.Try
 import scala.util.control.NonFatal
 
 object Worker extends Logging {
@@ -153,9 +153,17 @@ class Worker(
       Left(UnknownFailure(e))
   }
 
-  private def markAsComplete(params: ExtractionParams, blob: Blob, extractor: Extractor): Unit = {
+  private val markAsCompleteMaxRetries = 3
+  private def markAsComplete(params: ExtractionParams, blob: Blob, extractor: Extractor, attemptNumber: Int = 1): Unit = {
     manifest.markAsComplete(params, blob, extractor).leftMap { failure =>
-      logger.error(s"Failed to mark '${blob.uri.value}' processed by '${extractor.name}' as complete: ${failure.msg}")
+      val msg = s"Failed to mark '${blob.uri.value}' processed by '${extractor.name}' as complete: ${failure.msg}"
+      if(failure.toThrowable.isInstanceOf[TransientException] && attemptNumber < markAsCompleteMaxRetries) {
+        logger.warn(s"(attempt $attemptNumber of $markAsCompleteMaxRetries) $msg. SO, retrying...")
+        Thread.sleep(500 * attemptNumber) // backoff a bit before retrying
+        markAsComplete(params, blob, extractor, attemptNumber + 1)
+      } else {
+        logger.error(s"(attempt $attemptNumber of $markAsCompleteMaxRetries) $msg. SO, giving up!")
+      }
     }
   }
 
