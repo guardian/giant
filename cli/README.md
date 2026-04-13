@@ -103,9 +103,29 @@ nohup pfi-cli ingest \
 
 The ingest command will:
 - Scan the source directory and show a summary before uploading
+- Show which top-level directory is currently being uploaded, with a percentage of this run completed
 - Track progress (files processed, throughput, data volume)
 
 9. Once the phase 1 ingestion is complete, you'll need to look in the Giant logs to monitor phase 2 ingestion progress. These can be found at `/var/log/pfi/frontend.log`
+
+### Resuming an Interrupted Ingestion
+
+If an ingestion is interrupted (network failure, process killed, etc.), simply re-run the same `ingest` command. The CLI saves a checkpoint file that tracks which files have been successfully uploaded. On resume it will:
+
+1. Load the checkpoint from `~/.pfi-checkpoints/`
+2. Skip files that are already uploaded
+3. Continue from where it left off
+
+```
+# Just re-run the same command
+pfi-cli ingest \
+  --ingestionUri "BinLaden/ingestion" \
+  --bucket pfi-giant-ingest-data-rex \
+  --sseAlgorithm aws:kms \
+  --path /data/BinLaden
+```
+
+The checkpoint is deleted automatically when the ingestion completes successfully.
 
 ### Browsing Ingestions
 
