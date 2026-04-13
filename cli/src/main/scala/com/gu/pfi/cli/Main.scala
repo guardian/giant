@@ -257,8 +257,14 @@ object Main extends App with Logging {
             checkpoint.start()
 
             val command = new RunIngestion(services.ingestion, ingestionS3Client, services.veracrypt)
-            command.run(Uri(ingestArgs.ingestionUri()), source, options.ingestCmd.languages, checkpoint).map { _ =>
-              checkpoint.delete()
+            command.run(Uri(ingestArgs.ingestionUri()), source, options.ingestCmd.languages, checkpoint).map { case (successes, failures) =>
+              if (failures > 0) {
+                checkpoint.close()
+                logger.info(ConsoleColors.dim(s"\nCheckpoint saved to ${checkpoint.checkpointPath}"))
+                logger.info(ConsoleColors.dim(s"$failures files failed. Re-run the same command to retry failed files"))
+              } else {
+                checkpoint.delete()
+              }
               logger.info(ConsoleColors.dim("\nUse 'verify' to confirm all files were processed by the server"))
             }.recoverWith { case failure =>
               checkpoint.close()

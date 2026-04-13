@@ -21,12 +21,12 @@ class RunIngestion(ingestions: CliIngestionService, ingestionS3Client: Ingestion
   private val ingestionContext = ExecutionContext.fromExecutorService(Executors.newFixedThreadPool(10))
   private implicit val defaultContext: ExecutionContext = scala.concurrent.ExecutionContext.global
 
-  def run(ingestionUri: Uri, source: IngestionSource, languages: List[Language], checkpoint: IngestionCheckpoint): Attempt[Unit] = for {
+  def run(ingestionUri: Uri, source: IngestionSource, languages: List[Language], checkpoint: IngestionCheckpoint): Attempt[(Int, Int)] = for {
     rootPath <- mountSource(source)
-    _ <- runPipeline(rootPath, ingestionUri, languages, checkpoint)
+    result <- runPipeline(rootPath, ingestionUri, languages, checkpoint)
     _ <- dismountSource(source, rootPath)
   } yield {
-    ()
+    result
   }
 
   // We return absolute paths here as the ingestion pipeline use string manipulation to work out parent paths
@@ -47,7 +47,7 @@ class RunIngestion(ingestions: CliIngestionService, ingestionS3Client: Ingestion
       veracrypt.dismount(volume, mountpoint)
   }
 
-  private def runPipeline(root: Path, ingestionUri: Uri, languages: List[Language], checkpoint: IngestionCheckpoint): Attempt[Unit] = {
+  private def runPipeline(root: Path, ingestionUri: Uri, languages: List[Language], checkpoint: IngestionCheckpoint): Attempt[(Int, Int)] = {
     val pipeline = new CliIngestionPipeline(ingestions, ingestionS3Client, batchSize, inMemoryThreshold, ingestionContext, defaultContext)
     val result = pipeline.crawlFromFile(root, ingestionUri, languages, checkpoint)
 
