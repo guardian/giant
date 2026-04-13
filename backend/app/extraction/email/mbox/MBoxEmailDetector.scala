@@ -25,9 +25,9 @@ object MBoxEmailDetector extends CustomTikaDetector {
       try {
         val messageCount = mbox.getMessageCount()
         if(messageCount >= 2) {
+          logger.info(s"Mbox file had $messageCount messages.")
           Some(MediaType.parse(MBOX_MIME_TYPE))
         } else {
-          logger.error(s"Mbox file had ${messageCount} messages - this could be because JakartaMail failed to properly open the MBOX file. ")
           None
         }
       } catch  {
