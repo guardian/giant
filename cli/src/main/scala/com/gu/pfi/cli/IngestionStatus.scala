@@ -372,7 +372,11 @@ object IngestionStatus extends Logging {
           ).await()
           val response = Json.parse(rawResponse.body().string()).as[VerifyResponse]
 
-          val notIndexed = response.filesNotIndexed.toSet
+          val notIndexed = response.filesNotIndexed.map { path =>
+            // Backend returns full URIs (collection/ingestion/path), strip prefix to match our relative paths
+            val prefix = ingestionUri + "/"
+            if (path.startsWith(prefix)) path.stripPrefix(prefix) else path
+          }.toSet
           filePaths.foreach { case (file, relPath) =>
             val absolutePath = file.toAbsolutePath.toString
             if (!notIndexed.contains(relPath) && !existing.contains(absolutePath)) {
