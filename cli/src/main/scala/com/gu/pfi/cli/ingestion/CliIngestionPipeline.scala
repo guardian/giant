@@ -19,15 +19,15 @@ class CliIngestionPipeline(ingestionService: CliIngestionService, s3Client: Inge
                            batchSize: Int, inMemoryThreshold: Long,
                            ingestionContext: ExecutionContext, nonBlockingContext: ExecutionContext) extends Logging {
 
-  def crawlFromFile(rootPath: Path, rootUri: Uri, languages: List[Language], checkpoint: IngestionCheckpoint): Future[Unit] = {
+  def crawlFromFile(rootPath: Path, rootUri: Uri, languages: List[Language], checkpoint: IngestionCheckpoint): Future[(Int, Int)] = {
     crawlIterator(filesIterator(rootPath, rootUri, languages), rootUri, languages, checkpoint, Some(rootPath))
   }
 
-  def crawlIterator(files: Iterator[OnDiskFileContext], rootUri: Uri, languages: List[Language], checkpoint: IngestionCheckpoint, rootPath: Option[Path] = None): Future[Unit] = {
+  def crawlIterator(files: Iterator[OnDiskFileContext], rootUri: Uri, languages: List[Language], checkpoint: IngestionCheckpoint, rootPath: Option[Path] = None): Future[(Int, Int)] = {
     ingest(files, rootUri, inMemoryThreshold, languages, checkpoint, rootPath)
   }
 
-  private def ingest(files: Iterator[OnDiskFileContext], rootUri: Uri, inMemorySize: Long, languages: List[Language], checkpoint: IngestionCheckpoint, rootPath: Option[Path] = None): Future[Unit] = {
+  private def ingest(files: Iterator[OnDiskFileContext], rootUri: Uri, inMemorySize: Long, languages: List[Language], checkpoint: IngestionCheckpoint, rootPath: Option[Path] = None): Future[(Int, Int)] = {
     implicit val ec: ExecutionContext = nonBlockingContext // this is the default context for when we are not doing IO
     
     val progressTracker = rootPath match {
@@ -143,9 +143,11 @@ class CliIngestionPipeline(ingestionService: CliIngestionService, s3Client: Inge
     finalAttempt.fold(
       failure => {
         progressTracker.fail(failure.msg)
+        (0, 0)
       },
       { case (successes, failures) =>
         progressTracker.complete()
+        (successes, failures)
       }
     )(nonBlockingContext)
   }
