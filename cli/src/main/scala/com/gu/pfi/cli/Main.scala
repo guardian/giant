@@ -242,8 +242,13 @@ object Main extends App with Logging {
             logger.info(ConsoleColors.info("Dry run - no files were uploaded"))
             Attempt.Right(())
           } else {
-            val checkpoint = new IngestionCheckpoint(ingestArgs.ingestionUri())
+            val checkpointEnabled = !ingestArgs.noCheckpointing()
+            val checkpoint = new IngestionCheckpoint(ingestArgs.ingestionUri(), enabled = checkpointEnabled)
             val previouslyUploaded = checkpoint.load()
+
+            if (!checkpointEnabled) {
+              logger.info(ConsoleColors.dim("Checkpointing disabled — all files will be uploaded"))
+            }
 
             val source = IngestionSource(options)
             val credentials = AwsCredentials(ingestArgs.minioAccessKey.toOption, ingestArgs.minioSecretKey.toOption, ingestArgs.awsProfile.toOption)
@@ -262,10 +267,12 @@ object Main extends App with Logging {
             val command = new RunIngestion(services.ingestion, ingestionS3Client, services.veracrypt)
             val totalExpected = scanResult.fileCount - previouslyUploaded.size
             command.run(Uri(ingestArgs.ingestionUri()), source, options.ingestCmd.languages, checkpoint, totalExpected).map { case (successes, failures) =>
-              if (failures > 0) {
+              if (failures > 0 && checkpointEnabled) {
                 checkpoint.close()
                 logger.info(ConsoleColors.dim(s"\nCheckpoint saved to ${checkpoint.checkpointPath}"))
                 logger.info(ConsoleColors.dim(s"$failures files failed. Re-run the same command to retry failed files"))
+              } else if (failures > 0) {
+                logger.info(ConsoleColors.dim(s"\n$failures files failed (no checkpoint saved — checkpointing was disabled)"))
               } else {
                 checkpoint.delete()
               }
