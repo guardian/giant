@@ -20,10 +20,13 @@ import scala.util.Try
 case class DiscoveryResult(updatedConfig: Config, jsonLoggingProperties: Map[String, String])
 
 object AwsDiscovery extends Logging {
+
+  val metadataInstanceIdString = "/latest/meta-data/instance-id"
+
   def build(config: Config, discoveryConfig: AWSDiscoveryConfig): DiscoveryResult = {
     // We won't have an instance ID if running locally but against databases in S3
     val metadataClient = Ec2MetadataClient.create()
-    val maybeInstanceId = Option(metadataClient.get("/latest/meta-data/instance-id").asString())
+    val maybeInstanceId = Option(metadataClient.get(metadataInstanceIdString).asString())
 
     val AWSDiscoveryConfig(region, stack, app, stage, _, _, _) = discoveryConfig
     val runningLocally = discoveryConfig.runningLocally.getOrElse(false)

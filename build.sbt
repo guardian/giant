@@ -231,7 +231,8 @@ lazy val cli = (project in file("cli"))
       "com.auth0" % "java-jwt" % "3.3.0",
       "org.slf4j" % "jcl-over-slf4j" % slf4jVersion,
       "com.google.guava" % "guava" % "28.2-jre",
-      "org.scalatest" %% "scalatest" % scalatestVersion
+      "org.scalatest" %% "scalatest" % scalatestVersion,
+      "software.amazon.awssdk.crt" % "aws-crt" % "0.44.0"
     ),
     run / fork := true,
     run / connectInput := true,

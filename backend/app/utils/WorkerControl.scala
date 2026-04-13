@@ -55,7 +55,7 @@ class AWSWorkerControl(config: WorkerConfig, discoveryConfig: AWSDiscoveryConfig
 
   def getWorkerDetails(implicit ec: ExecutionContext): Attempt[WorkerDetails] = for {
     myInstanceId <- Attempt.catchNonFatalBlasé {
-        metadataClient.get("/latest/meta-data/instance-id").asString()
+        metadataClient.get(AwsDiscovery.metadataInstanceIdString).asString()
     }
 
     instances <- Attempt.catchNonFatalBlasé {

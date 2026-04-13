@@ -75,7 +75,7 @@ class S3IngestStorage private(client: S3Client, presigner: S3Presigner, ingestBu
   override def getMetadata(key: Key): Either[Failure, FileContext] = {
     val request = GetObjectRequest.builder()
       .bucket(ingestBucket)
-      .key(dataKey(key))
+      .key(metadataKey(key))
       .build()
 
     Either.catchNonFatal(client.s3.getObject(request)).leftMap(UnknownFailure.apply).flatMap { stream =>
