@@ -22,7 +22,7 @@ type Props<T> = {
   selectedEntries: TreeEntry<T>[];
   focusedEntry: TreeEntry<T> | null;
   columnsConfig: ColumnsConfig<T>;
-  expandedNodes: TreeNode<T>[];
+  expandedNodes: TreeEntry<T>[];
 
   focusSibling: (
     i: number,
