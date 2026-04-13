@@ -111,6 +111,9 @@ class Options(args: Seq[String]) extends ScallopConf(args) {
 
   val listCmd = new Subcommand("list") with CommonOptions {
     descr("List all collections and their ingestions")
+
+    val collection = opt[String]("collection", noshort = true,
+      descr = "Filter to a specific collection")
   }
 
   val showCmd = new Subcommand("show") with CommonOptions {
