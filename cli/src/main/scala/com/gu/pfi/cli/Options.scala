@@ -80,6 +80,10 @@ class IngestCommandOptions extends Subcommand("ingest") with CommonOptions with 
 
     val dryRun = opt[Boolean]("dry-run", noshort = true, default = Some(false),
       descr = "Scan and show what would be uploaded without actually uploading anything")
+
+    val noCheckpointing = opt[Boolean]("no-checkpointing", noshort = true, default = Some(false),
+      descr = "Disable checkpoint read/write. Checkpointing requires the same --path between runs; " +
+        "use this flag when adding files from a different source path to an existing ingestion")
 }
 
 class Options(args: Seq[String]) extends ScallopConf(args) {

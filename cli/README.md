@@ -120,6 +120,8 @@ If an ingestion is interrupted (network failure, process killed, etc.), simply r
 2. Skip files that are already uploaded
 3. Continue from where it left off
 
+**Important:** Checkpointing relies on absolute local file paths matching between runs. The same `--path` must be used each time — if you move the source files or upload from a different directory, the checkpoint won't recognise the files and will re-upload everything. If you need to add files from a different path to the same ingestion, use `--no-checkpointing`.
+
 ```
 # Just re-run the same command
 pfi-cli ingest \
@@ -131,6 +133,22 @@ pfi-cli ingest \
 ```
 
 The checkpoint is deleted automatically when the ingestion completes successfully.
+
+#### Disabling Checkpointing
+
+Use `--no-checkpointing` to skip checkpoint read/write entirely. This is useful when:
+- Topping up an ingestion with additional files from a different source directory
+- Making small one-off additions where checkpoint overhead isn't needed
+- The local path doesn't correspond exactly to the original ingestion path
+
+```bash
+pfi-cli ingest \
+  --ingestionUri "BinLaden/ingestion" \
+  --bucket pfi-giant-ingest-data-rex \
+  --sseAlgorithm aws:kms \
+  --path /data/BinLaden-extras \
+  --no-checkpointing
+```
 
 ### Browsing Ingestions
 
