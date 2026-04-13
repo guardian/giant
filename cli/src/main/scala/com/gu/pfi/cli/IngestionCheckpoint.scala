@@ -17,7 +17,7 @@ import utils.Logging
  * skipped.  If the checkpoint file is missing the ingestion starts from
  * scratch — use the `verify` command after indexing completes to find any gaps.
  */
-class IngestionCheckpoint(ingestionUri: String) extends Logging {
+class IngestionCheckpoint(ingestionUri: String, enabled: Boolean = true) extends Logging {
   private val checkpointDir = Paths.get(System.getProperty("user.home"), ".pfi-checkpoints")
   private val checkpointFile = checkpointDir.resolve(sanitiseFilename(ingestionUri) + ".checkpoint")
   private var writer: Option[BufferedWriter] = None
@@ -30,6 +30,7 @@ class IngestionCheckpoint(ingestionUri: String) extends Logging {
    * Streams the file line-by-line to avoid loading it all into memory at once.
    */
   def load(): Set[String] = {
+    if (!enabled) return Set.empty
     if (Files.exists(checkpointFile)) {
       val entries = Map.newBuilder[String, String]
       var count = 0
@@ -61,11 +62,13 @@ class IngestionCheckpoint(ingestionUri: String) extends Logging {
   }
 
   def start(): Unit = {
+    if (!enabled) return
     Files.createDirectories(checkpointDir)
     writer = Some(new BufferedWriter(new FileWriter(checkpointFile.toFile, true)))
   }
 
   def recordSuccess(filePath: String, s3DataKey: String): Unit = {
+    if (!enabled) return
     writer.foreach { w =>
       w.write(s"$filePath\t$s3DataKey")
       w.newLine()
