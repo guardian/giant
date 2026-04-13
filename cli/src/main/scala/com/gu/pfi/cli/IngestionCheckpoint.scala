@@ -3,7 +3,6 @@ package com.gu.pfi.cli
 import java.io.{BufferedReader, BufferedWriter, FileReader, FileWriter}
 import java.nio.file.{Files, Path, Paths}
 
-import com.amazonaws.services.s3.AmazonS3
 import utils.Logging
 
 /**
@@ -14,10 +13,9 @@ import utils.Logging
  *
  * Each line in the checkpoint file is: <localFilePath>\t<s3DataKey>
  *
- * On resume the checkpoint is loaded from disk and (optionally) spot-checked
- * against S3 to confirm that the recorded uploads actually landed.  If the
- * checkpoint file is missing the ingestion starts from scratch — use the
- * `verify` command after indexing completes to find any gaps.
+ * On resume the checkpoint is loaded from disk and files already uploaded are
+ * skipped.  If the checkpoint file is missing the ingestion starts from
+ * scratch — use the `verify` command after indexing completes to find any gaps.
  */
 class IngestionCheckpoint(ingestionUri: String) extends Logging {
   private val checkpointDir = Paths.get(System.getProperty("user.home"), ".pfi-checkpoints")
@@ -60,43 +58,6 @@ class IngestionCheckpoint(ingestionUri: String) extends Logging {
     } else {
       Set.empty
     }
-  }
-
-  /**
-   * Spot-check a sample of checkpoint entries against S3 to verify they
-   * actually exist.  Returns the number of entries that failed validation
-   * (i.e. were in the checkpoint but missing from S3).
-   *
-   * This is a best-effort check — it samples up to `sampleSize` entries
-   * rather than verifying all of them, to keep resume fast.
-   */
-  def validateAgainstS3(s3: AmazonS3, bucket: String, sampleSize: Int = 5): Int = {
-    val entriesWithKeys = completedEntries.filter(_._2.nonEmpty)
-    if (entriesWithKeys.isEmpty) return 0
-
-    val sample = scala.util.Random.shuffle(entriesWithKeys.toList).take(sampleSize)
-    val missing = sample.count { case (_, s3Key) =>
-      try {
-        !s3.doesObjectExist(bucket, s3Key)
-      } catch {
-        case _: Exception =>
-          logger.warn(ConsoleColors.dim("Could not verify checkpoint against S3 — skipping validation"))
-          return 0 // can't reach S3, assume checkpoint is valid
-      }
-    }
-
-    if (missing > 0) {
-      logger.warn(ConsoleColors.warning(
-        s"⚠ Checkpoint validation: $missing of ${sample.size} sampled files not found in S3"
-      ))
-      logger.warn(ConsoleColors.warning(
-        "The checkpoint may be stale. Consider deleting it and re-running, or run 'verify' after indexing completes."
-      ))
-    } else {
-      logger.info(ConsoleColors.dim(s"Checkpoint validated: ${sample.size} sampled files confirmed in S3"))
-    }
-
-    missing
   }
 
   def start(): Unit = {
