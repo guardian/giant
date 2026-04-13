@@ -49,7 +49,7 @@ class ExcelTableExtractor(scratch: ScratchSpace, tableOps: Tables)(implicit ec: 
 
       breakable {
         while (xmlReader.hasNext) {
-          result :+= readRows(1000, xmlReader, stringsTable, stylesTable, sheetName, blob)
+          result :+= readRows(500, xmlReader, stringsTable, stylesTable, sheetName, blob)
           if (xmlReader.isStartElement && xmlReader.getLocalName.equals("sheetData")) break()
         }
       }
