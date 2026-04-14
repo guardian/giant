@@ -54,6 +54,7 @@ import {
 } from "../../util/treeUtils";
 import { setFocusedEntry } from "../../actions/workspaces/setFocusedEntry";
 import {
+  findNodeById,
   getEntryLink,
   processingStageToString,
   workspaceEntryPath,
@@ -86,21 +87,6 @@ import MdGlobeIcon from "react-icons/lib/md/public";
 import { FromNowDurationText } from "../UtilComponents/FromNowDurationText";
 import { DroppedFilesInfo } from "../Uploads/UploadFiles";
 import { createWarning } from "../../actions/problems";
-
-/** Recursively search a tree node for a child node by ID */
-function findNodeById(
-  node: TreeNode<WorkspaceEntry>,
-  id: string,
-): TreeNode<WorkspaceEntry> | undefined {
-  for (const child of node.children) {
-    if (isTreeNode(child)) {
-      if (child.id === id) return child;
-      const found = findNodeById(child, id);
-      if (found) return found;
-    }
-  }
-  return undefined;
-}
 
 type Props = ReturnType<typeof mapStateToProps> &
   ReturnType<typeof mapDispatchToProps> &
