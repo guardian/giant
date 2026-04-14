@@ -55,7 +55,7 @@ class AWSWorkerControl(config: WorkerConfig, discoveryConfig: AWSDiscoveryConfig
   def getWorkerDetails(implicit ec: ExecutionContext): Attempt[WorkerDetails] = for {
     myInstanceId <- Attempt.catchNonFatalBlasé { EC2MetadataUtils.getInstanceId }
     instances <- Attempt.catchNonFatalBlasé {
-      AwsDiscovery.findRunningInstances(discoveryConfig.stack, app = "pfi-worker", discoveryConfig.stage, ec2)
+      AwsDiscovery.findRunningInstances(discoveryConfig.stack, app = List("pfi-worker", "pfi-spot-worker"), discoveryConfig.stage, ec2)
     }
   } yield {
     WorkerDetails(instances.map(_.instanceId()).toSet, myInstanceId)
@@ -67,18 +67,18 @@ class AWSWorkerControl(config: WorkerConfig, discoveryConfig: AWSDiscoveryConfig
   }
 
   override def start(scheduler: Scheduler)(implicit ec: ExecutionContext): Unit = {
-    discoveryConfig.workerAutoScalingGroupName match {
-      case Some(workerAutoScalingGroupName) =>
+    (discoveryConfig.workerAutoScalingGroupName, discoveryConfig.spotWorkerAutoscalingGroupName) match {
+      case (Some(workerAutoScalingGroupName), Some(spotWorkerAutoscalingGroupName)) =>
         scheduler.scheduleWithFixedDelay(config.controlInterval, config.controlInterval)(() => {
           // Only run the check on the oldest instance to get as close as we running the checks as a "singleton"
           if(runningOnOldestInstance()) {
-            val state = getCurrentState(workerAutoScalingGroupName)
+            val state = getCurrentState(workerAutoScalingGroupName, spotWorkerAutoscalingGroupName)
             // reuse the state needed for worker control to report cloudwatch metrics on work remaining
             state.foreach(publishStateMetrics)
             if(AwsDiscovery.isRiffRaffDeployRunning(discoveryConfig.stack, discoveryConfig.stage, ec2)) {
               logger.info("AWSWorkerControl - not running check as Riff-Raff deploy is running (instances are running and tagged as Magenta:Terminate)")
             } else {
-              state.foreach(s => scaleUpOrDownIfNeeded(s, workerAutoScalingGroupName))
+              state.foreach(s => scaleUpOrDownIfNeeded(s, workerAutoScalingGroupName, spotWorkerAutoscalingGroupName))
               breakLocksOnTerminatedWorkers()
             }
           } else {
@@ -86,8 +86,8 @@ class AWSWorkerControl(config: WorkerConfig, discoveryConfig: AWSDiscoveryConfig
           }
         })
 
-      case None =>
-        logger.warn("Missing aws.workerAutoScalingGroupName setting, cannot automatically update workers")
+      case _ =>
+        logger.warn("Missing aws.workerAutoScalingGroupName or aws.spotWorkerAutoscalingGroupName setting, cannot automatically update workers")
     }
   }
 
@@ -98,24 +98,38 @@ class AWSWorkerControl(config: WorkerConfig, discoveryConfig: AWSDiscoveryConfig
 
   private def runningOnOldestInstance()(implicit ec: ExecutionContext): Boolean = {
     val myInstanceId = EC2MetadataUtils.getInstanceId
-    val otherInstances =  AwsDiscovery.findRunningInstances(discoveryConfig.stack, app = "pfi", discoveryConfig.stage, ec2)
+    val otherInstances =  AwsDiscovery.findRunningInstances(discoveryConfig.stack, app = List("pfi"), discoveryConfig.stage, ec2)
 
     val oldestInstance = otherInstances.toList.sortBy(_.launchTime()).headOption.map(_.instanceId())
 
     oldestInstance.isEmpty || oldestInstance.contains(myInstanceId)
   }
 
-  private def scaleUpOrDownIfNeeded(state: AWSWorkerControl.State, workerAutoScalingGroupName: String)(implicit ec: ExecutionContext): Unit = {
+  private def scaleUpOrDownIfNeeded(state: AWSWorkerControl.State, workerAutoScalingGroupName: String, spotWorkerAutoscalingGroupName: String)(implicit ec: ExecutionContext): Unit = {
       val operation = AWSWorkerControl.decideOperation(state, Instant.now().toEpochMilli, config.controlCooldown.toMillis)
+      
+      logger.info(s"AWSWorkerControl on-demand asg: ${state.workerAsg} spot asg: ${state.spotWorkerAsg} inProgress: ${state.inProgress}, outstandingFromIngestStore: ${state.outstandingFromIngestStore}, outstandingFromTodos: ${state.outstandingFromTodos}, operation: $operation")
 
-      logger.info(s"AWSWorkerControl desiredNumberOfWorkers: ${state.desiredNumberOfWorkers}, inProgress: ${state.inProgress}, outstandingFromIngestStore: ${state.outstandingFromIngestStore}, outstandingFromTodos: ${state.outstandingFromTodos} lastEventTime: ${new Date(state.lastEventTime)}, minimumNumberOfWorkers: ${state.minimumNumberOfWorkers}, maximumNumberOfWorkers: ${state.maximumNumberOfWorkers}, operation: $operation")
+    // as this check runs every minute, we assume that if there's a difference between actual/desired workers then
+    // there's a spot capacity problem, in which case we scale on demand instead of spot. Capacity is still constrained
+    // by the maximum size of the spot ASG via the check in decideOperation
+    val spotCapacityProblems = state.spotWorkerAsg.actualNumberOfWorkers < state.spotWorkerAsg.desiredNumberOfWorkers
 
       val scaleResult = operation match {
-        case Some(AddNewWorker) if state.desiredNumberOfWorkers < state.maximumNumberOfWorkers =>
-          setNumberOfWorkers(state.desiredNumberOfWorkers + 1, workerAutoScalingGroupName)
+        // we scale up using the spot ASG
+        case Some(AddNewWorker) if !spotCapacityProblems && state.spotWorkerAsg.desiredNumberOfWorkers < state.spotWorkerAsg.maximumNumberOfWorkers =>
+          setNumberOfWorkers(state.spotWorkerAsg.desiredNumberOfWorkers + 1, spotWorkerAutoscalingGroupName)
 
-        case Some(RemoveWorker) if state.desiredNumberOfWorkers > state.minimumNumberOfWorkers =>
-          setNumberOfWorkers(state.desiredNumberOfWorkers - 1, workerAutoScalingGroupName)
+        case Some(AddNewWorker) if state.workerAsg.desiredNumberOfWorkers < state.workerAsg.maximumNumberOfWorkers =>
+          setNumberOfWorkers(state.workerAsg.desiredNumberOfWorkers + 1, workerAutoScalingGroupName)
+
+        // when scaling down, start with the on demand ASG
+        case Some(RemoveWorker) if state.workerAsg.desiredNumberOfWorkers > state.workerAsg.minimumNumberOfWorkers =>
+          setNumberOfWorkers(state.workerAsg.desiredNumberOfWorkers - 1, workerAutoScalingGroupName)
+
+        case Some(RemoveWorker) if state.spotWorkerAsg.desiredNumberOfWorkers > state.spotWorkerAsg.minimumNumberOfWorkers =>
+          setNumberOfWorkers(state.spotWorkerAsg.desiredNumberOfWorkers - 1, spotWorkerAutoscalingGroupName)
+
 
         case _ =>
           Attempt.Right(())
@@ -128,22 +142,32 @@ class AWSWorkerControl(config: WorkerConfig, discoveryConfig: AWSDiscoveryConfig
     }
   }
 
-  private def getCurrentState(workerAutoScalingGroupName: String)(implicit ec: ExecutionContext): Attempt[AWSWorkerControl.State] = {
+  private def getAsgState(asgName: String)(implicit ec: ExecutionContext): Attempt[AWSWorkerControl.AsgState] = {
     for {
-      workerAutoScalingGroup <- getAutoScalingGroup(workerAutoScalingGroupName)
-      desiredNumberOfWorkers = workerAutoScalingGroup.desiredCapacity().intValue()
-      minimumNumberOfWorkers = workerAutoScalingGroup.minSize().intValue()
+      asg <- getAutoScalingGroup(asgName)
+      desiredNumberOfWorkers = asg.desiredCapacity().intValue()
+      actualNumberOfWorkers = asg.instances().size()
+      minimumNumberOfWorkers = asg.minSize().intValue()
       // This is not the same as the max in the auto-scaling group as we
       // need to maintain headroom to accommodate new workers during a
       // deploy even if we're scaled up due to the number of tasks
-      maximumNumberOfWorkers = Math.max(workerAutoScalingGroup.minSize(), workerAutoScalingGroup.maxSize() / 2)
-      lastEventTime <- getLastEventTime(workerAutoScalingGroup.autoScalingGroupName())
+      maximumNumberOfWorkers = Math.max(asg.minSize(), asg.maxSize() / 2)
+      lastEventTime <- getLastEventTime(asg.autoScalingGroupName())
+    } yield {
+      AWSWorkerControl.AsgState(desiredNumberOfWorkers, lastEventTime, minimumNumberOfWorkers, maximumNumberOfWorkers, actualNumberOfWorkers)
+      }
+    }
 
+
+  private def getCurrentState(workerAutoScalingGroupName: String, workerSpotAutoscalingGroupName: String)(implicit ec: ExecutionContext): Attempt[AWSWorkerControl.State] = {
+    for {
+      workerAutoScalingGroup <- getAsgState(workerAutoScalingGroupName)
+      spotWorkerAutoscalingGroup <- getAsgState(workerSpotAutoscalingGroupName)
       extractorWorkCounts <- Attempt.fromEither(manifest.getWorkCounts())
       filesLeftInS3UploadBucket <- Attempt.fromEither(ingestStorage.list)
     } yield {
-      AWSWorkerControl.State(desiredNumberOfWorkers, extractorWorkCounts.inProgress, filesLeftInS3UploadBucket.size,
-        extractorWorkCounts.outstanding, lastEventTime, minimumNumberOfWorkers, maximumNumberOfWorkers)
+      AWSWorkerControl.State(extractorWorkCounts.inProgress, filesLeftInS3UploadBucket.size,
+        extractorWorkCounts.outstanding, workerAutoScalingGroup, spotWorkerAutoscalingGroup)
     }
   }
 
@@ -189,7 +213,8 @@ class AWSWorkerControl(config: WorkerConfig, discoveryConfig: AWSDiscoveryConfig
 
   private def breakLocksOnTerminatedWorkers(): Attempt[Unit] = {
     Attempt.catchNonFatalBlasé {
-      val runningWorkers = AwsDiscovery.findRunningInstances(discoveryConfig.stack, app = "pfi-worker", discoveryConfig.stage, ec2)
+      val runningWorkers =
+        AwsDiscovery.findRunningInstances(discoveryConfig.stack, app = List("pfi-worker", "pfi-spot-worker"), discoveryConfig.stage, ec2)
       val runningInstanceIds = runningWorkers.map(_.instanceId()).toList
 
       logger.info(s"Breaking locks for any worker not running. Running: [${runningInstanceIds.mkString(", ")}]")
@@ -200,14 +225,28 @@ class AWSWorkerControl(config: WorkerConfig, discoveryConfig: AWSDiscoveryConfig
 }
 
 object AWSWorkerControl {
-  case class State(
+
+  case class AsgState(
     desiredNumberOfWorkers: Int,
+    lastEventTime: Long,
+    minimumNumberOfWorkers: Int,
+    maximumNumberOfWorkers: Int,
+    actualNumberOfWorkers: Int
+  ) {
+    override def toString: String =
+      s"desiredNumberOfWorkers=$desiredNumberOfWorkers, " +
+        s"actualNumberOfWorkers=$actualNumberOfWorkers " +
+        s"minimumNumberOfWorkers=$minimumNumberOfWorkers, " +
+        s"maximumNumberOfWorkers=$maximumNumberOfWorkers, " +
+        s"lastEventTime=${new Date(lastEventTime)}, "
+  }
+
+  case class State(
     inProgress: Int,
     outstandingFromIngestStore: Int,
     outstandingFromTodos: Int,
-    lastEventTime: Long,
-    minimumNumberOfWorkers: Int,
-    maximumNumberOfWorkers: Int
+    workerAsg: AsgState,
+    spotWorkerAsg: AsgState
   )
 
   sealed trait Operation
@@ -215,16 +254,18 @@ object AWSWorkerControl {
   case object RemoveWorker extends Operation
 
   def decideOperation(state: State, now: Long, cooldown: Long): Option[Operation] = {
-    val inCooldown = state.lastEventTime > (now - cooldown)
-    val manuallyScaledDown = state.desiredNumberOfWorkers == 0
+    val inCooldown = state.workerAsg.lastEventTime > (now - cooldown) || state.spotWorkerAsg.lastEventTime > (now - cooldown)
+    val manuallyScaledDown = state.workerAsg.desiredNumberOfWorkers == 0
 
     val outstandingInTotal = state.outstandingFromIngestStore + state.outstandingFromTodos
 
     if(inCooldown || manuallyScaledDown) {
       None
-    } else if(outstandingInTotal > 0 && state.desiredNumberOfWorkers < state.maximumNumberOfWorkers) {
+      // we scale to the maximum size of the spot ASG (capacity might end up being met in the on demand ASG if no spot capacity is availalbe)
+    } else if(outstandingInTotal > 0 && state.spotWorkerAsg.desiredNumberOfWorkers < state.spotWorkerAsg.maximumNumberOfWorkers) {
       Some(AddNewWorker)
-    } else if(outstandingInTotal == 0 && state.inProgress == 0 && state.desiredNumberOfWorkers > state.minimumNumberOfWorkers) {
+      // when scaling down automatically we check both asgs for excess capacity
+    } else if(outstandingInTotal == 0 && state.inProgress == 0 && state.workerAsg.desiredNumberOfWorkers + state.spotWorkerAsg.desiredNumberOfWorkers > state.workerAsg.minimumNumberOfWorkers + state.spotWorkerAsg.minimumNumberOfWorkers) {
       Some(RemoveWorker)
     } else {
       None

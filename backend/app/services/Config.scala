@@ -186,12 +186,13 @@ case class BucketConfig(
 }
 
 case class AWSDiscoveryConfig(
-  region: String,
-  stack: String,
-  app: String,
-  stage: String,
-  runningLocally: Option[Boolean],
-  workerAutoScalingGroupName: Option[String]
+                               region: String,
+                               stack: String,
+                               app: String,
+                               stage: String,
+                               runningLocally: Option[Boolean],
+                               workerAutoScalingGroupName: Option[String],
+                               spotWorkerAutoscalingGroupName: Option[String]
 ) {
   val regionV2: Region = Region.of(region)
 }

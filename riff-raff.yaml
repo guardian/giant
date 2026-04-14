@@ -54,6 +54,16 @@ deployments:
     dependencies:
       - pfi
 
+  pfi-spot-worker:
+    type: autoscaling
+    parameters:
+      bucketSsmKey: /pfi-playground/artifact.bucket
+      bucketSsmLookup: true
+    actions:
+      - deploy
+    dependencies:
+      - pfi
+
   pfi-cli:
     type: aws-s3
     parameters:

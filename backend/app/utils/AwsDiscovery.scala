@@ -24,7 +24,7 @@ object AwsDiscovery extends Logging {
     // We won't have an instance ID if running locally but against databases in S3
     val maybeInstanceId = Option(EC2MetadataUtils.getInstanceId)
 
-    val AWSDiscoveryConfig(region, stack, app, stage, _, _) = discoveryConfig
+    val AWSDiscoveryConfig(region, stack, app, stage, _, _, _) = discoveryConfig
     val runningLocally = discoveryConfig.runningLocally.getOrElse(false)
     val regionV2 = discoveryConfig.regionV2
 
@@ -121,7 +121,7 @@ object AwsDiscovery extends Logging {
     }
   }
 
-  def findRunningInstances(stack: String, app: String, stage: String, ec2Client: Ec2Client): Iterable[Instance] = {
+  def findRunningInstances(stack: String, app: List[String], stage: String, ec2Client: Ec2Client): Iterable[Instance] = {
     val request = DescribeInstancesRequest.builder()
       .filters(
         Filter.builder()
@@ -130,7 +130,7 @@ object AwsDiscovery extends Logging {
         .build(),
         Filter.builder()
           .name("tag:App")
-          .values(app)
+          .values(app.asJava)
           .build(),
         Filter.builder()
           .name("tag:Stage")
@@ -176,7 +176,7 @@ object AwsDiscovery extends Logging {
   }
 
   private def buildElasticsearchHosts(stack: String, stage: String, ec2Client: Ec2Client): List[String] = {
-    val instances = findRunningInstances(stack, app = "elasticsearch", stage, ec2Client).toList
+    val instances = findRunningInstances(stack, app = List("elasticsearch"), stage, ec2Client).toList
     val hosts = instances.map(_.privateIpAddress()).map("http://" + _ + ":9200")
 
     logger.info(s"AWS discovery elasticsearch hosts: [${hosts.mkString(",")}]")
@@ -185,7 +185,7 @@ object AwsDiscovery extends Logging {
   }
 
   private def buildNeo4jUrl(stack: String, stage: String, ec2Client: Ec2Client): String = {
-    findRunningInstances(stack, app = "neo4j", stage, ec2Client).toList match {
+    findRunningInstances(stack, app = List("neo4j"), stage, ec2Client).toList match {
       case instance :: Nil =>
         val url = s"bolt://${instance.privateIpAddress()}:7687"
         logger.info(s"AWS discovery neo4j url: $url")
