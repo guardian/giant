@@ -1,6 +1,7 @@
 import {
   readFilesFromDragEvent,
   dragEventContainsFiles,
+  INTERNAL_DRAG_MIME,
 } from "./dropZoneUtils";
 import * as FileApiHelpers from "./FileApiHelpers";
 
@@ -203,12 +204,54 @@ describe("readFilesFromDragEvent", () => {
     expect(result.size).toBe(1);
     expect(result.get("real.txt")).toBe(file);
   });
+
+  test("deduplicates files with the same name", async () => {
+    const file1 = makeFile("doc.txt");
+    const file2 = makeFile("doc.txt");
+
+    mockedReadFileEntry
+      .mockResolvedValueOnce(file1)
+      .mockResolvedValueOnce(file2);
+
+    const event = makeDragEvent([
+      {
+        webkitGetAsEntry: () => makeFileEntry("doc.txt"),
+        getAsFile: () => null,
+      },
+      {
+        webkitGetAsEntry: () => makeFileEntry("doc.txt"),
+        getAsFile: () => null,
+      },
+    ]);
+
+    const result = await readFilesFromDragEvent(event);
+
+    expect(result.size).toBe(2);
+    expect(result.has("doc.txt")).toBe(true);
+    expect(result.has("doc (1).txt")).toBe(true);
+  });
+
+  test("rejects an empty directory", async () => {
+    const dirEntry = makeDirectoryEntry();
+    mockedReadDirectoryEntry.mockResolvedValue(new Map());
+
+    const event = makeDragEvent([
+      { webkitGetAsEntry: () => dirEntry, getAsFile: () => null },
+    ]);
+
+    await expect(readFilesFromDragEvent(event)).rejects.toThrow("empty");
+  });
 });
 
 describe("dragEventContainsFiles", () => {
-  test("returns false when application/json is present (internal drag)", () => {
-    const event = makeDragEvent([], ["application/json", "Files"]);
+  test("returns false when internal drag MIME is present", () => {
+    const event = makeDragEvent([], [INTERNAL_DRAG_MIME, "Files"]);
     expect(dragEventContainsFiles(event)).toBe(false);
+  });
+
+  test("returns true when application/json is from an external source alongside Files", () => {
+    const event = makeDragEvent([], ["application/json", "Files"]);
+    expect(dragEventContainsFiles(event)).toBe(true);
   });
 
   test("returns true when Files type is present", () => {

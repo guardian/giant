@@ -8,6 +8,28 @@ import {
 } from "./FileApiHelpers";
 
 /**
+ * Custom MIME type used by internal tree drags to distinguish them from
+ * file-system drops. Using a custom type avoids false positives when an
+ * external application happens to set application/json on its drag data.
+ */
+export const INTERNAL_DRAG_MIME = "application/x-giant-tree-entry";
+
+/** If `key` already exists in `map`, append a numeric suffix to make it unique. */
+function deduplicateKey(map: Map<string, unknown>, key: string): string {
+  if (!map.has(key)) return key;
+
+  const dotIndex = key.lastIndexOf(".");
+  const base = dotIndex > 0 ? key.slice(0, dotIndex) : key;
+  const ext = dotIndex > 0 ? key.slice(dotIndex) : "";
+
+  let counter = 1;
+  while (map.has(`${base} (${counter})${ext}`)) {
+    counter++;
+  }
+  return `${base} (${counter})${ext}`;
+}
+
+/**
  * Reads files from a drag event - handles both direct file drops and directories.
  * Works across all major browsers on all platforms using the File System Access API.
  *
@@ -84,12 +106,18 @@ export async function readFilesFromDragEvent(
     // Files only (no directories)
     for (const entry of fileEntries) {
       const file = await readFileEntry(entry as FileSystemFileEntry);
-      files.set(file.name, file as File);
+      const name = deduplicateKey(files, file.name);
+      files.set(name, file as File);
     }
 
     for (const file of fallbackFiles) {
-      files.set(file.name, file);
+      const name = deduplicateKey(files, file.name);
+      files.set(name, file);
     }
+  }
+
+  if (files.size === 0) {
+    throw new Error("The dropped folder was empty.");
   }
 
   return files;
@@ -103,8 +131,8 @@ export async function readFilesFromDragEvent(
  * @returns true if the drag event contains files from the file system and not internal app data
  */
 export function dragEventContainsFiles(e: React.DragEvent): boolean {
-  // Internal tree drags set application/json — exclude those even if Files is also present
-  if (e.dataTransfer.types.includes("application/json")) {
+  // Internal tree drags use a custom MIME type — exclude them even if Files is also present
+  if (e.dataTransfer.types.includes(INTERNAL_DRAG_MIME)) {
     return false;
   }
 

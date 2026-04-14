@@ -19,6 +19,7 @@ import { SearchLink } from "../SearchLink";
 import { getIdsOfEntriesToMove, sortEntries } from "../../../util/treeUtils";
 import {
   dragEventContainsFiles,
+  INTERNAL_DRAG_MIME,
   readFilesFromDragEvent,
 } from "../../Uploads/dropZoneUtils";
 
@@ -207,7 +208,7 @@ export default class TreeBrowser<T> extends React.Component<Props<T>, State> {
     }
 
     // Handle internal item move
-    const json = e.dataTransfer.getData("application/json");
+    const json = e.dataTransfer.getData(INTERNAL_DRAG_MIME);
     if (json) {
       const { id: idOfDraggedEntry } = JSON.parse(json);
       const idsOfEntriesToMove = getIdsOfEntriesToMove(
