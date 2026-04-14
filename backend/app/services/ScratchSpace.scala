@@ -15,7 +15,7 @@ class ScratchSpace(rootFolder: Path) extends Logging {
     ensureRootFolderExists()
   }
 
-  def ensureRootFolderExists(): Unit = {
+  private def ensureRootFolderExists(): Unit = {
     try {
       Files.createDirectories(rootFolder)
     } catch {

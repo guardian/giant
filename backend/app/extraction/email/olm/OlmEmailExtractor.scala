@@ -136,10 +136,10 @@ class OlmEmailExtractor(scratch: ScratchSpace, ingestion: IngestionServices) ext
     // Create Blob URI
     val stream = zipFile.getInputStream(entry)
 
-    try {
-      val emailFile = scratch.copyToScratchSpace(stream)
-      logger.info(s"Copying $name to scratch ${emailFile.toString}")
+    val emailFile = scratch.copyToScratchSpace(stream)
+    logger.info(s"Copying $name to scratch ${emailFile.toString}")
 
+    try {
       val blobUri = Uri(FingerprintServices.createFingerprintFromFile(emailFile))
       val fileContext = buildFileContext(name, emailFile.toPath, emailUri, entry, context)
 
@@ -150,6 +150,7 @@ class OlmEmailExtractor(scratch: ScratchSpace, ingestion: IngestionServices) ext
       }
     } finally {
       stream.close()
+      Files.deleteIfExists(emailFile.toPath)
     }
   }
 

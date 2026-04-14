@@ -103,7 +103,7 @@ class EmlParser(val scratch: ScratchSpace, val ingestionServices: IngestionServi
 
   def ingestAttachment(context: IngestionContextBuilder, email: Email, attachment: MimeBodyPart): Unit = {
     val attachmentStream = attachment.getInputStream
-    val attachmentRoot = scratch.createWorkingDir(s"emails/${email.uri.value}/")
+    val attachmentRoot = new ScratchSpace(scratch.createWorkingDir(s"emails/${email.uri.value}/"))
 
     try {
       val name = getFilename(attachment).getOrElse(throw new IllegalArgumentException(s"Missing Content-Disposition for attachment in ${email.uri}"))
@@ -112,7 +112,7 @@ class EmlParser(val scratch: ScratchSpace, val ingestionServices: IngestionServi
       val mimeType = if (semicolonIndex > 0) rawContentType.substring(0, semicolonIndex) else rawContentType
 
       // Create Blob URI
-      val attachmentFile = scratch.copyToScratchSpace(attachmentStream)
+      val attachmentFile = attachmentRoot.copyToScratchSpace(attachmentStream)
       val blobUri = Uri(FingerprintServices.createFingerprintFromFile(attachmentFile))
 
       // Ingest
@@ -127,7 +127,7 @@ class EmlParser(val scratch: ScratchSpace, val ingestionServices: IngestionServi
       ingestionServices.ingestFile(attachmentContext, blob.uri, attachmentFile.toPath)
     } finally {
       attachmentStream.close()
-      FileUtils.deleteDirectory(attachmentRoot.toFile)
+      FileUtils.deleteDirectory(attachmentRoot.pathFor("/").toFile)
     }
   }
 
