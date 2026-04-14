@@ -175,6 +175,10 @@ class AWSWorkerControl(config: WorkerConfig, discoveryConfig: AWSDiscoveryConfig
     Attempt.catchNonFatalBlasé {
       val request = DescribeAutoScalingGroupsRequest.builder().autoScalingGroupNames(workerAutoScalingGroupName).build()
       autoscaling.describeAutoScalingGroups(request)
+    }.recoverWith {
+      case failure =>
+        logger.error(s"Failed to describe auto-scaling group $workerAutoScalingGroupName", failure.toThrowable)
+        Attempt.Left(failure)
     }.flatMap { response =>
       response.autoScalingGroups().asScala.headOption match {
         case Some(asg) =>
@@ -253,7 +257,7 @@ object AWSWorkerControl {
   case object AddNewWorker extends Operation
   case object RemoveWorker extends Operation
 
-  def decideOperation(state: State, now: Long, cooldown: Long): Option[Operation] = {
+  private def decideOperation(state: State, now: Long, cooldown: Long): Option[Operation] = {
     val inCooldown = state.workerAsg.lastEventTime > (now - cooldown) || state.spotWorkerAsg.lastEventTime > (now - cooldown)
     val manuallyScaledDown = state.workerAsg.desiredNumberOfWorkers == 0
 
