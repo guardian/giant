@@ -72,7 +72,11 @@ class AWSWorkerControl(config: WorkerConfig, discoveryConfig: AWSDiscoveryConfig
         scheduler.scheduleWithFixedDelay(config.controlInterval, config.controlInterval)(() => {
           // Only run the check on the oldest instance to get as close as we running the checks as a "singleton"
           if(runningOnOldestInstance()) {
-            val state = getCurrentState(workerAutoScalingGroupName, spotWorkerAutoscalingGroupName)
+            val state = getCurrentState(workerAutoScalingGroupName, spotWorkerAutoscalingGroupName).recoverWith {
+              case failure =>
+                logger.error(s"Failed to get state for  auto-scaling groups $workerAutoScalingGroupName, $spotWorkerAutoscalingGroupName", failure.toThrowable)
+                Attempt.Left(failure)
+            }
             // reuse the state needed for worker control to report cloudwatch metrics on work remaining
             state.foreach(publishStateMetrics)
             if(AwsDiscovery.isRiffRaffDeployRunning(discoveryConfig.stack, discoveryConfig.stage, ec2)) {
@@ -175,10 +179,6 @@ class AWSWorkerControl(config: WorkerConfig, discoveryConfig: AWSDiscoveryConfig
     Attempt.catchNonFatalBlasé {
       val request = DescribeAutoScalingGroupsRequest.builder().autoScalingGroupNames(workerAutoScalingGroupName).build()
       autoscaling.describeAutoScalingGroups(request)
-    }.recoverWith {
-      case failure =>
-        logger.error(s"Failed to describe auto-scaling group $workerAutoScalingGroupName", failure.toThrowable)
-        Attempt.Left(failure)
     }.flatMap { response =>
       response.autoScalingGroups().asScala.headOption match {
         case Some(asg) =>
