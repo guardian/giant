@@ -267,6 +267,28 @@ object Main extends App with Logging {
         }
       }
 
+    case Some(_ @ options.deleteBlobsCmd) =>
+      run("Delete blobs", options.deleteBlobsCmd) { services =>
+        val uri = options.deleteBlobsCmd.ingestionUri()
+        val pathPrefix = options.deleteBlobsCmd.pathPrefix()
+
+        CommandValidator.validateIngestionUri(uri).flatMap { _ =>
+          val parts = uri.split("/")
+          val collection = parts(0)
+          val ingestion = parts(1)
+
+          if (!options.deleteBlobsCmd.force() && !UserPrompt.confirm(
+            s"Delete all blobs matching prefix '$pathPrefix' in $uri?"
+          )) {
+            logger.info(ConsoleColors.dim("Cancelled"))
+            Attempt.Right(())
+          } else {
+            val command = new DeleteBlobs(collection, ingestion, pathPrefix, services.ingestion, options.deleteBlobsCmd.conflictBehaviour)
+            command.run()
+          }
+        }
+      }
+
     case Some(_ @ options.createIngestion) =>
       run("Create ingestion", options.createIngestion) { services =>
         val uri = options.createIngestion.ingestionUri()
