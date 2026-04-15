@@ -38,6 +38,8 @@ pfi-cli login --token YOUR_TOKEN --verbose
 | `ingest` | Upload files into an ingestion |
 | `verify` | Check that all source files have been indexed |
 | `delete-ingestion` | Delete an ingestion and its files |
+| `delete-blobs` | Delete a subset of blobs by path prefix (e.g. a subfolder) |
+| `delete-collection` | Delete an entire collection and all its ingestions |
 | `hash` | Compute the PFI hash of a file |
 | `api` | Make raw authenticated API calls |
 | `auth` | Output the auth header for use with other tools |
@@ -268,13 +270,42 @@ pfi-cli create-ingestion --ingestionUri "MyIngestion"
 
 ### Deleting data with the CLI
 
-The `delete-ingestion` command will prompt for confirmation before proceeding. Use `--force` to skip the prompt (e.g. in scripts).
+All delete commands show a preview of what will be affected (including file counts) and prompt for confirmation before proceeding. Use `--force` to skip the prompt (e.g. in scripts).
 
-If a blob exists in multiple ingestions, you need to either delete the blob in the Giant UI, or pass all of the relevant ingestions to `delete-ingestion`. Use `--conflictBehaviour` to control what happens:
+If a blob exists in multiple ingestions, use `--conflictBehaviour` to control what happens:
 
 - `stop` (default) — abort if a file also belongs to another ingestion
 - `skip` — leave shared files alone, only delete unshared ones
 - `delete` — remove the file from all ingestions
+
+#### Deleting an entire collection
+
+```bash
+# Shows all ingestions with file counts and asks for confirmation
+pfi-cli delete-collection --uri https://giant.pfi.gutools.co.uk \
+  --collection "BinLaden"
+```
+
+#### Deleting specific ingestions
+
+```bash
+pfi-cli delete-ingestion --uri https://giant.pfi.gutools.co.uk \
+  --ingestionUri 'Collection/ingestion' 'Collection/ingestion2'
+```
+
+#### Deleting a subfolder within an ingestion
+
+The `delete-blobs` command deletes blobs matching a path prefix within an ingestion. This is useful for removing a subfolder without deleting the entire ingestion.
+
+```bash
+pfi-cli delete-blobs --uri https://giant.pfi.gutools.co.uk \
+  --ingestionUri "BinLaden/batch-001" \
+  --pathPrefix "unwanted-subfolder/"
+```
+
+Note: if the same file content exists at paths both inside and outside the target prefix (within the same ingestion), `delete-blobs` treats this as a conflict — governed by `--conflictBehaviour`, same as cross-ingestion conflicts.
+
+#### Running a large deletion in the background
 
 Here's an example command to delete from two ingestions, running as a background task detached from the terminal.
 
