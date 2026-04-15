@@ -44,7 +44,7 @@ pfi-cli login --token YOUR_TOKEN --verbose
 
 Here are some example steps for performing such an ingestion.
 
-1. Set the `WorkerDataVolumeSize` CloudFormation parameter in the relevant Giant/Playground stack (it will be the one containing `investigations` rather than `neo4j` or `elasticsearch`, e.g. `pfi-giant-investigations-rex`). Set it to at least twice the size of the data you want to ingest. This is because you'll need to download the data to the box and Giant will then need scratch space to make a copy of it, potentially unzip it, etc.
+1. Set the `WorkerDataVolumeSize` CloudFormation parameter in the relevant Giant/Playground stack (it will be the one containing `investigations` rather than `neo4j` or `elasticsearch`, e.g. `pfi-giant-investigations-blah`). Set it to at least twice the size of the data you want to ingest. This is because you'll need to download the data to the box and Giant will then need scratch space to make a copy of it, potentially unzip it, etc.
 
 2. Increase the `MaxNumberOfWorkers`, `MinNumberOfWorkers` and `NumberOfWorkers` CloudFormation params to 0 and wait for the existing workers to be killed off. Then set to 1 and wait for a new worker to come up with an EBS volume of the required size. **You need to do this using the CloudFormation params and not just by modifying the ASG directly, because otherwise Giant's own autoscaling logic will potentially start overriding your settings and creating/killing boxes unexpectedly.**
 
@@ -72,30 +72,34 @@ The above command writes to `~/.pfi-token`
 6. Create the ingestion
 
 ```
-pfi-cli create-ingestion --ingestionUri "BinLaden/ingestion"
+pfi-cli create-ingestion --uri https://your.giant.url --ingestionUri "BinLaden/ingestion"
 ```
 
 This will confirm the collection and ingestion names and print the next command to run.
 
 7. Preview what will be uploaded using `--dry-run`:
 
+Specify the S3 bucket to upload your files into. They will be picked up by Giant and moved into its own S3 storage. 
+
 ```
 pfi-cli ingest \
   --ingestionUri "BinLaden/ingestion" \
-  --bucket pfi-giant-ingest-data-rex \
+  --uri https://your.giant.url \
+  --bucket pfi-giant-inetc-etc-etc \
   --sseAlgorithm aws:kms \
   --path /data/BinLaden \
   --dry-run
 ```
 
-This scans the source directory and shows a summary (file count, total size, destination) without uploading anything.
+This scans the source directory at the specified path, and shows a summary (file count, total size, destination) without uploading anything.
 
 8. Run the ingest job in the background with nohup, redirecting output to a log file, so it will continue to run after you end your terminal session.
 
 ```
 nohup pfi-cli ingest \
   --ingestionUri "BinLaden/ingestion" \
-  --bucket pfi-giant-ingest-data-rex \
+  --uri https://your.giant.url \
+  --bucket pfi-giant-inetc-etc-etc \
   --sseAlgorithm aws:kms \
   --path /data/BinLaden \
   > /tmp/pfi-cli-output &
@@ -103,9 +107,11 @@ nohup pfi-cli ingest \
 
 The ingest command will:
 - Scan the source directory and show a summary before uploading
-- Track progress (files processed, throughput, data volume)
+- Track progress (files uploaded, throughput, data volume)
 
-9. Once the phase 1 ingestion is complete, you'll need to look in the Giant logs to monitor phase 2 ingestion progress. These can be found at `/var/log/pfi/frontend.log`
+It will not tell you what has been ingested; just what has been uploaded. This is phase 1.
+
+9. Once the phase 1 is complete, you'll need to look in the Giant logs to monitor phase 2: ingestion progress. These can be found at `/var/log/pfi/frontend.log`
 
 ### Browsing Ingestions
 
@@ -128,11 +134,6 @@ need to make sure you tell pfi-cli to use minio rather than uploading stuff to S
 ./pfi-cli login --token $GIANT_KEY --uri http://localhost:9001
 ./pfi-cli create-ingestion --uri http://localhost:9001 --ingestionUri testfolder/test
 ./pfi-cli ingest --path ~/stufftoingest --languages english --ingestionUri testfolder/test --minioAccessKey minio-user --minioEndpoint http://localhost:9090 --minioSecretKey reallyverysecret
-```
-
-**Tip:** Use `--dry-run` to preview what will be uploaded without actually uploading:
-```bash
-./pfi-cli ingest --path ~/stufftoingest --ingestionUri testfolder/test --dry-run
 ```
 
 ### Troubleshooting
@@ -160,6 +161,8 @@ pfi-cli create-ingestion --ingestionUri "MyIngestion"
 
 ### Deleting data with the CLI
 
+This feature is somewhat experimental.
+
 The `delete-ingestion` command will prompt for confirmation before proceeding. Use `--force` to skip the prompt (e.g. in scripts).
 
 If a blob exists in multiple ingestions, you need to either delete the blob in the Giant UI, or pass all of the relevant ingestions to `delete-ingestion`. Use `--conflictBehaviour` to control what happens:
@@ -168,9 +171,7 @@ If a blob exists in multiple ingestions, you need to either delete the blob in t
 - `skip` — leave shared files alone, only delete unshared ones
 - `delete` — remove the file from all ingestions
 
-Here's an example command to delete from two ingestions, running as a background task detached from the terminal.
-
-**This assumes you're running on a Giant instance where the URI is localhost. To run locally, supply a `--uri` param**
+Here's an example command to delete from two ingestions, running as a background task detached from the terminal. The example assumes you're running on a Giant instance where the URI is localhost. To run from a remote device, supply a `--uri` param
 
 ```bash
 (nohup ./pfi-cli delete-ingestion --ingestionUri \
