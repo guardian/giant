@@ -127,7 +127,7 @@ class EmlParser(val scratch: ScratchSpace, val ingestionServices: IngestionServi
       ingestionServices.ingestFile(attachmentContext, blob.uri, attachmentFile.toPath)
     } finally {
       attachmentStream.close()
-      FileUtils.deleteDirectory(attachmentRoot.pathFor("/").toFile)
+      FileUtils.deleteDirectory(attachmentRoot.pathFor("").toFile)
     }
   }
 
