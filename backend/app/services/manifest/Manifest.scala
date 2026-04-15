@@ -98,6 +98,8 @@ trait Manifest extends WorkerManifest {
 
   def getBlobsForFiles(fileUris: List[String]): Either[Failure, Map[String, Blob]]
 
+  def getBlobUrisForPathPrefix(pathPrefix: String, size: Int): Either[Failure, List[(String, Boolean)]]
+
   def getEmailThread(uri: String): Attempt[List[EmailNeighbours]]
 
   def getLanguagesProcessedByOcrMyPdf(uri: Uri): Attempt[List[Language]]
