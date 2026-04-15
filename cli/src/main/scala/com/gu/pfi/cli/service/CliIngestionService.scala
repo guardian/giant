@@ -127,6 +127,18 @@ class CliIngestionService(http: CliHttpClient)(implicit ec: ExecutionContext) ex
     }
   }
 
+  def deleteCollection(collection: String): Attempt[Unit] = {
+    val encodedCollection = URLEncoder.encode(collection, "UTF-8")
+
+    http.delete(s"/api/collections/$encodedCollection").flatMap { r =>
+      if(r.code() == 204) {
+        Attempt.Right(())
+      } else {
+        Attempt.Left(IllegalStateFailure(s"${r.code()} ${r.body().string()}"))
+      }
+    }
+  }
+
   private def getIngestion(ingestionUri: String): Attempt[CliIngestion] = {
     listIngestions().flatMap { ingestions =>
       ingestions.find(_.uri == ingestionUri) match {
