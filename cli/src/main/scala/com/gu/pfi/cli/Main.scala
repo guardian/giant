@@ -257,12 +257,29 @@ object Main extends App with Logging {
       run("Delete ingestions", options.deleteIngestions) { services =>
         val uris = options.deleteIngestions.ingestionUrisOpt()
         CommandValidator.validateDeleteIngestion(uris).flatMap { _ =>
-          val uriList = uris.mkString(", ")
-          if (!options.deleteIngestions.force() && !UserPrompt.confirm(s"Delete ${uris.size} ingestion(s): $uriList?")) {
+          val ingestionPairs = options.deleteIngestions.ingestionUris
+
+          // Preview: show file counts for each ingestion
+          logger.info("")
+          val countAttempts = ingestionPairs.map { case (collection, ingestion) =>
+            services.ingestion.countBlobs(collection, ingestion).map(count => (collection, ingestion, count))
+          }
+          val ingestionsWithCounts = Attempt.sequence(countAttempts).await()
+          val totalFiles = ingestionsWithCounts.map(_._3).sum
+
+          ingestionsWithCounts.foreach { case (collection, ingestion, count) =>
+            logger.info(s"   └─ $collection/$ingestion  [$count file(s)]")
+          }
+          logger.info(ConsoleColors.dim(s"\n   ${ingestionPairs.size} ingestion(s), $totalFiles file(s) total"))
+          logger.info("")
+
+          if (!options.deleteIngestions.force() && !UserPrompt.confirm(
+            s"Delete ${ingestionPairs.size} ingestion(s) and all $totalFiles file(s)?"
+          )) {
             logger.info(ConsoleColors.dim("Cancelled"))
             Attempt.Right(())
           } else {
-            val command = new DeleteIngestions(options.deleteIngestions.ingestionUris, services.ingestion, options.deleteIngestions.conflictBehaviour)
+            val command = new DeleteIngestions(ingestionPairs, services.ingestion, options.deleteIngestions.conflictBehaviour)
             command.run()
           }
         }
@@ -278,8 +295,18 @@ object Main extends App with Logging {
           val collection = parts(0)
           val ingestion = parts(1)
 
+          // Preview: count matching blobs
+          val preview = services.ingestion.getBlobsByPrefix(collection, ingestion, pathPrefix, size = 1).await()
+          val totalInIngestion = services.ingestion.countBlobs(collection, ingestion).await()
+
+          logger.info(s"\n   Ingestion $uri has $totalInIngestion file(s) total")
+          if (preview.pathConflicts.nonEmpty) {
+            logger.info(ConsoleColors.warning(s"   ⚠ Some matching files also exist at other paths in this ingestion"))
+          }
+          logger.info("")
+
           if (!options.deleteBlobsCmd.force() && !UserPrompt.confirm(
-            s"Delete all blobs matching prefix '$pathPrefix' in $uri?"
+            s"Delete blobs matching prefix '$pathPrefix' in $uri?"
           )) {
             logger.info(ConsoleColors.dim("Cancelled"))
             Attempt.Right(())
