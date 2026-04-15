@@ -31,6 +31,8 @@ trait Index {
 
   def getBlobs(collection: String, ingestion: Option[String], size: Int, inMultiple: Boolean): Attempt[Iterable[IndexedBlob]]
 
+  def getBlobsByIds(ids: List[String]): Attempt[List[IndexedBlob]]
+
   def countBlobs(collection: String, ingestion: Option[String], inMultiple: Boolean): Attempt[Long]
 
   def delete(id: String): Attempt[Unit]

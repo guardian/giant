@@ -57,6 +57,25 @@ class Blobs(override val controllerComponents: AuthControllerComponents, manifes
     }
   }
 
+  def getBlobsByPathPrefix(collection: String, ingestion: String, pathPrefix: String, size: Option[Int]) = ApiAction.attempt { req =>
+    checkPermission(CanPerformAdminOperations, req) {
+      val fullPrefix = s"$collection/$ingestion/$pathPrefix"
+      val batchSize = size.getOrElse(200)
+
+      for {
+        blobResults <- Attempt.fromEither(manifest.getBlobUrisForPathPrefix(fullPrefix, batchSize))
+        blobUris = blobResults.map(_._1)
+        pathConflicts = blobResults.collect { case (uri, true) => uri }
+        blobs <- index.getBlobsByIds(blobUris)
+      } yield {
+        Ok(Json.obj(
+          "blobs" -> blobs,
+          "pathConflicts" -> pathConflicts
+        ))
+      }
+    }
+  }
+
   def reprocess(id: String, rerunSuccessfulParam: Option[Boolean], rerunFailedParam: Option[Boolean]) = ApiAction.attempt { req =>
     userHasViewAccessToBlob(id, req.user.username).flatMap { hasAccess =>
       if (hasAccess) {

@@ -503,6 +503,18 @@ class ElasticsearchResources(override val client: ElasticClient, indexName: Stri
     }
   }
 
+  def getBlobsByIds(ids: List[String]): Attempt[List[IndexedBlob]] = {
+    if (ids.isEmpty) return Attempt.Right(Nil)
+    execute {
+      search(indexName)
+        .sourceInclude(IndexFields.ingestion, IndexFields.collection)
+        .size(ids.size)
+        .query(idsQuery(ids))
+    }.map { response =>
+      response.to[IndexedBlob].toList
+    }
+  }
+
   def countBlobs(collection: String, maybeIngestion: Option[String], inMultiple: Boolean): Attempt[Long] = {
     execute {
       count(indexName).query(
