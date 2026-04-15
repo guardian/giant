@@ -21,9 +21,9 @@ class RunIngestion(ingestions: CliIngestionService, ingestionS3Client: Ingestion
   private val ingestionContext = ExecutionContext.fromExecutorService(Executors.newFixedThreadPool(10))
   private implicit val defaultContext: ExecutionContext = scala.concurrent.ExecutionContext.global
 
-  def run(ingestionUri: Uri, source: IngestionSource, languages: List[Language]): Attempt[Unit] = for {
+  def run(ingestionUri: Uri, source: IngestionSource, languages: List[Language], checkpoint: IngestionCheckpoint): Attempt[Unit] = for {
     rootPath <- mountSource(source)
-    _ <- runPipeline(rootPath, ingestionUri, languages)
+    _ <- runPipeline(rootPath, ingestionUri, languages, checkpoint)
     _ <- dismountSource(source, rootPath)
   } yield {
     ()
@@ -47,9 +47,9 @@ class RunIngestion(ingestions: CliIngestionService, ingestionS3Client: Ingestion
       veracrypt.dismount(volume, mountpoint)
   }
 
-  private def runPipeline(root: Path, ingestionUri: Uri, languages: List[Language]): Attempt[Unit] = {
+  private def runPipeline(root: Path, ingestionUri: Uri, languages: List[Language], checkpoint: IngestionCheckpoint): Attempt[Unit] = {
     val pipeline = new CliIngestionPipeline(ingestions, ingestionS3Client, batchSize, inMemoryThreshold, ingestionContext, defaultContext)
-    val result = pipeline.crawlFromFile(root, ingestionUri, languages)
+    val result = pipeline.crawlFromFile(root, ingestionUri, languages, checkpoint)
 
     Attempt.fromFutureBlasé(result)
   }

@@ -4,10 +4,10 @@ import java.nio.file.{Files, LinkOption, Path}
 import java.util.UUID
 
 import com.google.common.io.ByteStreams
-import com.gu.pfi.cli.{ConsoleColors, FileFilters, ProgressTracker}
+import com.gu.pfi.cli.{ConsoleColors, FileFilters, IngestionCheckpoint, ProgressTracker}
 import com.gu.pfi.cli.service.{CliIngestionService, IngestionS3Client}
 import model._
-import model.ingestion.{IngestionFile, Key, OnDiskFileContext}
+import model.ingestion.{IngestionFile, Key, OnDiskFileContext, dataKey}
 import utils.{Logging, attempt}
 import utils.attempt.Attempt
 import utils.attempt.AttemptAwait._
@@ -19,15 +19,15 @@ class CliIngestionPipeline(ingestionService: CliIngestionService, s3Client: Inge
                            batchSize: Int, inMemoryThreshold: Long,
                            ingestionContext: ExecutionContext, nonBlockingContext: ExecutionContext) extends Logging {
 
-  def crawlFromFile(rootPath: Path, rootUri: Uri, languages: List[Language]): Future[Unit] = {
-    crawlIterator(filesIterator(rootPath, rootUri, languages), rootUri, languages, Some(rootPath))
+  def crawlFromFile(rootPath: Path, rootUri: Uri, languages: List[Language], checkpoint: IngestionCheckpoint): Future[Unit] = {
+    crawlIterator(filesIterator(rootPath, rootUri, languages), rootUri, languages, checkpoint, Some(rootPath))
   }
 
-  def crawlIterator(files: Iterator[OnDiskFileContext], rootUri: Uri, languages: List[Language], rootPath: Option[Path] = None): Future[Unit] = {
-    ingest(files, rootUri, inMemoryThreshold, languages, rootPath)
+  def crawlIterator(files: Iterator[OnDiskFileContext], rootUri: Uri, languages: List[Language], checkpoint: IngestionCheckpoint, rootPath: Option[Path] = None): Future[Unit] = {
+    ingest(files, rootUri, inMemoryThreshold, languages, checkpoint, rootPath)
   }
 
-  private def ingest(files: Iterator[OnDiskFileContext], rootUri: Uri, inMemorySize: Long, languages: List[Language], rootPath: Option[Path] = None): Future[Unit] = {
+  private def ingest(files: Iterator[OnDiskFileContext], rootUri: Uri, inMemorySize: Long, languages: List[Language], checkpoint: IngestionCheckpoint, rootPath: Option[Path] = None): Future[Unit] = {
     implicit val ec: ExecutionContext = nonBlockingContext // this is the default context for when we are not doing IO
     
     val progressTracker = rootPath match {
@@ -86,8 +86,6 @@ class CliIngestionPipeline(ingestionService: CliIngestionService, s3Client: Inge
     }
 
     def processFile(file: OnDiskFileContext, languages: List[Language]): Attempt[(OnDiskFileContext, Key)] = {
-      // TODO-SAH: add to checkpoint list
-
       // generate key
       val key = System.currentTimeMillis -> UUID.randomUUID
 
@@ -101,13 +99,13 @@ class CliIngestionPipeline(ingestionService: CliIngestionService, s3Client: Inge
         input <- attemptInput
         uploadResult <- putInput(input, file.ingestion, languages)
       } yield {
-        // TODO-SAH: remove from checkpoint list
-
         (file, key)
       }
     }
 
-    val finalAttempt = files.filter(_.isRegularFile).filterNot(f => FileFilters.isJunkFile(f.path)).map { file =>
+    val finalAttempt = files.filter(_.isRegularFile).filterNot(f => FileFilters.isJunkFile(f.path)).filterNot { file =>
+      checkpoint.isAlreadyUploaded(file.path.toString)
+    }.map { file =>
       file -> processFile(file, languages)
     }.grouped(batchSize).foldLeft(Attempt.Right(0 -> 0)) { (accAttempt, fileToAttemptedResults) =>
       val (files, attemptedResults) = fileToAttemptedResults.unzip
@@ -117,6 +115,10 @@ class CliIngestionPipeline(ingestionService: CliIngestionService, s3Client: Inge
         .map{ results =>
           val successfulFiles: Seq[(OnDiskFileContext, Key)] = results.collect{ case (_, Right(value)) => value }
           val totalBytes = successfulFiles.map { case (fileContext, _) => fileContext.size }.sum
+
+          successfulFiles.foreach { case (fileContext, key) =>
+            checkpoint.recordSuccess(fileContext.path.toString, ingestion.dataKey(key))
+          }
 
           val failures: Seq[(OnDiskFileContext, attempt.Failure)] = results.collect{ case (file, Left(failure)) => file -> failure }
           failures.foreach { case (file, failure) =>

@@ -8,7 +8,7 @@ import com.gu.pfi.cli.ingestion.IngestionSource
 import com.gu.pfi.cli.service.{CliServices, _}
 import play.api.libs.json.Json
 import utils.{AwsCredentials, Logging}
-import utils.attempt.Attempt
+import utils.attempt.{Attempt, Failure}
 
 import scala.concurrent.Await
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -198,13 +198,33 @@ object Main extends App with Logging {
             logger.info(ConsoleColors.info("Dry run - no files were uploaded"))
             Attempt.Right(())
           } else {
+            val checkpoint = new IngestionCheckpoint(ingestArgs.ingestionUri())
+            val previouslyUploaded = checkpoint.load()
+
             val source = IngestionSource(options)
             val credentials = AwsCredentials(ingestArgs.minioAccessKey.toOption, ingestArgs.minioSecretKey.toOption, ingestArgs.awsProfile.toOption)
 
             val ingestionS3Client = new DefaultIngestionS3Client(options.ingestCmd, credentials)
 
+            if (previouslyUploaded.nonEmpty) {
+              logger.info(ConsoleColors.info(
+                s"Resuming: ${previouslyUploaded.size} files already uploaded, ${scanResult.fileCount - previouslyUploaded.size} remaining"
+              ))
+              checkpoint.validateAgainstS3(ingestionS3Client.s3, ingestArgs.ingestionBucket())
+            }
+
+            checkpoint.start()
+
             val command = new RunIngestion(services.ingestion, ingestionS3Client, services.veracrypt)
-            command.run(Uri(ingestArgs.ingestionUri()), source, options.ingestCmd.languages)
+            command.run(Uri(ingestArgs.ingestionUri()), source, options.ingestCmd.languages, checkpoint).map { _ =>
+              checkpoint.delete()
+              logger.info(ConsoleColors.dim("\nUse 'verify' to confirm all files were processed by the server"))
+            }.recoverWith { case failure =>
+              checkpoint.close()
+              logger.info(ConsoleColors.dim(s"\nCheckpoint saved to ${checkpoint.checkpointPath}"))
+              logger.info(ConsoleColors.dim("Re-run the same command to resume from where it stopped"))
+              Attempt.Left(failure)
+            }
           }
         }
       }
