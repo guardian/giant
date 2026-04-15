@@ -127,6 +127,13 @@ class Options(args: Seq[String]) extends ScallopConf(args) {
       descr = "Ingestion URI (<collection>/<ingestion>) - use 'list' to see available ingestions")
   }
 
+  val showCollectionCmd = new Subcommand("show-collection") with CommonOptions {
+    descr("Show all ingestions in a collection with file counts")
+
+    val collection = opt[String]("collection", required = true, noshort = true,
+      descr = "Collection name - use 'list' to see available collections")
+  }
+
   val verifyCmd = new Subcommand("verify") with CommonOptions {
     descr("Verify that an ingestion has completed successfully - this will crawl the files on disk (in the path recorded in the database) and check them against the index")
 
@@ -253,6 +260,7 @@ class Options(args: Seq[String]) extends ScallopConf(args) {
   addSubcommand(authCmd)
   addSubcommand(listCmd)
   addSubcommand(showCmd)
+  addSubcommand(showCollectionCmd)
   addSubcommand(verifyCmd)
   addSubcommand(ingestCmd)
   addSubcommand(hashCmd)
