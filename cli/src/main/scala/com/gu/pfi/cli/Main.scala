@@ -12,6 +12,7 @@ import com.gu.pfi.cli.service.{CliServices, _}
 import play.api.libs.json.Json
 import utils.{AwsCredentials, AwsS3Clients, Logging}
 import utils.attempt.{Attempt, Failure}
+import utils.attempt.AttemptAwait._
 
 import scala.concurrent.Await
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -376,6 +377,60 @@ object Main extends App with Logging {
           } else {
             val command = new DeleteBlobs(collection, ingestion, pathPrefix, services.ingestion, options.deleteBlobsCmd.conflictBehaviour)
             command.run()
+          }
+        }
+      }
+
+    case Some(_ @ options.deleteCollectionCmd) =>
+      run("Delete collection", options.deleteCollectionCmd) { services =>
+        val collectionName = options.deleteCollectionCmd.collection()
+
+        services.ingestion.listCollections().flatMap { collections =>
+          collections.find(_.uri == collectionName) match {
+            case None =>
+              logger.info(ConsoleColors.warning(s"Collection '$collectionName' not found"))
+              logger.info(ConsoleColors.dim("Use 'list' to see all available collections"))
+              Attempt.Right(())
+
+            case Some(collection) =>
+              // Show preview — same as show-collection
+              logger.info(ConsoleColors.bold(s"\n📁 ${collection.uri}"))
+              if (collection.ingestions.isEmpty) {
+                logger.info(ConsoleColors.dim("   (no ingestions)"))
+              } else {
+                val countAttempts = collection.ingestions.map { ingestion =>
+                  services.ingestion.countBlobs(collectionName, ingestion.uri).map(count => (ingestion, count))
+                }
+                val ingestionsWithCounts = Attempt.sequence(countAttempts).await()
+                val totalFiles = ingestionsWithCounts.map(_._2).sum
+                logger.info(s"   ${collection.ingestions.size} ingestion(s), $totalFiles file(s) total\n")
+                ingestionsWithCounts.sortBy(_._1.uri.toLowerCase(Locale.UK)).foreach { case (ingestion, count) =>
+                  val pathInfo = ingestion.path.map(p => ConsoleColors.dim(s" ← $p")).getOrElse("")
+                  logger.info(s"   └─ ${ingestion.uri}  [$count file(s)]$pathInfo")
+                }
+              }
+              logger.info("")
+
+              if (!options.deleteCollectionCmd.force() && !UserPrompt.confirm(
+                s"Delete collection '${collection.uri}' and ALL its ingestions and files?"
+              )) {
+                logger.info(ConsoleColors.dim("Cancelled"))
+                Attempt.Right(())
+              } else {
+                val ingestionPairs = collection.ingestions.map(i => (collectionName, i.uri))
+                if (ingestionPairs.nonEmpty) {
+                  val command = new DeleteIngestions(ingestionPairs, services.ingestion, options.deleteCollectionCmd.conflictBehaviour)
+                  command.run().flatMap { _ =>
+                    services.ingestion.deleteCollection(collectionName).map { _ =>
+                      logger.info(ConsoleColors.success(s"✓ Collection '$collectionName' deleted"))
+                    }
+                  }
+                } else {
+                  services.ingestion.deleteCollection(collectionName).map { _ =>
+                    logger.info(ConsoleColors.success(s"✓ Empty collection '$collectionName' deleted"))
+                  }
+                }
+              }
           }
         }
       }
