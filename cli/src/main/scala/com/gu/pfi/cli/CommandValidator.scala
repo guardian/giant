@@ -85,7 +85,7 @@ object CommandValidator {
     }
   }
   
-  private def validateIngestionUri(uri: String): Attempt[Unit] = {
+  def validateIngestionUri(uri: String): Attempt[Unit] = {
     if (uri.isEmpty) {
       Attempt.Left(IllegalStateFailure("Ingestion URI cannot be empty"))
     } else if (!uri.contains("/")) {
