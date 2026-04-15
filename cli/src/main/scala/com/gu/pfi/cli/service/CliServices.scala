@@ -5,6 +5,7 @@ import com.gu.pfi.cli.credentials.CliCredentialsStore
 import okhttp3.OkHttpClient
 import services.FingerprintServices
 
+import java.util.concurrent.TimeUnit
 import scala.concurrent.ExecutionContext
 
 class CliServices(
@@ -16,7 +17,11 @@ class CliServices(
 
 object CliServices {
   def apply(config: CommonOptions)(implicit ec: ExecutionContext): CliServices = {
-    val okHttpClient = new OkHttpClient()
+    val okHttpClient = new OkHttpClient.Builder()
+      .readTimeout(5, TimeUnit.MINUTES)
+      .writeTimeout(5, TimeUnit.MINUTES)
+      .connectTimeout(30, TimeUnit.SECONDS)
+      .build()
     val credentialsStore = new CliCredentialsStore()
     val httpClient = new CliHttpClient(okHttpClient, credentialsStore, config.uri.getOrElse("http://localhost:9001"))
 

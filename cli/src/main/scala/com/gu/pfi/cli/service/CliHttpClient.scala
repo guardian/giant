@@ -65,6 +65,9 @@ class CliHttpClient(client: OkHttpClient, credsStore: CliCredentialsStore, baseU
     delete("/api/auth/token").flatMap(_ => credsStore.delete(baseUri))
   }
 
+  private val maxRetries = 3
+  private val retryBackoffMs = 2000
+
   private def run(path: String, method: String = "GET", body: Option[RequestBody] = None): Attempt[Response] = {
     val existingToken = credsStore.get(baseUri)
       .flatMap(_.map(Attempt.Right).getOrElse(requestToken()))
@@ -79,7 +82,7 @@ class CliHttpClient(client: OkHttpClient, credsStore: CliCredentialsStore, baseU
       execute(request)
     }
 
-    def handleResponse(response: Response, retry: Boolean): Attempt[Response] = {
+    def handleResponse(response: Response, retriesLeft: Int): Attempt[Response] = {
       response.code() match {
         case 200 | 201 | 204 =>
           Option(response.header(offerAuthHeader)) match {
@@ -90,15 +93,22 @@ class CliHttpClient(client: OkHttpClient, credsStore: CliCredentialsStore, baseU
               Attempt.Right(response)
           }
 
-        case 401 if retry =>
-          requestToken().flatMap(makeRequest).flatMap(handleResponse(_, retry = false))
+        case 401 if retriesLeft > 0 =>
+          requestToken().flatMap(makeRequest).flatMap(handleResponse(_, retriesLeft = 0))
+
+        case code if code >= 500 && retriesLeft > 0 =>
+          val attempt = maxRetries - retriesLeft + 1
+          logger.warn(s"Got $code from $method $path, retrying ($attempt/$maxRetries) after ${retryBackoffMs}ms...")
+          response.close()
+          Thread.sleep(retryBackoffMs)
+          existingToken.flatMap(makeRequest).flatMap(handleResponse(_, retriesLeft - 1))
 
         case _ =>
           Attempt.Left(IllegalStateFailure(s"${response.code()} ${response.body().string()}"))
       }
     }
 
-    existingToken.flatMap(makeRequest).flatMap(handleResponse(_, retry = true))
+    existingToken.flatMap(makeRequest).flatMap(handleResponse(_, retriesLeft = maxRetries))
   }
 
   private def requestToken(maybeUsername: Option[String] = None, maybePassword: Option[String] = None,
