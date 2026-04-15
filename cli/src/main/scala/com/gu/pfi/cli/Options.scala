@@ -217,6 +217,30 @@ class Options(args: Seq[String]) extends ScallopConf(args) {
     }
   }
 
+  val deleteCollectionCmd = new Subcommand("delete-collection") with CommonOptions {
+    descr("Delete an entire collection and all its ingestions")
+
+    val collection = opt[String]("collection", required = true, noshort = true,
+      descr = "Name of the collection to delete")
+
+    val force = opt[Boolean]("force", noshort = true, default = Some(false),
+      descr = "Skip confirmation prompt")
+
+    val conflictBehaviourOpt = opt[String](
+      name = "conflictBehaviour",
+      descr =
+        """What to do when a file also belongs to another ingestion/collection:
+          |  skip   - leave the file alone (default)
+          |  delete - remove the file from all ingestions
+          |  stop   - abort the operation""".stripMargin,
+      noshort = true)
+    def conflictBehaviour: Option[ConflictBehaviour] = conflictBehaviourOpt.toOption.map {
+      case Skip.name => Skip
+      case Delete.name => Delete
+      case Stop.name => Stop
+    }
+  }
+
   val createIngestion = new Subcommand("create-ingestion") with CommonOptions with LanguageOptions {
     descr("Create an ingestion that other tools can upload into")
 
@@ -237,6 +261,7 @@ class Options(args: Seq[String]) extends ScallopConf(args) {
   addSubcommand(createUsers)
   addSubcommand(deleteIngestions)
   addSubcommand(deleteBlobsCmd)
+  addSubcommand(deleteCollectionCmd)
   addSubcommand(createIngestion)
 
   verify()
