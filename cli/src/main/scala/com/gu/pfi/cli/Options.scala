@@ -127,6 +127,13 @@ class Options(args: Seq[String]) extends ScallopConf(args) {
       descr = "Ingestion URI (<collection>/<ingestion>) - use 'list' to see available ingestions")
   }
 
+  val showCollectionCmd = new Subcommand("show-collection") with CommonOptions {
+    descr("Show details of a collection and all its ingestions, including file counts")
+
+    val collection = opt[String]("collection", required = true, noshort = true,
+      descr = "Collection name - use 'list' to see available collections")
+  }
+
   val statusCmd = new Subcommand("status") with CommonOptions {
     descr("Check the ingest S3 bucket to see which files have been uploaded for an ingestion. " +
       "Note: the S3 ingest bucket is transient — the backend removes files after processing them, " +
@@ -230,6 +237,7 @@ class Options(args: Seq[String]) extends ScallopConf(args) {
   addSubcommand(authCmd)
   addSubcommand(listCmd)
   addSubcommand(showCmd)
+  addSubcommand(showCollectionCmd)
   addSubcommand(statusCmd)
   addSubcommand(verifyCmd)
   addSubcommand(ingestCmd)

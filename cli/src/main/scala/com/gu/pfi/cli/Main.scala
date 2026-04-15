@@ -138,6 +138,41 @@ object Main extends App with Logging {
         }
       }
 
+    case Some(_ @ options.showCollectionCmd) =>
+      run("Show collection", options.showCollectionCmd) { services =>
+        val collectionName = options.showCollectionCmd.collection()
+        services.ingestion.listCollections().flatMap { collections =>
+          collections.find(_.uri.equalsIgnoreCase(collectionName)) match {
+            case Some(collection) =>
+              if (collection.ingestions.isEmpty) {
+                logger.info(ConsoleColors.bold(s"\n📁 ${collection.uri}"))
+                logger.info(ConsoleColors.dim("   (no ingestions)"))
+                Attempt.Right(())
+              } else {
+                val countAttempts = collection.ingestions.map { ingestion =>
+                  val parts = s"${collection.uri}/${ingestion.uri}".split("/")
+                  services.ingestion.countBlobs(parts(0), parts(1)).map(count => (ingestion, count))
+                }
+                Attempt.sequence(countAttempts).map { ingestionsWithCounts =>
+                  logger.info(ConsoleColors.bold(s"\n📁 ${collection.uri}"))
+                  logger.info(s"   ${collection.ingestions.size} ingestion(s)\n")
+                  ingestionsWithCounts.sortBy(_._1.uri.toLowerCase(Locale.UK)).foreach { case (ingestion, count) =>
+                    val pathInfo = ingestion.path.map(p => ConsoleColors.dim(s" ← $p")).getOrElse("")
+                    logger.info(s"   └─ ${ingestion.uri}  [$count file(s)]$pathInfo")
+                  }
+                  logger.info("")
+                  logger.info(ConsoleColors.dim("Use 'show --ingestionUri <collection>/<ingestion>' for more detail"))
+                  logger.info(ConsoleColors.dim("Use 'delete-ingestion --ingestionUri <collection>/<ingestion>' to remove an ingestion"))
+                }
+              }
+            case None =>
+              logger.info(ConsoleColors.warning(s"Collection '$collectionName' not found"))
+              logger.info(ConsoleColors.dim("Use 'list' to see all available collections"))
+              Attempt.Right(())
+          }
+        }
+      }
+
     case Some(_ @ options.statusCmd) =>
       run("Status", options.statusCmd) { services =>
         val statusArgs = options.statusCmd
