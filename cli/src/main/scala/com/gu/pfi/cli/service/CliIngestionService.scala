@@ -71,6 +71,17 @@ class CliIngestionService(http: CliHttpClient)(implicit ec: ExecutionContext) ex
     }
   }
 
+  def countBlobs(collection: String, ingestion: String): Attempt[Long] = {
+    val params = List(
+      s"collection=${URLEncoder.encode(collection, "UTF-8")}",
+      s"ingestion=${URLEncoder.encode(ingestion, "UTF-8")}"
+    )
+
+    http.get(s"/api/blobs/count?${params.mkString("&")}").map { r =>
+      (r \ "count").as[Long]
+    }
+  }
+
   def deleteBlob(id: String): Attempt[Unit] = {
 
     // Setting checkChildren to false means that we delete this blob
