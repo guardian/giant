@@ -78,6 +78,8 @@ class IngestCommandOptions extends Subcommand("ingest") with CommonOptions with 
 
     val password = opt[String]("password", noshort = true, descr = s"Password if ingestion type is ${IngestionType.Truecrypt} or ${IngestionType.Veracrypt}")
 
+    val dryRun = opt[Boolean]("dry-run", noshort = true, default = Some(false),
+      descr = "Scan and show what would be uploaded without actually uploading anything")
 }
 
 class Options(args: Seq[String]) extends ScallopConf(args) {
@@ -108,7 +110,37 @@ class Options(args: Seq[String]) extends ScallopConf(args) {
   }
 
   val listCmd = new Subcommand("list") with CommonOptions {
-    descr("List all ingestions in the index")
+    descr("List all collections and their ingestions")
+  }
+
+  val showCmd = new Subcommand("show") with CommonOptions {
+    descr("Show details of a specific ingestion, including file count")
+
+    val ingestionUri = opt[String]("ingestionUri", required = true, noshort = true,
+      descr = "Ingestion URI (<collection>/<ingestion>) - use 'list' to see available ingestions")
+  }
+
+  val statusCmd = new Subcommand("status") with CommonOptions {
+    descr("Check the ingest S3 bucket to see which files have been uploaded for an ingestion. " +
+      "Useful for diagnosing interrupted uploads — shows exactly which files made it to S3.")
+
+    val ingestionUri = opt[String]("ingestionUri", required = true, noshort = true,
+      descr = "Ingestion URI (<collection>/<ingestion>)")
+
+    val path = opt[String]("path", noshort = true,
+      descr = "Local source directory to compare against. If provided, shows which files are missing from S3.")
+
+    val bucket = opt[String]("bucket", noshort = true, default = Some("ingest-data"),
+      descr = "Ingestion S3 bucket")
+
+    val region = opt[String]("region", noshort = true, default = Some("eu-west-1"),
+      descr = "AWS region for the ingestion S3 bucket")
+
+    val minioAccessKey = opt[String]("minioAccessKey", descr = "Access key (only required when using Minio)", noshort = true)
+    val minioSecretKey = opt[String]("minioSecretKey", descr = "Secret key (only required when using Minio)", noshort = true)
+    val minioEndpoint = opt[String]("minioEndpoint", descr = "Endpoint (only required when using Minio)", default = Some("http://127.0.0.1:9090"))
+
+    val awsProfile = opt[String]("awsProfile", descr = "AWS profile to use for S3 credentials", noshort = true)
   }
 
   val verifyCmd = new Subcommand("verify") with CommonOptions {
@@ -147,21 +179,25 @@ class Options(args: Seq[String]) extends ScallopConf(args) {
   }
 
   val deleteIngestions = new Subcommand("delete-ingestion") with CommonOptions {
-    descr("Delete ingestions. EXPERIMENTAL: do not use without consulting the caveats in the documentation")
+    descr("Delete ingestions and their associated files from the index")
 
-    val ingestionUrisOpt = opt[List[String]](name = "ingestionUri")
+    val ingestionUrisOpt = opt[List[String]](name = "ingestionUri",
+      descr = "Ingestion URI(s) to delete (<collection>/<ingestion>)")
     def ingestionUris: List[(String, String)] = ingestionUrisOpt().map { uri =>
       val parts = uri.split("/")
       (parts.head, parts.last)
     }
 
+    val force = opt[Boolean]("force", noshort = true, default = Some(false),
+      descr = "Skip confirmation prompt")
+
     val conflictBehaviourOpt = opt[String](
       name = "conflictBehaviour",
       descr =
-        """
-          |What to do when a blob in the ingest is also included in another ingest. Valid options: delete,skip,stop.
-          |Note that if you select 'delete' the blob will be deleted from all ingestions in giant.
-        """.stripMargin,
+        """What to do when a file also belongs to another ingestion:
+          |  skip   - leave the file alone (default)
+          |  delete - remove the file from all ingestions
+          |  stop   - abort the operation""".stripMargin,
       noshort = true)
     def conflictBehaviour: Option[ConflictBehaviour] = conflictBehaviourOpt.toOption.map {
       case Skip.name => Skip
@@ -181,6 +217,8 @@ class Options(args: Seq[String]) extends ScallopConf(args) {
   addSubcommand(apiCmd)
   addSubcommand(authCmd)
   addSubcommand(listCmd)
+  addSubcommand(showCmd)
+  addSubcommand(statusCmd)
   addSubcommand(verifyCmd)
   addSubcommand(ingestCmd)
   addSubcommand(hashCmd)

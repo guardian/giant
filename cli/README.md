@@ -13,6 +13,7 @@ Get help for a specific command:
 ```bash
 pfi-cli ingest --help
 pfi-cli create-ingestion --help
+pfi-cli status --help
 ```
 
 #### Verbose Mode
@@ -20,9 +21,26 @@ Add `--verbose` to any command for detailed output:
 ```bash
 pfi-cli login --token YOUR_TOKEN --verbose
 ```
-- Shows success confirmations
 - Displays full stack traces for errors
 - Provides detailed progress information
+
+### Commands Overview
+
+| Command | Description |
+|---|---|
+| `login` | Authenticate (password, 2FA, or token) |
+| `logout` | Remove saved credentials |
+| `list` | Show all collections and ingestions |
+| `show` | Show details of a specific ingestion |
+| `status` | Check upload progress in S3 (useful after interruptions) |
+| `create-ingestion` | Create a new ingestion |
+| `ingest` | Upload files into an ingestion |
+| `verify` | Check that all source files have been indexed |
+| `delete-ingestion` | Delete an ingestion and its files |
+| `hash` | Compute the PFI hash of a file |
+| `api` | Make raw authenticated API calls |
+| `auth` | Output the auth header for use with other tools |
+| `create-users` | Bulk create users |
 
 ### Ingestion Workflow
 
@@ -59,32 +77,107 @@ The above command writes to `~/.pfi-token`
 pfi-cli create-ingestion --ingestionUri "BinLaden/ingestion"
 ```
 
-6. Run the ingest job in the background with nohup, redirecting output to a log file, so it will continue to run after you end your terminal session.
+This will confirm the collection and ingestion names and print the next command to run.
 
-Note that if the command fails for some reason, you will need to change the ingestion name before running it again otherwise it will fail saying there's already an ingestion with that name.
+7. Preview what will be uploaded using `--dry-run`:
+
+```
+pfi-cli ingest \
+  --ingestionUri "BinLaden/ingestion" \
+  --bucket pfi-giant-ingest-data-rex \
+  --sseAlgorithm aws:kms \
+  --path /data/BinLaden \
+  --dry-run
+```
+
+This scans the source directory and shows a summary (file count, total size, destination) without uploading anything.
+
+8. Run the ingest job in the background with nohup, redirecting output to a log file, so it will continue to run after you end your terminal session.
+
 ```
 nohup pfi-cli ingest \
   --ingestionUri "BinLaden/ingestion" \
   --bucket pfi-giant-ingest-data-rex \
   --sseAlgorithm aws:kms \
+  --path /data/BinLaden \
   > /tmp/pfi-cli-output &
-  ```
+```
 
-7. Once the phase 1 ingestion is complete, you'll need to look in the Giant logs to monitor phase 2 ingestion progress. These can be found at `/var/log/pfi/frontend.log`
+The ingest command will:
+- Scan the source directory and show a summary before uploading
+- Track progress (files processed, throughput, data volume)
+- Save a checkpoint to `~/.pfi-checkpoints/` so uploads can be resumed
+
+9. Once the phase 1 ingestion is complete, you'll need to look in the Giant logs to monitor phase 2 ingestion progress. These can be found at `/var/log/pfi/frontend.log`
+
+### Resuming an Interrupted Ingestion
+
+If an ingestion is interrupted (network failure, process killed, etc.), simply re-run the same `ingest` command. The CLI saves a checkpoint file that tracks which files have been successfully uploaded. On resume it will:
+
+1. Load the checkpoint from `~/.pfi-checkpoints/`
+2. Spot-check a sample of previously uploaded files against S3 to verify the checkpoint is valid
+3. Skip files that are already uploaded
+4. Continue from where it left off
+
+```
+# Just re-run the same command
+pfi-cli ingest \
+  --ingestionUri "BinLaden/ingestion" \
+  --bucket pfi-giant-ingest-data-rex \
+  --sseAlgorithm aws:kms \
+  --path /data/BinLaden
+```
+
+The checkpoint is deleted automatically when the ingestion completes successfully.
+
+### Checking Upload Status
+
+If you're unsure where a partial upload got to (e.g. the checkpoint file is missing, or you're diagnosing an old upload), the `status` command reads the S3 ingest bucket directly:
+
+```bash
+# See how many files made it to S3
+pfi-cli status --ingestionUri "BinLaden/ingestion" \
+  --bucket pfi-giant-ingest-data-rex
+
+# Compare against local files to see what's missing
+pfi-cli status --ingestionUri "BinLaden/ingestion" \
+  --bucket pfi-giant-ingest-data-rex \
+  --path /data/BinLaden
+```
+
+With `--path`, this shows the number of files on disk vs in S3, a progress percentage, and lists the first 20 missing files.
+
+### Browsing Ingestions
+
+```bash
+# List all collections and ingestions
+pfi-cli list
+
+# Show details of a specific ingestion (including indexed file count)
+pfi-cli show --ingestionUri "BinLaden/ingestion"
+
+# Verify all source files have been indexed after phase 2 completes
+pfi-cli verify --ingestion "BinLaden/ingestion"
+```
 
 ### Running pfi-cli locally
 When running locally pfi-cli works best when pointed directly at the play server rather than at giant.local.blah. You also
 need to make sure you tell pfi-cli to use minio rather than uploading stuff to S3. Here are some example commands:
 
 ```bash
-./pfi cli login --token $GIANT_KEY --uri http://localhost:9001
+./pfi-cli login --token $GIANT_KEY --uri http://localhost:9001
 ./pfi-cli create-ingestion --uri http://localhost:9001 --ingestionUri testfolder/test
 ./pfi-cli ingest --path ~/stufftoingest --languages english --ingestionUri testfolder/test --minioAccessKey minio-user --minioEndpoint http://localhost:9090 --minioSecretKey reallyverysecret
 ```
 
-**Tip:** Add `--verbose` to see detailed output during development:
+To check the status of a local upload against Minio:
 ```bash
-./pfi-cli ingest --path ~/stufftoingest --ingestionUri testfolder/test --verbose
+./pfi-cli status --ingestionUri testfolder/test --path ~/stufftoingest --minioAccessKey minio-user --minioEndpoint http://localhost:9090 --minioSecretKey reallyverysecret
+```
+
+**Tip:** Use `--dry-run` to preview what will be uploaded without actually uploading:
+```bash
+./pfi-cli ingest --path ~/stufftoingest --ingestionUri testfolder/test --dry-run
 ```
 
 ### Troubleshooting
@@ -111,7 +204,14 @@ pfi-cli create-ingestion --ingestionUri "MyIngestion"
 - Use `--verbose` to see which file is causing the issue
 
 ### Deleting data with the CLI
-If a blob exists in multiple ingestions, you need to either delete the blob in the Giant UI, or pass all of the relevant ingestions to `delete-ingestion`.
+
+The `delete-ingestion` command will prompt for confirmation before proceeding. Use `--force` to skip the prompt (e.g. in scripts).
+
+If a blob exists in multiple ingestions, you need to either delete the blob in the Giant UI, or pass all of the relevant ingestions to `delete-ingestion`. Use `--conflictBehaviour` to control what happens:
+
+- `stop` (default) — abort if a file also belongs to another ingestion
+- `skip` — leave shared files alone, only delete unshared ones
+- `delete` — remove the file from all ingestions
 
 Here's an example command to delete from two ingestions, running as a background task detached from the terminal.
 
@@ -121,5 +221,6 @@ Here's an example command to delete from two ingestions, running as a background
 (nohup ./pfi-cli delete-ingestion --ingestionUri \
   'Collection/ingestion' \
   'Collection/ingestion2' \
+  --force \
     >>output.log 2>errors.log &)
 ```

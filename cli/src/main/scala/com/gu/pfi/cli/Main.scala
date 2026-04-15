@@ -4,6 +4,9 @@ import java.nio.file.Paths
 import java.util.Locale
 
 import _root_.model.{Languages, Uri}
+import com.amazonaws.auth.AWSCredentialsProvider
+import com.amazonaws.client.builder.AwsClientBuilder.EndpointConfiguration
+import com.amazonaws.services.s3.AmazonS3ClientBuilder
 import com.gu.pfi.cli.ingestion.IngestionSource
 import com.gu.pfi.cli.service.{CliServices, _}
 import play.api.libs.json.Json
@@ -30,12 +33,16 @@ object Main extends App with Logging {
           options.loginCmd.password.toOption,
           options.loginCmd.twoFactor.toOption,
           options.loginCmd.token.toOption
-        )
+        ).map { _ =>
+          logger.info(ConsoleColors.success("✓ Logged in successfully"))
+        }
       }
 
     case Some(_ @ options.logoutCmd) =>
       run("Logout", options.logoutCmd) { services =>
-        services.http.logout()
+        services.http.logout().map { _ =>
+          logger.info(ConsoleColors.success("✓ Logged out"))
+        }
       }
 
     case Some(_ @ options.apiCmd) =>
@@ -71,11 +78,89 @@ object Main extends App with Logging {
 
     case Some(_ @ options.listCmd) =>
       run("List ingestions", options.listCmd) { services =>
-        services.ingestion.listIngestions().map { ingestions =>
-          ingestions.sortBy(_.uri.toLowerCase(Locale.UK)).foreach { ingestion =>
-            logger.info(ConsoleColors.bold(ingestion.uri))
-            ingestion.path.foreach { path =>
-              logger.info(ConsoleColors.dim(s"  └─ Original path: $path"))
+        services.ingestion.listCollections().map { collections =>
+          if (collections.isEmpty) {
+            logger.info(ConsoleColors.dim("No collections found"))
+          } else {
+            collections.sortBy(_.uri.toLowerCase(Locale.UK)).foreach { collection =>
+              logger.info(ConsoleColors.bold(s"📁 ${collection.uri}"))
+              if (collection.ingestions.isEmpty) {
+                logger.info(ConsoleColors.dim("   (no ingestions)"))
+              } else {
+                collection.ingestions.sortBy(_.uri.toLowerCase(Locale.UK)).foreach { ingestion =>
+                  val pathInfo = ingestion.path.map(p => ConsoleColors.dim(s" ← $p")).getOrElse("")
+                  logger.info(s"   └─ ${ingestion.uri}$pathInfo")
+                }
+              }
+            }
+            val totalIngestions = collections.map(_.ingestions.size).sum
+            logger.info(ConsoleColors.dim(s"\n${collections.size} collection(s), $totalIngestions ingestion(s)"))
+          }
+        }
+      }
+
+    case Some(_ @ options.showCmd) =>
+      run("Show ingestion", options.showCmd) { services =>
+        val uri = options.showCmd.ingestionUri()
+        CommandValidator.validateIngestionUri(uri).flatMap { _ =>
+          val parts = uri.split("/")
+          val collection = parts(0)
+          val ingestion = parts(1)
+
+          for {
+            ingestionInfo <- services.ingestion.listIngestions().map(_.find(_.uri == uri))
+            blobCount <- services.ingestion.countBlobs(collection, ingestion)
+          } yield {
+            ingestionInfo match {
+              case Some(info) =>
+                logger.info(ConsoleColors.bold(s"\nIngestion: $uri"))
+                info.path.foreach(p => logger.info(s"  Source path:   $p"))
+                logger.info(s"  Files indexed: $blobCount")
+                logger.info("")
+                logger.info(ConsoleColors.dim("Use 'verify' to check all source files are indexed"))
+                logger.info(ConsoleColors.dim("Use 'delete-ingestion' to remove this ingestion"))
+              case None =>
+                logger.info(ConsoleColors.warning(s"Ingestion '$uri' not found"))
+                logger.info(ConsoleColors.dim("Use 'list' to see all available ingestions"))
+            }
+          }
+        }
+      }
+
+    case Some(_ @ options.statusCmd) =>
+      run("Status", options.statusCmd) { _ =>
+        val statusArgs = options.statusCmd
+        val uri = statusArgs.ingestionUri()
+
+        CommandValidator.validateIngestionUri(uri).flatMap { _ =>
+          Attempt.catchNonFatalBlasé {
+            val credentials: AWSCredentialsProvider = AwsCredentials(
+              statusArgs.minioAccessKey.toOption,
+              statusArgs.minioSecretKey.toOption,
+              statusArgs.awsProfile.toOption
+            )
+
+            val s3 = (statusArgs.minioAccessKey.toOption, statusArgs.minioSecretKey.toOption, statusArgs.minioEndpoint.toOption) match {
+              case (Some(_), Some(_), Some(endpoint)) =>
+                AmazonS3ClientBuilder.standard()
+                  .withEndpointConfiguration(new EndpointConfiguration(endpoint, statusArgs.region()))
+                  .withPathStyleAccessEnabled(true)
+                  .withCredentials(credentials)
+                  .build()
+              case _ =>
+                AmazonS3ClientBuilder.standard()
+                  .withCredentials(credentials)
+                  .withRegion(statusArgs.region())
+                  .build()
+            }
+
+            val result = IngestionStatus.checkBucket(s3, statusArgs.bucket(), uri)
+
+            statusArgs.path.toOption match {
+              case Some(localPath) =>
+                logger.info(IngestionStatus.formatComparison(result, Paths.get(localPath), uri))
+              case None =>
+                logger.info(IngestionStatus.formatStatus(result, uri))
             }
           }
         }
@@ -130,13 +215,28 @@ object Main extends App with Logging {
           ingestArgs.path(),
           ingestArgs.ingestionBucket()
         ).flatMap { _ =>
-          val source = IngestionSource(options)
-          val credentials = AwsCredentials(ingestArgs.minioAccessKey.toOption, ingestArgs.minioSecretKey.toOption, ingestArgs.awsProfile.toOption)
+          val sourcePath = Paths.get(ingestArgs.path()).toAbsolutePath
 
-          val ingestionS3Client = new DefaultIngestionS3Client(options.ingestCmd, credentials)
+          // Pre-flight scan
+          logger.info(ConsoleColors.dim("Scanning source directory..."))
+          val scanResult = PreFlightCheck.scan(sourcePath)
+          logger.info(PreFlightCheck.formatSummary(sourcePath, ingestArgs.ingestionUri(), scanResult))
 
-          val command = new RunIngestion(services.ingestion, ingestionS3Client, services.veracrypt)
-          command.run(Uri(ingestArgs.ingestionUri()), source, options.ingestCmd.languages)
+          if (scanResult.fileCount == 0) {
+            logger.info(ConsoleColors.warning("No files found to upload"))
+            Attempt.Right(())
+          } else if (ingestArgs.dryRun()) {
+            logger.info(ConsoleColors.info("Dry run - no files were uploaded"))
+            Attempt.Right(())
+          } else {
+            val source = IngestionSource(options)
+            val credentials = AwsCredentials(ingestArgs.minioAccessKey.toOption, ingestArgs.minioSecretKey.toOption, ingestArgs.awsProfile.toOption)
+
+            val ingestionS3Client = new DefaultIngestionS3Client(options.ingestCmd, credentials)
+
+            val command = new RunIngestion(services.ingestion, ingestionS3Client, services.veracrypt)
+            command.run(Uri(ingestArgs.ingestionUri()), source, options.ingestCmd.languages)
+          }
         }
       }
 
@@ -146,6 +246,7 @@ object Main extends App with Logging {
           newUsers.foreach { user =>
             logger.info(s"username: ${user.username}\tpassword: ${user.password}")
           }
+          logger.info(ConsoleColors.success(s"\n✓ Created ${newUsers.size} user(s)"))
         }
       }
 
@@ -153,8 +254,14 @@ object Main extends App with Logging {
       run("Delete ingestions", options.deleteIngestions) { services =>
         val uris = options.deleteIngestions.ingestionUrisOpt()
         CommandValidator.validateDeleteIngestion(uris).flatMap { _ =>
-          val command = new DeleteIngestions(options.deleteIngestions.ingestionUris, services.ingestion, options.deleteIngestions.conflictBehaviour)
-          command.run()
+          val uriList = uris.mkString(", ")
+          if (!options.deleteIngestions.force() && !UserPrompt.confirm(s"Delete ${uris.size} ingestion(s): $uriList?")) {
+            logger.info(ConsoleColors.dim("Cancelled"))
+            Attempt.Right(())
+          } else {
+            val command = new DeleteIngestions(options.deleteIngestions.ingestionUris, services.ingestion, options.deleteIngestions.conflictBehaviour)
+            command.run()
+          }
         }
       }
 
@@ -165,7 +272,12 @@ object Main extends App with Logging {
           val Array(collection, ingestionName) = uri.split('/')
 
           services.ingestion.createCollection(collection).flatMap { _ =>
-            services.ingestion.createIngestion(collection, root = None, ingestionName, options.createIngestion.languages, fixed = false)
+            services.ingestion.createIngestion(collection, root = None, ingestionName, options.createIngestion.languages, fixed = false).map { response =>
+              logger.info(ConsoleColors.success(s"✓ Created ingestion: $uri"))
+              logger.info(ConsoleColors.dim(s"  Collection: $collection"))
+              logger.info(ConsoleColors.dim(s"  Ingestion:  $ingestionName"))
+              logger.info(ConsoleColors.dim(s"\nUpload files with: pfi-cli ingest --ingestionUri $uri --path <source-directory>"))
+            }
           }
         }
       }
@@ -189,9 +301,6 @@ object Main extends App with Logging {
         System.exit(1)
       },
       success => {
-        if (options.verbose()) {
-          logger.info(ConsoleColors.success(s"✓ $action completed successfully"))
-        }
         System.exit(0)
       }
     ), Duration.Inf)
