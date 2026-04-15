@@ -4,13 +4,10 @@ import java.nio.file.Paths
 import java.util.Locale
 
 import _root_.model.{Languages, Uri}
-import com.amazonaws.auth.AWSCredentialsProvider
-import com.amazonaws.client.builder.AwsClientBuilder.EndpointConfiguration
-import com.amazonaws.services.s3.AmazonS3ClientBuilder
 import com.gu.pfi.cli.ingestion.IngestionSource
 import com.gu.pfi.cli.service.{CliServices, _}
 import play.api.libs.json.Json
-import utils.{AwsCredentials, AwsS3Clients, Logging}
+import utils.{AwsCredentials, Logging}
 import utils.attempt.Attempt
 
 import scala.concurrent.Await
@@ -122,45 +119,6 @@ object Main extends App with Logging {
               case None =>
                 logger.info(ConsoleColors.warning(s"Ingestion '$uri' not found"))
                 logger.info(ConsoleColors.dim("Use 'list' to see all available ingestions"))
-            }
-          }
-        }
-      }
-
-    case Some(_ @ options.statusCmd) =>
-      run("Status", options.statusCmd) { _ =>
-        val statusArgs = options.statusCmd
-        val uri = statusArgs.ingestionUri()
-
-        CommandValidator.validateIngestionUri(uri).flatMap { _ =>
-          Attempt.catchNonFatalBlasé {
-            val credentials: AWSCredentialsProvider = AwsCredentials(
-              statusArgs.minioAccessKey.toOption,
-              statusArgs.minioSecretKey.toOption,
-              statusArgs.awsProfile.toOption
-            )
-
-            val s3 = (statusArgs.minioAccessKey.toOption, statusArgs.minioSecretKey.toOption, statusArgs.minioEndpoint.toOption) match {
-              case (Some(_), Some(_), Some(endpoint)) =>
-                AmazonS3ClientBuilder.standard()
-                  .withEndpointConfiguration(new EndpointConfiguration(endpoint, statusArgs.region()))
-                  .withPathStyleAccessEnabled(true)
-                  .withCredentials(credentials)
-                  .build()
-              case _ =>
-                AmazonS3ClientBuilder.standard()
-                  .withCredentials(credentials)
-                  .withRegion(statusArgs.region())
-                  .build()
-            }
-
-            val result = IngestionStatus.checkBucket(s3, statusArgs.bucket(), uri)
-
-            statusArgs.path.toOption match {
-              case Some(localPath) =>
-                logger.info(IngestionStatus.formatComparison(result, Paths.get(localPath), uri))
-              case None =>
-                logger.info(IngestionStatus.formatStatus(result, uri))
             }
           }
         }

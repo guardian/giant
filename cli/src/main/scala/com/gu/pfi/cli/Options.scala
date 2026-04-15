@@ -120,29 +120,6 @@ class Options(args: Seq[String]) extends ScallopConf(args) {
       descr = "Ingestion URI (<collection>/<ingestion>) - use 'list' to see available ingestions")
   }
 
-  val statusCmd = new Subcommand("status") with CommonOptions {
-    descr("Check the ingest S3 bucket to see which files have been uploaded for an ingestion. " +
-      "Useful for diagnosing interrupted uploads — shows exactly which files made it to S3.")
-
-    val ingestionUri = opt[String]("ingestionUri", required = true, noshort = true,
-      descr = "Ingestion URI (<collection>/<ingestion>)")
-
-    val path = opt[String]("path", noshort = true,
-      descr = "Local source directory to compare against. If provided, shows which files are missing from S3.")
-
-    val bucket = opt[String]("bucket", noshort = true, default = Some("ingest-data"),
-      descr = "Ingestion S3 bucket")
-
-    val region = opt[String]("region", noshort = true, default = Some("eu-west-1"),
-      descr = "AWS region for the ingestion S3 bucket")
-
-    val minioAccessKey = opt[String]("minioAccessKey", descr = "Access key (only required when using Minio)", noshort = true)
-    val minioSecretKey = opt[String]("minioSecretKey", descr = "Secret key (only required when using Minio)", noshort = true)
-    val minioEndpoint = opt[String]("minioEndpoint", descr = "Endpoint (only required when using Minio)", default = Some("http://127.0.0.1:9090"))
-
-    val awsProfile = opt[String]("awsProfile", descr = "AWS profile to use for S3 credentials", noshort = true)
-  }
-
   val verifyCmd = new Subcommand("verify") with CommonOptions {
     descr("Verify that an ingestion has completed successfully - this will crawl the files on disk (in the path recorded in the database) and check them against the index")
 
@@ -218,7 +195,6 @@ class Options(args: Seq[String]) extends ScallopConf(args) {
   addSubcommand(authCmd)
   addSubcommand(listCmd)
   addSubcommand(showCmd)
-  addSubcommand(statusCmd)
   addSubcommand(verifyCmd)
   addSubcommand(ingestCmd)
   addSubcommand(hashCmd)
