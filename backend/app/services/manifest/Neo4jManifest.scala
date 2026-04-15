@@ -1183,6 +1183,28 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
     })
   }
 
+  override def getBlobUrisForPathPrefix(pathPrefix: String, size: Int): Either[Failure, List[(String, Boolean)]] = transaction { tx =>
+    val result = tx.run(
+      """
+        |MATCH (b:Blob:Resource)-[:PARENT]->(f:File:Resource)
+        |WHERE f.uri STARTS WITH $pathPrefix
+        |WITH DISTINCT b
+        |OPTIONAL MATCH (b)-[:PARENT]->(otherFile:File:Resource)
+        |  WHERE NOT otherFile.uri STARTS WITH $pathPrefix
+        |RETURN b.uri AS blobUri, count(otherFile) > 0 AS hasPathConflict
+        |LIMIT $size
+      """.stripMargin,
+      parameters(
+        "pathPrefix", pathPrefix,
+        "size", Int.box(size)
+      )
+    )
+
+    Right(result.list().asScala.toList.map { record =>
+      (record.get("blobUri").asString(), record.get("hasPathConflict").asBoolean())
+    })
+  }
+
   override def getWorkCounts(): Either[Failure, WorkCounts] = transaction { tx =>
     val result = tx.run(
       """

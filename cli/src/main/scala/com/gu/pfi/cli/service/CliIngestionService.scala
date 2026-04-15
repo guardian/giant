@@ -83,6 +83,24 @@ class CliIngestionService(val http: CliHttpClient)(implicit ec: ExecutionContext
     }
   }
 
+  case class PrefixBlobResult(blobs: List[IndexedBlob], pathConflicts: Set[String])
+
+  def getBlobsByPrefix(collection: String, ingestion: String, pathPrefix: String, size: Int): Attempt[PrefixBlobResult] = {
+    val params = List(
+      s"collection=${URLEncoder.encode(collection, "UTF-8")}",
+      s"ingestion=${URLEncoder.encode(ingestion, "UTF-8")}",
+      s"pathPrefix=${URLEncoder.encode(pathPrefix, "UTF-8")}",
+      s"size=${URLEncoder.encode(size.toString, "UTF-8")}"
+    )
+
+    http.get(s"/api/blobs/by-prefix?${params.mkString("&")}").map { r =>
+      PrefixBlobResult(
+        blobs = (r \ "blobs").as[List[IndexedBlob]],
+        pathConflicts = (r \ "pathConflicts").as[Set[String]]
+      )
+    }
+  }
+
   def deleteBlob(id: String): Attempt[Unit] = {
 
     // Setting checkChildren to false means that we delete this blob

@@ -225,6 +225,33 @@ class Options(args: Seq[String]) extends ScallopConf(args) {
     }
   }
 
+  val deleteBlobsCmd = new Subcommand("delete-blobs") with CommonOptions {
+    descr("Delete a subset of blobs from an ingestion by path prefix (e.g. a subfolder)")
+
+    val ingestionUri = opt[String]("ingestionUri", required = true, noshort = true,
+      descr = "Ingestion URI (<collection>/<ingestion>)")
+
+    val pathPrefix = opt[String]("pathPrefix", required = true, noshort = true,
+      descr = "Path prefix to match (e.g. 'subfolder/' or 'docs/2024/')")
+
+    val force = opt[Boolean]("force", noshort = true, default = Some(false),
+      descr = "Skip confirmation prompt")
+
+    val conflictBehaviourOpt = opt[String](
+      name = "conflictBehaviour",
+      descr =
+        """What to do when a file also belongs to another ingestion:
+          |  skip   - leave the file alone (default)
+          |  delete - remove the file from all ingestions
+          |  stop   - abort the operation""".stripMargin,
+      noshort = true)
+    def conflictBehaviour: Option[ConflictBehaviour] = conflictBehaviourOpt.toOption.map {
+      case Skip.name => Skip
+      case Delete.name => Delete
+      case Stop.name => Stop
+    }
+  }
+
   val createIngestion = new Subcommand("create-ingestion") with CommonOptions with LanguageOptions {
     descr("Create an ingestion that other tools can upload into")
 
@@ -246,6 +273,7 @@ class Options(args: Seq[String]) extends ScallopConf(args) {
   addSubcommand(importCmd)
   addSubcommand(createUsers)
   addSubcommand(deleteIngestions)
+  addSubcommand(deleteBlobsCmd)
   addSubcommand(createIngestion)
 
   verify()
