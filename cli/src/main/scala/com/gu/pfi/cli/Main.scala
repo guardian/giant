@@ -84,7 +84,7 @@ object Main extends App with Logging {
           } else {
           val collectionFilter = options.listCmd.collection.toOption
           val filtered = collectionFilter match {
-            case Some(name) => collections.filter(_.uri.equalsIgnoreCase(name))
+            case Some(name) => collections.filter(_.uri == name)
             case None => collections
           }
 
@@ -142,7 +142,7 @@ object Main extends App with Logging {
       run("Show collection", options.showCollectionCmd) { services =>
         val collectionName = options.showCollectionCmd.collection()
         services.ingestion.listCollections().flatMap { collections =>
-          collections.find(_.uri.equalsIgnoreCase(collectionName)) match {
+          collections.find(_.uri == collectionName) match {
             case Some(collection) =>
               if (collection.ingestions.isEmpty) {
                 logger.info(ConsoleColors.bold(s"\n📁 ${collection.uri}"))
