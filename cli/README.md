@@ -32,6 +32,7 @@ pfi-cli login --token YOUR_TOKEN --verbose
 | `logout` | Remove saved credentials |
 | `list` | Show all collections and ingestions |
 | `show` | Show details of a specific ingestion |
+| `show-collection` | Show a collection and all its ingestions with file counts |
 | `status` | Check upload progress (S3 bucket and backend index) |
 | `create-ingestion` | Create a new ingestion |
 | `ingest` | Upload files into an ingestion |
@@ -208,6 +209,10 @@ This provides complete coverage even when the S3 bucket has been partially or fu
 ```bash
 # List all collections and ingestions
 pfi-cli list --uri https://giant.pfi.gutools.co.uk
+
+# Show all ingestions in a collection with file counts
+pfi-cli show-collection --uri https://giant.pfi.gutools.co.uk \
+  --collection "BinLaden"
 
 # Show details of a specific ingestion (including indexed file count)
 pfi-cli show --uri https://giant.pfi.gutools.co.uk \
