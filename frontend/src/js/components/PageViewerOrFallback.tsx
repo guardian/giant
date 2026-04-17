@@ -11,7 +11,10 @@ import { TablePreview } from "./viewer/TablePreview";
 import DownloadButton from "./viewer/DownloadButton";
 import { DocumentFooter } from "./viewer/DocumentFooter";
 import { SearchStepper } from "./PageViewer/SearchStepper";
-import { useSearchHighlightStepper } from "./viewer/useSearchHighlightStepper";
+import {
+  SearchHighlightStepper,
+  useSearchHighlightStepper,
+} from "./viewer/useSearchHighlightStepper";
 import { GiantState } from "../types/redux/GiantState";
 import { Resource } from "../types/Resource";
 import { PageDimensions } from "./PageViewer/model";
@@ -101,7 +104,7 @@ type PageCountResponse = {
 };
 
 const SearchStepperOverlay: FC<{
-  highlightStepper: ReturnType<typeof useSearchHighlightStepper>;
+  highlightStepper: SearchHighlightStepper;
 }> = ({ highlightStepper }) => (
   <>
     <KeyboardShortcut
@@ -113,13 +116,7 @@ const SearchStepperOverlay: FC<{
       func={highlightStepper.next}
     />
     <div className="search-stepper-overlay">
-      <SearchStepper
-        query={highlightStepper.query}
-        current={highlightStepper.currentHighlight}
-        total={highlightStepper.totalHighlights}
-        onNext={highlightStepper.next}
-        onPrevious={highlightStepper.previous}
-      />
+      <SearchStepper highlightStepper={highlightStepper} />
     </div>
   </>
 );

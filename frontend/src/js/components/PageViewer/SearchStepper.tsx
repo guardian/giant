@@ -2,7 +2,9 @@ import React, { FC } from "react";
 import ChevronLeft from "react-icons/lib/fa/chevron-left";
 import ChevronRight from "react-icons/lib/fa/chevron-right";
 import styles from "./SearchStepper.module.css";
+import { SearchHighlightStepper } from "../viewer/useSearchHighlightStepper";
 
+// unfortunately in GiantState q is just a string so we have to do all this to tease out the type and format it nicely
 function formatQuery(raw: string): string {
   try {
     const parts = JSON.parse(raw);
@@ -17,7 +19,6 @@ function formatQuery(raw: string): string {
         }
         return "";
       })
-      .filter(Boolean)
       .join(" ");
   } catch {
     return raw;
@@ -25,30 +26,26 @@ function formatQuery(raw: string): string {
 }
 
 type SearchStepperProps = {
-  query: string;
-  current: number | undefined;
-  total: number;
+  highlightStepper: SearchHighlightStepper;
   isPending?: boolean;
-  onNext: () => void;
-  onPrevious: () => void;
 };
 
 export const SearchStepper: FC<SearchStepperProps> = ({
-  query,
-  current,
-  total,
+  highlightStepper,
   isPending,
-  onNext,
-  onPrevious,
 }) => {
-  if (!query || (total === 0 && !isPending)) {
+  const { query, currentHighlight, totalHighlights, next, previous } =
+    highlightStepper;
+  if (!query || (totalHighlights === 0 && !isPending)) {
     return null;
   }
 
   const displayQuery = formatQuery(query);
 
   const countText =
-    current !== undefined ? `${current + 1} of ${total}` : `${total} results`;
+    currentHighlight !== undefined
+      ? `${currentHighlight + 1} of ${totalHighlights}`
+      : `${totalHighlights} results`;
 
   return (
     <div className={styles.container}>
@@ -56,12 +53,12 @@ export const SearchStepper: FC<SearchStepperProps> = ({
       <span className={styles.count}>{isPending ? "..." : countText}</span>
       <button
         className={styles.navButton}
-        onClick={onPrevious}
+        onClick={previous}
         title="Previous match"
       >
         <ChevronLeft />
       </button>
-      <button className={styles.navButton} onClick={onNext} title="Next match">
+      <button className={styles.navButton} onClick={next} title="Next match">
         <ChevronRight />
       </button>
     </div>

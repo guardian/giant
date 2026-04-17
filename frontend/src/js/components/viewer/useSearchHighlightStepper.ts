@@ -5,7 +5,15 @@ import { GiantState } from "../../types/redux/GiantState";
 import { Resource } from "../../types/Resource";
 import { setCurrentHighlight } from "../../actions/highlights";
 
-export function useSearchHighlightStepper() {
+export interface SearchHighlightStepper {
+  query: string;
+  currentHighlight?: number;
+  totalHighlights: number;
+  next: () => void;
+  previous: () => void;
+}
+
+export function useSearchHighlightStepper(): SearchHighlightStepper {
   const dispatch = useDispatch();
 
   const resource = useSelector<GiantState, Resource | null>(
@@ -14,62 +22,53 @@ export function useSearchHighlightStepper() {
   const view = useSelector<GiantState, string | undefined>(
     (state) => state.urlParams.view,
   );
-  const q = useSelector<GiantState, string>((state) => state.urlParams.q);
+  const query = useSelector<GiantState, string>((state) => state.urlParams.q);
 
   const { currentHighlight, totalHighlights } = useSelector(
     (state: GiantState) => {
-      let currentHighlight: number | undefined;
-      let totalHighlights = 0;
-
       if (state.resource && state.urlParams.view) {
         const highlights =
           state.highlights[`${state.resource.uri}-${state.urlParams.q}`];
-        if (highlights && _.get(highlights, state.urlParams.view)) {
-          currentHighlight = _.get(
-            highlights,
-            state.urlParams.view,
-          ).currentHighlight;
-        }
-        const viewItem = _.get(state.resource, state.urlParams.view);
-        if (viewItem) {
-          totalHighlights = viewItem.highlights
-            ? viewItem.highlights.length
-            : 0;
-        }
+        const highlightForView = _.get(highlights, state.urlParams.view);
+        const currentHighlight = highlightForView?.currentHighlight;
+        const viewItemHighlights = _.get(
+          state.resource,
+          state.urlParams.view,
+        )?.highlights;
+        const totalHighlights = viewItemHighlights
+          ? viewItemHighlights.length
+          : 0;
+        return { currentHighlight, totalHighlights };
       }
 
-      return { currentHighlight, totalHighlights };
+      return { currentHighlight: undefined, totalHighlights: 0 };
     },
   );
 
   const next = useCallback(() => {
     if (!resource || !view) return;
-    let newHighlight: number;
-    if (totalHighlights > 0 && currentHighlight === totalHighlights - 1) {
-      newHighlight = 0;
-    } else if (currentHighlight === undefined) {
-      newHighlight = 0;
-    } else {
-      newHighlight = currentHighlight + 1;
-    }
-    dispatch(setCurrentHighlight(resource.uri, q, view, newHighlight));
-  }, [resource, view, q, currentHighlight, totalHighlights, dispatch]);
+    const isLastHighlight =
+      totalHighlights > 0 && currentHighlight === totalHighlights - 1;
+    const newHighlight =
+      currentHighlight === undefined || isLastHighlight
+        ? 0
+        : currentHighlight + 1;
+    dispatch(setCurrentHighlight(resource.uri, query, view, newHighlight));
+  }, [resource, view, query, currentHighlight, totalHighlights, dispatch]);
 
   const previous = useCallback(() => {
     if (!resource || !view) return;
-    let newHighlight: number;
-    if (currentHighlight === 0) {
-      newHighlight = (totalHighlights || 1) - 1;
-    } else if (currentHighlight === undefined) {
-      newHighlight = (totalHighlights || 1) - 1;
-    } else {
-      newHighlight = currentHighlight - 1;
-    }
-    dispatch(setCurrentHighlight(resource.uri, q, view, newHighlight));
-  }, [resource, view, q, currentHighlight, totalHighlights, dispatch]);
+    const isFirstHighlight =
+      currentHighlight === undefined || currentHighlight === 0;
+    const lastHighlight = totalHighlights > 0 ? totalHighlights - 1 : 0;
+    const newHighlight = isFirstHighlight
+      ? lastHighlight
+      : currentHighlight - 1;
+    dispatch(setCurrentHighlight(resource.uri, query, view, newHighlight));
+  }, [resource, view, query, currentHighlight, totalHighlights, dispatch]);
 
   return {
-    query: q,
+    query: query,
     currentHighlight,
     totalHighlights,
     next,

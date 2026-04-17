@@ -43,8 +43,7 @@ export const DocumentFooter: FC<DocumentFooterProps> = ({
   }, [currentResults, uri]);
 
   const hasPreviousResult =
-    currentResults !== undefined &&
-    (currentResults.page > 1 || (resultIdx !== -1 && resultIdx > 0));
+    currentResults !== undefined && (currentResults.page > 1 || resultIdx > 0);
 
   const hasNextResult =
     currentResults !== undefined &&
