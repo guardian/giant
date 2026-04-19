@@ -8,14 +8,12 @@ type ControlsProps = {
   fixedQuery: string;
   uri: string;
   onHighlightStateChange: (newState: HighlightsState) => void;
-  onQueryChange: (newQuery: string) => void;
 };
 
 export const Controls: FC<ControlsProps> = ({
   fixedQuery,
   uri,
   onHighlightStateChange,
-  onQueryChange,
 }) => {
   const [focusedFindHighlightIndex, setFocusedFindHighlightIndex] = useState<
     number | null
@@ -37,14 +35,11 @@ export const Controls: FC<ControlsProps> = ({
       if (!query) {
         setFocusedFindHighlightIndex(null);
         setFindHighlights([]);
-        onQueryChange("");
         return;
       }
 
       const params = new URLSearchParams();
       params.set("q", removeLastUnmatchedQuote(query));
-
-      onQueryChange(query);
       setIsFindPending(true);
       // TODO: handle error
       return authFetch(`/api/pages2/${uri}/search?${params.toString()}`)
@@ -59,7 +54,7 @@ export const Controls: FC<ControlsProps> = ({
           }
         });
     },
-    [uri, onQueryChange],
+    [uri],
   );
 
   // Auto-trigger the search when mounted with a fixed query

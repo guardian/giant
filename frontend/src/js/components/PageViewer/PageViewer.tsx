@@ -68,8 +68,6 @@ export const PageViewer: FC<PageViewerProps> = ({
     [],
   );
 
-  const onSearchQueryChange = useCallback(() => {}, []);
-
   return (
     <main className={styles.main}>
       {searchQuery !== undefined && (
@@ -77,7 +75,6 @@ export const PageViewer: FC<PageViewerProps> = ({
           <Controls
             uri={uri}
             onHighlightStateChange={onSearchHighlightStateChange}
-            onQueryChange={onSearchQueryChange}
             fixedQuery={searchQuery}
           />
         </div>
