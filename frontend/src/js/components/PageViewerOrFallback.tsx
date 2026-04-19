@@ -141,7 +141,13 @@ const SearchStepperOverlay: FC<{
       func={highlightStepper.next}
     />
     <div className="search-stepper-overlay">
-      <SearchStepper highlightStepper={highlightStepper} />
+      <SearchStepper
+        query={highlightStepper.query}
+        current={highlightStepper.currentHighlight}
+        total={highlightStepper.totalHighlights}
+        onNext={highlightStepper.next}
+        onPrevious={highlightStepper.previous}
+      />
     </div>
   </>
 );
