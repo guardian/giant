@@ -513,6 +513,52 @@ class ElasticsearchResources(override val client: ElasticClient, indexName: Stri
     }
   }
 
+  override def getTotalWordCountForWorkspace(workspaceId: String): Attempt[Long] = {
+    val query = search(indexName)
+      .query(
+        nestedQuery(IndexFields.workspacesField,
+          termQuery(s"${IndexFields.workspacesField}.${IndexFields.workspaces.workspaceId}", workspaceId)
+        )
+      )
+      .aggregations(
+        scriptedMetricAggregation("workspaceWordCount")
+          .initScript(Script("state.total = 0L").lang("painless"))
+          .mapScript(Script("""
+                              |if (params._source != null && params._source.text != null) {
+                              |  for (entry in params._source.text.entrySet()) {
+                              |    if (entry.getValue() != null && entry.getValue().length() > 0) {
+                              |      state.total += /\s+/.split(entry.getValue()).length;
+                              |    }
+                              |  }
+                              |}
+          """.stripMargin.trim).lang("painless"))
+          .combineScript(Script("return state.total").lang("painless"))
+          .reduceScript(Script("long total = 0; for (s in states) { total += s } return total").lang("painless"))
+      )
+
+    execute(query).map { response =>
+      response.aggregations.data("workspaceWordCount").asInstanceOf[Map[String, Any]]("value") match {
+        case n: Number => n.longValue()
+        case other => other.toString.toLong
+      }
+    }
+  }
+
+  override def getTextForBlobs(blobUris: List[String]): Attempt[Map[String, Map[String, String]]] = {
+    val query = search(indexName)
+      .query(
+        idsQuery(blobUris)
+      )
+      .sourceInclude("text.*")
+      .size(blobUris.size)
+
+    execute(query).map { response =>
+      response.hits.hits.flatMap { hit =>
+        hit.sourceAsMap.get(IndexFields.text).map(text => hit.id -> text.asInstanceOf[Map[String, String]])
+      }.toMap
+    }
+  }
+
   def delete(id: String): Attempt[Unit] = {
     executeNoReturn {
       deleteById(indexName, id)

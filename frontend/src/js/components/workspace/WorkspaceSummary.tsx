@@ -26,6 +26,7 @@ import { FileAndFolderCounts } from "../UtilComponents/TreeBrowser/FileAndFolder
 import buildLink from "../../util/buildLink";
 import history from "../../util/history";
 import { workspaceEntryPath } from "../../util/workspaceUtils";
+import { DownloadTextModal } from "./DownloadTextModal";
 
 type Props = {
   workspace: Workspace;
@@ -62,6 +63,7 @@ export default function WorkspaceSummary({
   isAdmin,
   clearFocus,
 }: Props) {
+  const [downloadTextModalOpen, setDownloadTextModalOpen] = useState(false);
   const [shareModalOpen, setShareModalOpen] = useState(false);
   const [takeOwnershipModalOpen, setTakeOwnershipModalOpen] = useState(false);
   const [renameModalOpen, setRenameModalOpen] = useState(false);
@@ -184,6 +186,12 @@ export default function WorkspaceSummary({
             disabled={!canDelete}
             onClick={() => setDeleteModalOpen(true)}
           />
+          <Dropdown.Divider />
+          <Dropdown.Item
+            icon="file alternate outline"
+            text="Download all text"
+            onClick={() => setDownloadTextModalOpen(true)}
+          />
         </Dropdown.Menu>
       </Dropdown>
       <TakeOwnershipOfWorkspaceModal
@@ -194,6 +202,13 @@ export default function WorkspaceSummary({
         isOpen={takeOwnershipModalOpen}
         onClose={() => setTakeOwnershipModalOpen(false)}
       />
+      {isAdmin && downloadTextModalOpen && (
+        <DownloadTextModal
+          isOpen={downloadTextModalOpen}
+          dismiss={() => setDownloadTextModalOpen(false)}
+          workspace={workspace}
+        />
+      )}
       <ShareWorkspaceModal
         workspace={workspace}
         workspaceUsers={workspaceUsers}

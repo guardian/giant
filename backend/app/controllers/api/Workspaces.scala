@@ -160,6 +160,16 @@ class Workspaces(
       .map(workspace => Ok(Json.toJson(workspace)))
   }
 
+  def getText(workspaceId: String) = ApiAction.attempt(parse.json) { req =>
+    for {
+      _ <- annotation.getWorkspaceMetadata(req.user.username, workspaceId) // check workspace exists and user has access
+      blobUris <- req.body.validate[List[String]].toAttempt
+      result <-
+        if (blobUris.isEmpty) index.getTotalWordCountForWorkspace(workspaceId).map(Json.toJson(_))
+        else index.getTextForBlobs(blobUris).map(Json.toJson(_))
+    } yield Ok(result)
+  }
+
   def updateWorkspaceFollowers(workspaceId: String) = ApiAction.attempt(parse.json) { req =>
     for {
       data <- req.body.validate[UpdateWorkspaceFollowers].toAttempt

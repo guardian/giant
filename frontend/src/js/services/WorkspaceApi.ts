@@ -59,6 +59,14 @@ export function getWorkspace(id: string) {
   return authFetch(`/api/workspaces/${id}`).then((res) => res.json());
 }
 
+export function getWorkspaceText(id: string, maybeBlobUris?: string[]) {
+  return authFetch(`/api/workspaces/${id}/text`, {
+    method: "POST",
+    headers: new Headers({ "Content-Type": "application/json" }),
+    body: JSON.stringify(maybeBlobUris ?? []), // returns word count for whole workspace if no blobs specified
+  }).then((res) => res.json());
+}
+
 export function moveItem(
   workspaceId: string,
   itemId: string,

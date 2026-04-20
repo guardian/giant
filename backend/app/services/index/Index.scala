@@ -44,4 +44,7 @@ trait Index {
   def deleteWorkspace(workspaceId: String): Attempt[Unit]
 
   def updateIngestionPath(oldIngestionPath: String, newIngestionPath: String): Attempt[Unit]
+
+  def getTotalWordCountForWorkspace(workspaceId: String): Attempt[Long]
+  def getTextForBlobs(blobUris: List[String]): Attempt[Map[String, Map[String, String]]] = ???
 }
