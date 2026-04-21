@@ -5,6 +5,7 @@ import java.nio.file.Path
 import model.ObjectMetadata
 import model.ingestion.{FileContext, Key}
 import services.IngestStorage
+import software.amazon.awssdk.services.s3.model.DeleteObjectResponse
 import utils.attempt.{Failure, UnsupportedOperationFailure}
 
 class TestIngestStorage extends IngestStorage {
@@ -18,10 +19,10 @@ class TestIngestStorage extends IngestStorage {
   override def getMetadata(key: Key): Either[Failure, FileContext] =
     Left(UnsupportedOperationFailure("getMetadata not supported in test"))
 
-  override def delete(key: Key): Either[Failure, Unit] =
+  override def delete(key: Key): Either[Failure, DeleteObjectResponse] =
     Left(UnsupportedOperationFailure("delete not supported in test"))
 
-  override def sendToDeadLetterBucket(key: Key): Either[Failure, Unit] =
+  override def sendToDeadLetterBucket(key: Key): Either[Failure, DeleteObjectResponse] =
     Left(UnsupportedOperationFailure("sendToDeadLetterBucket not supported in test"))
 
   override def retryDeadLetters(): Either[Failure, Unit] =

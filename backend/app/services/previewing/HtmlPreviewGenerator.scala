@@ -3,7 +3,7 @@ package services.previewing
 import java.io.InputStream
 import java.nio.file.Path
 
-import com.amazonaws.util.StringInputStream
+import software.amazon.awssdk.utils.StringInputStream
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
 

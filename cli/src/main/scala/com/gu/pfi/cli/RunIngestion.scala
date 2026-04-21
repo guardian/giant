@@ -1,20 +1,17 @@
 package com.gu.pfi.cli
 
-import java.nio.file.{Path, Paths}
+import java.nio.file.Path
 import java.util.concurrent.Executors
 
-import _root_.model.{CreateIngestionResponse, Language, Uri}
-import com.amazonaws.auth.AWSCredentialsProvider
+import _root_.model.{Language, Uri}
 import com.gu.pfi.cli.ingestion._
-import com.gu.pfi.cli.service.{CliIngestionService, CliVeracrypt, DefaultIngestionS3Client, IngestionS3Client}
-import utils.AwsS3Clients
+import com.gu.pfi.cli.service.{CliIngestionService, CliVeracrypt, IngestionS3Client}
 import utils.attempt._
 
 import scala.concurrent.ExecutionContext
 
 class RunIngestion(ingestions: CliIngestionService, ingestionS3Client: IngestionS3Client, veracrypt: CliVeracrypt) {
   private val batchSize = 100
-  private val chunkSize = 1048576
   private val inMemoryThreshold = 5242880
 
   // TODO MRB: set throughput to 1?

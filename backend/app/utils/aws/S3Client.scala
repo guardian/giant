@@ -2,90 +2,104 @@ package utils.aws
 
 import java.io.{ByteArrayInputStream, InputStream}
 import java.nio.file.Path
+import software.amazon.awssdk.services.s3.{S3Client => S3ClientV2}
+import software.amazon.awssdk.services.s3.model.{HeadBucketRequest, ListObjectsV2Request, ListObjectsV2Response, PutObjectRequest, PutObjectResponse}
+import software.amazon.awssdk.transfer.s3.S3TransferManager
+import software.amazon.awssdk.transfer.s3.model.{CompletedFileUpload, UploadFileRequest}
+import software.amazon.awssdk.transfer.s3.progress.TransferListener.Context.BytesTransferred
+import software.amazon.awssdk.transfer.s3.progress.{LoggingTransferListener, TransferListener}
 
-import com.amazonaws.services.s3.AmazonS3
-import com.amazonaws.services.s3.model._
-import com.amazonaws.services.s3.transfer.internal.S3ProgressListener
-import com.amazonaws.services.s3.transfer.model.UploadResult
-import com.amazonaws.services.s3.transfer.{PersistableTransfer, TransferManager}
-import com.amazonaws.{AmazonServiceException, event}
-import org.apache.commons.io.IOUtils
+import scala.concurrent.Await
+import software.amazon.awssdk.awscore.exception.AwsServiceException
 import services.S3Config
+import software.amazon.awssdk.core.sync.RequestBody
 import utils.attempt.Attempt
 import utils.{AwsCredentials, AwsS3Clients}
+import software.amazon.awssdk.regions.Region
 
+import scala.jdk.FutureConverters._
 import scala.concurrent.ExecutionContext
 import scala.language.implicitConversions
 
 class S3Client(config: S3Config)(implicit executionContext: ExecutionContext) {
-  val credentials = AwsCredentials(accessKey = config.accessKey, secretKey = config.secretKey)
-  val (aws: AmazonS3, tm: TransferManager) = AwsS3Clients(credentials, config.region, config.endpoint)
+  val credentials = AwsCredentials.credentialsV2(accessKey = config.accessKey, secretKey = config.secretKey)
+  val (s3: S3ClientV2, tranferManager: S3TransferManager) = AwsS3Clients(credentials, Region.of(config.region), config.endpoint)
 
   def attemptS3[T](f: => T): Attempt[T] = Attempt.catchNonFatal(f)(AwsErrors.exceptionToFailure)
 
   // Minio only works with the deprecated method on the client. This is a copy paste into our code to avoid the warnings
   def doesBucketExist(bucket: String): Boolean = try {
-    aws.headBucket(new HeadBucketRequest(bucket))
+    s3.headBucket(HeadBucketRequest.builder().bucket(bucket).build())
     true
   } catch {
-    case ase: AmazonServiceException if ase.getStatusCode == 301 || ase.getStatusCode == 403 =>
+    case ase: AwsServiceException if ase.statusCode() == 301 || ase.statusCode() == 403 =>
       true
 
-    case ase: AmazonServiceException if ase.getStatusCode == 404 =>
+    case ase: AwsServiceException if ase.statusCode() == 404 =>
       false
   }
 
   // TODO MRB: these should all be attempty
-  def putObjectSync(bucket: String, key: String, contentType: Option[String], contentLength: Long, is: InputStream): PutObjectResult = {
-    val metadata = createMetadata(contentType, Some(contentLength))
-    val request = new PutObjectRequest(bucket, key, is, metadata)
+  def putObjectSync(bucket: String, key: String, contentType: Option[String], contentLength: Long, is: InputStream): PutObjectResponse = {
+    val request = requestBuilder(bucket, key, contentType, Some(contentLength))
 
     try {
-      aws.putObject(request)
+      s3.putObject(request, RequestBody.fromInputStream(is, contentLength))
     } finally {
       is.close()
     }
   }
 
-  def putObjectSync(bucket: String, key: String, contentType: Option[String], file: Path): PutObjectResult = {
-    val metadata = createMetadata(contentType)
-    val request = new PutObjectRequest(bucket, key, file.toFile).withMetadata(metadata)
-
-    aws.putObject(request)
+  def putObjectSync(bucket: String, key: String, contentType: Option[String], file: Path): PutObjectResponse = {
+    val request = requestBuilder(bucket, key, contentType)
+    s3.putObject(request, file)
   }
 
   def putLargeObject(bucket: String, key: String, contentType: Option[String], file: Path,
-                     updateCallback: event.ProgressEvent => Unit = _ => ()): UploadResult = {
-    val metadata = createMetadata(contentType)
-    val request = new PutObjectRequest(bucket, key, file.toFile).withMetadata(metadata)
+                     updateCallback: BytesTransferred => Unit = _ => ()): CompletedFileUpload = {
 
-    val progressListener = new S3ProgressListener{
-      override def onPersistableTransfer(persistableTransfer: PersistableTransfer): Unit = {}
-      override def progressChanged(progressEvent: event.ProgressEvent): Unit = updateCallback(progressEvent)
+    val request = requestBuilder(bucket, key, contentType)
+
+    val progressListener = new TransferListener {
+      override def bytesTransferred(context: BytesTransferred): Unit = {
+        updateCallback(context)
+      }
     }
 
-    tm.upload(request, progressListener).waitForUploadResult()
+    val uploadRequest = UploadFileRequest.builder()
+      .putObjectRequest(request)
+      .source(file)
+      .addTransferListener(progressListener)
+      .build()
+
+    //Do we want to wait for an infinite amount of time here?
+    val uploadFuture = tranferManager.uploadFile(uploadRequest).completionFuture()
+    Await.result(uploadFuture.asScala, scala.concurrent.duration.Duration.Inf)
   }
 
-  def putObjectSync(bucket: String, key: String, contentType: Option[String], data: Array[Byte]): PutObjectResult = {
-    val metadata = createMetadata(contentType, Some(data.length))
-    val request = new PutObjectRequest(bucket, key, new ByteArrayInputStream(data), metadata)
-
-    aws.putObject(request)
+  def putObjectSync(bucket: String, key: String, contentType: Option[String], data: Array[Byte]): PutObjectResponse = {
+    val request = requestBuilder(bucket, key, contentType)
+    s3.putObject(
+      request,
+      RequestBody.fromInputStream(new ByteArrayInputStream(data), data.length))
   }
 
-  def putObject(bucket: String, key: String, contentType: Option[String], data: Array[Byte]): Attempt[PutObjectResult] = attemptS3 {
+  def putObject(bucket: String, key: String, contentType: Option[String], data: Array[Byte]): Attempt[PutObjectResponse] = attemptS3 {
     putObjectSync(bucket, key, contentType, data)
   }
 
-  def listObjects(bucket: String, prefix: String): Attempt[ObjectListing] = attemptS3(aws.listObjects(bucket, prefix))
+  def listObjects(bucket: String, prefix: String): Attempt[ListObjectsV2Response] = {
+    val request = ListObjectsV2Request.builder()
+      .bucket(bucket)
+      .prefix(prefix)
+      .build()
+    attemptS3(s3.listObjectsV2(request))
+  }
 
-  private def createMetadata(contentType: Option[String], contentLength: Option[Long] = None): ObjectMetadata = {
-    val metadata = new ObjectMetadata()
-    contentType.foreach(metadata.setContentType)
-    contentLength.foreach(metadata.setContentLength)
-    config.sseAlgorithm.foreach(metadata.setSSEAlgorithm)
-
-    metadata
+  def requestBuilder(bucket: String, key: String, contentType: Option[String], contentLength: Option[Long] = None): PutObjectRequest = {
+    val basereq = PutObjectRequest.builder.bucket(bucket).key(key)
+    val reqWithContentType = contentType.map(ct => basereq.contentType(ct)).getOrElse(basereq)
+    val reqWithContentLength = contentLength.map(cl => reqWithContentType.contentLength(cl)).getOrElse(reqWithContentType)
+    reqWithContentLength.build()
   }
 }

@@ -2,10 +2,8 @@ package extraction.email.eml
 
 import java.io.InputStream
 import java.nio.file.attribute.FileTime
-import java.nio.file.{Files, StandardCopyOption}
-import java.security.DigestInputStream
 
-import com.amazonaws.util.IOUtils
+import software.amazon.awssdk.utils.IoUtils
 import com.google.common.net.MediaType
 import ingestion.IngestionContextBuilder
 import jakarta.mail.Message
@@ -18,7 +16,6 @@ import services.{FingerprintServices, ScratchSpace}
 import utils.{HtmlToPlainText, DateTimeUtils, Logging}
 
 import scala.jdk.CollectionConverters._
-import scala.util.control.NonFatal
 
 class EmlParser(val scratch: ScratchSpace, val ingestionServices: IngestionServices) extends Logging {
   def parseMessage(message: Message): Option[(Email, Seq[MimeBodyPart])] = {
@@ -83,7 +80,7 @@ class EmlParser(val scratch: ScratchSpace, val ingestionServices: IngestionServi
         headers.addHeader("Content-Disposition", message.getDisposition)
 
         val email = Email.createFrom(uri, from, recipients, sentAt, sensitivity, priority, subject, "<empty>", inReplyTo, references, None, 0)
-        val attachment = new MimeBodyPart(headers, IOUtils.toByteArray(is))
+        val attachment = new MimeBodyPart(headers, IoUtils.toByteArray(is))
 
         Some((email, Seq(attachment)))
 

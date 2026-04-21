@@ -8,7 +8,7 @@ import org.apache.pekko.cluster.{Cluster, MemberStatus}
 import software.amazon.awssdk.services.autoscaling.AutoScalingClient
 import software.amazon.awssdk.services.autoscaling.model.{AutoScalingGroup, DescribeAutoScalingGroupsRequest, DescribeScalingActivitiesRequest, SetDesiredCapacityRequest}
 import software.amazon.awssdk.services.ec2.Ec2Client
-import com.amazonaws.util.EC2MetadataUtils
+import software.amazon.awssdk.imds.Ec2MetadataClient
 import services.manifest.WorkerManifest
 import services.{AWSDiscoveryConfig, IngestStorage, MetricUpdate, Metrics, MetricsService, WorkerConfig}
 import utils.AWSWorkerControl.{AddNewWorker, RemoveWorker}
@@ -16,7 +16,6 @@ import utils.attempt.{Attempt, Failure, IllegalStateFailure}
 
 import scala.jdk.CollectionConverters._
 import scala.concurrent.{ExecutionContext, Future}
-import scala.util.Try
 
 case class WorkerDetails(nodes: Set[String], thisNode: String)
 
@@ -52,8 +51,13 @@ class AWSWorkerControl(config: WorkerConfig, discoveryConfig: AWSDiscoveryConfig
 
   var timerHandler: Option[Cancellable] = None
 
+  val metadataClient = Ec2MetadataClient.create()
+
   def getWorkerDetails(implicit ec: ExecutionContext): Attempt[WorkerDetails] = for {
-    myInstanceId <- Attempt.catchNonFatalBlasé { EC2MetadataUtils.getInstanceId }
+    myInstanceId <- Attempt.catchNonFatalBlasé {
+        metadataClient.get(AwsDiscovery.metadataInstanceIdString).asString()
+    }
+
     instances <- Attempt.catchNonFatalBlasé {
       AwsDiscovery.findRunningInstances(discoveryConfig.stack, app = List("pfi-worker", "pfi-spot-worker"), discoveryConfig.stage, ec2)
     }
@@ -97,7 +101,8 @@ class AWSWorkerControl(config: WorkerConfig, discoveryConfig: AWSDiscoveryConfig
   }
 
   private def runningOnOldestInstance()(implicit ec: ExecutionContext): Boolean = {
-    val myInstanceId = EC2MetadataUtils.getInstanceId
+    val myInstanceId = metadataClient.get("/latest/meta-data/instance-id").asString()
+
     val otherInstances =  AwsDiscovery.findRunningInstances(discoveryConfig.stack, app = List("pfi"), discoveryConfig.stage, ec2)
 
     val oldestInstance = otherInstances.toList.sortBy(_.launchTime()).headOption.map(_.instanceId())
