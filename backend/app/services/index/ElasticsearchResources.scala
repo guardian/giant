@@ -513,21 +513,28 @@ class ElasticsearchResources(override val client: ElasticClient, indexName: Stri
     }
   }
 
+  private def buildWorkspaceIdFilter(workspaceId: String) = {
+    nestedQuery(IndexFields.workspacesField,
+      termQuery(s"${IndexFields.workspacesField}.${IndexFields.workspaces.workspaceId}", workspaceId)
+    )
+  }
+
   override def getTotalWordCountForWorkspace(workspaceId: String): Attempt[Long] = {
     val query = search(indexName)
       .query(
-        nestedQuery(IndexFields.workspacesField,
-          termQuery(s"${IndexFields.workspacesField}.${IndexFields.workspaces.workspaceId}", workspaceId)
-        )
+        buildWorkspaceIdFilter(workspaceId)
       )
       .aggregations(
         scriptedMetricAggregation("workspaceWordCount")
           .initScript(Script("state.total = 0L").lang("painless"))
           .mapScript(Script("""
-                              |if (params._source != null && params._source.text != null) {
-                              |  for (entry in params._source.text.entrySet()) {
-                              |    if (entry.getValue() != null && entry.getValue().length() > 0) {
-                              |      state.total += /\s+/.split(entry.getValue()).length;
+                              |if (params._source != null) {
+                              |  Map text = params._source.ocr != null ? params._source.ocr : params._source.text;
+                              |  if (text != null) {
+                              |    for (entry in text.entrySet()) {
+                              |      if (entry.getValue() != null && entry.getValue().length() > 0) {
+                              |        state.total += /\s+/.split(entry.getValue()).length;
+                              |      }
                               |    }
                               |  }
                               |}
@@ -535,26 +542,32 @@ class ElasticsearchResources(override val client: ElasticClient, indexName: Stri
           .combineScript(Script("return state.total").lang("painless"))
           .reduceScript(Script("long total = 0; for (s in states) { total += s } return total").lang("painless"))
       )
+      .size(0)
 
     execute(query).map { response =>
-      response.aggregations.data("workspaceWordCount").asInstanceOf[Map[String, Any]]("value") match {
-        case n: Number => n.longValue()
-        case other => other.toString.toLong
-      }
+      response.aggregations.data("workspaceWordCount").asInstanceOf[Map[String, Number]]("value").longValue()
     }
   }
 
-  override def getTextForBlobs(blobUris: List[String]): Attempt[Map[String, Map[String, String]]] = {
+  override def getTextForBlobs(workspaceId: String, blobUris: List[String]): Attempt[Map[String, Map[String, String]]] = {
     val query = search(indexName)
       .query(
-        idsQuery(blobUris)
+        must(
+          idsQuery(blobUris),
+          // extra security, such that if someone tries to fetch text for blobs they don't have access to,
+          // they will just get an empty result (instead of an error, which could be used to probe for blob existence)
+          buildWorkspaceIdFilter(workspaceId)
+        )
       )
-      .sourceInclude("text.*")
+      .sourceInclude(
+        "text.*",
+        "ocr.*"
+      )
       .size(blobUris.size)
 
     execute(query).map { response =>
       response.hits.hits.flatMap { hit =>
-        hit.sourceAsMap.get(IndexFields.text).map(text => hit.id -> text.asInstanceOf[Map[String, String]])
+        hit.sourceAsMap.get(IndexFields.ocr).orElse(hit.sourceAsMap.get(IndexFields.text)).map(text => hit.id -> text.asInstanceOf[Map[String, String]])
       }.toMap
     }
   }

@@ -59,11 +59,24 @@ export function getWorkspace(id: string) {
   return authFetch(`/api/workspaces/${id}`).then((res) => res.json());
 }
 
-export function getWorkspaceText(id: string, maybeBlobUris?: string[]) {
+export function getWorkspaceTotalWordCount(id: string): Promise<number> {
+  return authFetch(`/api/workspaces/${id}/totalWordCount`).then((res) =>
+    res.json(),
+  );
+}
+
+export function getWorkspaceText(
+  id: string,
+  blobUris: string[],
+): Promise<{
+  [blobUri: string]: {
+    [lang: string]: string;
+  };
+}> {
   return authFetch(`/api/workspaces/${id}/text`, {
     method: "POST",
     headers: new Headers({ "Content-Type": "application/json" }),
-    body: JSON.stringify(maybeBlobUris ?? []), // returns word count for whole workspace if no blobs specified
+    body: JSON.stringify(blobUris),
   }).then((res) => res.json());
 }
 

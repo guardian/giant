@@ -5,7 +5,10 @@ import {
 } from "../../types/Workspaces";
 import Modal from "../UtilComponents/Modal";
 import { isTreeNode, TreeEntry } from "../../types/Tree";
-import { getWorkspaceText } from "../../services/WorkspaceApi";
+import {
+  getWorkspaceText,
+  getWorkspaceTotalWordCount,
+} from "../../services/WorkspaceApi";
 import { useEffect, useMemo, useState } from "react";
 import {
   EuiButton,
@@ -51,7 +54,7 @@ export const DownloadTextModal = ({
     null,
   );
   useEffect(() => {
-    getWorkspaceText(workspace.id).then(setWorkspaceWordCount);
+    getWorkspaceTotalWordCount(workspace.id).then(setWorkspaceWordCount);
   }, [workspace.id]);
 
   const blobUriToWorkspacePath = useMemo(
@@ -71,7 +74,9 @@ export const DownloadTextModal = ({
   const [progress, setProgress] = useState<number | null>(null);
 
   const downloadAllText = async () => {
-    setProgress(0);
+    setProgress(0.01);
+
+    const fetchTextBatchSize = Math.min(1000, workspaceWordCount! / 15_000);
 
     let buffer: {
       [blobUri: string]: {
@@ -114,17 +119,16 @@ export const DownloadTextModal = ({
       let bufferEntries = Object.entries(buffer);
       if (
         bufferEntries.length <
-        Math.min(100, allBlobUris.length - fetchedCounter)
+        Math.min(fetchTextBatchSize, allBlobUris.length - fetchedCounter)
       ) {
         const blobUrisForThisBatch = allBlobUris.slice(
           fetchedCounter,
-          Math.min(fetchedCounter + 100, allBlobUris.length),
+          Math.min(fetchedCounter + fetchTextBatchSize, allBlobUris.length),
         );
-        const textForBatch: {
-          [blobUri: string]: {
-            [lang: string]: string;
-          };
-        } = await getWorkspaceText(workspace.id, blobUrisForThisBatch);
+        const textForBatch = await getWorkspaceText(
+          workspace.id,
+          blobUrisForThisBatch,
+        );
         fetchedCounter += blobUrisForThisBatch.length;
         buffer = {
           ...buffer,
@@ -139,7 +143,6 @@ export const DownloadTextModal = ({
           const wordCount = wrappedText.split(/\s+/).length;
           const runningTotalWordCount =
             currentOutputFile.text.split(/\s+/).length;
-          // TODO need to handle the writing of the final file
           if (
             currentOutputFile.text.length > 0 &&
             runningTotalWordCount + wordCount > wordsPerFile!
