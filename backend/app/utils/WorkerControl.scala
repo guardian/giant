@@ -76,7 +76,11 @@ class AWSWorkerControl(config: WorkerConfig, discoveryConfig: AWSDiscoveryConfig
         scheduler.scheduleWithFixedDelay(config.controlInterval, config.controlInterval)(() => {
           // Only run the check on the oldest instance to get as close as we running the checks as a "singleton"
           if(runningOnOldestInstance()) {
-            val state = getCurrentState(workerAutoScalingGroupName, spotWorkerAutoscalingGroupName)
+            val state = getCurrentState(workerAutoScalingGroupName, spotWorkerAutoscalingGroupName).recoverWith {
+              case failure =>
+                logger.error(s"Failed to get state for  auto-scaling groups $workerAutoScalingGroupName, $spotWorkerAutoscalingGroupName", failure.toThrowable)
+                Attempt.Left(failure)
+            }
             // reuse the state needed for worker control to report cloudwatch metrics on work remaining
             state.foreach(publishStateMetrics)
             if(AwsDiscovery.isRiffRaffDeployRunning(discoveryConfig.stack, discoveryConfig.stage, ec2)) {
@@ -258,7 +262,7 @@ object AWSWorkerControl {
   case object AddNewWorker extends Operation
   case object RemoveWorker extends Operation
 
-  def decideOperation(state: State, now: Long, cooldown: Long): Option[Operation] = {
+  private def decideOperation(state: State, now: Long, cooldown: Long): Option[Operation] = {
     val inCooldown = state.workerAsg.lastEventTime > (now - cooldown) || state.spotWorkerAsg.lastEventTime > (now - cooldown)
     val manuallyScaledDown = state.workerAsg.desiredNumberOfWorkers == 0
 
