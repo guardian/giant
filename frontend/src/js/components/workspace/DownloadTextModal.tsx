@@ -90,7 +90,7 @@ export const DownloadTextModal = ({
       text: "",
     };
 
-    const dumpToFile = () => {
+    const dumpToFile = async () => {
       const filename = `${workspace.name} (${workspace.id}).${currentOutputFile.number}.txt`;
       const myBlob = new Blob([currentOutputFile.text.trim()], {
         type: "text/plain",
@@ -102,8 +102,13 @@ export const DownloadTextModal = ({
       a.style.display = "none";
       document.body.appendChild(a);
       a.click();
+      // short wait between each download to ensure they actually happen
+      await new Promise((resolve) => setTimeout(resolve, 500));
       document.body.removeChild(a);
-      URL.revokeObjectURL(blobURL);
+      setTimeout(
+        () => URL.revokeObjectURL(blobURL),
+        5_000, // allow the file to be downloaded before releasing the object URL
+      );
 
       currentOutputFile.number++;
       currentOutputFile.text = "";
@@ -147,7 +152,7 @@ export const DownloadTextModal = ({
             currentOutputFile.text.length > 0 &&
             runningTotalWordCount + wordCount > wordsPerFile!
           ) {
-            dumpToFile();
+            await dumpToFile();
           }
           currentOutputFile.text += wrappedText;
           delete buffer[blobUri];
@@ -156,7 +161,7 @@ export const DownloadTextModal = ({
     }
 
     if (currentOutputFile.text.length > 0) {
-      dumpToFile();
+      await dumpToFile();
     }
 
     setProgress(1);
@@ -212,20 +217,9 @@ export const DownloadTextModal = ({
           <div>
             <EuiProgress value={progress} max={1.0} />
             <div>
-              {progress === 1 ? (
-                "Done!"
-              ) : (
-                <span>
-                  Generating{" "}
-                  <code>
-                    {
-                      Object.entries(progress).find(
-                        ([_, isComplete]) => !isComplete,
-                      )?.[0]
-                    }
-                  </code>
-                </span>
-              )}
+              {progress === 1
+                ? "Done! (please check the resulting files are contiguous)"
+                : "Generating..."}
             </div>
           </div>
         ) : (
