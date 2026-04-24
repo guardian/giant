@@ -1,5 +1,7 @@
 package extraction
 
+
+import com.gu.transcriptionservice.TranscriptionJob.{Engine, LanguageCode, TranscriptDestinationService}
 import software.amazon.awssdk.services.sqs.SqsClient
 import software.amazon.awssdk.services.sqs.model.{MessageAttributeValue, SendMessageRequest}
 import model.{English, Language, Languages}
@@ -10,6 +12,8 @@ import services.index.Index
 import services.{ObjectStorage, TranscribeConfig}
 import utils._
 import utils.attempt.Failure
+import com.gu.transcriptionservice.{TranscriptionJob, CombinedOutputUrl}
+import com.fasterxml.jackson.databind.ObjectMapper
 
 import java.util.UUID
 import scala.concurrent.ExecutionContext
@@ -21,16 +25,12 @@ case class SignedUrl(url: String, key: String)
 object SignedUrl {
   implicit val formats: Format[SignedUrl] = Json.format[SignedUrl]
 }
-case class CombinedOutputUrl(url: String, key: String)
-case class TranscriptionJob(id: String, originalFilename: String, inputSignedUrl: String, sentTimestamp: String,
-                            userEmail: String, transcriptDestinationService: String,
-                            combinedOutputUrl: CombinedOutputUrl, languageCode: String, translate: Boolean,
-                            diarize: Boolean, engine: String, ingestion: String)
 
-object TranscriptionJob {
-  implicit val combinedOutputUrlFormat: Format[CombinedOutputUrl] = Json.format[CombinedOutputUrl]
-  implicit val formats: Format[TranscriptionJob] = Json.format[TranscriptionJob]
+object TranscriptionJobSerializer {
+  private val mapper = new ObjectMapper()
+  def toJsonString(job: TranscriptionJob): String = mapper.writeValueAsString(job)
 }
+
 case class TranscriptionMetadata(detectedLanguageCode: Language)
 object TranscriptionMetadata {
   implicit val languageReads: Reads[Language] = Reads.of[String].map { code =>
@@ -132,27 +132,28 @@ class ExternalTranscriptionExtractor(index: Index, transcribeConfig: TranscribeC
       downloadSignedUrl <- transcriptionStorage.getSignedUrl (blob.uri.toStoragePath)
       combinedOutputUrl <- outputStorage.getUploadSignedUrl(combinedOutputKey)
     } yield {
-      TranscriptionJob(
-        id = blob.uri.value,
-        originalFilename = blob.uri.value,
-        inputSignedUrl = downloadSignedUrl,
-        sentTimestamp = DateTime.now().toString,
-        userEmail = "giant",
-        transcriptDestinationService = "Giant",
-        combinedOutputUrl = CombinedOutputUrl(url = combinedOutputUrl,key = combinedOutputKey),
-        languageCode = params.languages.headOption.map { lang: Language =>
-          if (lang.iso6391Code == English.iso6391Code) {
-            // We only recently added language support to workspace uploads, previously we set the language of the ingestion
-            // for every upload to English, so we can't rely on the language if it is set to English
-            "auto"
-          } else {
-            lang.iso6391Code
-          }
-        }.getOrElse("auto"),
-        translate = true,
-        diarize = true,
-        engine = "whisperx",
-        ingestion = params.ingestion)
+      val languageCode: LanguageCode =    params.languages.headOption.map { lang: Language =>
+        if (lang.iso6391Code == English.iso6391Code) {
+          // We only recently added language support to workspace uploads, previously we set the language of the ingestion
+          // for every upload to English, so we can't rely on the language if it is set to English
+          LanguageCode.AUTO
+        } else {
+          LanguageCode.values().find(_.value() == lang.iso6391Code).getOrElse(LanguageCode.AUTO)
+        }
+      }.getOrElse(LanguageCode.AUTO)
+      new TranscriptionJob(
+        blob.uri.value,
+        blob.uri.value,
+        downloadSignedUrl,
+        DateTime.now().toString,
+        "giant",
+        TranscriptDestinationService.GIANT,
+        new CombinedOutputUrl(combinedOutputUrl, combinedOutputKey),
+        "transcribe",
+        languageCode,
+        true,
+        true,
+        Engine.WHISPERX)
     }
 
     transcriptionJob.flatMap {
@@ -162,7 +163,7 @@ class ExternalTranscriptionExtractor(index: Index, transcribeConfig: TranscribeC
 
           val messageRequest = SendMessageRequest.builder()
             .queueUrl(transcribeConfig.transcriptionServiceQueueUrl)
-            .messageBody(Json.stringify(Json.toJson(job)))
+            .messageBody(TranscriptionJobSerializer.toJsonString(job))
             .messageGroupId(UUID.randomUUID().toString)
             .messageAttributes(Map("BlobId" -> MessageAttributeValue.builder()
               .dataType("String")

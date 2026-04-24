@@ -188,7 +188,10 @@ lazy val backend = (project in file("backend"))
       "org.scalamock" %% "scalamock" % "4.4.0" % Test,
       "com.dimafeng" %% "testcontainers-scala-scalatest" % "0.41.4" % Test,
       "com.dimafeng" %% "testcontainers-scala-neo4j" % "0.41.4" % Test,
-      "com.dimafeng" %% "testcontainers-scala-elasticsearch" % "0.41.4" % Test
+      "com.dimafeng" %% "testcontainers-scala-elasticsearch" % "0.41.4" % Test,
+
+      // transcription-service
+      "com.gu" % "transcription-service-worker-interface" % "0.1.0-SNAPSHOT"
     ),
 
     // set up separate tests and integration tests - http://www.scala-sbt.org/0.13.1/docs/Detailed-Topics/Testing.html#custom-test-configuration
