@@ -31,6 +31,7 @@ pfi-cli login --token YOUR_TOKEN --verbose
 | `logout` | Remove saved credentials |
 | `list` | Show all collections and ingestions |
 | `show` | Show details of a specific ingestion |
+| `show-collection` | Show all ingestions in a collection with details |
 | `create-ingestion` | Create a new ingestion |
 | `ingest` | Upload files into an ingestion |
 | `verify` | Check that all source files have been indexed |
@@ -161,6 +162,10 @@ pfi-cli list --uri https://giant.pfi.gutools.co.uk
 # Show details of a specific ingestion (including indexed file count)
 pfi-cli show --uri https://giant.pfi.gutools.co.uk \
   --ingestionUri "BinLaden/ingestion"
+
+# Show all ingestions in a collection with file counts and details
+pfi-cli show-collection --uri https://giant.pfi.gutools.co.uk \
+  --collection "BinLaden"
 
 # Verify all source files have been indexed after phase 2 completes
 pfi-cli verify --uri https://giant.pfi.gutools.co.uk \

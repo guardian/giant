@@ -525,6 +525,33 @@ class ElasticsearchResources(override val client: ElasticClient, indexName: Stri
     }
   }
 
+  def totalBlobSize(collection: String, maybeIngestion: Option[String]): Attempt[Long] = {
+    val sizeField = s"${IndexFields.metadataField}.${IndexFields.metadata.fileSize}"
+    execute {
+      search(indexName)
+        .size(0)
+        .query(getBlobQuery(collection, maybeIngestion, inMultiple = false))
+        .aggs(sumAgg("totalSize", sizeField))
+    }.map { response =>
+      response.aggregations.sum("totalSize").value.toLong
+    }
+  }
+
+  def blobStats(collection: String, maybeIngestion: Option[String]): Attempt[(Long, Long)] = {
+    val sizeField = s"${IndexFields.metadataField}.${IndexFields.metadata.fileSize}"
+    execute {
+      search(indexName)
+        .size(0)
+        .trackTotalHits(true)
+        .query(getBlobQuery(collection, maybeIngestion, inMultiple = false))
+        .aggs(sumAgg("totalSize", sizeField))
+    }.map { response =>
+      val count = response.totalHits
+      val size = response.aggregations.sum("totalSize").value.toLong
+      (count, size)
+    }
+  }
+
   def delete(id: String): Attempt[Unit] = {
     executeNoReturn {
       deleteById(indexName, id)

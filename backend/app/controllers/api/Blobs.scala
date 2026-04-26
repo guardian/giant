@@ -57,6 +57,22 @@ class Blobs(override val controllerComponents: AuthControllerComponents, manifes
     }
   }
 
+  def totalSize(collection: String, ingestion: Option[String]) = ApiAction.attempt { req =>
+    checkPermission(CanPerformAdminOperations, req) {
+      index.totalBlobSize(collection, ingestion).map(size =>
+        Ok(Json.obj("size" -> size))
+      )
+    }
+  }
+
+  def stats(collection: String, ingestion: Option[String]) = ApiAction.attempt { req =>
+    checkPermission(CanPerformAdminOperations, req) {
+      index.blobStats(collection, ingestion).map { case (count, size) =>
+        Ok(Json.obj("count" -> count, "size" -> size))
+      }
+    }
+  }
+
   def getBlobsByPathPrefix(collection: String, ingestion: String, pathPrefix: String, size: Option[Int]) = ApiAction.attempt { req =>
     checkPermission(CanPerformAdminOperations, req) {
       val fullPrefix = s"$collection/$ingestion/$pathPrefix"

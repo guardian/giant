@@ -22,6 +22,8 @@ GET           /api/ingestion-events/:collection/:ingestion                contro
 
 GET           /api/blobs                                                    controllers.api.Blobs.getBlobs(collection: Option[String], ingestion: Option[String], inMultiple: Option[Boolean], size: Option[Int])
 GET           /api/blobs/count                                              controllers.api.Blobs.countBlobs(collection: Option[String], ingestion: Option[String], inMultiple: Option[Boolean])
+GET           /api/blobs/totalSize                                          controllers.api.Blobs.totalSize(collection: String, ingestion: Option[String])
+GET           /api/blobs/stats                                              controllers.api.Blobs.stats(collection: String, ingestion: Option[String])
 GET           /api/blobs/by-prefix                                          controllers.api.Blobs.getBlobsByPathPrefix(collection: String, ingestion: String, pathPrefix: String, size: Option[Int])
 POST          /api/blobs/:id/reprocess                                      controllers.api.Blobs.reprocess(id, rerunSuccessful: Option[Boolean], rerunFailed: Option[Boolean])
 DELETE        /api/blobs/:id                                                controllers.api.Blobs.delete(id, checkChildren: Boolean, isAdminDelete: Boolean)
