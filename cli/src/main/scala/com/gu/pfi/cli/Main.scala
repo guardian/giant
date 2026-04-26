@@ -1,6 +1,8 @@
 package com.gu.pfi.cli
 
 import java.nio.file.Paths
+import java.time.OffsetDateTime
+import java.time.format.DateTimeFormatter
 import java.util.Locale
 
 import _root_.model.{Languages, Uri}
@@ -17,6 +19,20 @@ import scala.concurrent.duration.Duration
 
 object Main extends App with Logging {
   import scala.language.reflectiveCalls
+
+  private val displayDateFormat = DateTimeFormatter.ofPattern("d MMM yyyy HH:mm")
+
+  private def formatDateTime(iso: String): String =
+    try { OffsetDateTime.parse(iso).format(displayDateFormat) }
+    catch { case _: Exception => iso }
+
+  private def formatSize(bytes: Long): String = {
+    if (bytes < 1024L) s"${bytes} B"
+    else if (bytes < 1024L * 1024) f"${bytes / 1024.0}%.1f KB"
+    else if (bytes < 1024L * 1024 * 1024) f"${bytes / (1024.0 * 1024)}%.1f MB"
+    else if (bytes < 1024L * 1024 * 1024 * 1024) f"${bytes / (1024.0 * 1024 * 1024)}%.1f GB"
+    else f"${bytes / (1024.0 * 1024 * 1024 * 1024)}%.1f TB"
+  }
 
   val options = new Options(args.toIndexedSeq)
 
@@ -148,15 +164,27 @@ object Main extends App with Logging {
                 Attempt.Right(())
               } else {
                 val countAttempts = collection.ingestions.map { ingestion =>
-                  val parts = s"${collection.uri}/${ingestion.uri}".split("/")
-                  services.ingestion.countBlobs(parts(0), parts(1)).map(count => (ingestion, count))
+                  val parts = ingestion.uri.split("/")
+                  services.ingestion.blobStats(parts(0), parts(1)).map { case (count, size) =>
+                    (ingestion, count, size)
+                  }
                 }
                 Attempt.sequence(countAttempts).map { ingestionsWithCounts =>
                   logger.info(ConsoleColors.bold(s"\n📁 ${collection.uri}"))
-                  logger.info(s"   ${collection.ingestions.size} ingestion(s)\n")
-                  ingestionsWithCounts.sortBy(_._1.uri.toLowerCase(Locale.UK)).foreach { case (ingestion, count) =>
+                  val createdInfo = collection.createdBy.map(u => s", created by $u").getOrElse("")
+                  logger.info(s"   ${collection.ingestions.size} ingestion(s)$createdInfo\n")
+                  ingestionsWithCounts.sortBy(_._1.uri.toLowerCase(Locale.UK)).foreach { case (ingestion, count, size) =>
                     val pathInfo = ingestion.path.map(p => ConsoleColors.dim(s" ← $p")).getOrElse("")
-                    logger.info(s"   └─ ${ingestion.uri}  [$count file(s)]$pathInfo")
+                    logger.info(s"   └─ ${ingestion.uri}  [$count file(s), ${formatSize(size)}]$pathInfo")
+                    val details = List(
+                      ingestion.startTime.map(t => s"started: ${formatDateTime(t)}"),
+                      ingestion.endTime.map(t => s"ended: ${formatDateTime(t)}"),
+                      ingestion.languages.filter(_.nonEmpty).map(ls => s"languages: ${ls.map(_.key).mkString(", ")}"),
+                      ingestion.fixed.collect { case true => "fixed" }
+                    ).flatten
+                    if (details.nonEmpty) {
+                      logger.info(ConsoleColors.dim(s"      ${details.mkString("  │  ")}"))
+                    }
                   }
                   logger.info("")
                   logger.info(ConsoleColors.dim("Use 'show --ingestionUri <collection>/<ingestion>' for more detail"))

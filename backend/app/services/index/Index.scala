@@ -35,6 +35,10 @@ trait Index {
 
   def countBlobs(collection: String, ingestion: Option[String], inMultiple: Boolean): Attempt[Long]
 
+  def totalBlobSize(collection: String, ingestion: Option[String]): Attempt[Long]
+
+  def blobStats(collection: String, ingestion: Option[String]): Attempt[(Long, Long)]
+
   def delete(id: String): Attempt[Unit]
 
   def anyWorkspaceOrCollectionContainsAnyResource(collectionUris: Set[String], workspaceIds: Set[String], resourceUris: Set[String]): Attempt[Boolean]

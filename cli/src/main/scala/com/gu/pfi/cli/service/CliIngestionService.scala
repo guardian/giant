@@ -83,6 +83,28 @@ class CliIngestionService(http: CliHttpClient)(implicit ec: ExecutionContext) ex
     }
   }
 
+  def totalBlobSize(collection: String, ingestion: String): Attempt[Long] = {
+    val params = List(
+      s"collection=${URLEncoder.encode(collection, "UTF-8")}",
+      s"ingestion=${URLEncoder.encode(ingestion, "UTF-8")}"
+    )
+
+    http.get(s"/api/blobs/totalSize?${params.mkString("&")}").map { r =>
+      (r \ "size").as[Long]
+    }
+  }
+
+  def blobStats(collection: String, ingestion: String): Attempt[(Long, Long)] = {
+    val params = List(
+      s"collection=${URLEncoder.encode(collection, "UTF-8")}",
+      s"ingestion=${URLEncoder.encode(ingestion, "UTF-8")}"
+    )
+
+    http.get(s"/api/blobs/stats?${params.mkString("&")}").map { r =>
+      ((r \ "count").as[Long], (r \ "size").as[Long])
+    }
+  }
+
   case class PrefixBlobResult(blobs: List[IndexedBlob], pathConflicts: Set[String])
 
   def getBlobsByPrefix(collection: String, ingestion: String, pathPrefix: String, size: Int): Attempt[PrefixBlobResult] = {
