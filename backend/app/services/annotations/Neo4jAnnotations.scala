@@ -100,6 +100,7 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
   override def getWorkspaceContents(currentUser: String, id: String, remoteIngestsToMixin: List[RemoteIngest] = List.empty): Attempt[TreeEntry[WorkspaceEntry]] = attemptTransaction { tx =>
     tx.run(
       """
+        |CYPHER runtime = parallel
         |MATCH (workspace: Workspace { id: $id })
         |WHERE (:User { username: $currentUser })-[:FOLLOWING|OWNS]->(workspace) OR workspace.isPublic
         |
