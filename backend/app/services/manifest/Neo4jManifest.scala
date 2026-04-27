@@ -454,6 +454,7 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
   override def fetchWork(workerName: String, workerCount: Int, workerIndex: Int, maxBatchSize: Int, maxCost: Int): Either[Failure, List[WorkItem]] = transaction { tx =>
     val summary = tx.run(
       """
+        |CYPHER runtime = parallel
         |MERGE (worker:Worker {name: $workerName})
         |  WITH
         |    worker
