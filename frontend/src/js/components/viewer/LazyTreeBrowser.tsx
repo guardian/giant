@@ -1,12 +1,23 @@
 import React, { useState } from "react";
+import { Menu } from "semantic-ui-react";
 import { Resource, BasicResource } from "../../types/Resource";
 import { getLastPart } from "../../util/stringUtils";
 import DocumentIcon from "react-icons/lib/ti/document";
 import EmailIcon from "react-icons/lib/md/email";
 import TreeBrowser from "../UtilComponents/TreeBrowser";
 import { ResourceBreadcrumbs } from "../ResourceBreadcrumbs";
+import DetectClickOutside from "../UtilComponents/DetectClickOutside";
+import AddToWorkspaceModal from "./AddToWorkspaceModal";
+import { fetchResource } from "../../services/ResourceApi";
+import { hasSingleBlobChild } from "../../util/resourceUtils";
 import sortBy from "lodash/sortBy";
-import { Tree, TreeEntry, TreeLeaf, TreeNode } from "../../types/Tree";
+import {
+  Tree,
+  TreeEntry,
+  TreeLeaf,
+  TreeNode,
+  isTreeLeaf,
+} from "../../types/Tree";
 import { getChildResource } from "../../actions/resources/getResource";
 
 type PropTypes = {
@@ -101,6 +112,18 @@ export default function LazyTreeBrowser({
     TreeEntry<BasicResource>[]
   >([]);
 
+  const [contextMenu, setContextMenu] = useState<{
+    isOpen: boolean;
+    entry: TreeEntry<BasicResource> | null;
+    positionX: number;
+    positionY: number;
+  }>({ isOpen: false, entry: null, positionX: 0, positionY: 0 });
+
+  const [addToWorkspaceModal, setAddToWorkspaceModal] = useState<{
+    isOpen: boolean;
+    resource: Resource | BasicResource | null;
+  }>({ isOpen: false, resource: null });
+
   function onExpandNode(node: TreeNode<BasicResource>) {
     setExpandedEntries([...expandedEntries, node]);
   }
@@ -115,6 +138,49 @@ export default function LazyTreeBrowser({
     // once its resource has been fetched, since it will have children.
     // We want to make sure that node appears expanded.
     setExpandedEntries([...expandedEntries, leaf]);
+  }
+
+  function onContextMenu(e: React.MouseEvent, entry: TreeEntry<BasicResource>) {
+    if (e.metaKey && e.shiftKey) {
+      // override for devs to do "inspect element"
+      return;
+    }
+    e.preventDefault();
+
+    // Only show context menu for files, not expandable folders
+    if (isTreeLeaf(entry) && !entry.isExpandable) {
+      setSelectedEntries([entry]);
+      setFocusedEntry(entry);
+      setContextMenu({
+        isOpen: true,
+        entry,
+        positionX: e.pageX,
+        positionY: e.pageY,
+      });
+    }
+  }
+
+  function closeContextMenu() {
+    setContextMenu({ isOpen: false, entry: null, positionX: 0, positionY: 0 });
+  }
+
+  function onAddToWorkspace(entry: TreeEntry<BasicResource>) {
+    closeContextMenu();
+    // Fetch the resource, then resolve file → blob if needed.
+    // Workspaces store references to blobs, not their parent file nodes.
+    fetchResource(entry.data.uri, true).then((resource) => {
+      if (hasSingleBlobChild(resource)) {
+        const blobUri = resource.children[0].uri;
+        return fetchResource(blobUri, false).then((blobResource) => {
+          setAddToWorkspaceModal({ isOpen: true, resource: blobResource });
+        });
+      }
+      setAddToWorkspaceModal({ isOpen: true, resource });
+    });
+  }
+
+  function dismissAddToWorkspaceModal() {
+    setAddToWorkspaceModal({ isOpen: false, resource: null });
   }
 
   return (
@@ -183,9 +249,40 @@ export default function LazyTreeBrowser({
         onExpandLeaf={onExpandLeaf}
         onExpandNode={onExpandNode}
         onCollapseNode={onCollapseNode}
-        onContextMenu={() => {}}
+        onContextMenu={onContextMenu}
         showColumnHeaders={false}
       />
+      {contextMenu.isOpen && contextMenu.entry && (
+        <DetectClickOutside onClickOutside={closeContextMenu}>
+          <Menu
+            style={{
+              position: "absolute",
+              left: contextMenu.positionX,
+              top: contextMenu.positionY,
+            }}
+            items={[
+              {
+                key: "addToWorkspace",
+                content: "Add to workspace",
+                icon: "plus",
+              },
+            ]}
+            vertical
+            onItemClick={() => {
+              if (contextMenu.entry) {
+                onAddToWorkspace(contextMenu.entry);
+              }
+            }}
+          />
+        </DetectClickOutside>
+      )}
+      {addToWorkspaceModal.isOpen && addToWorkspaceModal.resource && (
+        <AddToWorkspaceModal
+          resource={addToWorkspaceModal.resource}
+          isOpen={true}
+          dismissModal={dismissAddToWorkspaceModal}
+        />
+      )}
     </React.Fragment>
   );
 }
