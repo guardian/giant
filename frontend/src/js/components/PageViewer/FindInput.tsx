@@ -1,14 +1,14 @@
 import _, { uniq } from "lodash";
 import React, {
-  FC,
   KeyboardEventHandler,
+  forwardRef,
   useCallback,
   useEffect,
   useMemo,
   useState,
 } from "react";
-import DownIcon from "react-icons/lib/md/arrow-downward";
-import UpIcon from "react-icons/lib/md/arrow-upward";
+import ChevronLeft from "react-icons/lib/fa/chevron-left";
+import ChevronRight from "react-icons/lib/fa/chevron-right";
 import styles from "./FindInput.module.css";
 import { HighlightForSearchNavigation } from "./model";
 import { Loader } from "semantic-ui-react";
@@ -29,112 +29,125 @@ type FindInputProps = {
 // In the future we can make a paging system for find search hits.
 const MAX_PAGE_HITS = 500;
 
-export const FindInput: FC<FindInputProps> = ({
-  fixedQuery,
-  jumpToNextFindHit,
-  jumpToPreviousFindHit,
-  performFind,
-  isPending,
-  highlights,
-  focusedFindHighlightIndex,
-}) => {
-  const [showWarning, setShowWarning] = useState(false);
+export const FindInput = forwardRef<HTMLInputElement, FindInputProps>(
+  (
+    {
+      fixedQuery,
+      jumpToNextFindHit,
+      jumpToPreviousFindHit,
+      performFind,
+      isPending,
+      highlights,
+      focusedFindHighlightIndex,
+    },
+    ref,
+  ) => {
+    const [showWarning, setShowWarning] = useState(false);
 
-  const debouncedPerformSearch = useMemo(
-    () => _.debounce(performFind, 500),
-    [performFind],
-  );
+    const debouncedPerformSearch = useMemo(
+      () => _.debounce(performFind, 500),
+      [performFind],
+    );
 
-  const [value, setValue] = useState(fixedQuery ?? "");
-  useEffect(() => {
-    if (fixedQuery !== undefined) {
-      performFind(fixedQuery);
-    }
-  }, [fixedQuery, performFind]);
-
-  const onKeyDown: KeyboardEventHandler = (event) => {
-    if (event.key === "Enter") {
-      if (event.shiftKey) {
-        jumpToPreviousFindHit();
-      } else {
-        jumpToNextFindHit();
+    const [value, setValue] = useState(fixedQuery ?? "");
+    useEffect(() => {
+      if (fixedQuery !== undefined) {
+        performFind(fixedQuery);
       }
-    }
-  };
+    }, [fixedQuery, performFind]);
 
-  useEffect(() => {
-    if (uniq(highlights.map((h) => h.pageNumber)).length >= MAX_PAGE_HITS) {
-      setShowWarning(true);
-      setTimeout(() => setShowWarning(false), 5000);
-    }
-  }, [highlights]);
-
-  const renderFindCount = useCallback(() => {
-    if (!value) {
-      return "";
-    }
-
-    const current =
-      focusedFindHighlightIndex !== null ? focusedFindHighlightIndex + 1 : 0;
-    const total = `${showWarning ? ">" : ""}${highlights.length}`;
-    return `${current}/${total}`;
-  }, [value, focusedFindHighlightIndex, highlights, showWarning]);
-
-  const input = (
-    <input
-      id="find-search-input"
-      className={styles.input}
-      autoComplete="off"
-      value={value}
-      placeholder="Search document..."
-      onKeyDown={onKeyDown}
-      onChange={(e) => {
-        if (fixedQuery === undefined) {
-          setValue(e.target.value);
-          debouncedPerformSearch(e.target.value);
+    const onKeyDown: KeyboardEventHandler = (event) => {
+      if (event.key === "Enter") {
+        if (event.shiftKey) {
+          jumpToPreviousFindHit();
+        } else {
+          jumpToNextFindHit();
         }
-      }}
-    />
-  );
-  return (
-    <div className={styles.container}>
-      <div className={styles.inputContainer}>
-        {fixedQuery === undefined ? (
-          input
-        ) : (
-          <InputSupper
-            disabled={true}
-            value={value}
-            className={styles.chipsContainer}
-            chips={[]}
-            onChange={() => {}}
-            updateSearchText={() => {}}
-          />
-        )}
-        <div className={styles.count}>
-          {isPending ? (
-            <Loader active inline="centered" size="tiny" />
+      }
+    };
+
+    useEffect(() => {
+      if (uniq(highlights.map((h) => h.pageNumber)).length >= MAX_PAGE_HITS) {
+        setShowWarning(true);
+        setTimeout(() => setShowWarning(false), 5000);
+      }
+    }, [highlights]);
+
+    const renderFindCount = useCallback(() => {
+      if (!value) {
+        return "";
+      }
+
+      const current =
+        focusedFindHighlightIndex !== null ? focusedFindHighlightIndex + 1 : 0;
+      const total = `${showWarning ? ">" : ""}${highlights.length}`;
+      return `${current}/${total}`;
+    }, [value, focusedFindHighlightIndex, highlights, showWarning]);
+
+    const input = (
+      <input
+        ref={ref}
+        className={styles.input}
+        autoComplete="off"
+        value={value}
+        placeholder="Search document..."
+        onKeyDown={onKeyDown}
+        onChange={(e) => {
+          if (fixedQuery === undefined) {
+            setValue(e.target.value);
+            debouncedPerformSearch(e.target.value);
+          }
+        }}
+      />
+    );
+    return (
+      <div className={styles.container}>
+        <div className={styles.inputContainer}>
+          {fixedQuery === undefined ? (
+            input
           ) : (
-            renderFindCount()
+            <InputSupper
+              disabled={true}
+              value={value}
+              className={styles.chipsContainer}
+              chips={[]}
+              onChange={() => {}}
+              updateSearchText={() => {}}
+            />
           )}
+          <div className={styles.count}>
+            {isPending ? (
+              <Loader active inline="centered" size="tiny" />
+            ) : (
+              renderFindCount()
+            )}
+          </div>
+        </div>
+        <button
+          onClick={jumpToPreviousFindHit}
+          className={styles.navButton}
+          title="Previous match in document (shift enter)"
+        >
+          <ChevronLeft />
+        </button>
+        <button
+          onClick={jumpToNextFindHit}
+          className={styles.navButton}
+          title="Next match in document (enter)"
+        >
+          <ChevronRight />
+        </button>
+        <div
+          data-visible={showWarning || null}
+          className={styles.warningContainer}
+        >
+          <div className={styles.warningArrow} />
+          <div className={styles.warning}>
+            Over 500 pages match your search only the first 500 highlights will
+            be shown
+          </div>
         </div>
       </div>
-      <button onClick={jumpToPreviousFindHit}>
-        <UpIcon />
-      </button>
-      <button onClick={jumpToNextFindHit}>
-        <DownIcon />
-      </button>
-      <div
-        data-visible={showWarning || null}
-        className={styles.warningContainer}
-      >
-        <div className={styles.warningArrow} />
-        <div className={styles.warning}>
-          Over 500 pages match your search only the first 500 highlights will be
-          shown
-        </div>
-      </div>
-    </div>
-  );
-};
+    );
+  },
+);

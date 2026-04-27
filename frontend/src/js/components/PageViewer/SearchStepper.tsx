@@ -2,7 +2,6 @@ import React, { FC } from "react";
 import ChevronLeft from "react-icons/lib/fa/chevron-left";
 import ChevronRight from "react-icons/lib/fa/chevron-right";
 import styles from "./SearchStepper.module.css";
-import { SearchHighlightStepper } from "../viewer/useSearchHighlightStepper";
 
 // unfortunately in GiantState q is just a string so we have to do all this to tease out the type and format it nicely
 function formatQuery(raw: string): string {
@@ -26,26 +25,30 @@ function formatQuery(raw: string): string {
 }
 
 type SearchStepperProps = {
-  highlightStepper: SearchHighlightStepper;
+  query: string;
+  current?: number;
+  total: number;
   isPending?: boolean;
+  onNext: () => void;
+  onPrevious: () => void;
 };
 
 export const SearchStepper: FC<SearchStepperProps> = ({
-  highlightStepper,
+  query,
+  current,
+  total,
   isPending,
+  onNext,
+  onPrevious,
 }) => {
-  const { query, currentHighlight, totalHighlights, next, previous } =
-    highlightStepper;
-  if (!query || (totalHighlights === 0 && !isPending)) {
+  if (!query || (total === 0 && !isPending)) {
     return null;
   }
 
   const displayQuery = formatQuery(query);
 
   const countText =
-    currentHighlight !== undefined
-      ? `${currentHighlight + 1} of ${totalHighlights}`
-      : `${totalHighlights} results`;
+    current !== undefined ? `${current + 1} of ${total}` : `${total} results`;
 
   return (
     <div className={styles.container}>
@@ -53,12 +56,12 @@ export const SearchStepper: FC<SearchStepperProps> = ({
       <span className={styles.count}>{isPending ? "..." : countText}</span>
       <button
         className={styles.navButton}
-        onClick={previous}
+        onClick={onPrevious}
         title="Previous match"
       >
         <ChevronLeft />
       </button>
-      <button className={styles.navButton} onClick={next} title="Next match">
+      <button className={styles.navButton} onClick={onNext} title="Next match">
         <ChevronRight />
       </button>
     </div>

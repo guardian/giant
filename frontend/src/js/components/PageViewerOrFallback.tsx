@@ -1,10 +1,11 @@
-import React, { FC, useEffect, useState } from "react";
+import React, { FC, useCallback, useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import authFetch from "../util/auth/authFetch";
 import { useParams } from "react-router-dom";
 import get from "lodash/get";
 import Viewer from "./viewer/Viewer";
 import { PageViewer } from "./PageViewer/PageViewer";
+import { usePageFind } from "./PageViewer/usePageFind";
 import { TextPreview } from "./viewer/TextPreview";
 import { Preview } from "./viewer/Preview";
 import { TablePreview } from "./viewer/TablePreview";
@@ -17,7 +18,11 @@ import {
 } from "./viewer/useSearchHighlightStepper";
 import { GiantState } from "../types/redux/GiantState";
 import { Resource } from "../types/Resource";
-import { PageDimensions } from "./PageViewer/model";
+import {
+  PageDimensions,
+  HighlightsState,
+  HighlightForSearchNavigation,
+} from "./PageViewer/model";
 import { setResourceView } from "../actions/urlParams/setViews";
 import { getComments } from "../actions/resources/getComments";
 import { setSelection } from "../actions/resources/setSelection";
@@ -49,7 +54,22 @@ const PageViewerContent: FC<{
   totalPages: number;
   firstPageDimensions?: PageDimensions;
   view: string | undefined;
-}> = ({ uri, totalPages, firstPageDimensions, view }) => {
+  findQuery: string;
+  findHighlightsState: HighlightsState;
+  focusedFindHighlight: HighlightForSearchNavigation | null;
+  rotation: number;
+  scale: number;
+}> = ({
+  uri,
+  totalPages,
+  firstPageDimensions,
+  view,
+  findQuery,
+  findHighlightsState,
+  focusedFindHighlight,
+  rotation,
+  scale,
+}) => {
   const dispatch = useDispatch();
   const resource = useSelector<GiantState, Resource | null>(
     (state) => state.resource,
@@ -63,6 +83,11 @@ const PageViewerContent: FC<{
         uri={uri}
         totalPages={totalPages}
         firstPageDimensions={firstPageDimensions}
+        findQuery={findQuery}
+        findHighlightsState={findHighlightsState}
+        focusedFindHighlight={focusedFindHighlight}
+        rotation={rotation}
+        scale={scale}
       />
     );
   }
@@ -116,7 +141,13 @@ const SearchStepperOverlay: FC<{
       func={highlightStepper.next}
     />
     <div className="search-stepper-overlay">
-      <SearchStepper highlightStepper={highlightStepper} />
+      <SearchStepper
+        query={highlightStepper.query}
+        current={highlightStepper.currentHighlight}
+        total={highlightStepper.totalHighlights}
+        onNext={highlightStepper.next}
+        onPrevious={highlightStepper.previous}
+      />
     </div>
   </>
 );
@@ -134,6 +165,31 @@ export const PageViewerOrFallback: FC<{}> = () => {
     history.push,
   );
   const highlightStepper = useSearchHighlightStepper();
+  const pageFind = usePageFind(uri);
+
+  const [rotation, setRotation] = useState(0);
+  const [scale, setScale] = useState(1);
+
+  const rotateClockwise = useCallback(
+    () => setRotation((r) => (r + 90) % 360),
+    [],
+  );
+  const rotateAnticlockwise = useCallback(
+    () => setRotation((r) => (r - 90 + 360) % 360),
+    [],
+  );
+  const zoomIn = useCallback(() => setScale((s) => s + 0.25), []);
+  const zoomOut = useCallback(
+    () => setScale((s) => Math.max(0.25, s - 0.25)),
+    [],
+  );
+
+  const pageViewControls = {
+    rotateClockwise,
+    rotateAnticlockwise,
+    zoomIn,
+    zoomOut,
+  };
 
   // Scroll to the focused search highlight in text views of paged documents
   useEffect(() => {
@@ -194,6 +250,20 @@ export const PageViewerOrFallback: FC<{}> = () => {
     );
   } else {
     const showTextContent = !isCombinedOrUnset(view);
+    const pageViewerContent = (
+      <PageViewerContent
+        key={uri}
+        uri={uri}
+        totalPages={response.pageCount}
+        firstPageDimensions={response.dimensions ?? undefined}
+        view={view}
+        findQuery={pageFind.findQuery}
+        findHighlightsState={pageFind.highlightsState}
+        focusedFindHighlight={pageFind.focusedHighlight}
+        rotation={rotation}
+        scale={scale}
+      />
+    );
     return (
       <div className="document__page-viewer-wrapper">
         {showTextContent && (
@@ -202,22 +272,10 @@ export const PageViewerOrFallback: FC<{}> = () => {
         <div className="document__page-viewer-content">
           {showTextContent ? (
             <div className="document document--text-content">
-              <PageViewerContent
-                key={uri}
-                uri={uri}
-                totalPages={response.pageCount}
-                firstPageDimensions={response.dimensions ?? undefined}
-                view={view}
-              />
+              {pageViewerContent}
             </div>
           ) : (
-            <PageViewerContent
-              key={uri}
-              uri={uri}
-              totalPages={response.pageCount}
-              firstPageDimensions={response.dimensions ?? undefined}
-              view={view}
-            />
+            pageViewerContent
           )}
         </div>
         {resource && (
@@ -225,6 +283,10 @@ export const PageViewerOrFallback: FC<{}> = () => {
             uri={uri}
             workspaceNav={workspaceNav}
             totalPages={response.pageCount}
+            pageFind={isCombinedOrUnset(view) ? pageFind : undefined}
+            pageViewControls={
+              isCombinedOrUnset(view) ? pageViewControls : undefined
+            }
           />
         )}
       </div>
