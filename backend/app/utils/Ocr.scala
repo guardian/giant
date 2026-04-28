@@ -181,9 +181,30 @@ object Ocr extends Logging {
       }
     }
 
+    def calculateColorConversionStrategyFlag(path: Path): String = {
+      val startTime = System.currentTimeMillis()
+      var colorConversionStrategyFlag = ""
+      Process(
+        s"ocrmypdf --skip-text --output-type pdfa --pages 1 --tesseract-timeout 0 ${path.toAbsolutePath} /dev/null"
+      ) ! ProcessLogger ( log =>
+        if (log.contains("ColorConversionNeededError:")) {
+          colorConversionStrategyFlag = "--color-conversion-strategy=RGB"
+        }
+      )
+      val duration = System.currentTimeMillis() - startTime
+      logger.info(s"Checked if color conversion strategy flag is needed. Took ${duration}ms. Result: $colorConversionStrategyFlag")
+      colorConversionStrategyFlag
+    }
+
     def ocrWithOcrMyPdf(flag: OcrMyPdfFlag, overrideFile: Option[Path] = None): Int = {
-      val sourceFilePath = overrideFile.getOrElse(inputFilePath)
-      val cmd = s"ocrmypdf ${flag.flag} -l $lang ${dpi.map(dpi => s"--image-dpi $dpi").getOrElse("")} ${sourceFilePath.toAbsolutePath} ${tempFile.toAbsolutePath}"
+      val sourceFilePath = overrideFile.getOrElse(inputFilePath).toAbsolutePath
+      val cmd = s"""ocrmypdf ${flag.flag}
+                   | ${calculateColorConversionStrategyFlag(sourceFilePath)}
+                   | -l $lang
+                   | ${dpi.map(dpi => s"--image-dpi $dpi").getOrElse("")}
+                   | $sourceFilePath
+                   | ${tempFile.toAbsolutePath}"""
+        .stripMargin.replaceAll("\n", "")
       val process = Process(cmd, cwd = None, extraEnv = "TMPDIR" -> tmpDir.toAbsolutePath.toString)
       runProcessWithTimeout(process)
     }
