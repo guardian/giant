@@ -134,7 +134,7 @@ export function TextPreview({
         el.scrollIntoView({ block: "center", inline: "center" });
       }
     });
-  }, [pendingScrollToCommentId]);
+  }, [pendingScrollToCommentId, reduxDispatch]);
 
   return (
     <div className="document__preview" onClick={() => focusComment(undefined)}>
