@@ -1,0 +1,113 @@
+.sidebar-comments {
+  margin-bottom: $baseSpacing;
+
+  &__header {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    cursor: pointer;
+    user-select: none;
+  }
+
+  &__list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  &__comment {
+    padding: calc($baseSpacing / 2) $baseSpacing;
+    border-bottom: 1px solid $secondaryDark;
+
+    &--clickable {
+      cursor: pointer;
+
+      &:hover {
+        background-color: $secondary;
+      }
+    }
+  }
+
+  &__comment-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px;
+  }
+
+  &__author {
+    font-weight: bold;
+    font-size: 12px;
+  }
+
+  &__view-tag {
+    font-size: 10px;
+    padding: 1px 6px;
+    border-radius: $borderRadius;
+    background-color: $secondaryDark;
+    color: $primary;
+
+    &--current {
+      background-color: $primaryLight;
+      color: white;
+    }
+  }
+
+  &__snippet {
+    font-size: 11px;
+    font-style: italic;
+    color: $primary;
+    margin-bottom: 4px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__text {
+    font-size: 12px;
+    word-wrap: break-word;
+    white-space: pre-wrap;
+  }
+
+  &__footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 4px;
+  }
+
+  &__time {
+    font-size: 10px;
+    color: $borderColour;
+  }
+
+  &__delete {
+    font-size: 10px;
+    padding: 0 4px;
+    color: $accentPink;
+  }
+
+  &__add {
+    padding: calc($baseSpacing / 2) $baseSpacing;
+
+    textarea {
+      resize: none;
+      width: 100%;
+      margin-bottom: calc($baseSpacing / 2);
+      font-size: 12px;
+    }
+  }
+
+  &__add-actions {
+    display: flex;
+    gap: calc($baseSpacing / 2);
+  }
+
+  &__add-btn {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin: calc($baseSpacing / 2) $baseSpacing;
+    font-size: 12px;
+  }
+}
