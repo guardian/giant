@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useDispatch, useSelector } from "react-redux";
+import { useDispatch } from "react-redux";
 import hdate from "human-date";
 import CommentIcon from "react-icons/lib/md/comment";
 import ExpandLess from "react-icons/lib/md/expand-less";
@@ -8,7 +8,6 @@ import ModalAction from "../UtilComponents/ModalAction";
 
 import { CommentData, Resource } from "../../types/Resource";
 import { PartialUser } from "../../types/User";
-import { GiantState } from "../../types/redux/GiantState";
 import {
   getCommentSnippet,
   getCommentViewLabel,
@@ -17,6 +16,7 @@ import {
 import { postComment, deleteComment } from "../../services/CommentsApi";
 import { getComments } from "../../actions/resources/getComments";
 import { setResourceView } from "../../actions/urlParams/setViews";
+import { ResourceActionType } from "../../types/redux/GiantActions";
 
 type SidebarCommentsProps = {
   resource: Resource;
@@ -65,7 +65,10 @@ export function SidebarComments({
     if (targetView !== currentView) {
       dispatch(setResourceView(targetView));
     }
-    // TODO(#702): set focusedCommentId to scroll to comment in CommentPanel
+    dispatch({
+      type: ResourceActionType.PENDING_SCROLL_TO_COMMENT,
+      commentId: comment.id,
+    });
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {

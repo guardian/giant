@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useSelector, useDispatch } from "react-redux";
 import TextPopover from "./TextPopover";
 import { CommentHighlighter } from "./CommentHighlighter";
 import { filterCommentsInView } from "../../util/commentUtils";
@@ -6,6 +7,8 @@ import { ResourceRange, Highlight, CommentData } from "../../types/Resource";
 import sortBy from "lodash/sortBy";
 import { CommentPanel } from "./CommentPanel/CommentPanel";
 import { PartialUser } from "../../types/User";
+import { GiantState } from "../../types/redux/GiantState";
+import { ResourceActionType } from "../../types/redux/GiantActions";
 
 function getExistingCommentHighlights(
   comments: CommentData[],
@@ -100,9 +103,38 @@ export function TextPreview({
   >(undefined);
 
   function focusComment(id?: string) {
-    setFocusedCommentId(id);
-    setPreviousFocusedCommentId(focusedCommentId);
+    setFocusedCommentId((prev) => {
+      setPreviousFocusedCommentId(prev);
+      return id;
+    });
   }
+
+  const pendingScrollToCommentId = useSelector(
+    (state: GiantState) => state.pendingScrollToCommentId,
+  );
+  const reduxDispatch = useDispatch();
+
+  useEffect(() => {
+    if (!pendingScrollToCommentId) return;
+
+    focusComment(pendingScrollToCommentId);
+
+    // Clear the one-shot signal
+    reduxDispatch({
+      type: ResourceActionType.PENDING_SCROLL_TO_COMMENT,
+      commentId: null,
+    });
+
+    // Allow a frame for the DOM to update after the focus state change
+    requestAnimationFrame(() => {
+      const el = document.querySelector(
+        `comment-highlight[data-comment-id="${CSS.escape(pendingScrollToCommentId)}"]`,
+      );
+      if (el) {
+        el.scrollIntoView({ block: "center", inline: "center" });
+      }
+    });
+  }, [pendingScrollToCommentId]);
 
   return (
     <div className="document__preview" onClick={() => focusComment(undefined)}>

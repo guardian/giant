@@ -17,6 +17,7 @@ import highlights from "./highlightsReducer";
 import expandedFilters from "./expandedFiltersReducer";
 import isLoadingResource from "./isLoadingResourceReducer";
 import pages from "./pagesReducer";
+import pendingScrollToCommentId from "./pendingScrollToCommentReducer";
 
 const allReducers = (history) =>
   combineReducers({
@@ -38,5 +39,6 @@ const allReducers = (history) =>
     expandedFilters,
     isLoadingResource,
     pages,
+    pendingScrollToCommentId,
   });
 export default allReducers;
