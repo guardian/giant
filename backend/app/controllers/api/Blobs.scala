@@ -136,7 +136,7 @@ class Blobs(override val controllerComponents: AuthControllerComponents, manifes
       }
       else {
         manifest.getWorkspacesForBlob(id).map { workspaces =>
-          workspaces.exists(w => w.followers.exists(u => u.username == username))
+          workspaces.exists(w => w.followers.exists(u => u.username == username) || w.isPublic)
         }
       }
     }
