@@ -4,6 +4,7 @@ import hdate from "human-date";
 import CommentIcon from "react-icons/lib/md/comment";
 import ExpandLess from "react-icons/lib/md/expand-less";
 import ExpandMore from "react-icons/lib/md/expand-more";
+import ModalAction from "../UtilComponents/ModalAction";
 
 import { CommentData, Resource } from "../../types/Resource";
 import { PartialUser } from "../../types/User";
@@ -166,6 +167,7 @@ function SidebarComment({
   onClick,
   onDelete,
 }: SidebarCommentProps) {
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const viewLabel = getCommentViewLabel(comment.anchor);
   const snippet = getCommentSnippet(comment.anchor, resource);
   const targetView = getViewForAnchor(comment.anchor);
@@ -205,13 +207,22 @@ function SidebarComment({
             className="btn sidebar-comments__delete"
             onClick={(e) => {
               e.stopPropagation();
-              onDelete();
+              setConfirmDeleteOpen(true);
             }}
           >
             Delete
           </button>
         )}
       </div>
+      <ModalAction
+        actionType="confirm"
+        actionDescription="Delete"
+        title="Delete this comment?"
+        text={`${comment.author.displayName}: "${comment.text}"`}
+        isOpen={confirmDeleteOpen}
+        onClose={() => setConfirmDeleteOpen(false)}
+        onConfirm={onDelete}
+      />
     </li>
   );
 }

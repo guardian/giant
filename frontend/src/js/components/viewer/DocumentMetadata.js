@@ -154,8 +154,6 @@ export class DocumentMetadata extends React.Component {
           currentUser={this.props.currentUser}
         />
 
-        {this.renderDevTools()}
-
         <div className="sidebar__title">
           <span>File Metadata</span>
           {hasEnrichedMetadata ? (
@@ -177,6 +175,8 @@ export class DocumentMetadata extends React.Component {
         </ul>
 
         {this.renderChildren()}
+
+        {this.renderDevTools()}
       </div>
     );
   }

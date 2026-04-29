@@ -12,6 +12,7 @@ import {
 import { AddComment } from "./AddComment";
 import { filterCommentsInView } from "../../../util/commentUtils";
 import { HighlightRenderedPositions } from "../TextPreview";
+import ModalAction from "../../UtilComponents/ModalAction";
 
 import { sortBy, sumBy, takeWhile } from "lodash";
 
@@ -276,13 +277,11 @@ export const CommentPanel: FC<CommentPanelProps> = ({
                     </Comment.Metadata>
                     <Comment.Text>{c.text}</Comment.Text>
                     {currentUser.username === c.author.username && (
-                      <Comment.Actions>
-                        <Comment.Action
-                          onClick={() => deleteCommentRefresh(c.id)}
-                        >
-                          Delete
-                        </Comment.Action>
-                      </Comment.Actions>
+                      <DeleteCommentAction
+                        authorName={c.author.displayName}
+                        commentText={c.text}
+                        onDelete={() => deleteCommentRefresh(c.id)}
+                      />
                     )}
                   </Comment.Content>
                 </Comment>
@@ -304,3 +303,32 @@ export const CommentPanel: FC<CommentPanelProps> = ({
     </div>
   );
 };
+
+function DeleteCommentAction({
+  authorName,
+  commentText,
+  onDelete,
+}: {
+  authorName: string;
+  commentText: string;
+  onDelete: () => void;
+}) {
+  const [confirmOpen, setConfirmOpen] = useState(false);
+
+  return (
+    <Comment.Actions>
+      <Comment.Action onClick={() => setConfirmOpen(true)}>
+        Delete
+      </Comment.Action>
+      <ModalAction
+        actionType="confirm"
+        actionDescription="Delete"
+        title="Delete this comment?"
+        text={`${authorName}: "${commentText}"`}
+        isOpen={confirmOpen}
+        onClose={() => setConfirmOpen(false)}
+        onConfirm={onDelete}
+      />
+    </Comment.Actions>
+  );
+}
