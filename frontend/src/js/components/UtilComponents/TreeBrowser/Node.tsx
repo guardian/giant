@@ -13,6 +13,7 @@ import {
 import { SearchLink } from "../SearchLink";
 import { MAX_NUMBER_OF_CHILDREN } from "../../../util/resourceUtils";
 import { sortEntries } from "../../../util/treeUtils";
+import { INTERNAL_DRAG_MIME } from "../../Uploads/dropZoneUtils";
 
 type Props<T> = {
   entry: TreeNode<T>;
@@ -142,7 +143,7 @@ export default class Node<T> extends React.Component<Props<T>, State> {
   onDragStart = (e: DragEvent<HTMLTableRowElement>) => {
     if (e.dataTransfer) {
       e.dataTransfer.setData(
-        "application/json",
+        INTERNAL_DRAG_MIME,
         JSON.stringify({ id: this.props.entry.id }),
       );
     }

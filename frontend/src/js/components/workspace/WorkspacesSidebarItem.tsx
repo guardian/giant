@@ -6,6 +6,7 @@ import { bindActionCreators } from "redux";
 import { GiantDispatch } from "../../types/redux/GiantDispatch";
 import { connect } from "react-redux";
 import { getIdsOfEntriesToMove } from "../../util/treeUtils";
+import { INTERNAL_DRAG_MIME } from "../Uploads/dropZoneUtils";
 import { copyItems } from "../../actions/workspaces/copyItem";
 import Modal from "../UtilComponents/Modal";
 import { CopyOrMoveModal } from "./CopyOrMoveModal";
@@ -41,7 +42,7 @@ const WorkspacesSidebarItem: FC<PropTypes> = ({
             setInvalidDestinationModalOpen(true);
             return;
           }
-          const json = e.dataTransfer.getData("application/json");
+          const json = e.dataTransfer.getData(INTERNAL_DRAG_MIME);
           const { id: idOfDraggedEntry } = JSON.parse(json);
           const entryIds = getIdsOfEntriesToMove(
             selectedEntries,
