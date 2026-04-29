@@ -95,6 +95,36 @@
     flex-flow: column;
   }
 
+  &__metadata {
+    padding: 0 $baseSpacing $baseSpacing $baseSpacing;
+  }
+
+  &__detail-row {
+    font-size: 12px;
+    line-height: 1.6;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__detail-label {
+    font-weight: 600;
+  }
+
+  &__detail-value {
+    font-weight: normal;
+  }
+
+  &__detail-link {
+    color: inherit;
+    text-decoration: underline;
+
+    &:hover {
+      text-decoration: none;
+    }
+  }
+
+  // Legacy class kept for compatibility
   &__details {
     padding-left: $baseSpacing;
     padding-bottom: $baseSpacing;
@@ -158,6 +188,46 @@
     border-radius: 50%;
     color: white;
     background-color: $accentBlue;
+  }
+
+  &__icon-video {
+    @extend .search-result__icon-document;
+    background-color: $accentPurple;
+  }
+
+  &__icon-audio {
+    @extend .search-result__icon-document;
+    background-color: $accentOrange;
+  }
+
+  &__icon-image {
+    @extend .search-result__icon-document;
+    background-color: $accentGreen;
+  }
+
+  &__icon-spreadsheet {
+    @extend .search-result__icon-document;
+    background-color: $accentGold;
+  }
+
+  &__icon-presentation {
+    @extend .search-result__icon-document;
+    background-color: $accentPink;
+  }
+
+  &__icon-archive {
+    @extend .search-result__icon-document;
+    background-color: $accentOrange;
+  }
+
+  &__icon-pdf {
+    @extend .search-result__icon-document;
+    background-color: $accentPink;
+  }
+
+  &__icon-web {
+    @extend .search-result__icon-document;
+    background-color: $accentPurple;
   }
 
   &__attachment-count {

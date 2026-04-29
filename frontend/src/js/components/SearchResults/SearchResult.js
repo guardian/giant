@@ -1,12 +1,13 @@
 import React from "react";
 import PropTypes from "prop-types";
-import DocumentIcon from "react-icons/lib/ti/document";
 import EmailIcon from "react-icons/lib/md/email";
-import hdate from "human-date";
 import * as R from "ramda";
 import md5 from "md5";
-
 import { SearchLink } from "../UtilComponents/SearchLink";
+import { formatDate } from "../../util/formatDate";
+import { getDocumentIconInfo } from "../../util/fileTypeIcon";
+import { formatRecipients } from "../../util/formatRecipients";
+import { CollectionLinks } from "./CollectionLinks";
 import { HighlightedText } from "../UtilComponents/HighlightedText";
 import { searchResultPropType } from "../../types/SearchResults";
 
@@ -96,10 +97,13 @@ export class SearchResult extends React.Component {
         );
       }
       case "document": {
+        const { icon: DocIcon, className: iconClass } = getDocumentIconInfo(
+          this.props.searchResult.details.mimeTypes,
+        );
         return (
           <React.Fragment>
             <div>
-              <DocumentIcon className="search-result__icon-document" />
+              <DocIcon className={iconClass} />
             </div>
             <div>
               <SearchLink
@@ -121,42 +125,53 @@ export class SearchResult extends React.Component {
     }
   }
 
-  renderProperty = (title, ...contents) => {
-    if (title && contents) {
+  renderProperty = (title, content) => {
+    if (title && content !== undefined && content !== null) {
       return (
-        <div className="search-result__details">
-          <div>{title}:</div>
-          {contents.map((item) => (
-            <p className="search-result__details-info" key={md5(item)}>
-              {item}
-            </p>
-          ))}
+        <div className="search-result__detail-row">
+          <span className="search-result__detail-label">{title}:</span>{" "}
+          <span className="search-result__detail-value">{content}</span>
         </div>
       );
     }
   };
 
+  renderCollections() {
+    const collections = this.props.searchResult.collections;
+    if (!collections || collections.length === 0) return null;
+
+    return this.renderProperty(
+      "Dataset",
+      <CollectionLinks collections={collections} separator="" />,
+    );
+  }
+
   renderAdditionalInfo() {
     switch (this.props.searchResult.details._type) {
       case "email": {
+        const recipients = this.props.searchResult.details.recipients || [];
+        const truncatedTo = formatRecipients(recipients, 80);
+        const attachments = this.props.searchResult.details.attachmentCount;
         return (
           <React.Fragment>
             {this.renderProperty(
               "From",
               this.props.searchResult.details.from.email,
             )}
-            {this.renderProperty(
-              "Attachments",
-              this.props.searchResult.details.attachmentCount,
-            )}
+            {truncatedTo ? this.renderProperty("To", truncatedTo) : false}
+            {attachments > 0
+              ? this.renderProperty("Attachments", attachments)
+              : false}
           </React.Fragment>
         );
       }
       case "document": {
-        return this.renderProperty(
-          "File Types",
-          this.props.searchResult.details.mimeTypes,
-        );
+        const displayTypes = this.props.searchResult.details.displayMimeTypes;
+        const types =
+          displayTypes && displayTypes.length > 0
+            ? displayTypes
+            : this.props.searchResult.details.mimeTypes;
+        return this.renderProperty("File type", types.join(", "));
       }
       default: {
         return false;
@@ -168,9 +183,7 @@ export class SearchResult extends React.Component {
     const isLastResult = this.props.lastUri === this.props.searchResult.uri;
     const targetId = isLastResult ? "jump-to-result" : "";
     const createdAt = this.props.searchResult.createdAt
-      ? hdate.prettyPrint(new Date(this.props.searchResult.createdAt), {
-          showTime: true,
-        })
+      ? formatDate(new Date(this.props.searchResult.createdAt))
       : undefined;
 
     return (
@@ -184,8 +197,11 @@ export class SearchResult extends React.Component {
 
           <div className="search-result__summary">{this.renderIcon()}</div>
 
-          {createdAt ? this.renderProperty("Created", createdAt) : false}
-          {this.renderAdditionalInfo()}
+          <div className="search-result__metadata">
+            {createdAt ? this.renderProperty("Created", createdAt) : false}
+            {this.renderAdditionalInfo()}
+            {this.renderCollections()}
+          </div>
         </div>
 
         <div className="search-result__content">

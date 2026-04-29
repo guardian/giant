@@ -8,6 +8,7 @@ import model.frontend.{DocumentResultDetails, EmailResultDetails, SearchResult}
 import model.index._
 import model.{Email, English, Language, Languages, Recipient, Sensitivity, Uri}
 import services.events.{Event, EventFields, EventType}
+import utils.MimeDetails
 
 import scala.util.control.NonFatal
 import scala.util.{Failure, Success, Try}
@@ -81,6 +82,7 @@ object HitReaders {
       val metadata = hit.field[FieldMap]("metadata")
       val flag = hit.optField[String](flags)
       val created = hit.optField[Long](createdAt)
+      val collections = hit.setField[String](collection)
 
       val details = hit.field[String](`type`) match {
         case "email" => readEmailResult(metadata)
@@ -99,7 +101,7 @@ object HitReaders {
           ._1
       ).toOption
 
-      Success(SearchResult(hit.id, highlights, fieldWithMostHighlights, flag, created, details))
+      Success(SearchResult(hit.id, highlights, fieldWithMostHighlights, flag, created, details, collections))
     }
   }
 
@@ -190,18 +192,20 @@ object HitReaders {
 
   private def readEmailResult(fields: FieldMap): EmailResultDetails = {
     val from = fields.optField(metadata.fromField).map(readRecipient).getOrElse(Recipient.unknown)
+    val recipients = fields.optField[List[FieldMap]](metadata.recipientsField).getOrElse(Nil).map(readRecipient)
     val subject = fields.optMultiLanguageField[String](metadata.subject).getOrElse("<Unknown Subject>")
     val attachmentCount = fields.optField[Int](metadata.attachmentCount).getOrElse(0)
 
-    EmailResultDetails(from, subject, attachmentCount)
+    EmailResultDetails(from, recipients, subject, attachmentCount)
   }
 
   private def readDocumentResult(fields: FieldMap): DocumentResultDetails = {
     val paths = readFileUris(fields)
     val mimeTypes = fields.listField[String](metadata.mimeTypes)
+    val displayMimeTypes = mimeTypes.map(mt => MimeDetails.get(mt).map(_.display).getOrElse(mt))
     val fileSize = fields.optLongField(metadata.fileSize)
 
-    DocumentResultDetails(mimeTypes, paths, fileSize)
+    DocumentResultDetails(mimeTypes, displayMimeTypes, paths, fileSize)
   }
 
   private def readEmail(id: String, fields: FieldMap): Email = {
