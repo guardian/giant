@@ -68,6 +68,7 @@ class AWSWorkerControl(config: WorkerConfig, discoveryConfig: AWSDiscoveryConfig
   private def publishStateMetrics (state: AWSWorkerControl.State): Unit = {
     metrics.updateMetric(Metrics.extractorWorkInProgress, state.inProgress)
     metrics.updateMetric(Metrics.extractorWorkOutstanding, state.outstandingFromTodos)
+    metrics.updateMetric(Metrics.ingestStoreOutstanding, state.outstandingFromIngestStore)
   }
 
   override def start(scheduler: Scheduler)(implicit ec: ExecutionContext): Unit = {
