@@ -3,6 +3,12 @@ import { HighlightForSearchNavigation, HighlightsState } from "./model";
 import { removeLastUnmatchedQuote } from "../../util/stringUtils";
 import authFetch from "../../util/auth/authFetch";
 
+/**
+ * - "find": on-demand find-in-document queries typed by the user.
+ * - "search": the workspace-level search query, fixed for the lifetime of the
+ *   page viewer. Parses chip syntax and returns highlights with a distinct prefix
+ *   so both sets can coexist without colliding.
+ */
 type HighlightEndpoint = "search" | "find";
 
 export type HighlightNavigationState = {
