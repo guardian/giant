@@ -11,16 +11,18 @@ function getExistingCommentHighlights(
   comments: CommentData[],
   view?: string,
 ): Highlight[] {
-  return filterCommentsInView(comments, view).map(({ id, anchor }) => {
-    return {
-      id,
-      type: "comment",
-      range: {
-        startCharacter: anchor!.startCharacter,
-        endCharacter: anchor!.endCharacter,
-      },
-    };
-  });
+  return filterCommentsInView(comments, view)
+    .filter(({ anchor }) => anchor !== undefined)
+    .map(({ id, anchor }) => {
+      return {
+        id,
+        type: "comment",
+        range: {
+          startCharacter: anchor!.startCharacter,
+          endCharacter: anchor!.endCharacter,
+        },
+      };
+    });
 }
 
 function getNewCommentHighlight(selection?: ResourceRange): Highlight[] {
