@@ -22,6 +22,7 @@ object Metrics {
   val searchInFolderEvents = "SearchInFolderEvents"
   val extractorWorkInProgress = "ExtractorWorkInProgress"
   val extractorWorkOutstanding = "ExtractorWorkOutstanding"
+  val ingestStoreOutstanding = "IngestStoreOutstanding"
 
 
   def metricDatum(name: String, dimensions: List[Dimension], value: Double): MetricDatum = {
