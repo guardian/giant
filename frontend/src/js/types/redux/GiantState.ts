@@ -89,4 +89,5 @@ export interface GiantState {
   search: SearchState;
   isLoadingResource: LoadingState;
   pages: PagesState;
+  pendingScrollToCommentId: string | null;
 }

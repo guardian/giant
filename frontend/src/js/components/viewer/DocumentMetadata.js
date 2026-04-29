@@ -4,6 +4,7 @@ import { resourcePropType } from "../../types/Resource";
 import { ResourceBreadcrumbs } from "../ResourceBreadcrumbs";
 import HoverSearchLink from "../UtilComponents/HoverSearchLink";
 import ViewerActions from "./ViewerActions";
+import { SidebarComments } from "./SidebarComments";
 import _ from "lodash";
 import hdate from "human-date";
 import { permissionsPropType } from "../../types/User";
@@ -147,7 +148,11 @@ export class DocumentMetadata extends React.Component {
           showParents={true}
         />
 
-        {this.renderDevTools()}
+        <SidebarComments
+          resource={this.props.resource}
+          currentView={this.props.currentView}
+          currentUser={this.props.currentUser}
+        />
 
         <div className="sidebar__title">
           <span>File Metadata</span>
@@ -170,6 +175,8 @@ export class DocumentMetadata extends React.Component {
         </ul>
 
         {this.renderChildren()}
+
+        {this.renderDevTools()}
       </div>
     );
   }

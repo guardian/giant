@@ -104,6 +104,8 @@ function HighlightWrapper({
     {
       class: focused ? `${elementType}--focused` : "",
       "data-highlight-offset": highlight.range.startCharacter,
+      "data-comment-id":
+        highlight.type === "comment" ? highlight.id : undefined,
       ref: onMountOrUnmount,
       onClick: (e: React.MouseEvent) => {
         if (highlight.type === "comment") {
