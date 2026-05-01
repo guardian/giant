@@ -21,16 +21,16 @@ To get access to Giant email [digital.investigations@guardian.co.uk](mailto:digi
 If you're new to Giant, this is the fastest way to get started:
 
 1. Open [**Search**](/search), choose relevant datasets/workspaces in the sidebar, and run a simple keyword search.
-2. Open a result and use `Cmd-F` (`Ctrl-F` on Windows) to search within the document itself.
+2. Open a result and use `Cmd-F` (`Ctrl-F` on Windows) to open the in-document search widget and search within the document itself.
 3. Create a workspace in [**Workspaces**](/workspaces) using the **New Workspace** button.
 4. Upload files to that workspace by dragging files in, or by using the Upload button.
 5. Share the workspace (if needed) with colleagues using **Share Workspace**.
 
 For details on each step, see the [**Search page**](#the-search-page), [**Viewing documents**](#viewing-documents), [**Workspaces**](#workspaces), and [**Sharing access to documents in a workspace**](#sharing-access-to-documents-in-a-workspace).
 
-## **Giant’s three main sections** {#giants-three-main-sections}
+## **Giant's main sections** {#giants-three-main-sections}
 
-At the top of every Giant window you will find links for the three main entry points for Giant's data: 'Search', 'Datasets' and 'Workspaces'.
+At the top of every Giant window you will find links to Giant's main sections: **Search**, **Datasets**, **Workspaces**, and **Settings**.
 
 <div class="doc-figure" style="width: 50%;">
 
@@ -56,7 +56,7 @@ Documents in datasets are organised in the same structure as the source material
 
 You can use workspaces either to create curated selections of significant documents from datasets, from workspaces shared with you, and from documents you upload yourself.
 
-| **Note** | Documents don't actually _live_ inside workspaces. Under the hood, workspaces are collections of links to documents that come from one or more datasets. When you upload documents 'into' a workspace, what you're actually doing is uploading the files to your personal dataset (mine is called 'Luke Hoyland Documents') and then making a reference to that document within your active workspace. You can see _all_ your uploads - no matter what workspaces they are in - if you go to your own dataset. |
+| **Note** | Documents don't actually _live_ inside workspaces. Under the hood, workspaces are collections of links to documents that come from one or more datasets. When you upload documents 'into' a workspace, what you're actually doing is uploading the files to your personal dataset (named after you, e.g. 'Jane Smith Documents') and then making a reference to that document within your active workspace. You can see _all_ your uploads - no matter what workspaces they are in - if you go to your own dataset. |
 | :------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 
 # **The Search page** {#the-search-page}
@@ -87,7 +87,7 @@ Below the search bar you'll see a set of filters, including for Workspaces and D
 
 <div class="doc-caption">
 
-This filter will restrict your search to material that is in dataset 'Luke Hoyland Documents' and/or in the workspace 'Eine kleine workspace'.
+This filter will restrict your search to material that is in a specific dataset and/or a specific workspace.
 
 </div>
 
@@ -107,7 +107,7 @@ You can also perform excluding or **'negative searches'** by switching the sideb
 
 <div class="doc-caption">
 
-This negative search filter will exclude anything from the Dataset 'Luke Hoyland Documents'.
+This negative search filter will exclude anything from the selected dataset.
 
 </div>
 
@@ -405,8 +405,8 @@ All the workspaces that you currently have permission to view are shown in the s
 
 In the Workspaces section they are grouped into three lists:
 
-1. Workspaces you created. This may include entirely private workspaces and workspaces that you have shared with others. You have full control over these workspaces.
-2. Workspaces that someone else created and shared with you. You can add files to these workspaces, and organise their structure. But you can't delete them or change their sharing settings.
+1. Workspaces you created. This may include entirely private workspaces and workspaces that you have shared with others. You have full control over these workspaces, including the ability to delete them.
+2. Workspaces that someone else created and shared with you. You can add files to these workspaces and organise their structure, but you cannot delete them or change their sharing settings.
 3. Public workspaces that are viewable by all Giant users at the Guardian. These are used for collections of non-confidential material that is already in the public domain. Your access controls for these depend on whether you created them (full control, like type 1\) or someone else (same control as for other workspaces shared with you, like type 2).
 
 ## **Creating a new workspace** {#creating-a-new-workspace}
@@ -834,7 +834,7 @@ Under the hood in Giant, documents are organised into datasets. These are large 
 - Large collections of related documents that were added en masse by the Investigations & Reporting engineering team or ESD. These tend to be big data leaks and that sort of thing.
 - Your own personal dataset. This contains all the files that you have uploaded into Giant using the [upload to workspace](#uploading-new-documents-into-a-workspace) tool.
 
-When you go to the [Datasets](/collections) view in Giant you will see any dataset that has been shared with you, plus a personal dataset named after you e.g. "Luke Hoyland Documents". Documents in your own personal dataset are only viewable by you, unless you choose to [share any of them in a workspace](#sharing-access-to-documents-in-a-workspace).
+When you go to the [Datasets](/collections) view in Giant you will see any dataset that has been shared with you, plus a personal dataset named after you, e.g. "Jane Smith Documents". Documents in your own personal dataset are only viewable by you, unless you choose to [share any of them in a workspace](#sharing-access-to-documents-in-a-workspace).
 
 ## **Dataset structure** {#dataset-structure}
 
@@ -844,7 +844,7 @@ In your personal dataset, once you have uploaded documents in Giant you'll see a
 
 ## **Your personal dataset** {#your-personal-dataset}
 
-As noted above, files you upload into workspaces are stored in your personal dataset. If you go to the [Datasets view](/collections) in Giant you'll see yours. Mine is called "Luke Hoyland Documents".
+As noted above, files you upload into workspaces are stored in your personal dataset. If you go to the [Datasets view](/collections) in Giant you'll see yours — it will be named after you.
 
 <div class="doc-figure" style="width: 50%;">
 
