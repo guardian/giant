@@ -123,6 +123,8 @@ If you put your search in quotes it will only return matches of the words _in th
 
 If you want to be more sophisticated than that, there are more options available. These are called [search operators](#search-operators).
 
+You can jump the keyboard focus to the search box at any time by pressing `s`.
+
 ## **Search operators** {#search-operators}
 
 Under normal conditions Giant will search for documents containing every word in your search term. But you can use special syntax to perform more advanced searches:
@@ -267,6 +269,10 @@ If the content in the document is difficult to read, you can try the following:
 
 You can search for things within the document itself, without going back to Giant's search page. Press `Cmd-F` (`Ctrl-F` on Windows) or type something into the search-in-document widget. If you came to the document from a search, this appears below the main search widget. If you came to the document by browsing, it'll be the only widget there.
 
+Once highlights are shown, use `n` to jump to the next one and `Shift-N` to go to the previous one without touching the mouse.
+
+If you arrived at a document from a search, you can move directly to the next or previous result in your search list with `Shift-→` and `Shift-←`, without returning to the search page.
+
 <div style="width: 75%;">
 
 | _Searching for text in a document found by search:_                                 | _Searching for text in a document found by browsing:_   |
@@ -277,7 +283,7 @@ You can search for things within the document itself, without going back to Gian
 
 ## **Documents with multiple view modes** {#multi-view-documents}
 
-Giant can process other file formats such as emails, images, video files, audio files. For many of these when you open the file you'll be given the option to view it in different ways. For example:
+Giant can process other file formats such as emails, images, video files, audio files. For many of these when you open the file you'll be given the option to view it in different ways. You can switch between view modes using the buttons at the bottom of the document viewer, or with keyboard shortcuts: `Shift-X` for the Text (OCR) view and `Shift-C` for Preview. For example:
 
 ## **Image files** {#image-files}
 
@@ -817,6 +823,38 @@ This dataset is organised into folders corresponding to each time you uploaded a
 - If you deleted a workspace but still want to find a file that originally you uploaded into that workspace.
 
 The easiest way to search across every file you have ever uploaded is to go to the [search view](/search), and in the datasets list on the side select your personal dataset. Then search. But you can of course browse through all those upload folders in the Datasets view if you really want to.
+
+# **Keyboard shortcuts** {#keyboard-shortcuts}
+
+Giant supports keyboard shortcuts to speed up common actions. They are also noted inline throughout this guide where relevant.
+
+## **Global**
+
+| Shortcut | Action |
+| :------- | :----- |
+| `s` | Focus the search box |
+
+## **Document viewer**
+
+| Shortcut | Action |
+| :------- | :----- |
+| `Cmd-F` / `Ctrl-F` | Search within the current document |
+| `n` | Jump to the next search highlight |
+| `Shift-N` | Jump to the previous search highlight |
+| `Shift-→` | Open the next result from your search list |
+| `Shift-←` | Open the previous result from your search list |
+| `Shift-X` | Switch to Text (OCR) view mode |
+| `Shift-C` | Switch to Preview view mode |
+
+## **Comment box**
+
+These shortcuts apply while typing in the [comment box](#adding-a-comment).
+
+| Shortcut | Action |
+| :------- | :----- |
+| `Enter` | Submit the comment |
+| `Shift-Enter` | New line within the comment |
+| `Escape` | Cancel / close the comment box |
 
 # **Problems** {#problems}
 
