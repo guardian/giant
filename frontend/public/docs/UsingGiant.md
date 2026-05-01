@@ -216,7 +216,11 @@ You can view documents by getting to them through several different routes:
 - Browsing through a dataset and double-clicking on a file you find therein.
 - Traversing through the filesystem from another document by clicking on the first document's path in the document sidebar and navigating to a document elsewhere in the same file path.
 
-The document will be opened in a document viewer window. This consists of a sidebar with some information about the document (location, upload information, and any metadata that Giant extracted from the document), plus the document view itself. Document views come in several different flavours, depending on file format:
+The document will be opened in a document viewer window. This consists of a sidebar with some information about the document (location, upload information, and any metadata that Giant extracted from the document), plus the document view itself.
+
+The metadata shown in the sidebar is clickable: hovering over a metadata value reveals a search icon, and clicking it takes you straight to a search for that value across all of Giant. This is useful for quickly finding other documents that share the same author, sender, date, file path, or any other metadata field — without having to type anything into the search box.
+
+Document views come in several different flavours, depending on file format:
 
 - **Text based documents** such as PDFs and MS Word documents are displayed in a single view, with the OCR'd text overlaid on top of the original document. Search term matches will be highlighted in the document itself. You can also search for other terms within the documents and these will be highlighted in a different colour to the original search term matches. We call this flavour the **combined view mode** because the extracted text and the original file are presented in the same view.
 - **Emails** are displayed in a form that resembles an email, showing the To:, From:, Subject: fields etc.
