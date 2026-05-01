@@ -231,7 +231,7 @@ Document views come in several different flavours, depending on file format:
 
 <div class="doc-figure" style="width: 80%;">
 
-<img src="/docs/images/03_1_docviewer_page.jpg" alt="Combined document view with highlighted search match" width="100%"  />
+<img src="/docs/images/03_1_docviewer_page.jpg" alt="Combined document view with highlighted search match" width="80%"  />
 
 <div class="doc-caption">
 
@@ -243,9 +243,9 @@ A 'combined document view'. If you came to this document via a search, the first
 
 Some documents will contain more than one match of your search term. In the combined document view you can step through each match using the widget at the top right of the page. Pressing the down arrow will take you to the next match in the document.
 
-<div class="doc-figure" style="width: 50%;">
+<div class="doc-figure" style="width: 30%;">
 
-<img src="/docs/images/03_docviewer_combined_search_stepper.png" alt="Search results stepper in combined view" width="100%"  />
+<img src="/docs/images/03_docviewer_combined_search_stepper.png" alt="Search results stepper in combined view" width="30%"  />
 
 <div class="doc-caption">
 
@@ -255,39 +255,56 @@ When you come to a 'combined view' document through a search, at the top right t
 
 </div>
 
-If the content in the document is difficult to read, you can try the following:
+If the content in the document is difficult to read, try using the zoom and rotate buttons at the bottom of the screen.
 
-- Expand or contract the window content using the zoom buttons:
+<div class="doc-figure" style="width: 80%;">
 
-  <img src="/docs/images/04_1_docviewer_zoom.png" alt="Document viewer zoom controls" width="40%" />
+<img src="/docs/images/04_2_docviewer_footer.png" alt="Alternative document view modes" width="90%" />
 
-- Rotate documents on their side using the rotation buttons:
+<div class="doc-caption">
 
-  <img src="/docs/images/04_docviewer_rotate.png" alt="Document viewer rotation controls" width="40%" />
+The document footer has controls for find-in-file, zoom, rotate, alternative view modes, and for navigating to the previous or next document in your search or folder. 
 
-- If all else fails, use the "View as Text" button in the sidebar:
+</div>
 
-  <img src="/docs/images/04_2_docviewer_view_as_text.jpg" alt="View as Text button in document sidebar" width="75%" />
+</div>
+  
+
+If all else fails, switch to another view mode:
+- '**Text**' will show the machine-readable text from the document. 
+- '**OCR**' will show text that Giant's optical character recognition engine found in the document. 
+- '**Preview**' will attempt to render the document in something as close to its original format as Giant can manage. 
+
 
 ## **Searching within a combined view document** {#searching-within-a-combined-view-document}
 
-You can search for things within the document itself, without going back to Giant's search page. Press `Cmd-F` (`Ctrl-F` on Windows) or type something into the search-in-document widget. If you came to the document from a search, this appears below the main search widget. If you came to the document by browsing, it'll be the only widget there.
+You can search for things within the document itself, without going back to Giant's search page. Press `Cmd-F` (`Ctrl-F` on Windows) or type something into the find-in-document widget. 
+
+<div class="doc-figure" style="width: 80%;">
+
+<img src="/docs/images/06_docviewer_find.jpg" alt="Alternative document view modes" width="90%" />
+
+<div class="doc-caption">
+
+Find-in-document results are highlighted in pale pink, with the active result in a deeper pink. You can step through the matches using the arrows next to the find-in-file field or with return / shift+return. 
+
+</div>
+
+</div>
 
 Once highlights are shown, use `n` to jump to the next one and `Shift-N` to go to the previous one without touching the mouse.
 
 If you arrived at a document from a search, you can move directly to the next or previous result in your search list with `Shift-→` and `Shift-←`, without returning to the search page.
 
-<div style="width: 75%;">
 
-| _Searching for text in a document found by search:_                                 | _Searching for text in a document found by browsing:_   |
-| :---------------------------------------------------------------------------------- | :------------------------------------------------------ |
-| _![Docviewer searchresults find](/docs/images/05_docviewer_searchresults_find.png)_ | _![Docviewer find](/docs/images/06_docviewer_find.png)_ |
-
-</div>
 
 ## **Documents with multiple view modes** {#multi-view-documents}
 
-Giant can process other file formats such as emails, images, video files, audio files. For many of these when you open the file you'll be given the option to view it in different ways. You can switch between view modes using the buttons at the bottom of the document viewer, or with keyboard shortcuts: `Shift-X` for the Text (OCR) view and `Shift-C` for Preview. For example:
+Giant can process other file formats such as emails, images, video files, audio files. For many of these when you open the file you'll be given the option to view it in different ways. You can switch between view modes using the buttons at the bottom of the document viewer, or with keyboard shortcuts: 
+- `Shift-C` for the combined view
+- `Shift-T` for Text view
+- `Shift-O` for OCR view
+- `Shift-P` for Preview, Audio, or Video.
 
 ## **Image files** {#image-files}
 
