@@ -263,22 +263,22 @@ If the content in the document is difficult to read, try using the zoom and rota
 
 <div class="doc-caption">
 
-The document footer has controls for find-in-file, zoom, rotate, alternative view modes, and for navigating to the previous or next document in your search or folder. 
+The document footer has controls for find-in-file, zoom, rotate, alternative view modes, and for navigating to the previous or next document in your search or folder.
 
 </div>
 
 </div>
-  
+
 
 If all else fails, switch to another view mode:
-- '**Text**' will show the machine-readable text from the document. 
-- '**OCR**' will show text that Giant's optical character recognition engine found in the document. 
-- '**Preview**' will attempt to render the document in something as close to its original format as Giant can manage. 
 
+- '**Text**' will show the machine-readable text from the document.
+- '**OCR**' will show text that Giant's optical character recognition engine found in the document.
+- '**Preview**' will attempt to render the document in something as close to its original format as Giant can manage.
 
 ## **Searching within a combined view document** {#searching-within-a-combined-view-document}
 
-You can search for things within the document itself, without going back to Giant's search page. Press `Cmd-F` (`Ctrl-F` on Windows) or type something into the find-in-document widget. 
+You can search for things within the document itself, without going back to Giant's search page. Press `Cmd-F` (`Ctrl-F` on Windows) or type something into the find-in-document widget.
 
 <div class="doc-figure" style="width: 80%;">
 
@@ -286,7 +286,7 @@ You can search for things within the document itself, without going back to Gian
 
 <div class="doc-caption">
 
-Find-in-document results are highlighted in pale pink, with the active result in a deeper pink. You can step through the matches using the arrows next to the find-in-file field or with return / shift+return. 
+Find-in-document results are highlighted in pale pink, with the active result in a deeper pink. You can step through the matches using the arrows next to the find-in-file field or with return / shift+return.
 
 </div>
 
@@ -296,11 +296,10 @@ Once highlights are shown, use `n` to jump to the next one and `Shift-N` to go t
 
 If you arrived at a document from a search, you can move directly to the next or previous result in your search list with `Shift-→` and `Shift-←`, without returning to the search page.
 
-
-
 ## **Documents with multiple view modes** {#multi-view-documents}
 
-Giant can process other file formats such as emails, images, video files, audio files. For many of these when you open the file you'll be given the option to view it in different ways. You can switch between view modes using the buttons at the bottom of the document viewer, or with keyboard shortcuts: 
+Giant can process other file formats such as emails, images, video files, audio files. For many of these when you open the file you'll be given the option to view it in different ways. You can switch between view modes using the buttons at the bottom of the document viewer, or with keyboard shortcuts:
+
 - `Shift-C` for the combined view
 - `Shift-T` for Text view
 - `Shift-O` for OCR view
