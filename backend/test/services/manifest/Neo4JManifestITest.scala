@@ -44,6 +44,7 @@ class Neo4JManifestITest extends AnyFreeSpec
   val ingestionServices: IngestionServices = stub[IngestionServices]
 
   var manifest: Manifest = _
+  var fetchWorkTestManifest: Manifest = _
 
   override type Containers = Neo4jContainer
 
@@ -53,6 +54,12 @@ class Neo4JManifestITest extends AnyFreeSpec
     val neo4jDriver = new Neo4jTestService(neo4jContainer.container.getBoltUrl).neo4jDriver
 
     manifest = {
+      Neo4jManifest.setupManifest(neo4jDriver, global, new Neo4jQueryLoggingConfig(1.second, logAllQueries = false)).toOption.get
+    }
+
+    //fetchWork test needs its own manifest as we need to be sure of the number of work items available - otherwise
+    // the concurrency check may pass just because two workers have randomly picked different blobs
+    fetchWorkTestManifest = {
       Neo4jManifest.setupManifest(neo4jDriver, global, new Neo4jQueryLoggingConfig(1.second, logAllQueries = false)).toOption.get
     }
 
@@ -416,17 +423,17 @@ class Neo4JManifestITest extends AnyFreeSpec
         val collection = Uri("concurrent_fetch_test")
         val ingestion = collection.chain("test")
 
-        manifest.insertCollection(collection.value, collection.value, "test").eitherValue.isRight should be(true)
-        manifest.insertIngestion(collection, ingestion, "test", None, List(English), fixed = false, default = false).eitherValue.isRight should be(true)
+        fetchWorkTestManifest.insertCollection(collection.value, collection.value, "test").eitherValue.isRight should be(true)
+        fetchWorkTestManifest.insertIngestion(collection, ingestion, "test", None, List(English), fixed = false, default = false).eitherValue.isRight should be(true)
 
         val blobs = List(
-          blob(ingestion.chain("every.zip"), List(extractors("ArchiveExtractor")), ingestion.value),
-          blob(ingestion.chain("second.zip"), List(extractors("ArchiveExtractor")), ingestion.value),
-          blob(ingestion.chain("counts.zip"), List(extractors("ArchiveExtractor")), ingestion.value),
-          blob(ingestion.chain("fridge.zip"), List(extractors("ArchiveExtractor")), ingestion.value),
-          blob(ingestion.chain("time.zip"), List(extractors("ArchiveExtractor")), ingestion.value)
+          blob(ingestion.chain("every.zip"), List(extractors("ArchiveExtractor")), ingestion.value, size = 100L),
+          blob(ingestion.chain("second.zip"), List(extractors("ArchiveExtractor")), ingestion.value, size = 100L),
+          blob(ingestion.chain("counts.zip"), List(extractors("ArchiveExtractor")), ingestion.value, size = 100L),
+          blob(ingestion.chain("fridge.zip"), List(extractors("ArchiveExtractor")), ingestion.value, size = 100L),
+          blob(ingestion.chain("time.zip"), List(extractors("ArchiveExtractor")), ingestion.value, size = 100L)
         )
-        manifest.insert(blobs, ingestion).isRight should be(true)
+        fetchWorkTestManifest.insert(blobs, ingestion).isRight should be(true)
 
         val barrier = new CyclicBarrier(2)
         val executor = Executors.newFixedThreadPool(2)
