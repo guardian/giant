@@ -50,7 +50,11 @@ class TesseractPdfOcrExtractor(config: OcrConfig, scratch: ScratchSpace, index: 
       val totalPages = document.getNumberOfPages
 
       val (pages, _) = (0 until totalPages).foldLeft((List.empty[Page], 0f)) { case ((pages, offsetHeight), pageNumber) =>
-        val pageBoundingBox = document.getPage(pageNumber).getMediaBox
+        val pdfPage = document.getPage(pageNumber)
+        val pageBoundingBox = pdfPage.getMediaBox
+        val isRotatedSideways = pdfPage.getRotation % 180 != 0
+        val effectiveWidth = if (isRotatedSideways) pageBoundingBox.getHeight else pageBoundingBox.getWidth
+        val effectiveHeight = if (isRotatedSideways) pageBoundingBox.getWidth else pageBoundingBox.getHeight
 
         // TODO MRB: does RGB colour help or hinder here?
         val imageFileName = s"${file.getAbsolutePath}-$pageNumber.png"
@@ -58,10 +62,10 @@ class TesseractPdfOcrExtractor(config: OcrConfig, scratch: ScratchSpace, index: 
         ImageIOUtil.writeImage(image, imageFileName, config.dpi)
 
         val dimensions = PageDimensions(
-          width = pageBoundingBox.getWidth,
-          height = pageBoundingBox.getHeight,
+          width = effectiveWidth,
+          height = effectiveHeight,
           top = offsetHeight,
-          bottom = offsetHeight + pageBoundingBox.getHeight
+          bottom = offsetHeight + effectiveHeight
         )
 
         val pageTextByLanguage = params.languages.map { lang =>
@@ -75,7 +79,7 @@ class TesseractPdfOcrExtractor(config: OcrConfig, scratch: ScratchSpace, index: 
 
         Files.delete(Paths.get(imageFileName))
 
-        (pages :+ page, (offsetHeight + pageBoundingBox.getHeight))
+        (pages :+ page, (offsetHeight + effectiveHeight))
       }
 
       pageService.addPageContents(blob.uri, pages)

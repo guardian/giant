@@ -72,14 +72,23 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
   // This must be the same as the margin CSS of .pageContainer
   const MARGIN = 10;
 
+  // Once the first page preview resolves we learn the true page dimensions
+  // from pdfjs (which accounts for the PDF's /Rotate property). This overrides
+  // the backend-supplied firstPageDimensions which may be incorrect for rotated PDFs.
+  const [resolvedDimensions, setResolvedDimensions] = useState<
+    PageDimensions | undefined
+  >(firstPageDimensions);
+
+  const effectiveDimensions = resolvedDimensions ?? firstPageDimensions;
+
   const containerSize = 1000 * scale;
   const pageHeight = pageSlotHeight(
     containerSize,
     MARGIN,
     rotation,
-    firstPageDimensions,
+    effectiveDimensions,
   );
-  const transform = pageTransform(containerSize, rotation, firstPageDimensions);
+  const transform = pageTransform(containerSize, rotation, effectiveDimensions);
 
   const viewport = useRef<HTMLDivElement>(null);
 
@@ -300,6 +309,28 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
     getCachedPage,
   ]);
 
+  // Resolve the true page dimensions from the first page's pdfjs viewport.
+  // This corrects for PDFs where the backend-stored dimensions don't account
+  // for the PDF's /Rotate property.
+  const hasResolvedDimensions = useRef(false);
+  useEffect(() => {
+    if (hasResolvedDimensions.current || renderedPages.length === 0) return;
+    const firstPage = renderedPages.find((p) => p.pageNumber === 1);
+    if (!firstPage) return;
+
+    firstPage.getPagePreview.then((preview) => {
+      if (hasResolvedDimensions.current) return;
+      hasResolvedDimensions.current = true;
+      const pdfViewport = preview.pdfPage.getViewport({ scale: 1.0 });
+      setResolvedDimensions({
+        width: pdfViewport.width,
+        height: pdfViewport.height,
+        top: 0,
+        bottom: pdfViewport.height,
+      });
+    });
+  }, [renderedPages]);
+
   useEffect(() => {
     pageNumbersToPreload.forEach((pageNumber) => pageCache.getPage(pageNumber));
   }, [pageNumbersToPreload, pageCache]);
@@ -316,6 +347,7 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
             key={page.pageNumber}
             style={{
               top: (page.pageNumber - 1) * pageHeight,
+              height: pageHeight - MARGIN * 2,
               transform,
               left: `${scale > 1 ? "0" : ""}`,
             }}

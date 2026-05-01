@@ -71,12 +71,15 @@ class OcrMyPdfExtractor(scratch: ScratchSpace, index: Index, pageService: Pages,
       val (pages, _) = (1 to numberOfPages).foldLeft(base) { case ((pages, offsetHeight), pageNumber) =>
         val page = firstDoc.getPage(pageNumber - 1)
         val pageBoundingBox = page.getMediaBox
+        val isRotatedSideways = page.getRotation % 180 != 0
+        val effectiveWidth = if (isRotatedSideways) pageBoundingBox.getHeight else pageBoundingBox.getWidth
+        val effectiveHeight = if (isRotatedSideways) pageBoundingBox.getWidth else pageBoundingBox.getHeight
 
         val dimensions = PageDimensions(
-          width = pageBoundingBox.getWidth,
-          height = pageBoundingBox.getHeight,
+          width = effectiveWidth,
+          height = effectiveHeight,
           top = offsetHeight,
-          bottom = offsetHeight + pageBoundingBox.getHeight
+          bottom = offsetHeight + effectiveHeight
         )
 
         val textByLanguage = pdDocuments.map { case (lang, (_, doc)) =>
