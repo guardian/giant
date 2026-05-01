@@ -57,7 +57,7 @@ Documents in datasets are organised in the same structure as the source material
 You can use workspaces either to create curated selections of significant documents from datasets, from workspaces shared with you, and from documents you upload yourself.
 
 | **Note** | Documents don't actually _live_ inside workspaces. Under the hood, workspaces are collections of links to documents that come from one or more datasets. When you upload documents 'into' a workspace, what you're actually doing is uploading the files to your personal dataset (named after you, e.g. 'Jane Smith Documents') and then making a reference to that document within your active workspace. You can see _all_ your uploads - no matter what workspaces they are in - if you go to your own dataset. |
-| :------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| :------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 
 # **The Search page** {#the-search-page}
 
@@ -902,31 +902,31 @@ Giant supports keyboard shortcuts to speed up common actions. They are also note
 
 ## **Global**
 
-| Shortcut | Action |
-| :------- | :----- |
-| `s` | Focus the search box |
+| Shortcut | Action               |
+| :------- | :------------------- |
+| `s`      | Focus the search box |
 
 ## **Document viewer**
 
-| Shortcut | Action |
-| :------- | :----- |
-| `Cmd-F` / `Ctrl-F` | Search within the current document |
-| `n` | Jump to the next search highlight |
-| `Shift-N` | Jump to the previous search highlight |
-| `Shift-→` | Open the next result from your search list |
-| `Shift-←` | Open the previous result from your search list |
-| `Shift-X` | Switch to Text (OCR) view mode |
-| `Shift-C` | Switch to Preview view mode |
+| Shortcut           | Action                                         |
+| :----------------- | :--------------------------------------------- |
+| `Cmd-F` / `Ctrl-F` | Search within the current document             |
+| `n`                | Jump to the next search highlight              |
+| `Shift-N`          | Jump to the previous search highlight          |
+| `Shift-→`          | Open the next result from your search list     |
+| `Shift-←`          | Open the previous result from your search list |
+| `Shift-X`          | Switch to Text (OCR) view mode                 |
+| `Shift-C`          | Switch to Preview view mode                    |
 
 ## **Comment box**
 
 These shortcuts apply while typing in the [comment box](#adding-a-comment).
 
-| Shortcut | Action |
-| :------- | :----- |
-| `Enter` | Submit the comment |
-| `Shift-Enter` | New line within the comment |
-| `Escape` | Cancel / close the comment box |
+| Shortcut      | Action                         |
+| :------------ | :----------------------------- |
+| `Enter`       | Submit the comment             |
+| `Shift-Enter` | New line within the comment    |
+| `Escape`      | Cancel / close the comment box |
 
 # **Problems** {#problems}
 
