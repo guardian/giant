@@ -269,7 +269,6 @@ The document footer has controls for find-in-file, zoom, rotate, alternative vie
 
 </div>
 
-
 If all else fails, switch to another view mode:
 
 - '**Text**' will show the machine-readable text from the document.
