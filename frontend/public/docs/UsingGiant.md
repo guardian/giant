@@ -318,6 +318,26 @@ Video and audio files initially open with the transcript text. Click Preview vie
 
 </div>
 
+## **Commenting on documents** {#commenting-on-documents}
+
+Giant lets you attach comments to specific passages of text within a document. Comments are visible to everyone who has access to that document, making them useful for leaving notes for colleagues or flagging points of interest.
+
+Comments can be added in **Text** and **OCR** view modes. They are anchored to the view in which they were created — so a comment made on the OCR French translation will only appear in context when that specific view is active.
+
+### **Adding a comment** {#adding-a-comment}
+
+1. Select some text in the document viewer by clicking and dragging over it.
+2. A small floating menu will appear near your selection. Click the **Comment** icon.
+3. A comment box will open in the right-hand sidebar. Type your note and press **Enter** to save it (or **Shift-Enter** for a new line, **Escape** to cancel).
+
+The commented text will be highlighted in the document, and the comment will appear alongside it in the sidebar. Clicking a highlighted passage will bring the corresponding comment into focus, and vice versa.
+
+### **Viewing and deleting comments** {#viewing-and-deleting-comments}
+
+All comments on a document are shown in the comment sidebar, aligned vertically with the text they refer to. Each comment shows the author's name and when it was posted.
+
+You can delete your own comments using the **Delete** action on the comment itself. Comments made by other people cannot be edited or deleted by you.
+
 # **Workspaces** {#workspaces}
 
 Workspaces are like a folder structure on a computer or a server. You can create workspaces, create folders within them, upload documents into them, move documents around within them or add documents from elsewhere in Giant.
