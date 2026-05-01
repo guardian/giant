@@ -245,11 +245,11 @@ Some documents will contain more than one match of your search term. In the comb
 
 <div class="doc-figure" style="width: 50%;">
 
-<img src="/docs/images/03_docviewer_twin_search_widget.png" alt="Two-level find widget in combined document view" width="100%"  />
+<img src="/docs/images/03_docviewer_combined_search_stepper.png" alt="Search results stepper in combined view" width="100%"  />
 
 <div class="doc-caption">
 
-When you come to a 'combined view' document through a search, the find widget has two levels: the top level lets you step through matches for your original search term. The second level allows you to search for anything else within the current document.
+When you come to a 'combined view' document through a search, at the top right there's a small widget allowing you to step through each search match within that document.
 
 </div>
 
