@@ -105,8 +105,31 @@ class PreviewSwitcher extends React.Component {
     this.props.setResourceView("text");
   };
 
+  showCombined = () => {
+    if (this.props.totalPages > 0) {
+      this.props.setResourceView("combined");
+    }
+  };
+
   showPreview = () => {
-    if (this.supported()) this.props.setResourceView("preview");
+    if (this.canPreview(this.props.resource?.previewStatus)) {
+      this.props.setResourceView("preview");
+    }
+  };
+
+  showOcr = () => {
+    const resource = this.props.resource;
+    if (resource?.transcript) {
+      const languages = Object.keys(resource.transcript);
+      if (languages.length > 0) {
+        this.props.setResourceView(`transcript.${languages[0]}`);
+      }
+    } else if (resource?.ocr) {
+      const languages = Object.keys(resource.ocr);
+      if (languages.length > 0) {
+        this.props.setResourceView(`ocr.${languages[0]}`);
+      }
+    }
   };
 
   showTable = () => {
@@ -147,8 +170,16 @@ class PreviewSwitcher extends React.Component {
           func={this.showText}
         />
         <KeyboardShortcut
+          shortcut={keyboardShortcuts.showCombined}
+          func={this.showCombined}
+        />
+        <KeyboardShortcut
           shortcut={keyboardShortcuts.showPreview}
           func={this.showPreview}
+        />
+        <KeyboardShortcut
+          shortcut={keyboardShortcuts.showOcr}
+          func={this.showOcr}
         />
         {this.props.totalPages > 0 && (
           <PreviewLink
