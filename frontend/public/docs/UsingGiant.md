@@ -866,6 +866,36 @@ This dataset is organised into folders corresponding to each time you uploaded a
 
 The easiest way to search across every file you have ever uploaded is to go to the [search view](/search), and in the datasets list on the side select your personal dataset. Then search. But you can of course browse through all those upload folders in the Datasets view if you really want to.
 
+# **Settings** {#settings}
+
+The [**Settings**](/settings) section is accessible via the icon in the top-right corner of every Giant page. It contains tools for managing your account and, for administrators, managing the system.
+
+## **My Uploads** {#my-uploads}
+
+The [**My Uploads**](/settings/my-uploads) page shows a log of every file you have uploaded into Giant, with its processing status. You can filter by workspace and toggle an 'errors only' view to quickly spot anything that failed to ingest correctly. This is the first place to check if a file you uploaded doesn't seem to have appeared or processed properly.
+
+## **Dataset Permissions** {#dataset-permissions}
+
+The [**Dataset Permissions**](/settings/dataset-permissions) page lists all datasets and the users who have permission to view each one. This gives you visibility into who can access which collections.
+
+## **Feature Switches** {#feature-switches}
+
+The [**Feature Switches**](/settings/features) page lets you toggle experimental or optional interface features on or off for your own session. Changes here affect only you and are stored locally in your browser.
+
+## **About Giant** {#about-giant}
+
+The [**About**](/settings/about) page shows the current build version and your personal auth token (JWT). The auth token is used if you need to interact with Giant via the [command-line tool](https://github.com/guardian/giant/tree/main/cli).
+
+## **Admin-only settings** {#admin-only-settings}
+
+The following sections are only visible to users with administrator permissions.
+
+- **Users** — create, edit, and delete user accounts; manage which collections each user can access.
+- **Extraction Failures** — view errors encountered during the ingestion pipeline, with stack traces for debugging failed files.
+- **All Ingestion Events** — a system-wide log of every ingestion step across all users, for audit and troubleshooting.
+- **Upload Calendar** — a weekly view of all uploads across the system, useful for monitoring ingestion volume.
+- **File Types** — configure how different MIME types are handled by Giant's processing pipeline.
+
 # **Keyboard shortcuts** {#keyboard-shortcuts}
 
 Giant supports keyboard shortcuts to speed up common actions. They are also noted inline throughout this guide where relevant.
