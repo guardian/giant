@@ -344,6 +344,44 @@ All comments on a document are shown in the comment sidebar, aligned vertically 
 
 You can delete your own comments using the **Delete** action on the comment itself. Comments made by other people cannot be edited or deleted by you.
 
+## **Downloading documents** {#downloading-documents}
+
+You can download a copy of any document you can view in Giant. Open the document and click the **Download** button in the left-hand sidebar.
+
+<div class="doc-figure" style="width: 75%;">
+
+<img src="/docs/images/27_docviewer_download_button.jpg" alt="Download button in document sidebar" width="100%"  />
+
+<div class="doc-caption">
+
+The document sidebar has a Download option
+
+</div>
+
+</div>
+
+You'll be shown a dialog asking what format to download in. The options available depend on the document type:
+
+- **Original** — the file exactly as it was uploaded. _Note: original files are not sanitised and could contain malware, macros, or web beacons. Exercise caution, especially on unmanaged machines._
+- **PDF Preview** — a PDF rendering of the document, if Giant generated one.
+- **Extracted Text** — the plain text extracted from the document, as a `.txt` file.
+- **Transcript (language)** — the spoken-word transcript for audio and video files, as a `.txt` file. Available per language if multiple transcripts were generated.
+- **OCR Text (language)** — the OCR text extracted from images or scanned pages, as a `.txt` file. Available per language if OCR was run in multiple languages.
+
+Emails do not offer an 'Original' option; use Extracted Text instead.
+
+<div class="doc-figure" style="width: 50%;">
+
+<img src="/docs/images/28_docviewer_download_original.png" alt="Download dialog with Original format option" width="100%"  />
+
+<div class="doc-caption">
+
+The download dialog — select a format, optionally change the filename, then click Download
+
+</div>
+
+</div>
+
 # **Workspaces** {#workspaces}
 
 Workspaces are like a folder structure on a computer or a server. You can create workspaces, create folders within them, upload documents into them, move documents around within them or add documents from elsewhere in Giant.
@@ -882,35 +920,7 @@ The contextual menu provides an option to reprocess files
 
 If after you've reprocessed a file Giant still fails to render it in any useful way, please contact the engineering team at [digital.investigations@guardian.co.uk](mailto:digital.investigations@guardian.co.uk). It may be in a file format for which we [haven't yet provided a processor](#problem-file-formats). Hopefully we can fix that.
 
-You do have one other last resort, which is to download the file in its original format, but **please think carefully before you do so**. Files you view in Giant are protected, so documents that might have contained malware, web beacons and suchlike cannot do any harm. If you download the original you have no such protection.
-
-## **Download original file** {#download-original}
-
-If you're confident that a document is safe to download, use the Download option in the sidebar when you have the document open. You will be given options for what format to download it in. The most risky is 'Original' ... but it's also usually the most useful.
-
-<div class="doc-figure" style="width: 75%;">
-
-<img src="/docs/images/27_docviewer_download_button.jpg" alt="Download button in document sidebar" width="100%"  />
-
-<div class="doc-caption">
-
-The document sidebar has a Download option
-
-</div>
-
-</div>
-
-<div class="doc-figure" style="width: 50%;">
-
-<img src="/docs/images/28_docviewer_download_original.png" alt="Download dialog with Original format option" width="100%"  />
-
-<div class="doc-caption">
-
-Exercise caution when selecting the 'Original' option for your download format
-
-</div>
-
-</div>
+You do have one other last resort, which is to download the file in its original format, but **please think carefully before you do so**. Files you view in Giant are protected, so documents that might have contained malware, web beacons and suchlike cannot do any harm. If you download the original you have no such protection. See [Downloading documents](#downloading-documents) for details of the available download formats.
 
 ## **Problem file formats** {#problem-file-formats}
 
