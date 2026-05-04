@@ -6,6 +6,7 @@ import model.Uri
 import model.annotations.{ProcessingStage, Workspace, WorkspaceEntry, WorkspaceLeaf}
 import model.frontend.{TreeEntry, TreeLeaf, TreeNode}
 import model.ingestion.{ RemoteIngest, RemoteIngestStatus}
+import model.user.UserPermission.CanPerformAdminOperations
 import net.logstash.logback.marker.LogstashMarker
 import net.logstash.logback.marker.Markers.append
 import org.joda.time.DateTime
@@ -142,6 +143,25 @@ class Workspaces(
       _ <- reprocessBlobs(blobIds, rerunSuccessful, rerunFailed)
     } yield {
       Ok(Json.toJson(blobIds))
+    }
+  }
+
+  def reprocessFolder(workspaceId: String, folderId: String, rerunSuccessfulParam: Option[Boolean], rerunFailedParam: Option[Boolean]) = ApiAction.attempt { req: UserIdentityRequest[_] =>
+    checkPermission(CanPerformAdminOperations, req) {
+      val rerunSuccessful = rerunSuccessfulParam.getOrElse(false)
+      val rerunFailed = rerunFailedParam.getOrElse(true)
+
+      for {
+        contents <- annotation.getWorkspaceContents(req.user.username, workspaceId)
+        folderNode <- Attempt.fromOption(
+          TreeEntry.findNodeById(contents, folderId),
+          Attempt.Left[TreeEntry[WorkspaceEntry]](NotFoundFailure(s"Folder $folderId not found in workspace $workspaceId"))
+        )
+        blobIds = if (rerunSuccessful) TreeEntry.workspaceTreeToBlobIds(folderNode) else TreeEntry.workspaceTreeToFailedBlobIds(folderNode)
+        _ <- reprocessBlobs(blobIds, rerunSuccesful = rerunSuccessful, rerunFailed = rerunFailed)
+      } yield {
+        Ok(Json.toJson(blobIds))
+      }
     }
   }
 
