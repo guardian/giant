@@ -55,6 +55,7 @@ fi
 case "$OSTYPE" in
     darwin*)
         SOFFICE_BIN="/Applications/LibreOffice.app/Contents/MacOS/soffice"
+        MAC_OS=true
         ;;
 esac
 
@@ -70,6 +71,18 @@ preview.libreOfficeBinary = "${SOFFICE_BIN}"
 EOF
 else
     echo "Unable to find Open Office. Please set preview.libreOfficeBinary to point to 'soffice' in your installation"
+fi
+
+if [ "$MAC_OS" = true ]
+then
+  MACOS_TMP_DIR="/opt/pfi-tmp"
+  echo "Updating site.conf to override scratch location to deal with leptonica bug https://github.com/tesseract-ocr/tesseract/issues/4333"
+  echo "Note - this requires sudo to make the directory ${MACOS_TMP_DIR}"
+  sudo mkdir -p $MACOS_TMP_DIR
+  sudo chown $USER $MACOS_TMP_DIR
+      cat << EOF >> "$SITECONFDIR/site.conf"
+ingestion.scratchPath = $MACOS_TMP_DIR
+EOF
 fi
 
 echo "Finished cluster setup"
