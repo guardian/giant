@@ -1,7 +1,7 @@
 import {
   readFilesFromDragEvent,
-  dragEventContainsFiles,
-  INTERNAL_DRAG_MIME,
+  isFilesystemDragEvent,
+  INTERNAL_DRAG_MIME_TYPE,
 } from "./dropZoneUtils";
 import * as FileApiHelpers from "./FileApiHelpers";
 
@@ -205,7 +205,7 @@ describe("readFilesFromDragEvent", () => {
     expect(result.get("real.txt")).toBe(file);
   });
 
-  test("deduplicates files with the same name", async () => {
+  test("last file wins when names collide", async () => {
     const file1 = makeFile("doc.txt");
     const file2 = makeFile("doc.txt");
 
@@ -226,9 +226,8 @@ describe("readFilesFromDragEvent", () => {
 
     const result = await readFilesFromDragEvent(event);
 
-    expect(result.size).toBe(2);
-    expect(result.has("doc.txt")).toBe(true);
-    expect(result.has("doc (1).txt")).toBe(true);
+    expect(result.size).toBe(1);
+    expect(result.get("doc.txt")).toBe(file2);
   });
 
   test("rejects an empty directory", async () => {
@@ -243,34 +242,23 @@ describe("readFilesFromDragEvent", () => {
   });
 });
 
-describe("dragEventContainsFiles", () => {
+describe("isFilesystemDragEvent", () => {
   test("returns false when internal drag MIME is present", () => {
-    const event = makeDragEvent([], [INTERNAL_DRAG_MIME, "Files"]);
-    expect(dragEventContainsFiles(event)).toBe(false);
+    const event = makeDragEvent([], [INTERNAL_DRAG_MIME_TYPE, "Files"]);
+    expect(isFilesystemDragEvent(event)).toBe(false);
   });
 
   test("returns true when application/json is from an external source alongside Files", () => {
     const event = makeDragEvent([], ["application/json", "Files"]);
-    expect(dragEventContainsFiles(event)).toBe(true);
+    expect(isFilesystemDragEvent(event)).toBe(true);
   });
 
   test("returns true when Files type is present", () => {
     const event = makeDragEvent([], ["Files"]);
-    expect(dragEventContainsFiles(event)).toBe(true);
+    expect(isFilesystemDragEvent(event)).toBe(true);
   });
 
-  test("returns true when items contain a file kind", () => {
-    const event = {
-      dataTransfer: {
-        types: ["text/plain"],
-        items: [{ kind: "file" }] as unknown as DataTransferItemList,
-      },
-    } as unknown as React.DragEvent;
-
-    expect(dragEventContainsFiles(event)).toBe(true);
-  });
-
-  test("returns false when no files and no file items", () => {
+  test("returns false when no Files type is present", () => {
     const event = {
       dataTransfer: {
         types: ["text/plain"],
@@ -278,7 +266,7 @@ describe("dragEventContainsFiles", () => {
       },
     } as unknown as React.DragEvent;
 
-    expect(dragEventContainsFiles(event)).toBe(false);
+    expect(isFilesystemDragEvent(event)).toBe(false);
   });
 
   test("returns false for empty dataTransfer", () => {
@@ -289,6 +277,6 @@ describe("dragEventContainsFiles", () => {
       },
     } as unknown as React.DragEvent;
 
-    expect(dragEventContainsFiles(event)).toBe(false);
+    expect(isFilesystemDragEvent(event)).toBe(false);
   });
 });

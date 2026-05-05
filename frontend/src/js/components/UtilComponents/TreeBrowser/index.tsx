@@ -18,8 +18,8 @@ import { MAX_NUMBER_OF_CHILDREN } from "../../../util/resourceUtils";
 import { SearchLink } from "../SearchLink";
 import { getIdsOfEntriesToMove, sortEntries } from "../../../util/treeUtils";
 import {
-  dragEventContainsFiles,
-  INTERNAL_DRAG_MIME,
+  isFilesystemDragEvent,
+  INTERNAL_DRAG_MIME_TYPE,
   readFilesFromDragEvent,
 } from "../../Uploads/dropZoneUtils";
 
@@ -184,7 +184,7 @@ export default class TreeBrowser<T> extends React.Component<Props<T>, State> {
     e.preventDefault();
 
     // Check if this is a file drop from the file system
-    if (dragEventContainsFiles(e) && this.props.onDropFiles) {
+    if (isFilesystemDragEvent(e) && this.props.onDropFiles) {
       // Prevent React from reusing the event since readFilesFromDragEvent is asynchronous
       e.persist();
 
@@ -208,7 +208,7 @@ export default class TreeBrowser<T> extends React.Component<Props<T>, State> {
     }
 
     // Handle internal item move
-    const json = e.dataTransfer.getData(INTERNAL_DRAG_MIME);
+    const json = e.dataTransfer.getData(INTERNAL_DRAG_MIME_TYPE);
     if (json) {
       const { id: idOfDraggedEntry } = JSON.parse(json);
       const idsOfEntriesToMove = getIdsOfEntriesToMove(

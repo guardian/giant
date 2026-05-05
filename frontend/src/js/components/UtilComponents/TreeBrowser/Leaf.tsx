@@ -1,7 +1,7 @@
 import React from "react";
 import { MenuChevron } from "../MenuChevron";
 import { ColumnsConfig, TreeEntry, TreeLeaf } from "../../../types/Tree";
-import { INTERNAL_DRAG_MIME } from "../../Uploads/dropZoneUtils";
+import { INTERNAL_DRAG_MIME_TYPE } from "../../Uploads/dropZoneUtils";
 
 type Props<T> = {
   entry: TreeLeaf<T>;
@@ -82,7 +82,7 @@ export default class Leaf<T> extends React.Component<Props<T>, {}> {
 
   onDragStart = (e: React.DragEvent<HTMLTableRowElement>) => {
     e.dataTransfer.setData(
-      INTERNAL_DRAG_MIME,
+      INTERNAL_DRAG_MIME_TYPE,
       JSON.stringify({ id: this.props.entry.id }),
     );
   };

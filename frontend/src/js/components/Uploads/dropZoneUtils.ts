@@ -12,26 +12,11 @@ import {
  * file-system drops. Using a custom type avoids false positives when an
  * external application happens to set application/json on its drag data.
  */
-export const INTERNAL_DRAG_MIME = "application/x-giant-tree-entry";
-
-/** If `key` already exists in `map`, append a numeric suffix to make it unique. */
-function deduplicateKey(map: Map<string, unknown>, key: string): string {
-  if (!map.has(key)) return key;
-
-  const dotIndex = key.lastIndexOf(".");
-  const base = dotIndex > 0 ? key.slice(0, dotIndex) : key;
-  const ext = dotIndex > 0 ? key.slice(dotIndex) : "";
-
-  let counter = 1;
-  while (map.has(`${base} (${counter})${ext}`)) {
-    counter++;
-  }
-  return `${base} (${counter})${ext}`;
-}
+export const INTERNAL_DRAG_MIME_TYPE = "application/x-giant-tree-entry";
 
 /**
  * Reads files from a drag event - handles both direct file drops and directories.
- * Works across all major browsers on all platforms using the File System Access API.
+ * using the File System Access API.
  *
  * Only two kinds of selection are accepted:
  *  1. A single directory (its full hierarchy is preserved); or
@@ -106,13 +91,11 @@ export async function readFilesFromDragEvent(
     // Files only (no directories)
     for (const entry of fileEntries) {
       const file = await readFileEntry(entry as FileSystemFileEntry);
-      const name = deduplicateKey(files, file.name);
-      files.set(name, file as File);
+      files.set(file.name, file as File);
     }
 
     for (const file of fallbackFiles) {
-      const name = deduplicateKey(files, file.name);
-      files.set(name, file);
+      files.set(file.name, file);
     }
   }
 
@@ -130,23 +113,11 @@ export async function readFilesFromDragEvent(
  * @param e - The React drag event
  * @returns true if the drag event contains files from the file system and not internal app data
  */
-export function dragEventContainsFiles(e: React.DragEvent): boolean {
+export function isFilesystemDragEvent(e: React.DragEvent): boolean {
   // Internal tree drags use a custom MIME type — exclude them even if Files is also present
-  if (e.dataTransfer.types.includes(INTERNAL_DRAG_MIME)) {
+  if (e.dataTransfer.types.includes(INTERNAL_DRAG_MIME_TYPE)) {
     return false;
   }
 
-  // Check if there are any files in the dataTransfer
-  if (e.dataTransfer.types.includes("Files")) {
-    return true;
-  }
-
-  // Also check items for file entries
-  for (const item of e.dataTransfer.items) {
-    if (item.kind === "file") {
-      return true;
-    }
-  }
-
-  return false;
+  return e.dataTransfer.types.includes("Files");
 }
