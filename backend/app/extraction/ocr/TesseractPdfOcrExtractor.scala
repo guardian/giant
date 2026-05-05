@@ -18,7 +18,7 @@ import scala.concurrent.ExecutionContext
 // We could also use this as a possible fallback option after the primary OcrMyPdfExtractor, which
 // doesn't ocr as many docs (e.g. it respects encryption of PDFs)
 class TesseractPdfOcrExtractor(config: OcrConfig, scratch: ScratchSpace, index: Index, pageService: Pages,
-  ingestionServices: IngestionServices)(implicit ec: ExecutionContext) extends BaseOcrExtractor(scratch) with Logging {
+  ingestionServices: IngestionServices)(implicit ec: ExecutionContext) extends BaseOcrExtractor(scratch, index) with Logging {
   val mimeTypes = Set(
     "application/pdf"
   )
@@ -83,7 +83,7 @@ class TesseractPdfOcrExtractor(config: OcrConfig, scratch: ScratchSpace, index: 
       }
 
       pageService.addPageContents(blob.uri, pages)
-      OcrMyPdfExtractor.insertFullText(blob.uri, pages, index)
+      OcrMyPdfExtractor.insertFullText(blob.uri, pages, index, ingestionServices.detectLanguage)
     } finally {
       Option(document).foreach(_.close())
       cleanup(file)

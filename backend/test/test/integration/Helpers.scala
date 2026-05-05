@@ -10,6 +10,7 @@ import model.frontend.{Filter, SearchResults, TreeEntry, TreeNode}
 import model.manifest.{Blob, Collection, CollectionWithUsers}
 import model.user.UserPermissions
 import model.{CreateCollectionRequest, CreateIngestionRequest, English, Uri}
+import org.apache.tika.language.detect.LanguageDetector
 import org.neo4j.driver.Driver
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.{Assertion, Inside, OptionValues}
@@ -239,8 +240,10 @@ object Helpers extends Matchers with Logging with OptionValues with Inside {
     val annotations = Neo4jAnnotations.setupAnnotations(neo4jDriver, ec, queryLoggingConfig).toOption.get
 
     val typeDetector = new TestTypeDetector("application/pdf")
-
-    val ingestionServices = IngestionServices(manifest, elasticsearch.elasticResources, new TestObjectStorage(), typeDetector, new MimeTypeMapper(), new TestPostgresClient)
+    val languageDetector = ThreadLocal.withInitial { () =>
+      LanguageDetector.getDefaultLanguageDetector.loadModels()
+    }
+    val ingestionServices = IngestionServices(manifest, elasticsearch.elasticResources, new TestObjectStorage(), typeDetector, new MimeTypeMapper(), new TestPostgresClient, languageDetector)
 
     elasticsearch.resetIndices()
 

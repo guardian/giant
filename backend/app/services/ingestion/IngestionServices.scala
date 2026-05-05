@@ -6,6 +6,7 @@ import extraction.{Extractor, MimeTypeMapper}
 import model.{Language, Uri}
 import model.ingestion.{EmailContext, FileContext, WorkspaceItemContext}
 import model.manifest.{Blob, MimeType}
+import org.apache.tika.language.detect.LanguageDetector
 import services.index.{Index, IngestionData}
 import services.manifest.Manifest
 import services.{ObjectStorage, Tika, TypeDetector}
@@ -15,7 +16,7 @@ import utils.attempt.{Attempt, Failure, NotFoundFailure}
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
-import services.observability.{BlobMetadata, EventDetails, IngestionEvent, IngestionEventType, EventMetadata, PostgresClient, EventStatus}
+import services.observability.{BlobMetadata, EventDetails, EventMetadata, EventStatus, IngestionEvent, IngestionEventType, PostgresClient}
 
 sealed trait UriParent {
   def parent: Uri
@@ -45,11 +46,30 @@ trait IngestionServices {
   def ingestEmail(context: EmailContext, sourceMimeType: String): Either[Failure, Unit]
   def ingestFile(context: FileContext, blobUri: Uri, path: Path, isFastLane: Boolean = false): Either[Failure, Blob]
   def setProgressNote(blobUri: Uri, extractor: Extractor, note: String): Either[Failure, Unit]
+  def detectLanguage(blobUri: String, text: String): Option[String]
 }
 
 object IngestionServices extends Logging {
-  def apply(manifest: Manifest, index: Index, objectStorage: ObjectStorage, typeDetector: TypeDetector, mimeTypeMapper: MimeTypeMapper, postgresClient: PostgresClient)(implicit ec: ExecutionContext): IngestionServices = new IngestionServices {
+  def apply(manifest: Manifest, index: Index, objectStorage: ObjectStorage, typeDetector: TypeDetector, mimeTypeMapper: MimeTypeMapper, postgresClient: PostgresClient, languageDetector: ThreadLocal[LanguageDetector])(implicit ec: ExecutionContext): IngestionServices = new IngestionServices {
     override def recordIngestionEvent(event: IngestionEvent) = postgresClient.insertEvent(event)
+
+    /***
+      * Uses tika to return the iso639-1 language code for the given text. We only store codes where tikka has a high
+      * confidence in the result to try and maintain index quality
+      * See https://en.wikipedia.org/wiki/List_of_ISO_639_language_codes for a list of codes
+      * @param text
+      * @return
+      */
+    def detectLanguage(blobUri: String, text: String): Option[String] = {
+      val result = languageDetector.get().detect(text.take(10000))
+      println(s"lang: ${result.getLanguage} confidence: ${result.getRawScore} reasonably certain: ${result.isReasonablyCertain}")
+      if (result.isReasonablyCertain) {
+        Some(result.getLanguage)
+      } else {
+        logger.info(s"Unable to detect language for text in blob $blobUri. Tika result: ${result.getLanguage} with confidence ${result.getRawScore}")
+        None
+      }
+    }
 
     override def ingestEmail(context: EmailContext, sourceMimeType: String): Either[Failure, Unit] = {
 

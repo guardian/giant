@@ -3,7 +3,7 @@ package model
 import play.api.libs.json._
 
 object Languages {
-  val all = List(Arabic, English, French, German, Russian, Portuguese, Persian, Spanish)
+  val all: List[Language] = List(Arabic, English, French, German, Russian, Portuguese, Persian, Spanish)
 
   def getByKey(key: String): Option[Language] = {
     all.find(l => l.key == key)

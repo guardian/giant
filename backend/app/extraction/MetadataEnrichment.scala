@@ -12,7 +12,8 @@ case class EnrichedMetadata(title: Option[String],
                             lastModified: Option[Long],
                             createdWith: Option[String],
                             pageCount: Option[Int],
-                           wordCount: Option[Int]) {
+                            wordCount: Option[Int],
+                            detectedLanguageCode: Option[String]) {
   def toMap: Map[String, AnyRef] = {
     val t = this.title.map(IndexFields.metadata.enrichedMetadata.title -> _)
     val a = this.author.map(IndexFields.metadata.enrichedMetadata.author -> _)
@@ -21,8 +22,9 @@ case class EnrichedMetadata(title: Option[String],
     val cw = this.createdWith.map(IndexFields.metadata.enrichedMetadata.createdWith -> _)
     val p =  this.pageCount.map(IndexFields.metadata.enrichedMetadata.pageCount -> Int.box(_))
     val wc = this.wordCount.map(IndexFields.metadata.enrichedMetadata.wordCount -> Int.box(_))
+    val dlc = this.detectedLanguageCode.map(IndexFields.metadata.enrichedMetadata.detectedLanguageCode -> _)
 
-    Map() ++ t ++ a ++ c ++ l ++ cw ++ p ++ wc
+    Map() ++ t ++ a ++ c ++ l ++ cw ++ p ++ wc ++ dlc
   }
 }
 
@@ -35,14 +37,15 @@ object MetadataEnrichment {
   def someIdentity[T](v: T): Option[T] = Some(v)
   def safeIntParse(c: String): Option[Int] = Try(c.toInt).toOption
 
-  def enrich(metadata: Map[String, Seq[String]]): EnrichedMetadata = EnrichedMetadata(
+  def enrich(metadata: Map[String, Seq[String]], detectedLanguage: Option[String]): EnrichedMetadata = EnrichedMetadata(
     extractFields(metadata, titleKeys)(someIdentity),
     extractFields(metadata, authorKeys)(someIdentity),
     extractFields(metadata, createdAtKeys)(isoDateToLong),
     extractFields(metadata, lastModifiedKeys)(isoDateToLong),
     extractFields(metadata, createdWithKeys)(someIdentity),
     extractFields(metadata, pageCountKeys)(safeIntParse),
-    extractFields(metadata, wordCountKeys)(safeIntParse)
+    extractFields(metadata, wordCountKeys)(safeIntParse),
+    detectedLanguage
   )
 
   // Probably these lists of keys could be simplified now we're on Tika v2.

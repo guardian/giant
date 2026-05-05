@@ -63,9 +63,13 @@ class ElasticsearchResources(override val client: ElasticClient, indexName: Stri
             longField(IndexFields.metadata.enrichedMetadata.lastModified),
             textKeywordField(IndexFields.metadata.enrichedMetadata.createdWith),
             intField(IndexFields.metadata.enrichedMetadata.pageCount),
-            intField(IndexFields.metadata.enrichedMetadata.wordCount)
+            intField(IndexFields.metadata.enrichedMetadata.wordCount),
+            textKeywordField(IndexFields.metadata.enrichedMetadata.detectedLanguageCode),
           )),
-
+          // ocr documents only
+          ObjectField(IndexFields.metadata.ocrMetadataField, properties = Seq(
+            emptyMultiLanguageField(IndexFields.metadata.ocr.languagesField)
+          )),
           // Emails Only
           ObjectField(IndexFields.metadata.fromField, properties = Seq(
             emptyMultiLanguageField(IndexFields.metadata.from.name),
@@ -221,6 +225,23 @@ class ElasticsearchResources(override val client: ElasticClient, indexName: Stri
     }
   }
 
+  override def getDetectedLanguage(uri:Uri): Attempt[String] = {
+    execute {
+      get(indexName, uri.value)
+        .fetchSourceInclude(s"${IndexFields.metadataField}.${IndexFields.metadata.enrichedMetadataField}.${IndexFields.metadata.enrichedMetadata.detectedLanguageCode}")
+    }.flatMap { resp =>
+      if(resp.exists) {
+        val maybeLanguageCode = resp.source.optField[FieldMap](IndexFields.metadataField)
+          .flatMap(_.optField[FieldMap](IndexFields.metadata.enrichedMetadataField))
+          .flatMap(_.optField[String](IndexFields.metadata.enrichedMetadata.detectedLanguageCode))
+
+        maybeLanguageCode.toAttempt(Attempt.Left(NotFoundFailure(s"Detected language code not found for resource: ${uri.value}")))
+      } else {
+        Attempt.Left(NotFoundFailure(s"Resource not found in index: ${uri.value}"))
+      }
+    }
+  }
+
   override def addDocumentDetails(uri: Uri, text: Option[String], metadata: Map[String, Seq[String]], enrichedMetadata: EnrichedMetadata, languages: List[Language]): Attempt[Unit] = {
     logger.info(s"Adding text to ${uri.value} in index")
 
@@ -230,6 +251,8 @@ class ElasticsearchResources(override val client: ElasticClient, indexName: Stri
         NestedField.values -> values
       )
     }
+
+    println(s"DLC ${enrichedMetadata.detectedLanguageCode}")
 
     val textField: Map[String, Any] = text.map { textContent =>
       Map(IndexFields.text -> multiLanguageValue(languages, textContent))
@@ -250,21 +273,42 @@ class ElasticsearchResources(override val client: ElasticClient, indexName: Stri
     }
   }
 
-  override def addDocumentOcr(uri: Uri, ocr: Option[String], language: Language): Attempt[Unit] = {
+  override def addDocumentOcr(uri: Uri, ocr: Option[String], language: Language, detectedLanguageCode: Option[String]): Attempt[Unit] = {
     logger.info(s"Adding OCR to ${uri.value} in index")
 
+    println(s"DLC in OCR ${detectedLanguageCode}")
+
+    val updatedMetadata = detectedLanguageCode.map { code =>
+      IndexFields.metadataField -> Map(
+        IndexFields.metadata.ocrMetadataField -> Map(
+          IndexFields.metadata.ocr.languagesField -> Map(
+            language.key -> Map(
+              IndexFields.metadata.ocr.languages.detectedLanguageCode -> code
+            )
+          )
+        )
+      )
+    }
+
     val fieldMap = Map(
-      IndexFields.ocrExtracted -> true
-    )  ++ ocr.map(ocrText =>
+      IndexFields.ocrExtracted -> true,
+    ) ++ updatedMetadata ++ ocr.map(ocrText =>
       IndexFields.ocr -> Map(
         language.key -> ocrText
       )
     )
 
-    executeUpdate {
+    println(s"new fieldmap ${fieldMap}")
+
+    val result = executeUpdate {
       updateById(indexName, uri.value).doc(
         fieldMap
       )
+    }
+
+    result.recoverWith { case error =>
+      logger.error(s"Failed to update OCR for ${uri.value}: ${error.msg}", error.toThrowable)
+      Attempt.Left(error)
     }
   }
 
@@ -887,6 +931,7 @@ object IndexFields {
       val createdWith = "createdWith"
       val pageCount = "pageCount"
       val wordCount = "wordCount"
+      val detectedLanguageCode = "detectedLanguageCode"
     }
 
     val fromField = "from"
@@ -908,6 +953,16 @@ object IndexFields {
     val subject = "subject"
     val html = "html"
     val attachmentCount = "attachmentCount"
+
+    // ideally this would live in the top level 'ocr' field, but that has the structure {ocr: {[lang]:text}} so there's
+    // no space to squeeze in metadata without reindexing everything (we'd like to have {ocr: {[lang]: {text:..., metadata:{...}}}})
+    val ocrMetadataField = "ocrMetadata"
+    object ocr {
+      val languagesField = "languages"
+      object languages {
+        val detectedLanguageCode = "detectedLanguageCode"
+      }
+    }
   }
 
   // These should be in order of importance

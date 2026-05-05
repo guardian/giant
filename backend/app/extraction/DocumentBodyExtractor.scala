@@ -1,17 +1,18 @@
 package extraction
 
 import java.io.InputStream
-
 import model.manifest.Blob
+import org.apache.tika.language.detect.LanguageDetector
 import services.Tika
 import services.index.Index
+import services.ingestion.IngestionServices
 import utils.Logging
 import utils.attempt.AttemptAwait._
 import utils.attempt.{Failure, UnsupportedOperationFailure}
 
 import scala.concurrent.ExecutionContext
 
-class DocumentBodyExtractor(tika: Tika, index: Index)(implicit ec: ExecutionContext) extends Extractor with Logging {
+class DocumentBodyExtractor(tika: Tika, index: Index, ingestionServices: IngestionServices)(implicit ec: ExecutionContext) extends Extractor with Logging {
   val mimeTypes: Set[String] = Set(
     "application/html",
     "application/json",
@@ -50,7 +51,8 @@ class DocumentBodyExtractor(tika: Tika, index: Index)(implicit ec: ExecutionCont
     if(passesSafetyCheck(mimeType, blob.size)) {
       tika.parse(stream, mimeType).flatMap { case (metadata, body) =>
         val rawMetadata = metadata.names().map(name => name -> metadata.getValues(name).toSeq).toMap
-        val enrichedMetadata = MetadataEnrichment.enrich(rawMetadata)
+        val detectedLanguage = ingestionServices.detectLanguage(blob.uri.value, body.trim())
+        val enrichedMetadata = MetadataEnrichment.enrich(rawMetadata, detectedLanguage)
         // Optionally having a body will allow documents without text to default to preview, useful for un-OCR'd documents
         val optionalBody = if (body.trim().isEmpty) None else Some(body)
 

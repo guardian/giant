@@ -290,7 +290,9 @@ object HitReaders {
         map.optField[Long](metadata.enrichedMetadata.lastModified),
         map.optField[String](metadata.enrichedMetadata.createdWith),
         map.optField[Int](metadata.enrichedMetadata.pageCount),
-        map.optField[Int](metadata.enrichedMetadata.wordCount)
+        map.optField[Int](metadata.enrichedMetadata.wordCount),
+        map.optField[String](metadata.enrichedMetadata.detectedLanguageCode)
+
       )
     }
   }

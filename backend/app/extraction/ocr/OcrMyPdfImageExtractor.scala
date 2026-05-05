@@ -22,7 +22,7 @@ import scala.sys.process.{Process, ProcessLogger}
 import scala.util.{Try, Using}
 
 class OcrMyPdfImageExtractor(config: OcrConfig, scratch: ScratchSpace, index: Index, previewStorage: ObjectStorage,
-  ingestionServices: IngestionServices)(implicit ec: ExecutionContext) extends BaseOcrExtractor(scratch) with Logging {
+  ingestionServices: IngestionServices)(implicit ec: ExecutionContext) extends BaseOcrExtractor(scratch, index) with Logging {
   val mimeTypes = Set(
     "image/png",
     "image/jpeg",
@@ -68,7 +68,8 @@ class OcrMyPdfImageExtractor(config: OcrConfig, scratch: ScratchSpace, index: In
       params.languages.foreach { lang =>
         val text = invokeOcrMyPdf(blob.uri, lang, fileToOCR, config, stdErrLogger, tmpDir)
         val optionalText = if (text.trim().isEmpty) None else Some(text)
-        index.addDocumentOcr(blob.uri, optionalText, lang).awaitEither(10.second)
+        val detectedLanguage = ingestionServices.detectLanguage(blob.uri.value, text.trim())
+        index.addDocumentOcr(blob.uri, optionalText, lang, detectedLanguage).awaitEither(10.second)
       }
     } finally {
       FileUtils.deleteDirectory(tmpDir.toFile)

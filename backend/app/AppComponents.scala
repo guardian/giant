@@ -1,6 +1,7 @@
 import org.apache.pekko.actor.{ActorSystem, CoordinatedShutdown}
 import org.apache.pekko.actor.CoordinatedShutdown.Reason
 import cats.syntax.either._
+
 import java.net.URI
 import software.amazon.awssdk.services.sns.SnsClient
 import software.amazon.awssdk.services.sqs.SqsClient
@@ -34,6 +35,7 @@ import services.annotations.Neo4jAnnotations
 import services.events.ElasticsearchEvents
 import services.index.{ElasticsearchPages, ElasticsearchResources, Pages2}
 import ingestion.{IngestionServices, Neo4jRemoteIngestStore, RemoteIngestWorker}
+import org.apache.tika.language.detect.LanguageDetector
 import play.filters.gzip.{GzipFilter, GzipFilterConfig}
 import services.manifest.Neo4jManifest
 import services.observability.{PostgresClientDoNothing, PostgresClientImpl}
@@ -150,14 +152,23 @@ class AppComponents(context: Context, config: Config)
     // processing services
     val tika = Tika.createInstance
     val mimeTypeMapper = new MimeTypeMapper()
-    val ingestionServices = IngestionServices(manifest, esResources, blobStorage, tika, mimeTypeMapper, postgresClient)
+    // language detection
+    val languageDetector: ThreadLocal[LanguageDetector] =
+      // This might be overkill but https://stackoverflow.com/questions/75781081/are-apache-tikas-languagedetectors-thread-safe
+      // suggests that the LanguageDetector is not thread safe, so wrap in ThreadLocal
+      ThreadLocal.withInitial { () =>
+        LanguageDetector.getDefaultLanguageDetector.loadModels()
+      }
+    val ingestionServices = IngestionServices(manifest, esResources, blobStorage, tika, mimeTypeMapper, postgresClient, languageDetector)
 
     // Preview
     val previewStorage = S3ObjectStorage(s3Client, s3Presigner, config.s3.buckets.preview).valueOr(failure => throw new Exception(failure.msg))
     val previewService = PreviewService(config.preview, esResources, blobStorage, previewStorage)
 
+
+
     // extractors
-    val documentBodyExtractor = new DocumentBodyExtractor(tika, esResources)
+    val documentBodyExtractor = new DocumentBodyExtractor(tika, esResources, ingestionServices)
 
     val zipExtractor = new ZipExtractor(scratchSpace, ingestionServices)
     val rarExtractor = new RarExtractor(scratchSpace, ingestionServices)

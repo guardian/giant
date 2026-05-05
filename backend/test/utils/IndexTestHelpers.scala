@@ -49,7 +49,7 @@ class IndexTestHelpers(elasticsearchTestService: ElasticsearchTestService)(impli
       } else {
         val (lang, text) :: rest = entries
 
-        elasticsearchTestService.elasticResources.addDocumentOcr(documentUri, Some(text), lang).flatMap { _ =>
+        elasticsearchTestService.elasticResources.addDocumentOcr(documentUri, Some(text), lang, Some(lang.iso6391Code)).flatMap { _ =>
           if (rest.isEmpty) {
             Attempt.Right(())
           } else {
@@ -61,7 +61,7 @@ class IndexTestHelpers(elasticsearchTestService: ElasticsearchTestService)(impli
 
     for {
       _ <- elasticsearchTestService.elasticResources.ingestDocument(documentUri, 0, ingestionData, languages)
-      _ <- elasticsearchTestService.elasticResources.addDocumentDetails(documentUri, Some(text), Map.empty, MetadataEnrichment.enrich(maybeExtractedMetadata), languages)
+      _ <- elasticsearchTestService.elasticResources.addDocumentDetails(documentUri, Some(text), Map.empty, MetadataEnrichment.enrich(maybeExtractedMetadata, None), languages)
       _ <- _addDocumentOcr(maybeOcrText.toList)
     } yield {
       documentUri
