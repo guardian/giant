@@ -252,8 +252,6 @@ class ElasticsearchResources(override val client: ElasticClient, indexName: Stri
       )
     }
 
-    println(s"DLC ${enrichedMetadata.detectedLanguageCode}")
-
     val textField: Map[String, Any] = text.map { textContent =>
       Map(IndexFields.text -> multiLanguageValue(languages, textContent))
     }.getOrElse(Map.empty)
@@ -276,8 +274,6 @@ class ElasticsearchResources(override val client: ElasticClient, indexName: Stri
   override def addDocumentOcr(uri: Uri, ocr: Option[String], language: Language, detectedLanguageCode: Option[String]): Attempt[Unit] = {
     logger.info(s"Adding OCR to ${uri.value} in index")
 
-    println(s"DLC in OCR ${detectedLanguageCode}")
-
     val updatedMetadata = detectedLanguageCode.map { code =>
       IndexFields.metadataField -> Map(
         IndexFields.metadata.ocrMetadataField -> Map(
@@ -297,8 +293,6 @@ class ElasticsearchResources(override val client: ElasticClient, indexName: Stri
         language.key -> ocrText
       )
     )
-
-    println(s"new fieldmap ${fieldMap}")
 
     val result = executeUpdate {
       updateById(indexName, uri.value).doc(
