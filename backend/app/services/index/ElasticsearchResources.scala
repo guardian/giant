@@ -68,7 +68,7 @@ class ElasticsearchResources(override val client: ElasticClient, indexName: Stri
           )),
           // ocr documents only
           ObjectField(IndexFields.metadata.ocrMetadataField, properties = Seq(
-            emptyMultiLanguageField(IndexFields.metadata.ocr.languagesField)
+            ObjectField(IndexFields.metadata.ocr.languagesField, dynamic = Some("true"))
           )),
           // Emails Only
           ObjectField(IndexFields.metadata.fromField, properties = Seq(
