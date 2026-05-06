@@ -48,7 +48,7 @@ export default class CompactResultsTable extends React.Component {
       }
       case "document": {
         const { icon: DocIcon, className: iconClass } = getDocumentIconInfo(
-          result.details.mimeTypes,
+          result.details.fileCategory,
         );
         return (
           <DocIcon className={`${iconClass} search-result__icon--small`} />

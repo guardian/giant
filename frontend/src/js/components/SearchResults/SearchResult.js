@@ -98,7 +98,7 @@ export class SearchResult extends React.Component {
       }
       case "document": {
         const { icon: DocIcon, className: iconClass } = getDocumentIconInfo(
-          this.props.searchResult.details.mimeTypes,
+          this.props.searchResult.details.fileCategory,
         );
         return (
           <React.Fragment>

@@ -203,9 +203,10 @@ object HitReaders {
     val paths = readFileUris(fields)
     val mimeTypes = fields.listField[String](metadata.mimeTypes)
     val displayMimeTypes = mimeTypes.map(mt => MimeDetails.get(mt).map(_.display).getOrElse(mt))
+    val fileCategory = mimeTypes.headOption.map(MimeDetails.categoryFor).getOrElse("document")
     val fileSize = fields.optLongField(metadata.fileSize)
 
-    DocumentResultDetails(mimeTypes, displayMimeTypes, paths, fileSize)
+    DocumentResultDetails(mimeTypes, displayMimeTypes, fileCategory, paths, fileSize)
   }
 
   private def readEmail(id: String, fields: FieldMap): Email = {

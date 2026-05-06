@@ -230,6 +230,11 @@
     background-color: $accentPurple;
   }
 
+  &__icon-technical {
+    @extend .search-result__icon-document;
+    background-color: $borderColour;
+  }
+
   &__attachment-count {
     min-width: 25px;
     user-select: none;

@@ -1,68 +1,68 @@
 import { getDocumentIconInfo } from "./fileTypeIcon";
 
 describe("getDocumentIconInfo", () => {
-  test("returns document icon for undefined mimeTypes", () => {
+  test("returns document icon for undefined category", () => {
     const result = getDocumentIconInfo(undefined);
     expect(result.className).toBe("search-result__icon-document");
   });
 
-  test("returns document icon for empty array", () => {
-    const result = getDocumentIconInfo([]);
+  test("returns document icon for unknown category", () => {
+    const result = getDocumentIconInfo("unknown");
     expect(result.className).toBe("search-result__icon-document");
   });
 
-  test("returns pdf icon for application/pdf", () => {
-    const result = getDocumentIconInfo(["application/pdf"]);
+  test("returns pdf icon for pdf category", () => {
+    const result = getDocumentIconInfo("pdf");
     expect(result.className).toBe("search-result__icon-pdf");
   });
 
-  test("returns video icon for video/ mime types", () => {
-    const result = getDocumentIconInfo(["video/mp4"]);
+  test("returns video icon for video category", () => {
+    const result = getDocumentIconInfo("video");
     expect(result.className).toBe("search-result__icon-video");
   });
 
-  test("returns audio icon for audio/ mime types", () => {
-    const result = getDocumentIconInfo(["audio/mpeg"]);
+  test("returns audio icon for audio category", () => {
+    const result = getDocumentIconInfo("audio");
     expect(result.className).toBe("search-result__icon-audio");
   });
 
-  test("returns image icon for image/ mime types", () => {
-    const result = getDocumentIconInfo(["image/png"]);
+  test("returns image icon for image category", () => {
+    const result = getDocumentIconInfo("image");
     expect(result.className).toBe("search-result__icon-image");
   });
 
-  test("returns spreadsheet icon for Excel mime types", () => {
-    const result = getDocumentIconInfo(["application/vnd.ms-excel"]);
+  test("returns spreadsheet icon for spreadsheet category", () => {
+    const result = getDocumentIconInfo("spreadsheet");
     expect(result.className).toBe("search-result__icon-spreadsheet");
   });
 
-  test("returns spreadsheet icon for CSV", () => {
-    const result = getDocumentIconInfo(["text/csv"]);
-    expect(result.className).toBe("search-result__icon-spreadsheet");
-  });
-
-  test("returns presentation icon for PowerPoint", () => {
-    const result = getDocumentIconInfo(["application/vnd.ms-powerpoint"]);
+  test("returns presentation icon for presentation category", () => {
+    const result = getDocumentIconInfo("presentation");
     expect(result.className).toBe("search-result__icon-presentation");
   });
 
-  test("returns archive icon for zip", () => {
-    const result = getDocumentIconInfo(["application/zip"]);
+  test("returns archive icon for archive category", () => {
+    const result = getDocumentIconInfo("archive");
     expect(result.className).toBe("search-result__icon-archive");
   });
 
-  test("returns web icon for text/html", () => {
-    const result = getDocumentIconInfo(["text/html"]);
+  test("returns web icon for web category", () => {
+    const result = getDocumentIconInfo("web");
     expect(result.className).toBe("search-result__icon-web");
   });
 
-  test("returns document icon for unknown mime type", () => {
-    const result = getDocumentIconInfo(["application/octet-stream"]);
-    expect(result.className).toBe("search-result__icon-document");
+  test("returns email icon for email category", () => {
+    const result = getDocumentIconInfo("email");
+    expect(result.className).toBe("search-result__icon-email");
   });
 
-  test("uses only the first mime type", () => {
-    const result = getDocumentIconInfo(["application/pdf", "text/html"]);
-    expect(result.className).toBe("search-result__icon-pdf");
+  test("returns technical icon for technical category", () => {
+    const result = getDocumentIconInfo("technical");
+    expect(result.className).toBe("search-result__icon-technical");
+  });
+
+  test("returns document icon for document category", () => {
+    const result = getDocumentIconInfo("document");
+    expect(result.className).toBe("search-result__icon-document");
   });
 });

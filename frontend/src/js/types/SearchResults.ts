@@ -5,6 +5,7 @@ export type SearchResultDetails =
       _type: "document";
       mimeTypes: string[];
       displayMimeTypes: string[];
+      fileCategory: string;
       fileUris: string[];
       fileSize?: number;
     }
