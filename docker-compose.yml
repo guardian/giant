@@ -53,14 +53,14 @@ services:
       MINIO_ROOT_USER: minio-user
       MINIO_ROOT_PASSWORD: reallyverysecret
     volumes:
-      - minio:/export
+      - minio:/data
     ports:
       - 9090:9000
       - 9091:9001
     entrypoint:
       sh
     command:
-      -c 'mkdir -p /export/ingest-data && mkdir -p /export/remote-ingest-data && mkdir -p /export/transcription-output-data && mkdir -p /export/ingest-data-dead-letter && mkdir -p /export/data && mkdir -p /export/preview && minio server /export --console-address ":9001"'
+      -c 'mkdir -p /data/ingest-data && mkdir -p /data/remote-ingest-data && mkdir -p /data/transcription-output-data && mkdir -p /data/ingest-data-dead-letter && mkdir -p /data/data && mkdir -p /data/preview && minio server /data --console-address ":9001"'
 
   postgres:
     image: postgres:15.3
