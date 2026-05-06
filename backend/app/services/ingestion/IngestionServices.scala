@@ -50,6 +50,22 @@ trait IngestionServices {
 }
 
 object IngestionServices extends Logging {
+
+  private def cleanTextForLanguageDetection(text: String): String = {
+    text
+      .replaceAll("""https?://\S+""", "")                // URLs
+      .replaceAll("""www\.\S+""", "")                     // www URLs without scheme
+      .replaceAll("""[\w.+-]+@[\w.-]+\.\w+""", "")        // email addresses
+      .replaceAll("""[A-Za-z]:\\[\\\w.\-]+""", "")        // Windows paths
+      .replaceAll("""/[\w./\-]+""", "")                   // Unix paths (conservative)
+      .replaceAll("""<[^>]+>""", "")                      // HTML/XML tags
+      .replaceAll("""[0-9a-fA-F]{16,}""", "")             // long hex strings
+      .replaceAll("""[A-Za-z0-9+/=]{40,}""", "")          // base64-like strings
+      .replaceAll("""\b\d+\b""", "")                      // standalone numbers
+      .replaceAll("""\s{2,}""", " ")                      // collapse whitespace
+      .trim
+  }
+
   def apply(manifest: Manifest, index: Index, objectStorage: ObjectStorage, typeDetector: TypeDetector, mimeTypeMapper: MimeTypeMapper, postgresClient: PostgresClient, languageDetector: ThreadLocal[LanguageDetector])(implicit ec: ExecutionContext): IngestionServices = new IngestionServices {
     override def recordIngestionEvent(event: IngestionEvent) = postgresClient.insertEvent(event)
 
@@ -61,8 +77,11 @@ object IngestionServices extends Logging {
       * @return
       */
     def detectLanguage(blobUri: String, text: String): Option[String] = {
-      val result = languageDetector.get().detect(text.take(10000))
-      println(s"lang: ${result.getLanguage} confidence: ${result.getRawScore} reasonably certain: ${result.isReasonablyCertain}")
+      // clean a large block of text in case the file starts with lots of junk
+      val textToClean = text.take(50000)
+      val cleanedText = cleanTextForLanguageDetection(textToClean)
+      // Drop to just 10,000 characters to limit performance impact of language detection
+      val result = languageDetector.get().detect(cleanedText.take(10000))
       if (result.isReasonablyCertain) {
         Some(result.getLanguage)
       } else {
