@@ -84,8 +84,22 @@ export async function readDirectoryEntry(
   }
 
   return new Promise((resolve, reject) => {
-    entry
-      .createReader()
-      .readEntries((entries) => entriesToMap(entries).then(resolve), reject);
+    const reader = entry.createReader();
+    const allEntries: FileSystemEntry[] = [];
+
+    // readEntries() may return results in batches (e.g. Chrome/Safari cap at ~100).
+    // Must call repeatedly until an empty array is returned.
+    function readBatch() {
+      reader.readEntries((entries) => {
+        if (entries.length === 0) {
+          entriesToMap(allEntries).then(resolve, reject);
+        } else {
+          allEntries.push(...entries);
+          readBatch();
+        }
+      }, reject);
+    }
+
+    readBatch();
   });
 }

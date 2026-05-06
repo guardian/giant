@@ -1,4 +1,4 @@
-import React, { useReducer, useState } from "react";
+import React, { useReducer, useState, useEffect } from "react";
 import uuid from "uuid/v4";
 import MdFileUpload from "react-icons/lib/md/file-upload";
 import Modal from "../UtilComponents/Modal";
@@ -55,6 +55,13 @@ export type WorkspaceUploadMetadata = {
 
 export type UploadFile = { file: File; state: FileUploadState };
 
+/** Files dropped from the file system to be uploaded */
+export type DroppedFilesInfo = {
+  files: Map<string, File>;
+  /** The target folder node where files should be uploaded, or null for root */
+  targetFolder: TreeNode<WorkspaceEntry> | null;
+};
+
 type Props = {
   username: string;
   workspace: Workspace;
@@ -63,6 +70,12 @@ type Props = {
   focusedWorkspaceEntry: TreeEntry<WorkspaceEntry> | null;
   expandedNodes?: TreeNode<WorkspaceEntry>[];
   isAdmin: boolean;
+  /** Files dropped from the file system (via drag-and-drop) */
+  droppedFiles?: DroppedFilesInfo;
+  /** Callback to clear the dropped files after they've been consumed */
+  onClearDroppedFiles?: () => void;
+  /** Callback to report errors to the user */
+  onError?: (message: string) => void;
 };
 
 type State = {
@@ -330,6 +343,28 @@ export default function UploadFiles(props: Props) {
   const [focusedWorkspaceFolder, setFocusedWorkspaceFolder] =
     useState<TreeNode<WorkspaceEntry> | null>(null);
 
+  // Destructure for useEffect dependencies
+  const { droppedFiles, onClearDroppedFiles } = props;
+
+  // Handle files dropped from the file system via drag-and-drop
+  useEffect(() => {
+    if (droppedFiles && droppedFiles.files.size > 0) {
+      // Set the target folder (null means root)
+      setFocusedWorkspaceFolder(droppedFiles.targetFolder);
+
+      // Add the files
+      dispatch({ type: "Add_Files", files: droppedFiles.files });
+
+      // Open the modal
+      setOpen(true);
+
+      // Clear the dropped files prop
+      if (onClearDroppedFiles) {
+        onClearDroppedFiles();
+      }
+    }
+  }, [droppedFiles, onClearDroppedFiles]);
+
   async function onSubmit() {
     const { username, workspace, collections, getResource } = props;
     if (!collections) {
@@ -436,6 +471,7 @@ export default function UploadFiles(props: Props) {
               onAddFiles={(files) => {
                 dispatch({ type: "Add_Files", files });
               }}
+              onError={props.onError}
             />
           </Form.Field>
           <Form.Field>

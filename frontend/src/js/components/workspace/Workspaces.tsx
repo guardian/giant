@@ -34,6 +34,7 @@ import {
   isTreeNode,
   TreeEntry,
   TreeLeaf,
+  TreeNode,
 } from "../../types/Tree";
 import {
   isWorkspaceLeaf,
@@ -53,6 +54,7 @@ import {
 } from "../../util/treeUtils";
 import { setFocusedEntry } from "../../actions/workspaces/setFocusedEntry";
 import {
+  findNodeById,
   getEntryLink,
   processingStageToString,
   workspaceEntryPath,
@@ -83,6 +85,8 @@ import {
 } from "@elastic/eui";
 import MdGlobeIcon from "react-icons/lib/md/public";
 import { FromNowDurationText } from "../UtilComponents/FromNowDurationText";
+import { DroppedFilesInfo } from "../Uploads/UploadFiles";
+import { createWarning } from "../../actions/problems";
 
 type Props = ReturnType<typeof mapStateToProps> &
   ReturnType<typeof mapDispatchToProps> &
@@ -112,6 +116,8 @@ type State = {
   };
   itemsBeingMoved: number;
   itemsWithMoveSettled: number;
+  /** Files dropped from the file system via drag-and-drop */
+  droppedFiles: DroppedFilesInfo | undefined;
 };
 
 type ContextMenuEntry = {
@@ -420,6 +426,7 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
     },
     itemsBeingMoved: 0,
     itemsWithMoveSettled: 0,
+    droppedFiles: undefined,
   };
 
   poller: NodeJS.Timeout | null = null;
@@ -758,6 +765,49 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
         };
       });
     });
+  };
+
+  /**
+   * Handles files dropped from the file system via drag-and-drop onto a folder in the workspace tree.
+   * Sets the droppedFiles state which triggers the upload modal to open with the files pre-populated.
+   */
+  onDropFiles = (files: Map<string, File>, targetFolderId: string) => {
+    const workspace = this.props.currentWorkspace;
+    if (!workspace) return;
+
+    let targetFolder: TreeNode<WorkspaceEntry> | null = null;
+
+    if (targetFolderId !== workspace.rootNode.id) {
+      // Search expanded nodes first (cheapest), then the full tree
+      const foundNode =
+        this.props.expandedNodes.find((node) => node.id === targetFolderId) ??
+        findNodeById(workspace.rootNode, targetFolderId);
+
+      if (foundNode) {
+        targetFolder = foundNode;
+      }
+    }
+    // If targetFolderId is root or not found, targetFolder stays null (uploads to root)
+
+    this.setState({
+      droppedFiles: {
+        files,
+        targetFolder,
+      },
+    });
+  };
+
+  /**
+   * Clears the dropped files state after the upload modal has consumed them.
+   */
+  onClearDroppedFiles = () => {
+    this.setState({
+      droppedFiles: undefined,
+    });
+  };
+
+  onDropError = (message: string) => {
+    this.props.createWarning(message);
   };
 
   onContextMenu = (e: React.MouseEvent, entry: TreeEntry<WorkspaceEntry>) => {
@@ -1164,6 +1214,8 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
             selectedEntries={this.props.selectedEntries}
             focusedEntry={this.props.focusedEntry}
             onMoveItems={this.onMoveItems}
+            onDropFiles={this.onDropFiles}
+            onDropError={this.onDropError}
             onSelectLeaf={onSelectLeaf}
             columnsConfig={this.state.columnsConfig}
             onClickColumn={this.onClickColumn}
@@ -1224,6 +1276,9 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
             "CanPerformAdminOperations",
           )}
           clearFocus={this.clearFocus}
+          droppedFiles={this.state.droppedFiles}
+          onClearDroppedFiles={this.onClearDroppedFiles}
+          onError={this.onDropError}
         />
         <div className="workspace">
           {this.renderFolderTree(this.props.currentWorkspace)}
@@ -1314,6 +1369,7 @@ function mapDispatchToProps(dispatch: GiantDispatch) {
     setWorkspaceFollowers: bindActionCreators(setWorkspaceFollowers, dispatch),
     setWorkspaceIsPublic: bindActionCreators(setWorkspaceIsPublic, dispatch),
     listUsers: bindActionCreators(listUsers, dispatch),
+    createWarning: bindActionCreators(createWarning, dispatch),
     getCollections: bindActionCreators(getCollections, dispatch),
     getWorkspacesMetadata: bindActionCreators(getWorkspacesMetadata, dispatch),
     getWorkspace: bindActionCreators(getWorkspace, dispatch),
