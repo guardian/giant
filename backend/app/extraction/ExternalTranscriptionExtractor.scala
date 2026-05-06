@@ -66,7 +66,8 @@ case class TranscriptionOutputFailure(
                                       id: String,
                                       originalFilename: String,
                                       userEmail: String,
-                                      status: String = "FAILURE"
+                                      status: String = "FAILURE",
+                                      noAudioDetected: Boolean
                                     ) extends TranscriptionOutput
 
 object TranscriptionOutputSuccess {
