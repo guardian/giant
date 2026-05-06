@@ -2,10 +2,8 @@ import { formatDate } from "./formatDate";
 
 describe("formatDate", () => {
   test("formats a Date object", () => {
-    // 15 Jan 2024 at 2:30pm UTC
-    const date = new Date(Date.UTC(2024, 0, 15, 14, 30));
+    const date = new Date(2024, 0, 15, 14, 30);
     const result = formatDate(date);
-    // Exact output depends on timezone, but should contain the key parts
     expect(result).toMatch(/Jan 15, 2024 at/);
   });
 
