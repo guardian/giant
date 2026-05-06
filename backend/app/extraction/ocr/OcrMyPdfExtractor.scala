@@ -54,7 +54,7 @@ class OcrMyPdfExtractor(scratch: ScratchSpace, index: Index, pageService: Pages,
     try {
       pdDocuments = params.languages.map { lang =>
         val pages = Using(PDDocument.load(file))(_.getNumberOfPages).toOption
-        val biggerThanA1 = Ocr.isBiggerThanA1(file.toPath, stdErrLogger)
+        val biggerThanA1 = Ocr.hasPagesBiggerThanA1(file.toPath, stdErrLogger)
         val preProcessPdf = Ocr.preProcessPdf(file.toPath, tmpDir, stdErrLogger, biggerThanA1)
         val pdfPath = Ocr.invokeOcrMyPdf(lang.ocr, preProcessPdf.getOrElse(file.toPath), None, stdErrLogger, tmpDir, pages, ocrMyPdfFlag)
         val pdfDoc = PDDocument.load(pdfPath.toFile)
@@ -113,6 +113,7 @@ class OcrMyPdfExtractor(scratch: ScratchSpace, index: Index, pageService: Pages,
       }
 
       OcrMyPdfExtractor.insertFullText(blob.uri, pages, index)
+
     } finally {
       pdDocuments.foreach { case(_, (path, doc)) =>
         doc.close()
