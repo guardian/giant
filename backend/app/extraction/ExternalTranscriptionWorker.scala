@@ -73,7 +73,7 @@ class ExternalTranscriptionWorker(manifest: WorkerManifest, sqsClient: SqsClient
         case output: TranscriptionOutputFailure =>
           if (output.noAudioDetected) {
             logger.info(s"No audio detected in job ${output.id}")
-            Right(())
+            markExternalExtractorAsComplete(output.id, EXTRACTOR_NAME)
           } else {
             Left(ExternalTranscriptionOutputFailure.apply(s"External transcription service failed to transcribe the file ${output.originalFilename}"))
           }
