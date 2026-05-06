@@ -157,7 +157,7 @@ class Workspaces(
           TreeEntry.findNodeById(contents, folderId),
           Attempt.Left[TreeEntry[WorkspaceEntry]](NotFoundFailure(s"Folder $folderId not found in workspace $workspaceId"))
         )
-        blobIds = if (rerunSuccessful) TreeEntry.workspaceTreeToBlobIds(folderNode) else TreeEntry.workspaceTreeToFailedBlobIds(folderNode)
+        blobIds = if (rerunSuccessful) TreeEntry.workspaceTreeToBlobIds(folderNode) else TreeEntry.getFailedBlobUris(folderNode)
         _ <- reprocessBlobs(blobIds, rerunSuccesful = rerunSuccessful, rerunFailed = rerunFailed)
       } yield {
         Ok(Json.toJson(blobIds))

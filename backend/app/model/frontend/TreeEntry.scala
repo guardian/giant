@@ -65,13 +65,13 @@ object TreeEntry {
     case treeNode: TreeNode[WorkspaceEntry] => treeNode.children.flatMap(workspaceTreeToBlobIds)
   }
 
-  def workspaceTreeToFailedBlobIds(tree: TreeEntry[WorkspaceEntry]): List[Uri] = tree match {
+  def getFailedBlobUris(tree: TreeEntry[WorkspaceEntry]): List[Uri] = tree match {
     case treeLeaf: TreeLeaf[WorkspaceEntry] => treeLeaf.data match {
       case workspaceLeaf: WorkspaceLeaf if workspaceLeaf.processingStage == ProcessingStage.Failed =>
         List(Uri(workspaceLeaf.uri))
       case _ => List.empty
     }
-    case treeNode: TreeNode[WorkspaceEntry] => treeNode.children.flatMap(workspaceTreeToFailedBlobIds)
+    case treeNode: TreeNode[WorkspaceEntry] => treeNode.children.flatMap(getFailedBlobUris)
   }
 }
 

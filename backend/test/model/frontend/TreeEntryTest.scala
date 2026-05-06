@@ -82,20 +82,20 @@ class TreeEntryTest extends AnyFreeSpec with Matchers {
       children = children
     )
 
-  "workspaceTreeToFailedBlobIds" - {
+  "getFailedBlobUris" - {
     "return empty list for a processed leaf" in {
       val leaf = makeLeaf("f1", "uri1", ProcessingStage.Processed)
-      TreeEntry.workspaceTreeToFailedBlobIds(leaf) must be(List.empty)
+      TreeEntry.getFailedBlobUris(leaf) must be(List.empty)
     }
 
     "return empty list for a processing leaf" in {
       val leaf = makeLeaf("f1", "uri1", ProcessingStage.Processing(3, None))
-      TreeEntry.workspaceTreeToFailedBlobIds(leaf) must be(List.empty)
+      TreeEntry.getFailedBlobUris(leaf) must be(List.empty)
     }
 
     "return the uri for a failed leaf" in {
       val leaf = makeLeaf("f1", "uri1", ProcessingStage.Failed)
-      TreeEntry.workspaceTreeToFailedBlobIds(leaf) must be(List(Uri("uri1")))
+      TreeEntry.getFailedBlobUris(leaf) must be(List(Uri("uri1")))
     }
 
     "return only failed uris from a folder tree" in {
@@ -108,7 +108,7 @@ class TreeEntryTest extends AnyFreeSpec with Matchers {
         ))
       ))
 
-      TreeEntry.workspaceTreeToFailedBlobIds(tree) must be(List(Uri("uri1"), Uri("uri3")))
+      TreeEntry.getFailedBlobUris(tree) must be(List(Uri("uri1"), Uri("uri3")))
     }
 
     "return empty list for a folder with no failed files" in {
@@ -117,7 +117,7 @@ class TreeEntryTest extends AnyFreeSpec with Matchers {
         makeLeaf("f2", "uri2", ProcessingStage.Processing(2, None)),
       ))
 
-      TreeEntry.workspaceTreeToFailedBlobIds(tree) must be(List.empty)
+      TreeEntry.getFailedBlobUris(tree) must be(List.empty)
     }
   }
 }
