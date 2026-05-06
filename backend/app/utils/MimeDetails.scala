@@ -7,20 +7,30 @@ case class MimeDetails(display: String, category: String = "document", explanati
 object MimeDetails {
   implicit val mimeDetailsFormat: Format[MimeDetails] = Json.format[MimeDetails]
 
-  def get(key: String): Option[MimeDetails] = displayMap.get(key)
+  /** Strip MIME type parameters (e.g. "text/csv; charset=UTF-8" -> "text/csv") */
+  private def baseType(mimeType: String): String =
+    mimeType.indexOf(';') match {
+      case -1 => mimeType
+      case i  => mimeType.substring(0, i).trim
+    }
+
+  def get(key: String): Option[MimeDetails] =
+    displayMap.get(key).orElse(displayMap.get(baseType(key)))
 
   /** Determine the file category for a given MIME type string.
     * Uses the explicit map first, then falls back to prefix-based detection.
     *
     * Valid categories: document, pdf, video, audio, image, spreadsheet, presentation, archive, web, email, technical */
-  def categoryFor(mimeType: String): String =
-    displayMap.get(mimeType).map(_.category).getOrElse {
-      if (mimeType.startsWith("video/")) "video"
-      else if (mimeType.startsWith("audio/")) "audio"
-      else if (mimeType.startsWith("image/")) "image"
-      else if (mimeType.startsWith("message/")) "email"
+  def categoryFor(mimeType: String): String = {
+    val base = baseType(mimeType)
+    displayMap.get(mimeType).orElse(displayMap.get(base)).map(_.category).getOrElse {
+      if (base.startsWith("video/")) "video"
+      else if (base.startsWith("audio/")) "audio"
+      else if (base.startsWith("image/")) "image"
+      else if (base.startsWith("message/")) "email"
       else "document"
     }
+  }
 
   // Mimetype display mappings
   // Basic Guidelines::
