@@ -224,3 +224,18 @@ function addItemToWorkspace(
     }),
   }).then((res) => res.json());
 }
+
+export function reprocessFolder(
+  workspaceId: string,
+  folderId: string,
+  mode: "all" | "errored",
+): Promise<boolean> {
+  const params =
+    mode === "all"
+      ? "?rerunSuccessful=true&rerunFailed=true"
+      : "?rerunSuccessful=false&rerunFailed=true";
+  return authFetch(
+    `/api/workspaces/${workspaceId}/folders/${folderId}/reprocess${params}`,
+    { method: "POST" },
+  ).then((res) => res.ok);
+}

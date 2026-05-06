@@ -68,6 +68,7 @@ GET           /api/workspaces/:workspaceId/totalWordCount                   cont
 POST          /api/workspaces/:workspaceId/text                             controllers.api.Workspaces.getText(workspaceId: String)
 PUT           /api/workspaces/:workspaceId/owner                            controllers.api.Workspaces.updateWorkspaceOwner(workspaceId: String)
 POST          /api/workspaces/:workspaceId/reprocess                        controllers.api.Workspaces.reprocess(workspaceId: String, rerunSuccessful: Option[Boolean], rerunFailed: Option[Boolean])
+POST          /api/workspaces/:workspaceId/folders/:folderId/reprocess     controllers.api.Workspaces.reprocessFolder(workspaceId: String, folderId: String, rerunSuccessful: Option[Boolean], rerunFailed: Option[Boolean])
 POST          /api/workspaces/:workspaceId/nodes                            controllers.api.Workspaces.addItemToWorkspace(workspaceId: String)
 GET           /api/workspaces/:workspaceId/remoteJobs                       controllers.api.Workspaces.getRelevantRemoteJobs(workspaceId: String)
 POST          /api/workspaces/:workspaceId/remoteUrl                        controllers.api.Workspaces.addRemoteUrlToWorkspace(workspaceId: String)

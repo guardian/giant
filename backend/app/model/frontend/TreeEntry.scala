@@ -1,7 +1,7 @@
 package model.frontend
 
 import model.Uri
-import model.annotations.{WorkspaceEntry, WorkspaceLeaf}
+import model.annotations.{ProcessingStage, WorkspaceEntry, WorkspaceLeaf}
 
 sealed trait TreeEntry[+T] {
   def id: String
@@ -63,6 +63,15 @@ object TreeEntry {
       case _ => throw new AssertionError(s"WorkspaceNode inside TreeLeaf with id ${treeLeaf.id} is crazy and should not happen")
     }
     case treeNode: TreeNode[WorkspaceEntry] => treeNode.children.flatMap(workspaceTreeToBlobIds)
+  }
+
+  def getFailedBlobUris(tree: TreeEntry[WorkspaceEntry]): List[Uri] = tree match {
+    case treeLeaf: TreeLeaf[WorkspaceEntry] => treeLeaf.data match {
+      case workspaceLeaf: WorkspaceLeaf if workspaceLeaf.processingStage == ProcessingStage.Failed =>
+        List(Uri(workspaceLeaf.uri))
+      case _ => List.empty
+    }
+    case treeNode: TreeNode[WorkspaceEntry] => treeNode.children.flatMap(getFailedBlobUris)
   }
 }
 

@@ -63,11 +63,13 @@ import {
 import { setWorkspaceIsPublic } from "../../actions/workspaces/setWorkspaceIsPublic";
 import { RouteComponentProps } from "react-router-dom";
 import { reprocessBlob } from "../../actions/workspaces/reprocessBlob";
+import { reprocessFolder } from "../../actions/workspaces/reprocessFailedInFolder";
 import {
   DeleteModal,
   ModalStatus,
   RemoveFromWorkspaceModal,
 } from "./ConfirmModal";
+import { ReprocessFolderModal } from "./ReprocessFolderModal";
 import { PartialUser } from "../../types/User";
 import { getMyPermissions } from "../../actions/users/getMyPermissions";
 import buildLink from "../../util/buildLink";
@@ -114,6 +116,7 @@ type State = {
     entry: null | TreeEntry<WorkspaceEntry>;
     status: ModalStatus;
   };
+  reprocessFolderModalEntry: null | TreeEntry<WorkspaceEntry>;
   itemsBeingMoved: number;
   itemsWithMoveSettled: number;
   /** Files dropped from the file system via drag-and-drop */
@@ -424,6 +427,7 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
       entry: null,
       status: "unconfirmed",
     },
+    reprocessFolderModalEntry: null,
     itemsBeingMoved: 0,
     itemsWithMoveSettled: 0,
     droppedFiles: undefined,
@@ -945,6 +949,18 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
       });
     }
 
+    const isAdmin = this.props.myPermissions.includes(
+      "CanPerformAdminOperations",
+    );
+
+    if (isAdmin && isWorkspaceFolder && !isRemoteIngest) {
+      items.push({
+        key: "reprocessFolder",
+        content: "Reprocess folder contents\u2026",
+        icon: "redo",
+      });
+    }
+
     if (isWorkspaceFolder && !isRemoteIngest) {
       items.push({
         key: "search",
@@ -1040,6 +1056,13 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
               workspaceLeaf
             ) {
               this.props.reprocessBlob(workspaceId, workspaceLeaf.uri);
+            }
+
+            if (
+              menuItemProps.content === "Reprocess folder contents\u2026" &&
+              isWorkspaceFolder
+            ) {
+              this.setState({ reprocessFolderModalEntry: entry });
             }
 
             if (menuItemProps.content === "Search in folder") {
@@ -1312,6 +1335,39 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
           removeStatus={this.state.removeFromWorkspaceModalContext.status}
           entry={this.state.removeFromWorkspaceModalContext.entry}
         />
+        {this.state.reprocessFolderModalEntry &&
+          isWorkspaceNode(this.state.reprocessFolderModalEntry.data) && (
+            <ReprocessFolderModal
+              isOpen={true}
+              folderName={this.state.reprocessFolderModalEntry.name}
+              folderData={this.state.reprocessFolderModalEntry.data}
+              onReprocessErrored={() => {
+                const entry = this.state.reprocessFolderModalEntry;
+                if (entry) {
+                  this.props.reprocessFolder(
+                    this.props.match.params.id,
+                    entry.id,
+                    "errored",
+                  );
+                }
+                this.setState({ reprocessFolderModalEntry: null });
+              }}
+              onReprocessAll={() => {
+                const entry = this.state.reprocessFolderModalEntry;
+                if (entry) {
+                  this.props.reprocessFolder(
+                    this.props.match.params.id,
+                    entry.id,
+                    "all",
+                  );
+                }
+                this.setState({ reprocessFolderModalEntry: null });
+              }}
+              onCancel={() =>
+                this.setState({ reprocessFolderModalEntry: null })
+              }
+            />
+          )}
       </div>
     );
   }
@@ -1341,6 +1397,7 @@ function mapDispatchToProps(dispatch: GiantDispatch) {
     renameItem: bindActionCreators(renameItem, dispatch),
     deleteItem: bindActionCreators(deleteItem, dispatch),
     reprocessBlob: bindActionCreators(reprocessBlob, dispatch),
+    reprocessFolder: bindActionCreators(reprocessFolder, dispatch),
     deleteResourceFromWorkspace: bindActionCreators(
       deleteResourceFromWorkspace,
       dispatch,
