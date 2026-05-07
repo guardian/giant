@@ -117,21 +117,26 @@ object Ocr extends Logging {
     }
   }
 
-  // Uses pdfinfo to get the page sizes, return true if any of them are bigger than A1
+  // Uses pdfinfo to get the page sizes, return true if any of them are bigger than A1.
+  // We use -box to get the MediaBox dimensions which should best represent the actual page size,
+  // and is what ocrmypdf uses when rasterising the page for OCR. See https://www.prepressure.com/pdf/basics/page-boxes
+  // for some info on PDF boxes!
   def hasPagesBiggerThanA1(inputFilePath: Path, stderrLogger: OcrStderrLogger): Boolean = {
     val a1PageSizePtArea = 4014656 // https://www.a1-size.com/a1-size-in-point/
-    val cmd = s"pdfinfo -f 1 -l -1 ${inputFilePath.toAbsolutePath}"
+    val cmd = s"pdfinfo -box -f 1 -l -1 ${inputFilePath.toAbsolutePath}"
     val stdout = mutable.Buffer.empty[String]
     val exitCode = Process(cmd).!(ProcessLogger(stdout.append(_), stderrLogger.append))
     exitCode match {
       case 0 =>
-        val sizePattern = """Page\s+(\d+) size:\s+([\d.]+) x ([\d.]+) pts""".r
+        val mediaBoxPattern = """Page\s+(\d+) MediaBox:\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)""".r
         stdout.exists {
-          case sizePattern(pageNum, width, height) =>
-            val area = width.toDouble * height.toDouble
+          case mediaBoxPattern(pageNum, x1, y1, x2, y2) =>
+            val width = x2.toDouble - x1.toDouble
+            val height = y2.toDouble - y1.toDouble
+            val area = width * height
             val bigger = area > a1PageSizePtArea
             if (bigger) {
-              logger.info(s"Page $pageNum of ${inputFilePath.getFileName} is bigger than A1 - will be downsized to A1")
+              logger.info(s"Page $pageNum of ${inputFilePath.getFileName} has MediaBox ${width} x ${height} pts which is bigger than A1 - will be downsized to A1")
             }
             bigger
           case _ => false
