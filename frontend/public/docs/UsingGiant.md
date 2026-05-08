@@ -21,16 +21,16 @@ To get access to Giant email [digital.investigations@guardian.co.uk](mailto:digi
 If you're new to Giant, this is the fastest way to get started:
 
 1. Open [**Search**](/search), choose relevant datasets/workspaces in the sidebar, and run a simple keyword search.
-2. Open a result and use `Cmd-F` (`Ctrl-F` on Windows) to search within the document itself.
+2. Open a result and use `Cmd-F` (`Ctrl-F` on Windows) to open the in-document search widget and search within the document itself.
 3. Create a workspace in [**Workspaces**](/workspaces) using the **New Workspace** button.
 4. Upload files to that workspace by dragging files in, or by using the Upload button.
 5. Share the workspace (if needed) with colleagues using **Share Workspace**.
 
 For details on each step, see the [**Search page**](#the-search-page), [**Viewing documents**](#viewing-documents), [**Workspaces**](#workspaces), and [**Sharing access to documents in a workspace**](#sharing-access-to-documents-in-a-workspace).
 
-## **Giant’s three main sections** {#giants-three-main-sections}
+## **Giant's main sections** {#giants-three-main-sections}
 
-At the top of every Giant window you will find links for the three main entry points for Giant's data: 'Search', 'Datasets' and 'Workspaces'.
+At the top of every Giant window you will find links to Giant's main sections: **Search**, **Datasets**, **Workspaces**, and **Settings**.
 
 <div class="doc-figure" style="width: 50%;">
 
@@ -56,8 +56,8 @@ Documents in datasets are organised in the same structure as the source material
 
 You can use workspaces either to create curated selections of significant documents from datasets, from workspaces shared with you, and from documents you upload yourself.
 
-| **Note** | Documents don't actually _live_ inside workspaces. Under the hood, workspaces are collections of links to documents that come from one or more datasets. When you upload documents 'into' a workspace, what you're actually doing is uploading the files to your personal dataset (mine is called 'Luke Hoyland Documents') and then making a reference to that document within your active workspace. You can see _all_ your uploads - no matter what workspaces they are in - if you go to your own dataset. |
-| :------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Note** | Documents don't actually _live_ inside workspaces. Under the hood, workspaces are collections of links to documents that come from one or more datasets. When you upload documents 'into' a workspace, what you're actually doing is uploading the files to your personal dataset (named after you, e.g. 'Jane Smith Documents') and then making a reference to that document within your active workspace. You can see _all_ your uploads - no matter what workspaces they are in - if you go to your own dataset. |
+| :------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 
 # **The Search page** {#the-search-page}
 
@@ -87,7 +87,7 @@ Below the search bar you'll see a set of filters, including for Workspaces and D
 
 <div class="doc-caption">
 
-This filter will restrict your search to material that is in dataset 'Luke Hoyland Documents' and/or in the workspace 'Eine kleine workspace'.
+This filter will restrict your search to material that is in a specific dataset and/or a specific workspace.
 
 </div>
 
@@ -107,7 +107,7 @@ You can also perform excluding or **'negative searches'** by switching the sideb
 
 <div class="doc-caption">
 
-This negative search filter will exclude anything from the Dataset 'Luke Hoyland Documents'.
+This negative search filter will exclude anything from the selected dataset.
 
 </div>
 
@@ -122,6 +122,8 @@ This will include text in images, words spoken in audio and video files, etc.
 If you put your search in quotes it will only return matches of the words _in that exact order_.
 
 If you want to be more sophisticated than that, there are more options available. These are called [search operators](#search-operators).
+
+You can jump the keyboard focus to the search box at any time by pressing `s`.
 
 ## **Search operators** {#search-operators}
 
@@ -214,7 +216,11 @@ You can view documents by getting to them through several different routes:
 - Browsing through a dataset and double-clicking on a file you find therein.
 - Traversing through the filesystem from another document by clicking on the first document's path in the document sidebar and navigating to a document elsewhere in the same file path.
 
-The document will be opened in a document viewer window. This consists of a sidebar with some information about the document (location, upload information, and any metadata that Giant extracted from the document), plus the document view itself. Document views come in several different flavours, depending on file format:
+The document will be opened in a document viewer window. This consists of a sidebar with some information about the document (location, upload information, and any metadata that Giant extracted from the document), plus the document view itself.
+
+The metadata shown in the sidebar is clickable: hovering over a metadata value reveals a search icon, and clicking it takes you straight to a search for that value across all of Giant. This is useful for quickly finding other documents that share the same author, sender, date, file path, or any other metadata field — without having to type anything into the search box.
+
+Document views come in several different flavours, depending on file format:
 
 - **Text based documents** such as PDFs and MS Word documents are displayed in a single view, with the OCR'd text overlaid on top of the original document. Search term matches will be highlighted in the document itself. You can also search for other terms within the documents and these will be highlighted in a different colour to the original search term matches. We call this flavour the **combined view mode** because the extracted text and the original file are presented in the same view.
 - **Emails** are displayed in a form that resembles an email, showing the To:, From:, Subject: fields etc.
@@ -225,7 +231,7 @@ The document will be opened in a document viewer window. This consists of a side
 
 <div class="doc-figure" style="width: 80%;">
 
-<img src="/docs/images/03_1_docviewer_page.jpg" alt="Combined document view with highlighted search match" width="100%"  />
+<img src="/docs/images/03_1_docviewer_page.jpg" alt="Combined document view with highlighted search match" width="80%"  />
 
 <div class="doc-caption">
 
@@ -237,47 +243,66 @@ A 'combined document view'. If you came to this document via a search, the first
 
 Some documents will contain more than one match of your search term. In the combined document view you can step through each match using the widget at the top right of the page. Pressing the down arrow will take you to the next match in the document.
 
-<div class="doc-figure" style="width: 50%;">
+<div class="doc-figure" style="width: 30%;">
 
-<img src="/docs/images/03_docviewer_twin_search_widget.png" alt="Two-level find widget in combined document view" width="100%"  />
+<img src="/docs/images/03_docviewer_combined_search_stepper.png" alt="Search results stepper in combined view" width="30%"  />
 
 <div class="doc-caption">
 
-When you come to a 'combined view' document through a search, the find widget has two levels: the top level lets you step through matches for your original search term. The second level allows you to search for anything else within the current document.
+When you come to a 'combined view' document through a search, at the top right there's a small widget allowing you to step through each search match within that document.
 
 </div>
 
 </div>
 
-If the content in the document is difficult to read, you can try the following:
+If the content in the document is difficult to read, try using the zoom and rotate buttons at the bottom of the screen.
 
-- Expand or contract the window content using the zoom buttons:
+<div class="doc-figure" style="width: 80%;">
 
-  <img src="/docs/images/04_1_docviewer_zoom.png" alt="Document viewer zoom controls" width="40%" />
+<img src="/docs/images/04_2_docviewer_footer.png" alt="Alternative document view modes" width="90%" />
 
-- Rotate documents on their side using the rotation buttons:
+<div class="doc-caption">
 
-  <img src="/docs/images/04_docviewer_rotate.png" alt="Document viewer rotation controls" width="40%" />
+The document footer has controls for find-in-file, zoom, rotate, alternative view modes, and for navigating to the previous or next document in your search or folder.
 
-- If all else fails, use the "View as Text" button in the sidebar:
+</div>
 
-  <img src="/docs/images/04_2_docviewer_view_as_text.jpg" alt="View as Text button in document sidebar" width="75%" />
+</div>
+
+If all else fails, switch to another view mode:
+
+- '**Text**' will show the machine-readable text from the document.
+- '**OCR**' will show text that Giant's optical character recognition engine found in the document.
+- '**Preview**' will attempt to render the document in something as close to its original format as Giant can manage.
 
 ## **Searching within a combined view document** {#searching-within-a-combined-view-document}
 
-You can search for things within the document itself, without going back to Giant's search page. Press `Cmd-F` (`Ctrl-F` on Windows) or type something into the search-in-document widget. If you came to the document from a search, this appears below the main search widget. If you came to the document by browsing, it'll be the only widget there.
+You can search for things within the document itself, without going back to Giant's search page. Press `Cmd-F` (`Ctrl-F` on Windows) or type something into the find-in-document widget.
 
-<div style="width: 75%;">
+<div class="doc-figure" style="width: 80%;">
 
-| _Searching for text in a document found by search:_                                 | _Searching for text in a document found by browsing:_   |
-| :---------------------------------------------------------------------------------- | :------------------------------------------------------ |
-| _![Docviewer searchresults find](/docs/images/05_docviewer_searchresults_find.png)_ | _![Docviewer find](/docs/images/06_docviewer_find.png)_ |
+<img src="/docs/images/06_docviewer_find.jpg" alt="Alternative document view modes" width="90%" />
+
+<div class="doc-caption">
+
+Find-in-document results are highlighted in pale pink, with the active result in a deeper pink. You can step through the matches using the arrows next to the find-in-file field or with return / shift+return.
 
 </div>
 
+</div>
+
+Once highlights are shown, use `n` to jump to the next one and `Shift-N` to go to the previous one without touching the mouse.
+
+If you arrived at a document from a search, you can move directly to the next or previous result in your search list with `Shift-→` and `Shift-←`, without returning to the search page.
+
 ## **Documents with multiple view modes** {#multi-view-documents}
 
-Giant can process other file formats such as emails, images, video files, audio files. For many of these when you open the file you'll be given the option to view it in different ways. For example:
+Giant can process other file formats such as emails, images, video files, audio files. For many of these when you open the file you'll be given the option to view it in different ways. You can switch between view modes using the buttons at the bottom of the document viewer, or with keyboard shortcuts:
+
+- `Shift-C` for the combined view
+- `Shift-T` for Text view
+- `Shift-O` for OCR view
+- `Shift-P` for Preview, Audio, or Video.
 
 ## **Image files** {#image-files}
 
@@ -318,6 +343,64 @@ Video and audio files initially open with the transcript text. Click Preview vie
 
 </div>
 
+## **Commenting on documents** {#commenting-on-documents}
+
+Giant lets you attach comments to specific passages of text within a document. Comments are visible to everyone who has access to that document, making them useful for leaving notes for colleagues or flagging points of interest.
+
+Comments can be added in **Text** and **OCR** view modes. They are anchored to the view in which they were created — so a comment made on the OCR French translation will only appear in context when that specific view is active.
+
+### **Adding a comment** {#adding-a-comment}
+
+1. Select some text in the document viewer by clicking and dragging over it.
+2. A small floating menu will appear near your selection. Click the **Comment** icon.
+3. A comment box will open in the right-hand sidebar. Type your note and press **Enter** to save it (or **Shift-Enter** for a new line, **Escape** to cancel).
+
+The commented text will be highlighted in the document, and the comment will appear alongside it in the sidebar. Clicking a highlighted passage will bring the corresponding comment into focus, and vice versa.
+
+### **Viewing and deleting comments** {#viewing-and-deleting-comments}
+
+All comments on a document are shown in the comment sidebar, aligned vertically with the text they refer to. Each comment shows the author's name and when it was posted.
+
+You can delete your own comments using the **Delete** action on the comment itself. Comments made by other people cannot be edited or deleted by you.
+
+## **Downloading documents** {#downloading-documents}
+
+You can download a copy of any document you can view in Giant. Open the document and click the **Download** button in the left-hand sidebar.
+
+<div class="doc-figure" style="width: 75%;">
+
+<img src="/docs/images/27_docviewer_download_button.jpg" alt="Download button in document sidebar" width="100%"  />
+
+<div class="doc-caption">
+
+The document sidebar has a Download option
+
+</div>
+
+</div>
+
+You'll be shown a dialog asking what format to download in. The options available depend on the document type:
+
+- **Original** — the file exactly as it was uploaded. _Note: original files are not sanitised and could contain malware, macros, or web beacons. Exercise caution, especially on unmanaged machines._
+- **PDF Preview** — a PDF rendering of the document, if Giant generated one.
+- **Extracted Text** — the plain text extracted from the document, as a `.txt` file.
+- **Transcript (language)** — the spoken-word transcript for audio and video files, as a `.txt` file. Available per language if multiple transcripts were generated.
+- **OCR Text (language)** — the OCR text extracted from images or scanned pages, as a `.txt` file. Available per language if OCR was run in multiple languages.
+
+Emails do not offer an 'Original' option; use Extracted Text instead.
+
+<div class="doc-figure" style="width: 50%;">
+
+<img src="/docs/images/28_docviewer_download_original.png" alt="Download dialog with Original format option" width="100%"  />
+
+<div class="doc-caption">
+
+The download dialog — select a format, optionally change the filename, then click Download
+
+</div>
+
+</div>
+
 # **Workspaces** {#workspaces}
 
 Workspaces are like a folder structure on a computer or a server. You can create workspaces, create folders within them, upload documents into them, move documents around within them or add documents from elsewhere in Giant.
@@ -337,8 +420,8 @@ All the workspaces that you currently have permission to view are shown in the s
 
 In the Workspaces section they are grouped into three lists:
 
-1. Workspaces you created. This may include entirely private workspaces and workspaces that you have shared with others. You have full control over these workspaces.
-2. Workspaces that someone else created and shared with you. You can add files to these workspaces, and organise their structure. But you can't delete them or change their sharing settings.
+1. Workspaces you created. This may include entirely private workspaces and workspaces that you have shared with others. You have full control over these workspaces, including the ability to delete them.
+2. Workspaces that someone else created and shared with you. You can add files to these workspaces and organise their structure, but you cannot delete them or change their sharing settings.
 3. Public workspaces that are viewable by all Giant users at the Guardian. These are used for collections of non-confidential material that is already in the public domain. Your access controls for these depend on whether you created them (full control, like type 1\) or someone else (same control as for other workspaces shared with you, like type 2).
 
 ## **Creating a new workspace** {#creating-a-new-workspace}
@@ -766,7 +849,7 @@ Under the hood in Giant, documents are organised into datasets. These are large 
 - Large collections of related documents that were added en masse by the Investigations & Reporting engineering team or ESD. These tend to be big data leaks and that sort of thing.
 - Your own personal dataset. This contains all the files that you have uploaded into Giant using the [upload to workspace](#uploading-new-documents-into-a-workspace) tool.
 
-When you go to the [Datasets](/collections) view in Giant you will see any dataset that has been shared with you, plus a personal dataset named after you e.g. "Luke Hoyland Documents". Documents in your own personal dataset are only viewable by you, unless you choose to [share any of them in a workspace](#sharing-access-to-documents-in-a-workspace).
+When you go to the [Datasets](/collections) view in Giant you will see any dataset that has been shared with you, plus a personal dataset named after you, e.g. "Jane Smith Documents". Documents in your own personal dataset are only viewable by you, unless you choose to [share any of them in a workspace](#sharing-access-to-documents-in-a-workspace).
 
 ## **Dataset structure** {#dataset-structure}
 
@@ -776,7 +859,7 @@ In your personal dataset, once you have uploaded documents in Giant you'll see a
 
 ## **Your personal dataset** {#your-personal-dataset}
 
-As noted above, files you upload into workspaces are stored in your personal dataset. If you go to the [Datasets view](/collections) in Giant you'll see yours. Mine is called "Luke Hoyland Documents".
+As noted above, files you upload into workspaces are stored in your personal dataset. If you go to the [Datasets view](/collections) in Giant you'll see yours — it will be named after you.
 
 <div class="doc-figure" style="width: 50%;">
 
@@ -797,6 +880,68 @@ This dataset is organised into folders corresponding to each time you uploaded a
 - If you deleted a workspace but still want to find a file that originally you uploaded into that workspace.
 
 The easiest way to search across every file you have ever uploaded is to go to the [search view](/search), and in the datasets list on the side select your personal dataset. Then search. But you can of course browse through all those upload folders in the Datasets view if you really want to.
+
+# **Settings** {#settings}
+
+The [**Settings**](/settings) section is accessible via the icon in the top-right corner of every Giant page. It contains tools for managing your account and, for administrators, managing the system.
+
+## **My Uploads** {#my-uploads}
+
+The [**My Uploads**](/settings/my-uploads) page shows a log of every file you have uploaded into Giant, with its processing status. You can filter by workspace and toggle an 'errors only' view to quickly spot anything that failed to ingest correctly. This is the first place to check if a file you uploaded doesn't seem to have appeared or processed properly.
+
+## **Dataset Permissions** {#dataset-permissions}
+
+The [**Dataset Permissions**](/settings/dataset-permissions) page lists all datasets and the users who have permission to view each one. This gives you visibility into who can access which collections.
+
+## **Feature Switches** {#feature-switches}
+
+The [**Feature Switches**](/settings/features) page lets you toggle experimental or optional interface features on or off for your own session. Changes here affect only you and are stored locally in your browser.
+
+## **About Giant** {#about-giant}
+
+The [**About**](/settings/about) page shows the current build version and your personal auth token (JWT). The auth token is used if you need to interact with Giant via the [command-line tool](https://github.com/guardian/giant/tree/main/cli).
+
+## **Admin-only settings** {#admin-only-settings}
+
+The following sections are only visible to users with administrator permissions.
+
+- **Users** — create, edit, and delete user accounts; manage which collections each user can access.
+- **Extraction Failures** — view errors encountered during the ingestion pipeline, with stack traces for debugging failed files.
+- **All Ingestion Events** — a system-wide log of every ingestion step across all users, for audit and troubleshooting.
+- **Upload Calendar** — a weekly view of all uploads across the system, useful for monitoring ingestion volume.
+- **File Types** — configure how different MIME types are handled by Giant's processing pipeline.
+
+# **Keyboard shortcuts** {#keyboard-shortcuts}
+
+Giant supports keyboard shortcuts to speed up common actions. They are also noted inline throughout this guide where relevant.
+
+## **Global**
+
+| Shortcut | Action               |
+| :------- | :------------------- |
+| `s`      | Focus the search box |
+
+## **Document viewer**
+
+| Shortcut           | Action                                         |
+| :----------------- | :--------------------------------------------- |
+| `Cmd-F` / `Ctrl-F` | Search within the current document             |
+| `n`                | Jump to the next search highlight              |
+| `Shift-N`          | Jump to the previous search highlight          |
+| `Shift-→`          | Open the next result from your search list     |
+| `Shift-←`          | Open the previous result from your search list |
+| `Shift-X`          | Switch to Text (OCR) view mode                 |
+| `Shift-C`          | Switch to Preview view mode                    |
+
+## **Comment box**
+
+These shortcuts apply while typing in the [comment box](#adding-a-comment).
+
+| Shortcut      | Action                         |
+| :------------ | :----------------------------- |
+| `Enter`       | Submit the comment             |
+| `Shift-Enter` | New line within the comment    |
+| `Escape`      | Cancel / close the comment box |
 
 # **Problems** {#problems}
 
@@ -824,35 +969,7 @@ The contextual menu provides an option to reprocess files
 
 If after you've reprocessed a file Giant still fails to render it in any useful way, please contact the engineering team at [digital.investigations@guardian.co.uk](mailto:digital.investigations@guardian.co.uk). It may be in a file format for which we [haven't yet provided a processor](#problem-file-formats). Hopefully we can fix that.
 
-You do have one other last resort, which is to download the file in its original format, but **please think carefully before you do so**. Files you view in Giant are protected, so documents that might have contained malware, web beacons and suchlike cannot do any harm. If you download the original you have no such protection.
-
-## **Download original file** {#download-original}
-
-If you're confident that a document is safe to download, use the Download option in the sidebar when you have the document open. You will be given options for what format to download it in. The most risky is 'Original' ... but it's also usually the most useful.
-
-<div class="doc-figure" style="width: 75%;">
-
-<img src="/docs/images/27_docviewer_download_button.jpg" alt="Download button in document sidebar" width="100%"  />
-
-<div class="doc-caption">
-
-The document sidebar has a Download option
-
-</div>
-
-</div>
-
-<div class="doc-figure" style="width: 50%;">
-
-<img src="/docs/images/28_docviewer_download_original.png" alt="Download dialog with Original format option" width="100%"  />
-
-<div class="doc-caption">
-
-Exercise caution when selecting the 'Original' option for your download format
-
-</div>
-
-</div>
+You do have one other last resort, which is to download the file in its original format, but **please think carefully before you do so**. Files you view in Giant are protected, so documents that might have contained malware, web beacons and suchlike cannot do any harm. If you download the original you have no such protection. See [Downloading documents](#downloading-documents) for details of the available download formats.
 
 ## **Problem file formats** {#problem-file-formats}
 
