@@ -106,6 +106,7 @@ class PreviewSwitcher extends React.Component {
   };
 
   showCombined = () => {
+    // Combined view is only available when the document has been ingested as pages (e.g. PDF).
     if (this.props.totalPages > 0) {
       this.props.setResourceView("combined");
     }
