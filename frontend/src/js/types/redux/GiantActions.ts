@@ -267,13 +267,18 @@ export enum ResourceActionType {
   RESET_RESOURCE = "RESET_RESOURCE",
   SET_COMMENTS = "RESOURCE_SET_COMMENTS",
   SET_SELECTION = "RESOURCE_SET_SELECTION",
+  PENDING_SCROLL_TO_COMMENT = "RESOURCE_PENDING_SCROLL_TO_COMMENT",
 }
 
 export type ResourceAction =
   | { type: ResourceActionType.GET_RECEIVE; resource: Resource }
   | { type: ResourceActionType.RESET_RESOURCE }
   | { type: ResourceActionType.SET_COMMENTS; comments: CommentData[] }
-  | { type: ResourceActionType.SET_SELECTION; selection?: ResourceRange };
+  | { type: ResourceActionType.SET_SELECTION; selection?: ResourceRange }
+  | {
+      type: ResourceActionType.PENDING_SCROLL_TO_COMMENT;
+      commentId: string | null;
+    };
 
 export enum LoadingStateActionType {
   SET_RESOURCE_LOADING_STATE = "SET_RESOURCE_LOADING_STATE",

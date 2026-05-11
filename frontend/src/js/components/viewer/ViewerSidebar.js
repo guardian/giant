@@ -76,6 +76,8 @@ class ViewerSidebar extends React.Component {
               resource={this.props.resource}
               config={this.props.config}
               myPermissions={this.props.myPermissions}
+              currentView={this.props.urlParams && this.props.urlParams.view}
+              currentUser={this.props.currentUser}
             />
           ) : (
             <EmailMetadata
@@ -84,6 +86,8 @@ class ViewerSidebar extends React.Component {
               isAdmin={this.props.myPermissions.includes(
                 "CanPerformAdminOperations",
               )}
+              currentView={this.props.urlParams && this.props.urlParams.view}
+              currentUser={this.props.currentUser}
             />
           )}
         </div>
@@ -101,6 +105,7 @@ function mapStateToProps(state) {
     resource: state.resource,
     config: state.app.config,
     myPermissions: state.users.myPermissions,
+    currentUser: state.auth.token ? state.auth.token.user : undefined,
   };
 }
 

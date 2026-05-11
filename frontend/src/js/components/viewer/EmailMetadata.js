@@ -3,6 +3,7 @@ import PropTypes from "prop-types";
 import { resourcePropType } from "../../types/Resource";
 import { ResourceBreadcrumbs } from "../ResourceBreadcrumbs";
 import ViewerActions from "./ViewerActions";
+import { SidebarComments } from "./SidebarComments";
 
 export class EmailMetadata extends React.Component {
   static propTypes = {
@@ -28,6 +29,12 @@ export class EmailMetadata extends React.Component {
           childClass="sidebar__list-item"
           resource={this.props.resource}
           showParents={true}
+        />
+
+        <SidebarComments
+          resource={this.props.resource}
+          currentView={this.props.currentView}
+          currentUser={this.props.currentUser}
         />
 
         {this.props.resource.children.length > 0 ? (

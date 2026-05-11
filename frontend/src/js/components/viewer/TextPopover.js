@@ -65,10 +65,18 @@ class TextPopoverUnconnected extends React.Component {
         >
           <div className="textpopover-wrapper">
             <div className="textpopover">
-              <button className="btn textpopover__button" onClick={this.search}>
+              <button
+                className="btn textpopover__button"
+                onClick={this.search}
+                title="Search in Giant"
+              >
                 <SearchIcon className="textpopover-icon" />
               </button>
-              <button className="btn" onClick={this.addComment}>
+              <button
+                className="btn"
+                onClick={this.addComment}
+                title="Add comment"
+              >
                 <CommentIcon className="textpopover-icon" />
               </button>
             </div>
