@@ -1,9 +1,18 @@
 import PropTypes from "prop-types";
 
 export type SearchResultDetails =
-  | { mimeTypes: string[]; fileUris: string[]; fileSize?: number }
   | {
+      _type: "document";
+      mimeTypes: string[];
+      displayMimeTypes: string[];
+      fileCategory: string;
+      fileUris: string[];
+      fileSize?: number;
+    }
+  | {
+      _type: "email";
       from: { email: string; displayName?: string };
+      recipients: { email: string; displayName?: string }[];
       subject: string;
       attachmentCount: number;
     };
@@ -19,7 +28,9 @@ export type SearchResult = {
   uri: string;
   highlights: SearchResultHighlight[];
   fieldWithMostHighlights: string | undefined;
+  createdAt?: number;
   details: SearchResultDetails;
+  collections: string[];
 };
 
 export const searchResultPropType = PropTypes.shape({
