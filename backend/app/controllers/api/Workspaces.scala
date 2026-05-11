@@ -436,14 +436,17 @@ class Workspaces(
   }
 
   def deleteBlob(workspaceId: String, blobUri: String) = ApiAction.attempt { req =>
-    annotation.getBlobOwners(blobUri).flatMap { owners =>
-      if (owners.size == 1 && owners.head == req.user.username) {
+    manifest.getCollectionsForBlob(blobUri).flatMap { collections =>
+      // Use the same authorization logic as Blobs.deleteForNonAdmin:
+      // allow if there's only 1 collection and the user can see it,
+      // or if the user created all collections containing this blob
+      if ((collections.size == 1 && collections.head._2.contains(req.user.username)) || collections.forall(c => c._1.createdBy == Some(req.user.username))) {
         logAction(req.user, workspaceId, s"Deleting resource from Giant if no children. Resource uri: $blobUri")
         val deleteResource = new DeleteResource(manifest, index, previewStorage, objectStorage, postgresClient)
         deleteResource.deleteBlobCheckChildren(blobUri)
       } else {
         logAction(req.user, workspaceId, s"Can't delete resource due to file ownership conflict. Resource uri: $blobUri")
-        Attempt.Left[Unit](DeleteNotAllowed("Failed to delete resource"))
+        Attempt.Left[Unit](DeleteNotAllowed("Cannot delete: file is owned by or visible to other users"))
       }
     } map (_ => NoContent)
   }

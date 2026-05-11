@@ -18,6 +18,7 @@ export function DeleteButtonModal({
 }) {
   const [modalOpen, setModalOpen] = useState(false);
   const [deleteStatus, setDeleteStatus] = useState<DeleteStatus>("unconfirmed");
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   if (!resource) {
     return null;
@@ -30,13 +31,15 @@ export function DeleteButtonModal({
     failed: "Failed to delete",
   };
 
+  const defaultFailedMessage =
+    "Failed to delete item. Please contact the administrator to delete this item.";
+
   const modalMessage: Record<DeleteStatus, string> = {
     unconfirmed:
       "Are you sure you want to delete this item? This action will permanently delete the item from giant.",
     deleting: "",
     deleted: "This item has been successfully deleted.",
-    failed:
-      "Failed to delete item. Please contact the administrator to delete this item.",
+    failed: errorMessage || defaultFailedMessage,
   };
 
   const hasChildResources = resource.children.length > 0;
@@ -47,10 +50,12 @@ export function DeleteButtonModal({
   const deleteItem = async () => {
     try {
       setDeleteStatus("deleting");
+      setErrorMessage(null);
       await deleteBlob(resource.uri);
       setDeleteStatus("deleted");
     } catch (e) {
       setDeleteStatus("failed");
+      setErrorMessage(e instanceof Error ? e.message : null);
       console.error("Error deleting item", e);
     }
   };

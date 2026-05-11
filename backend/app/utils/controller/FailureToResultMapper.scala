@@ -111,6 +111,9 @@ object FailureToResultMapper extends Logging {
       case DeleteFailure(msg) =>
         logUserAndMessage(user, s"Delete failed: ${msg}")
         Results.InternalServerError(msg)
+      case HasChildrenFailure(msg) =>
+        logUserAndMessage(user, s"Delete blocked by child resources: $msg")
+        Results.Conflict(msg)
       case WorkspaceCopyFailure(msg) =>
         logUserAndMessage(user, s"Workspace copy failed: ${msg}")
         Results.InternalServerError(msg)

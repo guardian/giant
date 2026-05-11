@@ -9,7 +9,7 @@ import services.manifest.Manifest
 import services.observability.PostgresClient
 import services.previewing.PreviewService
 import utils.{Logging, Timing}
-import utils.attempt.{Attempt, DeleteFailure, IllegalStateFailure}
+import utils.attempt.{Attempt, DeleteFailure, HasChildrenFailure}
 
 import scala.concurrent.ExecutionContext
 
@@ -54,16 +54,17 @@ class DeleteResource( manifest: Manifest, index: Index, previewStorage: ObjectSt
      }
 
      private def deleteResource(uri: Uri): Attempt[Unit] = timeAsync("Total to delete resource", {
-       val successAttempt = Attempt.Right(())
        for {
-         // clean up observability data
-         _ <- Attempt.fromEither(timeSync("Deleting blob observability events", postgresClient.deleteBlobIngestionEventsAndMetadata(uri.value)))
-         // For blobs not processed by the OcrMyPdfExtractor, ocrLanguages will be an empty list
-         ocrLanguages <- timeAsync("Getting langs from neo4j", manifest.getLanguagesProcessedByOcrMyPdf(uri))
-         // Not everything has a preview but S3 returns success for deleting an object that doesn't exist so we're fine
+         // Postgres cleanup, ingest storage delete, and OCR language query are independent — run concurrently
+         ocrLanguages <- {
+           val postgresDelete = Attempt.fromEither(timeSync("Deleting blob observability events", postgresClient.deleteBlobIngestionEventsAndMetadata(uri.value)))
+           val ingestStorageDelete = Attempt.fromEither(timeSync("Ingest storage S3 delete", objectStorage.delete(uri.toStoragePath)))
+           val ocrLanguagesQuery = timeAsync("Getting langs from neo4j", manifest.getLanguagesProcessedByOcrMyPdf(uri))
+           postgresDelete.zipWith(ingestStorageDelete)((_, _) => ()).zipWith(ocrLanguagesQuery)((_, langs) => langs)
+         }
+         // Preview deletion depends on ocrLanguages
          pagePreviewS3Keys <- timeAsync("Get page preview S3 keys", getPagePreviewS3Keys(uri, ocrLanguages))
          _ <- timeAsync("Preview storage S3 delete", deleteFromS3Preview(uri, pagePreviewS3Keys))
-         _ <- Attempt.fromEither(timeSync("Ingest storage S3 delete", objectStorage.delete(uri.toStoragePath)))
          _ <- timeAsync("Delete blob from neo4j", manifest.deleteBlob(uri))
          // We use the index to determine what blobs are in a collection.
          // So we should delete from the index last, so that if any of the above
@@ -72,7 +73,6 @@ class DeleteResource( manifest: Manifest, index: Index, previewStorage: ObjectSt
          // it would think the blob no longer exists even though there may
          // be traces in neo4j or S3).
          _ <- timeAsync("Delete blob from elasticsearch", index.delete(uri.value))
-         _ <- successAttempt
        } yield {
          ()
        }
@@ -82,10 +82,9 @@ class DeleteResource( manifest: Manifest, index: Index, previewStorage: ObjectSt
      def deleteBlobCheckChildren(id: String): Attempt[Unit] = {
        val uri = Uri(id)
 
-       // casting to an option here because Attempt[Resource] and Attempt[Unit] are incompatible - so can't use a for comprehension with toAttempt
        val deleteResult = manifest.getResource(uri).toOption map { resource =>
          if (resource.children.isEmpty) deleteResource(uri)
-         else Attempt.Left[Unit](IllegalStateFailure(s"Cannot delete $uri as it has child nodes"))
+         else Attempt.Left[Unit](HasChildrenFailure(s"Cannot delete as it has ${resource.children.size} child resource(s). Delete or move them first."))
        }
        deleteResult.getOrElse(Attempt.Left(DeleteFailure("Failed to fetch resource")))
      }

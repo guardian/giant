@@ -21,15 +21,15 @@ export function deleteResourceFromWorkspace(
       })
       .catch((error) => {
         onCompleteHandler(false);
-        dispatch(errorRenamingItem(error));
+        dispatch(errorDeletingResource(error));
       });
   };
 }
 
-function errorRenamingItem(error: Error): AppAction {
+function errorDeletingResource(error: Error): AppAction {
   return {
     type: AppActionType.APP_SHOW_ERROR,
-    message: `Failed to delete or remove`,
+    message: `Failed to delete file: ${error.message}`,
     error: error,
   };
 }

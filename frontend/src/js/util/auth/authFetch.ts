@@ -27,11 +27,10 @@ export default function authFetch(
       );
       return response;
     })
-    .then((response) => {
-      // reject if the status wasn't OK
-      // TODO: SAH this should throw an object so that error messages from the server can be sensibly displayed
+    .then(async (response) => {
       if (!response.ok) {
-        throw Error(response.statusText);
+        const body = await response.text();
+        throw new Error(body || response.statusText);
       }
       return response;
     });
