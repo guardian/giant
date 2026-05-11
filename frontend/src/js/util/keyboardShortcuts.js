@@ -4,6 +4,8 @@ export const keyboardShortcuts = {
   previousHighlight: "shift+n",
   nextHighlight: "n",
   focusSearchBox: "s",
-  showText: "shift+x",
-  showPreview: "shift+c",
+  showText: "shift+t",
+  showCombined: "shift+c",
+  showPreview: "shift+p",
+  showOcr: "shift+o",
 };
