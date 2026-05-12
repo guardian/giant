@@ -19,15 +19,17 @@ describe("filterSystemFiles", () => {
     expect([...result.keys()]).toEqual(["report.pdf", "photos/holiday.jpg"]);
   });
 
-  it("removes .DS_Store files", () => {
+  it("removes known junk basenames regardless of case", () => {
     const files = toMap([
       ["folder/.DS_Store", makeFile(".DS_Store")],
-      [".DS_Store", makeFile(".DS_Store")],
-      ["readme.md", makeFile("readme.md")],
+      [".ds_store", makeFile(".ds_store")],
+      ["folder/Thumbs.db", makeFile("Thumbs.db")],
+      ["DESKTOP.INI", makeFile("DESKTOP.INI")],
+      ["keep.txt", makeFile("keep.txt")],
     ]);
 
     const result = filterSystemFiles(files);
-    expect([...result.keys()]).toEqual(["readme.md"]);
+    expect([...result.keys()]).toEqual(["keep.txt"]);
   });
 
   it("removes AppleDouble resource fork files (._prefix)", () => {
@@ -41,50 +43,17 @@ describe("filterSystemFiles", () => {
     expect([...result.keys()]).toEqual(["folder/image.png"]);
   });
 
-  it("removes __MACOSX directory entries", () => {
+  it("removes files under junk directory segments", () => {
     const files = toMap([
       ["__MACOSX/folder/._file.txt", makeFile("._file.txt")],
-      ["__MACOSX/.DS_Store", makeFile(".DS_Store")],
+      [".Spotlight-V100/store.db", makeFile("store.db")],
+      [".Trashes/501/file.txt", makeFile("file.txt")],
+      [".fseventsd/0000001", makeFile("0000001")],
       ["docs/notes.txt", makeFile("notes.txt")],
     ]);
 
     const result = filterSystemFiles(files);
     expect([...result.keys()]).toEqual(["docs/notes.txt"]);
-  });
-
-  it("removes Windows system files", () => {
-    const files = toMap([
-      ["folder/Thumbs.db", makeFile("Thumbs.db")],
-      ["desktop.ini", makeFile("desktop.ini")],
-      ["data.csv", makeFile("data.csv")],
-    ]);
-
-    const result = filterSystemFiles(files);
-    expect([...result.keys()]).toEqual(["data.csv"]);
-  });
-
-  it("removes macOS system directories", () => {
-    const files = toMap([
-      [".Spotlight-V100/store.db", makeFile("store.db")],
-      [".Trashes/501/file.txt", makeFile("file.txt")],
-      [".fseventsd/0000001", makeFile("0000001")],
-      ["real-file.txt", makeFile("real-file.txt")],
-    ]);
-
-    const result = filterSystemFiles(files);
-    expect([...result.keys()]).toEqual(["real-file.txt"]);
-  });
-
-  it("is case-insensitive", () => {
-    const files = toMap([
-      [".ds_store", makeFile(".ds_store")],
-      ["THUMBS.DB", makeFile("THUMBS.DB")],
-      ["__MACOSX/file", makeFile("file")],
-      ["keep.txt", makeFile("keep.txt")],
-    ]);
-
-    const result = filterSystemFiles(files);
-    expect([...result.keys()]).toEqual(["keep.txt"]);
   });
 
   it("returns empty map when all files are junk", () => {

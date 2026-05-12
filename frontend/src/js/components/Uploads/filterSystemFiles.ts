@@ -1,5 +1,5 @@
-// Filenames and path segments commonly produced by macOS and Windows
-// that have no value as uploaded content.
+// Filenames commonly produced by macOS and Windows that have no value
+// as uploaded content.
 const JUNK_BASENAMES = new Set([
   ".ds_store",
   "thumbs.db",
@@ -7,11 +7,10 @@ const JUNK_BASENAMES = new Set([
   ".apdisk",
 ]);
 
-const JUNK_PATH_SEGMENTS = ["__macosx"];
-
-// Directory names that are macOS system artifacts — if any segment
-// of the path matches one of these, the file is junk.
-const JUNK_DIRECTORY_NAMES = new Set([
+// Directory names that are OS system artifacts — if any path segment
+// matches one of these, the file is junk.
+const JUNK_SEGMENTS = new Set([
+  "__macosx",
   ".spotlight-v100",
   ".trashes",
   ".fseventsd",
@@ -24,7 +23,8 @@ function basename(path: string): string {
 }
 
 function isSystemFile(path: string): boolean {
-  const name = basename(path).toLowerCase();
+  const lowerPath = path.toLowerCase();
+  const name = basename(lowerPath);
 
   if (JUNK_BASENAMES.has(name)) {
     return true;
@@ -35,28 +35,9 @@ function isSystemFile(path: string): boolean {
     return true;
   }
 
-  // Paths containing macOS zip artifact directories or system directories
-  const lowerPath = path.toLowerCase();
-  const segments = lowerPath.split("/");
-
-  for (const segment of segments) {
-    if (
-      JUNK_PATH_SEGMENTS.includes(segment) ||
-      JUNK_DIRECTORY_NAMES.has(segment)
-    ) {
-      return true;
-    }
-  }
-
-  return false;
+  return lowerPath.split("/").some((segment) => JUNK_SEGMENTS.has(segment));
 }
 
 export function filterSystemFiles(files: Map<string, File>): Map<string, File> {
-  const filtered = new Map<string, File>();
-  for (const [path, file] of files) {
-    if (!isSystemFile(path)) {
-      filtered.set(path, file);
-    }
-  }
-  return filtered;
+  return new Map([...files].filter(([path]) => !isSystemFile(path)));
 }
