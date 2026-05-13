@@ -170,14 +170,29 @@ class Workspaces(
     for {
       metadata <- annotation.getWorkspaceMetadata(req.user.username, workspaceId)
       relevantRemoteJobs <- remoteIngestStore.getRelevantRemoteIngestJobs(workspaceId)
-      contents <- annotation.getWorkspaceContents(req.user.username, workspaceId, relevantRemoteJobs)
+      contentsAndTimings <- annotation.getWorkspaceContentsWithTimings(req.user.username, workspaceId, relevantRemoteJobs)
     } yield {
+      val (contents, contentsTimings) = contentsAndTimings
       val tAfterFetch = System.nanoTime()
       val json = Json.toJson(Workspace.fromMetadataAndRootNode(metadata, contents))
       val tAfterToJson = System.nanoTime()
       val bytes = Json.toBytes(json)
       val tAfterToBytes = System.nanoTime()
       def ms(a: Long, b: Long): Long = (b - a) / 1000000L
+      val perfHeaders: Seq[(String, String)] = Seq(
+        "X-Perf-Rows" -> contentsTimings.getOrElse("rows", "?"),
+        "X-Perf-Synthesised" -> contentsTimings.getOrElse("synthesised", "?"),
+        "X-Perf-Submit-Ms" -> contentsTimings.getOrElse("submit_ms", "?"),
+        "X-Perf-Drain-Ms" -> contentsTimings.getOrElse("drain_ms", "?"),
+        "X-Perf-Parse-Ms" -> contentsTimings.getOrElse("parse_ms", "?"),
+        "X-Perf-Assemble-Ms" -> contentsTimings.getOrElse("assemble_ms", "?"),
+        "X-Perf-Contents-Total-Ms" -> contentsTimings.getOrElse("contents_total_ms", "?"),
+        "X-Perf-Fetch-Ms" -> ms(tStart, tAfterFetch).toString,
+        "X-Perf-ToJson-Ms" -> ms(tAfterFetch, tAfterToJson).toString,
+        "X-Perf-ToBytes-Ms" -> ms(tAfterToJson, tAfterToBytes).toString,
+        "X-Perf-Bytes" -> bytes.length.toString,
+        "X-Perf-Total-Ms" -> ms(tStart, tAfterToBytes).toString
+      )
       logger.info(
         s"WORKSPACE_PERF_CONTROLLER workspaceId=$workspaceId " +
           s"fetch_ms=${ms(tStart, tAfterFetch)} " +
@@ -186,7 +201,7 @@ class Workspaces(
           s"bytes=${bytes.length} " +
           s"total_ms=${ms(tStart, tAfterToBytes)}"
       )
-      Ok(bytes).as("application/json")
+      Ok(bytes).as("application/json").withHeaders(perfHeaders: _*)
     }
   }
 

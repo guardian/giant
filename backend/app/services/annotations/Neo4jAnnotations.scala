@@ -97,7 +97,10 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
     }
   }
 
-  override def getWorkspaceContents(currentUser: String, id: String, remoteIngestsToMixin: List[RemoteIngest] = List.empty): Attempt[TreeEntry[WorkspaceEntry]] = attemptTransaction { tx =>
+  override def getWorkspaceContents(currentUser: String, id: String, remoteIngestsToMixin: List[RemoteIngest] = List.empty): Attempt[TreeEntry[WorkspaceEntry]] =
+    getWorkspaceContentsWithTimings(currentUser, id, remoteIngestsToMixin).map(_._1)
+
+  override def getWorkspaceContentsWithTimings(currentUser: String, id: String, remoteIngestsToMixin: List[RemoteIngest] = List.empty): Attempt[(TreeEntry[WorkspaceEntry], Map[String, String])] = attemptTransaction { tx =>
     val t0 = System.nanoTime()
     tx.run(
       """
@@ -205,13 +208,22 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
       val t4 = System.nanoTime()
 
       def ms(a: Long, b: Long): Long = (b - a) / 1000000L
+      val timings: Map[String, String] = Map(
+        "rows" -> realEntries.size.toString,
+        "synthesised" -> synthesisedEntries.size.toString,
+        "submit_ms" -> ms(t0, t1).toString,
+        "drain_ms" -> ms(t1, t2).toString,
+        "parse_ms" -> ms(t2, t3).toString,
+        "assemble_ms" -> ms(t3, t4).toString,
+        "contents_total_ms" -> ms(t0, t4).toString
+      )
       logger.info(
         s"WORKSPACE_PERF workspaceId=$id rows=${realEntries.size} synthesised=${synthesisedEntries.size} " +
           s"submit_ms=${ms(t0, t1)} drain_ms=${ms(t1, t2)} parse_ms=${ms(t2, t3)} assemble_ms=${ms(t3, t4)} " +
           s"total_ms=${ms(t0, t4)}"
       )
 
-      result
+      (result, timings)
     }
   }
 
