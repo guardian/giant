@@ -166,12 +166,27 @@ class Workspaces(
   }
 
   def get(workspaceId: String) = ApiAction.attempt { req: UserIdentityRequest[_] =>
+    val tStart = System.nanoTime()
     for {
       metadata <- annotation.getWorkspaceMetadata(req.user.username, workspaceId)
       relevantRemoteJobs <- remoteIngestStore.getRelevantRemoteIngestJobs(workspaceId)
       contents <- annotation.getWorkspaceContents(req.user.username, workspaceId, relevantRemoteJobs)
     } yield {
-      Ok(Json.toJson(Workspace.fromMetadataAndRootNode(metadata, contents)))
+      val tAfterFetch = System.nanoTime()
+      val json = Json.toJson(Workspace.fromMetadataAndRootNode(metadata, contents))
+      val tAfterToJson = System.nanoTime()
+      val bytes = Json.toBytes(json)
+      val tAfterToBytes = System.nanoTime()
+      def ms(a: Long, b: Long): Long = (b - a) / 1000000L
+      logger.info(
+        s"WORKSPACE_PERF_CONTROLLER workspaceId=$workspaceId " +
+          s"fetch_ms=${ms(tStart, tAfterFetch)} " +
+          s"toJson_ms=${ms(tAfterFetch, tAfterToJson)} " +
+          s"toBytes_ms=${ms(tAfterToJson, tAfterToBytes)} " +
+          s"bytes=${bytes.length} " +
+          s"total_ms=${ms(tStart, tAfterToBytes)}"
+      )
+      Ok(bytes).as("application/json")
     }
   }
 

@@ -98,6 +98,7 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
   }
 
   override def getWorkspaceContents(currentUser: String, id: String, remoteIngestsToMixin: List[RemoteIngest] = List.empty): Attempt[TreeEntry[WorkspaceEntry]] = attemptTransaction { tx =>
+    val t0 = System.nanoTime()
     tx.run(
       """
         |MATCH (workspace: Workspace { id: $id })
@@ -120,7 +121,9 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
         "id", id
       )
     ).map { summary =>
+      val t1 = System.nanoTime()
       val rows = summary.list().asScala
+      val t2 = System.nanoTime()
 
       val realEntries = rows.map { r =>
         val node = r.get("node")
@@ -133,6 +136,7 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
 
         WorkspaceEntry.fromNeo4jValue(node, nodeCreator, maybeParentNodeId, maybeCapturedFromURL, numberOfTodos, note, hasFailures)
       }.toList
+      val t3 = System.nanoTime()
 
       val synthesisedEntries = remoteIngestsToMixin.flatMap(_.asSyntheticEntries(
         (parentFolderId: String, name: String) => {
@@ -197,7 +201,17 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
       }
 
       val root = entries.find(_.data.maybeParentId.isEmpty).get
-      buildNode(root)
+      val result = buildNode(root)
+      val t4 = System.nanoTime()
+
+      def ms(a: Long, b: Long): Long = (b - a) / 1000000L
+      logger.info(
+        s"WORKSPACE_PERF workspaceId=$id rows=${realEntries.size} synthesised=${synthesisedEntries.size} " +
+          s"submit_ms=${ms(t0, t1)} drain_ms=${ms(t1, t2)} parse_ms=${ms(t2, t3)} assemble_ms=${ms(t3, t4)} " +
+          s"total_ms=${ms(t0, t4)}"
+      )
+
+      result
     }
   }
 
