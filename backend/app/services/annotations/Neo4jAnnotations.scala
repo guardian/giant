@@ -227,6 +227,142 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
     }
   }
 
+  override def getWorkspaceContentsPerfTest(currentUser: String, id: String, stripped: Boolean, parallel: Boolean): Attempt[(TreeEntry[WorkspaceEntry], Map[String, String])] = attemptTransaction { tx =>
+    val t0 = System.nanoTime()
+    val baseQuery =
+      if (stripped) {
+        """
+          |MATCH (workspace: Workspace { id: $id })
+          |WHERE (:User { username: $currentUser })-[:FOLLOWING|OWNS]->(workspace) OR workspace.isPublic
+          |
+          |OPTIONAL MATCH (workspace)<-[:PART_OF]-(node :WorkspaceNode)<-[:CREATED]-(nodeCreator :User)
+          |
+          |OPTIONAL MATCH (node)-[:PARENT]->(parentNode :WorkspaceNode)
+          |
+          |OPTIONAL MATCH (node)-[:FROM]->(remoteIngest: RemoteIngest)
+          |
+          |RETURN node, nodeCreator, parentNode.id, remoteIngest.url
+        """.stripMargin
+      } else {
+        """
+          |MATCH (workspace: Workspace { id: $id })
+          |WHERE (:User { username: $currentUser })-[:FOLLOWING|OWNS]->(workspace) OR workspace.isPublic
+          |
+          |OPTIONAL MATCH (workspace)<-[:PART_OF]-(node :WorkspaceNode)<-[:CREATED]-(nodeCreator :User)
+          |
+          |OPTIONAL MATCH (node)-[:PARENT]->(parentNode :WorkspaceNode)
+          |
+          |OPTIONAL MATCH (node)-[:FROM]->(remoteIngest: RemoteIngest)
+          |
+          |OPTIONAL MATCH (:Resource {uri: node.uri})<-[todo:TODO|PROCESSING_EXTERNALLY]-(:Extractor)
+          |RETURN node, nodeCreator, parentNode.id, remoteIngest.url,
+          |	count(todo) AS numberOfTodos,
+          |	collect(todo)[0].note as note,
+          |	EXISTS { (:Resource {uri: node.uri})<-[:EXTRACTION_FAILURE]-(:Extractor) } AS hasFailures
+        """.stripMargin
+      }
+    val finalQuery = if (parallel) "CYPHER runtime = parallel\n" + baseQuery else baseQuery
+    tx.run(
+      finalQuery,
+      parameters(
+        "currentUser", currentUser,
+        "id", id
+      )
+    ).map { summary =>
+      val t1 = System.nanoTime()
+      val rows = summary.list().asScala
+      val t2 = System.nanoTime()
+
+      val realEntries = rows.map { r =>
+        val node = r.get("node")
+        val nodeCreator = DBUser.fromNeo4jValue(r.get("nodeCreator")).toPartial
+        val maybeParentNodeId = r.get("parentNode.id").optionally(_.asString())
+        val maybeCapturedFromURL = r.get("remoteIngest.url").optionally(_.asString())
+        val numberOfTodos = if (stripped) 0 else r.get("numberOfTodos").asInt()
+        val note = if (stripped) None else r.get("note").optionally(_.asString())
+        val hasFailures = if (stripped) false else r.get("hasFailures").asBoolean()
+
+        WorkspaceEntry.fromNeo4jValue(node, nodeCreator, maybeParentNodeId, maybeCapturedFromURL, numberOfTodos, note, hasFailures)
+      }.toList
+      val t3 = System.nanoTime()
+
+      val childrenByParent: Map[String, List[TreeEntry[WorkspaceEntry]]] =
+        realEntries.groupBy(_.data.maybeParentId.getOrElse("noParent"))
+
+      def buildNode(currentEntry: TreeEntry[WorkspaceEntry]): TreeEntry[WorkspaceEntry] = {
+        currentEntry match {
+          case leaf: TreeLeaf[WorkspaceEntry] => leaf
+          case node: TreeNode[WorkspaceEntry] => {
+            val children = childrenByParent.getOrElse(node.id, List.empty).map(buildNode)
+            node.copy(
+              children = children,
+              data = node.data match {
+                case wNode: WorkspaceNode => wNode.copy(
+                  descendantsLeafCount = children.map {
+                    case TreeNode(_, _, childNode: WorkspaceNode, _) => childNode.descendantsLeafCount
+                    case _: TreeLeaf[WorkspaceEntry] => 1
+                    case _ => 0
+                  }.sum,
+                  descendantsNodeCount = children.map {
+                    case TreeNode(_, _, childNode: WorkspaceNode, _) => 1 + childNode.descendantsNodeCount
+                    case _: TreeLeaf[WorkspaceEntry] => 0
+                    case _ => 0
+                  }.sum,
+                  descendantsProcessingTaskCount = children.map {
+                    case TreeNode(_, _, childNode: WorkspaceNode, _) => childNode.descendantsProcessingTaskCount
+                    case leaf: TreeLeaf[WorkspaceEntry] => leaf.data match {
+                      case wl: WorkspaceLeaf => wl.processingStage match {
+                        case ProcessingStage.Processing(tasksRemaining, _) => tasksRemaining
+                        case _ => 0
+                      }
+                      case _ => 0
+                    }
+                    case _ => 0
+                  }.sum,
+                  descendantsFailedCount = children.map {
+                    case TreeNode(_, _, childNode: WorkspaceNode, _) => childNode.descendantsFailedCount
+                    case leaf: TreeLeaf[WorkspaceEntry] => leaf.data match {
+                      case wl: WorkspaceLeaf => wl.processingStage match {
+                        case ProcessingStage.Failed => 1
+                        case _ => 0
+                      }
+                      case _ => 0
+                    }
+                    case _ => 0
+                  }.sum
+                )
+                case _ => node.data
+              },
+            )
+          }
+        }
+      }
+
+      val root = realEntries.find(_.data.maybeParentId.isEmpty).get
+      val result = buildNode(root)
+      val t4 = System.nanoTime()
+
+      def ms(a: Long, b: Long): Long = (b - a) / 1000000L
+      val timings: Map[String, String] = Map(
+        "rows" -> realEntries.size.toString,
+        "stripped" -> stripped.toString,
+        "parallel" -> parallel.toString,
+        "submit_ms" -> ms(t0, t1).toString,
+        "drain_ms" -> ms(t1, t2).toString,
+        "parse_ms" -> ms(t2, t3).toString,
+        "assemble_ms" -> ms(t3, t4).toString,
+        "contents_total_ms" -> ms(t0, t4).toString
+      )
+      logger.info(
+        s"WORKSPACE_PERF_TEST workspaceId=$id stripped=$stripped parallel=$parallel rows=${realEntries.size} " +
+          s"submit_ms=${ms(t0, t1)} drain_ms=${ms(t1, t2)} parse_ms=${ms(t2, t3)} assemble_ms=${ms(t3, t4)} " +
+          s"total_ms=${ms(t0, t4)}"
+      )
+
+      (result, timings)
+    }
+  }
+
   override def insertWorkspace(username: String, id: String, name: String, isPublic: Boolean, tagColor: String): Attempt[Unit] = attemptTransaction { tx =>
     tx.run(
       """

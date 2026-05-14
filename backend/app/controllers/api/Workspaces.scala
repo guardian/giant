@@ -205,6 +205,46 @@ class Workspaces(
     }
   }
 
+  def perfTest(workspaceId: String, stripped: Boolean, parallel: Boolean) = ApiAction.attempt { req: UserIdentityRequest[_] =>
+    val tStart = System.nanoTime()
+    for {
+      metadata <- annotation.getWorkspaceMetadata(req.user.username, workspaceId)
+      contentsAndTimings <- annotation.getWorkspaceContentsPerfTest(req.user.username, workspaceId, stripped, parallel)
+    } yield {
+      val (contents, contentsTimings) = contentsAndTimings
+      val tAfterFetch = System.nanoTime()
+      val json = Json.toJson(Workspace.fromMetadataAndRootNode(metadata, contents))
+      val tAfterToJson = System.nanoTime()
+      val bytes = Json.toBytes(json)
+      val tAfterToBytes = System.nanoTime()
+      def ms(a: Long, b: Long): Long = (b - a) / 1000000L
+      val perfHeaders: Seq[(String, String)] = Seq(
+        "X-Perf-Variant-Stripped" -> stripped.toString,
+        "X-Perf-Variant-Parallel" -> parallel.toString,
+        "X-Perf-Rows" -> contentsTimings.getOrElse("rows", "?"),
+        "X-Perf-Submit-Ms" -> contentsTimings.getOrElse("submit_ms", "?"),
+        "X-Perf-Drain-Ms" -> contentsTimings.getOrElse("drain_ms", "?"),
+        "X-Perf-Parse-Ms" -> contentsTimings.getOrElse("parse_ms", "?"),
+        "X-Perf-Assemble-Ms" -> contentsTimings.getOrElse("assemble_ms", "?"),
+        "X-Perf-Contents-Total-Ms" -> contentsTimings.getOrElse("contents_total_ms", "?"),
+        "X-Perf-Fetch-Ms" -> ms(tStart, tAfterFetch).toString,
+        "X-Perf-ToJson-Ms" -> ms(tAfterFetch, tAfterToJson).toString,
+        "X-Perf-ToBytes-Ms" -> ms(tAfterToJson, tAfterToBytes).toString,
+        "X-Perf-Bytes" -> bytes.length.toString,
+        "X-Perf-Total-Ms" -> ms(tStart, tAfterToBytes).toString
+      )
+      logger.info(
+        s"WORKSPACE_PERF_TEST_CONTROLLER workspaceId=$workspaceId stripped=$stripped parallel=$parallel " +
+          s"fetch_ms=${ms(tStart, tAfterFetch)} " +
+          s"toJson_ms=${ms(tAfterFetch, tAfterToJson)} " +
+          s"toBytes_ms=${ms(tAfterToJson, tAfterToBytes)} " +
+          s"bytes=${bytes.length} " +
+          s"total_ms=${ms(tStart, tAfterToBytes)}"
+      )
+      Ok(bytes).as("application/json").withHeaders(perfHeaders: _*)
+    }
+  }
+
   def getContents(workspaceId: String) = ApiAction.attempt { req =>
     annotation.getWorkspaceContents(req.user.username, workspaceId)
       .map(workspace => Ok(Json.toJson(workspace)))

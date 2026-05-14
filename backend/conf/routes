@@ -63,6 +63,7 @@ PUT           /api/workspaces/:workspaceId/followers                        cont
 PUT           /api/workspaces/:workspaceId/isPublic                         controllers.api.Workspaces.updateWorkspaceIsPublic(workspaceId: String)
 PUT           /api/workspaces/:workspaceId/name                             controllers.api.Workspaces.updateWorkspaceName(workspaceId: String)
 GET           /api/workspaces/:workspaceId                                  controllers.api.Workspaces.get(workspaceId: String)
+GET           /api/workspaces/:workspaceId/perf-test                        controllers.api.Workspaces.perfTest(workspaceId: String, stripped: Boolean ?= false, parallel: Boolean ?= false)
 GET           /api/workspaces/:workspaceId/nodes                            controllers.api.Workspaces.getContents(workspaceId: String)
 GET           /api/workspaces/:workspaceId/totalWordCount                   controllers.api.Workspaces.getTotalWordCount(workspaceId: String)
 POST          /api/workspaces/:workspaceId/text                             controllers.api.Workspaces.getText(workspaceId: String)
