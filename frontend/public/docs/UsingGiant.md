@@ -303,7 +303,7 @@ If you arrived at a document from a search, you can move directly to the next or
 
 When you open an email, the viewer shows two tabs at the top: **Summary** and **Thread**.
 
-- **Summary** displays the email on its own — headers (To, From, Subject, Date) and body. You can click on a email address or recipient name to search it in Giant. 
+- **Summary** displays the email on its own — headers (To, From, Subject, Date) and body. You can click on a email address or recipient name to search it in Giant.
 - **Thread** groups the email with the rest of its conversation, so you can read the full exchange in context without having to open each message individually.
 
 <div class="doc-figure" style="width: 100%;">
@@ -374,7 +374,7 @@ If Giant has generated transcripts in more than one language (for example an ori
 
 Giant lets you attach comments to specific passages of text within a document, or to the document as a while. Comments are visible to everyone who has access to that document, making them useful for leaving notes for colleagues or flagging points of interest.
 
-All comments for a document are shown in the sidebar. Comments on specific text passages can be added in **Text**, **Email** and **OCR** view modes. They are anchored to the view in which they were created — so a comment made on the OCR French translation will only appear next to the highlight on that page. If you see a comment for a text selection in the sidebar, you can click on it to go to that highlight in the correct view mode. 
+All comments for a document are shown in the sidebar. Comments on specific text passages can be added in **Text**, **Email** and **OCR** view modes. They are anchored to the view in which they were created — so a comment made on the OCR French translation will only appear next to the highlight on that page. If you see a comment for a text selection in the sidebar, you can click on it to go to that highlight in the correct view mode.
 
 ### **Adding a comment** {#adding-a-comment}
 
