@@ -55,19 +55,29 @@ class ExternalTranscriptionWorker(manifest: WorkerManifest, sqsClient: SqsClient
   }
 
   private def handleMessage(message: Message, messageAttributes: TranscriptionMessageAttribute, completed: Int) = {
-    val result = for {
-      transcriptionOutput <- parseMessage(message)
-      transcripts <- getTranscripts(transcriptionOutput)
-      _ <- addDocumentTranscription(transcriptionOutput, transcripts)
-      _ <- markExternalExtractorAsComplete(transcriptionOutput.id, EXTRACTOR_NAME)
-    } yield {
+    val result = parseMessage(message).flatMap { parsedMessage =>
       sqsClient.deleteMessage(
         DeleteMessageRequest.builder()
           .queueUrl(transcribeConfig.transcriptionOutputQueueUrl)
           .receiptHandle(message.receiptHandle())
           .build()
       )
-      logger.debug(s"deleted message for ${transcriptionOutput.id}")
+      parsedMessage match {
+        case output: TranscriptionOutputSuccess => for {
+          transcripts <- getTranscripts(output)
+          _ <- addDocumentTranscription(output, transcripts)
+          _ <- markExternalExtractorAsComplete(output.id, EXTRACTOR_NAME)
+        } yield {
+          logger.info(s"Transcript job ${output.id} processed successfully")
+        }
+        case output: TranscriptionOutputFailure =>
+          if (output.noAudioDetected) {
+            logger.info(s"No audio detected in job ${output.id}")
+            markExternalExtractorAsComplete(output.id, EXTRACTOR_NAME)
+          } else {
+            Left(ExternalTranscriptionOutputFailure.apply(s"External transcription service failed to transcribe the file ${output.originalFilename}"))
+          }
+      }
     }
 
     result match {
@@ -143,7 +153,7 @@ class ExternalTranscriptionWorker(manifest: WorkerManifest, sqsClient: SqsClient
     }
   }
 
-  private def parseMessage(message: Message): Either[Failure, TranscriptionOutputSuccess] = {
+  private def parseMessage(message: Message): Either[Failure, TranscriptionOutput] = {
     val json = Json.parse(message.body())
 
     Json.fromJson[TranscriptionOutput](json) match {
@@ -151,7 +161,7 @@ class ExternalTranscriptionWorker(manifest: WorkerManifest, sqsClient: SqsClient
         Right(output)
 
       case JsSuccess(output: TranscriptionOutputFailure, _) =>
-        Left(ExternalTranscriptionOutputFailure.apply(s"External transcription service failed to transcribe the file ${output.originalFilename}"))
+        Right(output)
 
       case JsError(errors) =>
         logger.error(s"Failed to parse transcription output message: ${message.body()}, errors: ${errors.mkString(", ")}")
