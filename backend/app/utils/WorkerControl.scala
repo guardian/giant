@@ -236,8 +236,6 @@ class AWSWorkerControl(config: WorkerConfig, discoveryConfig: AWSDiscoveryConfig
 
 object AWSWorkerControl {
 
-  val MINIMUM_TASKS_PER_WORKER = 2
-
   case class AsgState(
     desiredNumberOfWorkers: Int,
     lastEventTime: Long,
@@ -270,16 +268,15 @@ object AWSWorkerControl {
     val manuallyScaledDown = state.workerAsg.desiredNumberOfWorkers == 0
 
     val outstandingWork = state.outstandingFromIngestStore + state.outstandingFromTodos
-    val currentWorkers = state.workerAsg.desiredNumberOfWorkers + state.spotWorkerAsg.desiredNumberOfWorkers
-    val scaleThreshold = MINIMUM_TASKS_PER_WORKER * currentWorkers
+    val currentWorkerCount = state.workerAsg.desiredNumberOfWorkers + state.spotWorkerAsg.desiredNumberOfWorkers
 
     if(inCooldown || manuallyScaledDown) {
       None
       // we scale to the maximum size of the spot ASG (capacity might end up being met in the on demand ASG if no spot capacity is available)
-    } else if(outstandingWork > scaleThreshold * currentWorkers && state.spotWorkerAsg.desiredNumberOfWorkers < state.spotWorkerAsg.maximumNumberOfWorkers) {
+    } else if(outstandingWork > currentWorkerCount && state.spotWorkerAsg.desiredNumberOfWorkers < state.spotWorkerAsg.maximumNumberOfWorkers) {
       Some(AddNewWorker)
       // when scaling down automatically we check both asgs for excess capacity
-    } else if(outstandingWork <  scaleThreshold * currentWorkers && state.inProgress == 0 && state.workerAsg.desiredNumberOfWorkers + state.spotWorkerAsg.desiredNumberOfWorkers > state.workerAsg.minimumNumberOfWorkers + state.spotWorkerAsg.minimumNumberOfWorkers) {
+    } else if(outstandingWork <  currentWorkerCount && state.inProgress == 0 && state.workerAsg.desiredNumberOfWorkers + state.spotWorkerAsg.desiredNumberOfWorkers > state.workerAsg.minimumNumberOfWorkers + state.spotWorkerAsg.minimumNumberOfWorkers) {
       Some(RemoveWorker)
     } else {
       None
