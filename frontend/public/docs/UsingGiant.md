@@ -347,7 +347,7 @@ An image opened from a search result. The user switches to 'Preview' view mode
 
 In a similar fashion to the way Giant extracts text from images, it transcribes and translates spoken content in audio and video files. Again, these searchable transcription 'view modes' will be what you see when you open those files, because that 'view' is the searchable one. If you want to see or hear the original media file, switch to Preview mode.
 
-<div class="doc-figure" style="width: 80%80%; max-width: 900px">
+<div class="doc-figure" style="width: 80%; max-width: 900px">
 
 <video src="/docs/images/06_1_docviewer_video_switch_to_preview.mp4" autoplay loop muted playsinline width="100%" title="Animated demo of switching a video document from transcript text to Preview mode"></video>
 
@@ -943,11 +943,17 @@ Giant supports keyboard shortcuts to speed up common actions. They are also note
 
 ## **Global**
 
+<div style="max-width: 700px;">
+
 | Shortcut | Action               |
 | :------- | :------------------- |
 | `s`      | Focus the search box |
 
+</div>
+
 ## **Document viewer**
+
+<div style="max-width: 700px;">
 
 | Shortcut           | Action                                         |
 | :----------------- | :--------------------------------------------- |
@@ -959,15 +965,21 @@ Giant supports keyboard shortcuts to speed up common actions. They are also note
 | `Shift-X`          | Switch to Text (OCR) view mode                 |
 | `Shift-C`          | Switch to Preview view mode                    |
 
+</div>
+
 ## **Comment box**
 
 These shortcuts apply while typing in the [comment box](#adding-a-comment).
+
+<div style="max-width: 700px;">
 
 | Shortcut      | Action                         |
 | :------------ | :----------------------------- |
 | `Enter`       | Submit the comment             |
 | `Shift-Enter` | New line within the comment    |
 | `Escape`      | Cancel / close the comment box |
+
+</div>
 
 # **Problems** {#problems}
 
