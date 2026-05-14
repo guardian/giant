@@ -201,6 +201,10 @@ As you can see in the illustration above, some documents will show multiple hits
 1. Giant performs optical character recognition (OCR) on many document types, sometimes in multiple languages. This means that for such documents there is a searchable index of not only the regular text in the document but also of each set of 'OCR' text extracted from the documents. Sometimes this will take you to the same content as the text search hit; sometimes to something that wasn't originally searchable (such as some words in an image).
 2. Some documents will contain multiple instances of some of the terms you searched for, so up to five matches are shown per document.
 
+## **Search results timeline** {#search-results-timeline}
+
+Above the results list, Giant displays a bar chart showing how the matching documents are distributed over time — one bar per month. This is useful for spotting patterns (a surge of documents around a particular date, for example) and for quickly narrowing your results to a specific period. Click any bar to add that month as a date-range filter, or drag across several bars to select a wider window.
+
 ## **Search URLs** {#search-urls}
 
 Almost everything you do in Giant causes the URL in the location bar to be updated. So if you perform an interesting search and want to save it, or share it with a colleague, just copy that URL and store it/send it/whatever.
@@ -223,7 +227,7 @@ The metadata shown in the sidebar is clickable: hovering over a metadata value r
 Document views come in several different flavours, depending on file format:
 
 - **Text based documents** such as PDFs and MS Word documents are displayed in a single view, with the OCR'd text overlaid on top of the original document. Search term matches will be highlighted in the document itself. You can also search for other terms within the documents and these will be highlighted in a different colour to the original search term matches. We call this flavour the **combined view mode** because the extracted text and the original file are presented in the same view.
-- **Emails** are displayed in a form that resembles an email, showing the To:, From:, Subject: fields etc.
+- **Emails** are displayed in a form that resembles an email, showing the To:, From:, Subject: fields etc. The email viewer has two tabs: **Summary**, which shows the individual email on its own, and **Thread**, which shows the full conversation it belongs to.
 - **Spreadsheets** are displayed as a searchable table. At the time of writing this is limited in utility.
 - **Other document types** - raw text, images, audio, video, etc (plus any files Giant didn't convert into the above flavour) - have multiple 'view modes', with the searchable text displayed in a different view to the original media. Documents are initially opened in the extracted text mode to allow you to see search results (and perform further searches in the document)
 
@@ -295,6 +299,25 @@ Once highlights are shown, use `n` to jump to the next one and `Shift-N` to go t
 
 If you arrived at a document from a search, you can move directly to the next or previous result in your search list with `Shift-→` and `Shift-←`, without returning to the search page.
 
+## **Email documents** {#email-documents}
+
+When you open an email, the viewer shows two tabs at the top: **Summary** and **Thread**.
+
+- **Summary** displays the email on its own — headers (To, From, Subject, Date) and body. You can click on a email address or recipient name to search it in Giant. 
+- **Thread** groups the email with the rest of its conversation, so you can read the full exchange in context without having to open each message individually.
+
+<div class="doc-figure" style="width: 80%;">
+
+<video src="/docs/images/03_2_docviewer_email_tabs.mp4" autoplay loop muted playsinline width="100%" title="Switching between the Summary and Thread tabs in the email viewer"></video>
+
+<div class="doc-caption">
+
+Switching between the Summary and Thread tabs in the email viewer
+
+</div>
+
+</div>
+
 ## **Documents with multiple view modes** {#multi-view-documents}
 
 Giant can process other file formats such as emails, images, video files, audio files. For many of these when you open the file you'll be given the option to view it in different ways. You can switch between view modes using the buttons at the bottom of the document viewer, or with keyboard shortcuts:
@@ -335,6 +358,10 @@ Video and audio files initially open with the transcript text. Click Preview vie
 </div>
 
 </div>
+
+The transcript is interactive: clicking on any line will seek the audio or video player directly to that point in the recording, so you can quickly jump to passages of interest without scrubbing through the file manually.
+
+If Giant has generated transcripts in more than one language (for example an original-language transcript plus an English translation), a language selector will appear above the transcript. Use it to switch between available languages.
 
 <div style="width: 50%;">
 
