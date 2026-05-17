@@ -1,9 +1,15 @@
 /**
  * Human-friendly "File Type" categories for the filter chip.
  *
- * Each category maps a short key to a user-visible label and the set of
- * concrete MIME types it covers.  The MIME lists are drawn from
- * fileTypeIcon.js groupings and MimeDetails.scala.
+ * Categories align with backend `MimeDetails.categoryFor` and with the
+ * frontend `getDocumentIconInfo` in util/fileTypeIcon — so the chips a
+ * user picks here match the icons shown in the search results. The
+ * canonical mapping lives in `backend/app/utils/MimeDetails.scala`.
+ * The MIME lists below are a curated frontend subset for expanding a
+ * chip value (e.g. "spreadsheet") into the concrete MIMEs the backend
+ * search API filters on. Adding finer-grained buckets (e.g. splitting
+ * "document" into "Word" / "Plain Text") should be done by extending
+ * MimeDetails first; this file then catches up.
  *
  * Serialisation contract:
  *   UI chip  →  { name: "File Type", values: ["pdf","spreadsheet"] }
@@ -26,13 +32,16 @@ export const FILE_TYPE_CATEGORIES: FileTypeCategory[] = [
     mimes: ["application/pdf"],
   },
   {
-    value: "word",
-    label: "Word Documents",
+    value: "document",
+    label: "Documents",
     mimes: [
       "application/msword",
       "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
       "application/vnd.ms-word.document.macroenabled.12",
       "application/vnd.openxmlformats-officedocument.wordprocessingml.template",
+      "application/vnd.oasis.opendocument.text",
+      "application/rtf",
+      "text/plain",
     ],
   },
   {
@@ -113,9 +122,19 @@ export const FILE_TYPE_CATEGORIES: FileTypeCategory[] = [
     ],
   },
   {
-    value: "text",
-    label: "Plain Text",
-    mimes: ["text/plain"],
+    value: "technical",
+    label: "Technical",
+    mimes: [
+      "application/javascript",
+      "application/x-sh",
+      "application/x-dosexec",
+      "application/x-msdownload",
+      "application/x-sharedlib",
+      "application/java-vm",
+      "application/x-font-ttf",
+      "application/x-font-otf",
+      "application/x-sqlite3",
+    ],
   },
 ];
 
