@@ -17,14 +17,14 @@ export function updateSearchText(text: string): UrlParamsAction {
   };
 }
 
-export function updatePage(page: number): UrlParamsAction {
+export function updatePage(page: string): UrlParamsAction {
   return {
     type: UrlParamsActionType.SEARCHQUERY_PAGE_UPDATE,
     page: page,
   };
 }
 
-export function updatePageSize(pageSize: number): UrlParamsAction {
+export function updatePageSize(pageSize: string): UrlParamsAction {
   return {
     type: UrlParamsActionType.SEARCHQUERY_PAGE_SIZE_UPDATE,
     pageSize: pageSize,

@@ -42,7 +42,7 @@ export interface UrlParamsState {
   view?: string;
   details?: object;
   page?: string;
-  pageSize?: number;
+  pageSize?: string;
   sortBy?: string;
   highlight?: string;
   currentWorkspace?: string;
