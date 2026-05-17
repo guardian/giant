@@ -73,6 +73,7 @@ export type SearchResults = {
   hits: number;
   took: number;
   page: number;
+  pageSize: number;
   pages: number;
   results: SearchResult[];
 };
@@ -82,6 +83,7 @@ export const searchResultsPropType = PropTypes.shape({
   hits: PropTypes.number.isRequired,
   took: PropTypes.number.isRequired,
   page: PropTypes.number.isRequired,
+  pageSize: PropTypes.number.isRequired,
   pages: PropTypes.number.isRequired,
   results: PropTypes.arrayOf(searchResultPropType).isRequired,
 });
