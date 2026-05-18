@@ -18,8 +18,7 @@ const JUNK_SEGMENTS = new Set([
 ]);
 
 function basename(path: string): string {
-  const lastSlash = path.lastIndexOf("/");
-  return lastSlash === -1 ? path : path.substring(lastSlash + 1);
+  return path.split("/").reverse()[0];
 }
 
 function isSystemFile(path: string): boolean {
