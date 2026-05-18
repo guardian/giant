@@ -102,7 +102,9 @@ class Search extends React.Component<SearchProps, SearchState> {
     }
     this.props.updateSearchText(text);
 
-    this.triggerSearch(this.props.urlParams);
+    // Use the freshly-typed text rather than this.props.urlParams.q, which
+    // is the pre-dispatch value and would lag by one Enter press.
+    this.triggerSearch({ ...this.props.urlParams, q: text });
   }, 500);
 
   updateVisibleText = (text: string) => {
