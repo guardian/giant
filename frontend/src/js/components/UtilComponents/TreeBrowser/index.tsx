@@ -22,6 +22,7 @@ import {
   INTERNAL_DRAG_MIME_TYPE,
   readFilesFromDragEvent,
 } from "../../Uploads/dropZoneUtils";
+import { filterSystemFiles } from "../../Uploads/filterSystemFiles";
 
 type Props<T> = {
   onSelectLeaf: (leaf: TreeLeaf<T>) => void;
@@ -192,8 +193,9 @@ export default class TreeBrowser<T> extends React.Component<Props<T>, State> {
 
       readFilesFromDragEvent(e)
         .then((files) => {
-          if (files.size > 0 && this.props.onDropFiles) {
-            this.props.onDropFiles(files, idOfLocationToMoveTo);
+          const filtered = filterSystemFiles(files);
+          if (filtered.size > 0 && this.props.onDropFiles) {
+            this.props.onDropFiles(filtered, idOfLocationToMoveTo);
           }
         })
         .catch((error) => {
