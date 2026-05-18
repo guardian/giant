@@ -32,7 +32,7 @@ For details on each step, see the [**Search page**](#the-search-page), [**Viewin
 
 At the top of every Giant window you will find links to Giant's main sections: **Search**, **Datasets**, **Workspaces**, and **Settings**.
 
-<div class="doc-figure" style="width: 50%;">
+<div class="doc-figure" style="width: 50%; max-width: 600px">
 
 <img src="/docs/images/01_title_bar.png" alt="Giant header showing Search, Datasets, and Workspaces tabs" width="100%" />
 
@@ -63,7 +63,7 @@ You can use workspaces either to create curated selections of significant docume
 
 Click the **Search** button in the top left of any Giant screen to get to the search page.
 
-<div class="doc-figure" style="width: 75%;">
+<div class="doc-figure" style="width: 100%;">
 
 <img src="/docs/images/02_1_search_page_empty.jpg" alt="Empty Giant Search page" width="100%" />
 
@@ -101,7 +101,7 @@ Below the Datasets and Workspaces on the left-hand panel are some extra ways to 
 
 You can also perform excluding or **'negative searches'** by switching the sidebar checkbox to a 'minus', and similarly with the button on the left of each chip. This will filter your searches to everything **except** the values in that filter.
 
-<div class="doc-figure" style="width: 30%;">
+<div class="doc-figure" style="width: 50%; max-width: 400px">
 
 <img src="/docs/images/02_3_search_chips_negative.png" alt="Negative search chip excluding a dataset" width="100%" />
 
@@ -182,7 +182,7 @@ The following is a list of characters you will need to escape if you want to sea
 
 If your search gets a hit, the documents that match the search terms will be listed below. The search terms will be highlighted, showing the surrounding text to give you some context.
 
-<div class="doc-figure" style="width: 80%;">
+<div class="doc-figure" style="width: 100%;">
 
 <img src="/docs/images/02_search_results_highlighted_rev.jpg" alt="Search results with highlighted matches" width="100%"  />
 
@@ -200,6 +200,10 @@ As you can see in the illustration above, some documents will show multiple hits
 
 1. Giant performs optical character recognition (OCR) on many document types, sometimes in multiple languages. This means that for such documents there is a searchable index of not only the regular text in the document but also of each set of 'OCR' text extracted from the documents. Sometimes this will take you to the same content as the text search hit; sometimes to something that wasn't originally searchable (such as some words in an image).
 2. Some documents will contain multiple instances of some of the terms you searched for, so up to five matches are shown per document.
+
+## **Search results timeline** {#search-results-timeline}
+
+Above the results list, Giant displays a bar chart showing how the matching documents are distributed over time — one bar per month. This is useful for spotting patterns (a surge of documents around a particular date, for example) and for quickly narrowing your results to a specific period. Click any bar to add that month as a date-range filter, or drag across several bars to select a wider window.
 
 ## **Search URLs** {#search-urls}
 
@@ -223,15 +227,15 @@ The metadata shown in the sidebar is clickable: hovering over a metadata value r
 Document views come in several different flavours, depending on file format:
 
 - **Text based documents** such as PDFs and MS Word documents are displayed in a single view, with the OCR'd text overlaid on top of the original document. Search term matches will be highlighted in the document itself. You can also search for other terms within the documents and these will be highlighted in a different colour to the original search term matches. We call this flavour the **combined view mode** because the extracted text and the original file are presented in the same view.
-- **Emails** are displayed in a form that resembles an email, showing the To:, From:, Subject: fields etc.
+- **Emails** are displayed in a form that resembles an email, showing the To:, From:, Subject: fields etc. The email viewer has two tabs: **Summary**, which shows the individual email on its own, and **Thread**, which shows the full conversation it belongs to.
 - **Spreadsheets** are displayed as a searchable table. At the time of writing this is limited in utility.
 - **Other document types** - raw text, images, audio, video, etc (plus any files Giant didn't convert into the above flavour) - have multiple 'view modes', with the searchable text displayed in a different view to the original media. Documents are initially opened in the extracted text mode to allow you to see search results (and perform further searches in the document)
 
 ## **Combined view documents** {#combined-view-documents}
 
-<div class="doc-figure" style="width: 80%;">
+<div class="doc-figure" style="width: 100%;">
 
-<img src="/docs/images/03_1_docviewer_page.jpg" alt="Combined document view with highlighted search match" width="80%"  />
+<img src="/docs/images/03_1_docviewer_page.jpg" alt="Combined document view with highlighted search match"  />
 
 <div class="doc-caption">
 
@@ -243,9 +247,9 @@ A 'combined document view'. If you came to this document via a search, the first
 
 Some documents will contain more than one match of your search term. In the combined document view you can step through each match using the widget at the top right of the page. Pressing the down arrow will take you to the next match in the document.
 
-<div class="doc-figure" style="width: 30%;">
+<div class="doc-figure" style="width: 50%; max-width: 400px">
 
-<img src="/docs/images/03_docviewer_combined_search_stepper.png" alt="Search results stepper in combined view" width="30%"  />
+<img src="/docs/images/03_docviewer_combined_search_stepper.png" alt="Search results stepper in combined view" />
 
 <div class="doc-caption">
 
@@ -257,9 +261,9 @@ When you come to a 'combined view' document through a search, at the top right t
 
 If the content in the document is difficult to read, try using the zoom and rotate buttons at the bottom of the screen.
 
-<div class="doc-figure" style="width: 80%;">
+<div class="doc-figure" style="width: 100%;">
 
-<img src="/docs/images/04_2_docviewer_footer.png" alt="Alternative document view modes" width="90%" />
+<img src="/docs/images/04_2_docviewer_footer.png" alt="Alternative document view modes" width="100%" />
 
 <div class="doc-caption">
 
@@ -279,9 +283,9 @@ If all else fails, switch to another view mode:
 
 You can search for things within the document itself, without going back to Giant's search page. Press `Cmd-F` (`Ctrl-F` on Windows) or type something into the find-in-document widget.
 
-<div class="doc-figure" style="width: 80%;">
+<div class="doc-figure" style="width: 80%; max-width: 900px">
 
-<img src="/docs/images/06_docviewer_find.jpg" alt="Alternative document view modes" width="90%" />
+<img src="/docs/images/06_docviewer_find.jpg" alt="Alternative document view modes" />
 
 <div class="doc-caption">
 
@@ -294,6 +298,25 @@ Find-in-document results are highlighted in pale pink, with the active result in
 Once highlights are shown, use `n` to jump to the next one and `Shift-N` to go to the previous one without touching the mouse.
 
 If you arrived at a document from a search, you can move directly to the next or previous result in your search list with `Shift-→` and `Shift-←`, without returning to the search page.
+
+## **Email documents** {#email-documents}
+
+When you open an email, the viewer shows two tabs at the top: **Summary** and **Thread**.
+
+- **Summary** displays the email on its own — headers (To, From, Subject, Date) and body. You can click on a email address or recipient name to search it in Giant.
+- **Thread** groups the email with the rest of its conversation, so you can read the full exchange in context without having to open each message individually.
+
+<div class="doc-figure" style="width: 100%;">
+
+<video src="/docs/images/03_2_docviewer_email_tabs.mp4" autoplay loop muted playsinline width="100%" title="Switching between the Summary and Thread tabs in the email viewer"></video>
+
+<div class="doc-caption">
+
+Switching between the Summary and Thread tabs in the email viewer
+
+</div>
+
+</div>
 
 ## **Documents with multiple view modes** {#multi-view-documents}
 
@@ -308,7 +331,7 @@ Giant can process other file formats such as emails, images, video files, audio 
 
 All image files are processed by Giant's optical character recognition engine to extract text into an accompanying textual 'view', meaning you can find text in images through this OCR text. When you first open an image document the 'OCR text' view may be shown instead of the image itself when you open the document. If there's no text this may be a pretty uninteresting page! To view the image itself instead, look at the bottom right of the window and you'll see alternative view modes, including 'Preview'. Use 'Preview' to view the image itself.
 
-<div class="doc-figure" style="width: 80%;">
+<div class="doc-figure" style="width: 80%; max-width: 900px">
 
 <video src="/docs/images/06_1_docviewer_image_switch_to_preview.mp4" autoplay loop muted playsinline width="100%" title="Animated demo of switching an image document from OCR text to Preview mode"></video>
 
@@ -324,7 +347,7 @@ An image opened from a search result. The user switches to 'Preview' view mode
 
 In a similar fashion to the way Giant extracts text from images, it transcribes and translates spoken content in audio and video files. Again, these searchable transcription 'view modes' will be what you see when you open those files, because that 'view' is the searchable one. If you want to see or hear the original media file, switch to Preview mode.
 
-<div class="doc-figure" style="width: 80%;">
+<div class="doc-figure" style="width: 80%; max-width: 900px">
 
 <video src="/docs/images/06_1_docviewer_video_switch_to_preview.mp4" autoplay loop muted playsinline width="100%" title="Animated demo of switching a video document from transcript text to Preview mode"></video>
 
@@ -336,6 +359,10 @@ Video and audio files initially open with the transcript text. Click Preview vie
 
 </div>
 
+The transcript is interactive: clicking on any line will seek the audio or video player directly to that point in the recording, so you can quickly jump to passages of interest without scrubbing through the file manually.
+
+If Giant has generated transcripts in more than one language (for example an original-language transcript plus an English translation), a language selector will appear above the transcript. Use it to switch between available languages.
+
 <div style="width: 50%;">
 
 | **Note** | The list of languages that the transcription system supports can be found [here](https://github.com/openai/whisper/blob/ba3f3cd54b0e5b8ce1ab3de13e32122d0d5f98ab/whisper/tokenizer.py#L10). At the time of writing it's 100 languages. |
@@ -345,17 +372,16 @@ Video and audio files initially open with the transcript text. Click Preview vie
 
 ## **Commenting on documents** {#commenting-on-documents}
 
-Giant lets you attach comments to specific passages of text within a document. Comments are visible to everyone who has access to that document, making them useful for leaving notes for colleagues or flagging points of interest.
+Giant lets you attach comments to specific passages of text within a document, or to the document as a while. Comments are visible to everyone who has access to that document, making them useful for leaving notes for colleagues or flagging points of interest.
 
-Comments can be added in **Text** and **OCR** view modes. They are anchored to the view in which they were created — so a comment made on the OCR French translation will only appear in context when that specific view is active.
+All comments for a document are shown in the sidebar. Comments on specific text passages can be added in **Text**, **Email** and **OCR** view modes. They are anchored to the view in which they were created — so a comment made on the OCR French translation will only appear next to the highlight on that page. If you see a comment for a text selection in the sidebar, you can click on it to go to that highlight in the correct view mode.
 
 ### **Adding a comment** {#adding-a-comment}
 
-1. Select some text in the document viewer by clicking and dragging over it.
-2. A small floating menu will appear near your selection. Click the **Comment** icon.
-3. A comment box will open in the right-hand sidebar. Type your note and press **Enter** to save it (or **Shift-Enter** for a new line, **Escape** to cancel).
-
-The commented text will be highlighted in the document, and the comment will appear alongside it in the sidebar. Clicking a highlighted passage will bring the corresponding comment into focus, and vice versa.
+1. To make a comment about the document as a whole, click 'Add Comment' in the sidebar.
+2. To make a comment about a particular passage in a document, go to an appropriate text view mode (Text, OCR, Email etc), select the passage, and click on the Add Comment icon.
+3. A small floating menu will appear near your selection. Click the **Comment** icon.
+4. A comment box will open in the right-hand sidebar. Type your note and press **Enter** to save it (or **Shift-Enter** for a new line, **Escape** to cancel).
 
 ### **Viewing and deleting comments** {#viewing-and-deleting-comments}
 
@@ -367,7 +393,7 @@ You can delete your own comments using the **Delete** action on the comment itse
 
 You can download a copy of any document you can view in Giant. Open the document and click the **Download** button in the left-hand sidebar.
 
-<div class="doc-figure" style="width: 75%;">
+<div class="doc-figure" style="width: 80%; max-width: 900px">
 
 <img src="/docs/images/27_docviewer_download_button.jpg" alt="Download button in document sidebar" width="100%"  />
 
@@ -472,7 +498,7 @@ Navigate to a workspace. Click on nothing if you want to upload files to the top
 
 Drag a selection of files, or a directory and all its contents, into the spot in the workspace that you want to upload the files to.
 
-<div class="doc-figure" style="width: 75%;">
+<div class="doc-figure" style="width: 80%; max-width: 900px">
 
 <video src="/docs/images/09_1_workspaces_upload_drag.mp4" autoplay loop muted playsinline width="100%" title="Animated demo of dragging files or folders into a workspace to upload"></video>
 
@@ -495,7 +521,7 @@ Drag a folder or some files to somewhere in your workspace
 
 Click the Upload button at the top of the screen:
 
-<div class="doc-figure" style="width: 75%;">
+<div class="doc-figure" style="width: 80%; max-width: 900px">
 
 <img src="/docs/images/09_workspaces_upload_button.jpg" alt="Upload button in a workspace" width="100%"  />
 
@@ -509,7 +535,7 @@ Workspaces upload button
 
 If you do the latter you'll be shown a window where you can choose one of two options:
 
-<div class="doc-figure" style="width: 60%;">
+<div class="doc-figure" style="width: 60%; max-width: 500px">
 
 <img src="/docs/images/10_workspaces_upload_selection_dialog.jpg" alt="Upload selection dialog with Add Files and Add Directory" width="100%"  />
 
@@ -530,7 +556,7 @@ Your computer will now open a file picker dialog. Navigate to the files or folde
 
 Whether you dragged files into the workspace manually or went via the Upload button, before the files actually upload you'll be shown a list of what you've chosen, for you to review:
 
-<div class="doc-figure" style="width: 60%;">
+<div class="doc-figure" style="width: 60%; max-width: 500px">
 
 <img src="/docs/images/10_1_workspaces_upload_review_dialog.jpg" alt="Upload review dialog showing selected files and folders" width="100%"  />
 
@@ -549,9 +575,9 @@ Once you're happy, hit **Upload**. Giant will start uploading the files. If ther
 
 Once uploaded, the files will appear in the workspace. The spinning icon indicates that Giant is **processing** the files. For some tasks, such as transcription, translation, and OCR, the time this takes will depend on how big the file is (for example how many pages it has). Files that are 'processing' are already uploaded, so at this stage you can safely navigate away from the page.
 
-<div class="doc-figure" style="width: 75%;">
+<div class="doc-figure" style="width: 100%">
 
-<img src="/docs/images/11_workspaces_file_listing_processed.jpg" alt="Workspace file list showing processing status" width="100%"  />
+<img src="/docs/images/11_workspaces_file_listing_processed.jpg" alt="Workspace file list showing processing status" />
 
 <div class="doc-caption">
 
@@ -573,9 +599,9 @@ You can give Giant the URL of a webpage and it will snapshot the page, extract t
 
 Within a workspace click the **Capture from URL** button:
 
-<div class="doc-figure" style="width: 75%;">
+<div class="doc-figure" style="width: 100%;">
 
-<img src="/docs/images/12_workspaces_capture_from_url_button.jpg" alt="Capture from URL button in workspace" width="75%"  />
+<img src="/docs/images/12_workspaces_capture_from_url_button.jpg" alt="Capture from URL button in workspace" />
 
 <div class="doc-caption">
 
@@ -631,7 +657,7 @@ Use this method if you have a file open but not the workspace(s) that it may bel
 
 Open the file. In the left-hand sidebar you will see the **Add to Workspace** button.
 
-<div class="doc-figure" style="width: 75%;">
+<div class="doc-figure" style="width: 100%;">
 
 <img src="/docs/images/15_1_docsidebar_add_to_workspace_button.jpg" alt="Add to Workspace button in document sidebar" width="100%"  />
 
@@ -671,7 +697,7 @@ Use this method if you have files or folders in a workspace but want to move or 
 2. Now switch to the workspace where the files already are.
 3. Select the material and drag from the 'source' workspace into the 'target' workspace entry in the sidebar to the left.
 
-<div class="doc-figure" style="width: 75%;">
+<div class="doc-figure" style="width: 90%">
 
 <video src="/docs/images/17_1_workspaces_drag_to_move_animated.mp4" autoplay loop muted playsinline width="100%" title="Animated demo of dragging items from one workspace to another"></video>
 
@@ -690,7 +716,7 @@ Drag to copy or move files from one workspace into another
 
 To **create a folder** click the **New Folder** button:
 
-<div class="doc-figure" style="width: 40%;">
+<div class="doc-figure" style="width: 50%;">
 
 <img src="/docs/images/16_workspaces_new_folder_button.jpg" alt="New Folder button in a workspace" width="100%"  />
 
@@ -917,11 +943,17 @@ Giant supports keyboard shortcuts to speed up common actions. They are also note
 
 ## **Global**
 
+<div style="max-width: 700px;">
+
 | Shortcut | Action               |
 | :------- | :------------------- |
 | `s`      | Focus the search box |
 
+</div>
+
 ## **Document viewer**
+
+<div style="max-width: 700px;">
 
 | Shortcut           | Action                                         |
 | :----------------- | :--------------------------------------------- |
@@ -933,15 +965,21 @@ Giant supports keyboard shortcuts to speed up common actions. They are also note
 | `Shift-X`          | Switch to Text (OCR) view mode                 |
 | `Shift-C`          | Switch to Preview view mode                    |
 
+</div>
+
 ## **Comment box**
 
 These shortcuts apply while typing in the [comment box](#adding-a-comment).
+
+<div style="max-width: 700px;">
 
 | Shortcut      | Action                         |
 | :------------ | :----------------------------- |
 | `Enter`       | Submit the comment             |
 | `Shift-Enter` | New line within the comment    |
 | `Escape`      | Cancel / close the comment box |
+
+</div>
 
 # **Problems** {#problems}
 
@@ -955,7 +993,7 @@ Files that once failed to process may process now, following improvements to the
 
 To force Giant to reprocess a file, locate it in a workspace and right-click on it. You should see an option to reprocess the original source file which Giant will (usually) have stowed away in an encrypted storage container:
 
-<div class="doc-figure" style="width: 75%;">
+<div class="doc-figure" style="width: 80%;">
 
 <img src="/docs/images/26_workspaces_node_reprocess.jpg" alt="Workspace file context menu with Reprocess option" width="100%"  />
 
