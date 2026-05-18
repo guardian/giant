@@ -1,35 +1,32 @@
 import React from "react";
-import PropTypes from "prop-types";
 
 import { ProgressAnimation } from "../UtilComponents/ProgressAnimation";
-import { suggestedFieldsPropType } from "../../types/SuggestedFields";
-
 import InputSupper from "../UtilComponents/InputSupper";
+import { SuggestedField } from "../../types/SuggestedFields";
 
-export default class SearchBox extends React.Component {
-  static propTypes = {
-    q: PropTypes.string.isRequired,
-    isSearchInProgress: PropTypes.bool.isRequired,
-    updateVisibleText: PropTypes.func.isRequired,
-    resetQuery: PropTypes.func.isRequired,
-    suggestedFields: PropTypes.arrayOf(suggestedFieldsPropType),
-    updateSearchText: PropTypes.func.isRequired,
-  };
+interface InputSupperHandle {
+  focus(): void;
+  select(): void;
+}
+
+export interface SearchBoxProps {
+  q: string;
+  isSearchInProgress: boolean;
+  updateVisibleText: (text: string) => void;
+  resetQuery: (e: React.MouseEvent<HTMLButtonElement>) => void;
+  suggestedFields?: SuggestedField[];
+  updateSearchText: () => void;
+}
+
+export default class SearchBox extends React.Component<SearchBoxProps> {
+  searchInput: InputSupperHandle | null = null;
 
   focus = () => {
-    if (this.searchInput !== document.activeElement) {
-      this.searchInput.focus();
-      // If you previously did select and didn't type anything the input box 'remembers' it was selected
-      // so we need this hack to reset that...
-      const value = this.searchInput.value;
-      this.searchInput.value = value;
-    }
+    this.searchInput?.focus();
   };
 
   select = () => {
-    if (this.searchInput !== document.activeElement) {
-      this.searchInput.select();
-    }
+    this.searchInput?.select();
   };
 
   render() {
@@ -42,7 +39,7 @@ export default class SearchBox extends React.Component {
       <div>
         <div className="search-box">
           <InputSupper
-            ref={(s) => (this.searchInput = s)}
+            ref={(s: InputSupperHandle | null) => (this.searchInput = s)}
             className="search-box__input"
             value={this.props.q}
             chips={this.props.suggestedFields}
