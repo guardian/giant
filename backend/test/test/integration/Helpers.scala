@@ -5,7 +5,7 @@ import org.apache.pekko.util.Timeout
 import commands.IngestFileResult
 import controllers.api._
 import extraction.MimeTypeMapper
-import model.annotations.{Workspace, WorkspaceEntry, WorkspaceMetadata}
+import model.annotations.{Workspace, WorkspaceEntry, WorkspaceFileStatus, WorkspaceMetadata}
 import model.frontend.{Filter, SearchResults, TreeEntry, TreeNode}
 import model.manifest.{Blob, Collection, CollectionWithUsers}
 import model.user.UserPermissions
@@ -382,6 +382,14 @@ object Helpers extends Matchers with Logging with OptionValues with Inside {
 
   def getWorkspace(workspaceId: String)(implicit controllers: Controllers, timeout: Timeout): Workspace = {
     contentAsJson(controllers.workspace.get(workspaceId).apply(FakeRequest())).as[Workspace]
+  }
+
+  def getWorkspaceStructure(workspaceId: String)(implicit controllers: Controllers, timeout: Timeout): Workspace = {
+    contentAsJson(controllers.workspace.getStructure(workspaceId).apply(FakeRequest())).as[Workspace]
+  }
+
+  def getWorkspaceStatus(workspaceId: String)(implicit controllers: Controllers, timeout: Timeout): List[WorkspaceFileStatus] = {
+    contentAsJson(controllers.workspace.getStatus(workspaceId).apply(FakeRequest())).as[List[WorkspaceFileStatus]]
   }
 
   def getAllWorkspaces()(implicit controllers: Controllers, timeout: Timeout): List[WorkspaceMetadata] = {
