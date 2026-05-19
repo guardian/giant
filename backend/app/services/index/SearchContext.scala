@@ -3,12 +3,10 @@ package services.index
 import com.sksamuel.elastic4s.ElasticDsl._
 import com.sksamuel.elastic4s.requests.searches.queries.compound.BoolQuery
 import com.sksamuel.elastic4s.requests.searches.queries.{Query}
-import model.annotations.{WorkspaceEntry, WorkspaceLeaf}
-import model.frontend.{TreeEntry, TreeLeaf, TreeNode}
 import model.index.SearchParameters
 import services.annotations.Annotations
 import services.users.UserManagement
-import utils.attempt.{Attempt, ClientFailure, NotFoundFailure}
+import utils.attempt.Attempt
 
 import scala.concurrent.ExecutionContext
 
@@ -26,20 +24,8 @@ object SearchContext {
     DefaultSearchContext(visibleCollections, visibleWorkspaces.map(_.id))
   }
 
-  def buildBlobFiltersForWorkspaceFolder(username: String, workspaceId: String, workspaceFolderId: String, annotations: Annotations)(implicit ec: ExecutionContext): Attempt[List[String]] = {
-    annotations.getWorkspaceContents(username, workspaceId).flatMap { root =>
-      TreeEntry.findNodeById(root, workspaceFolderId) match {
-        case Some(_: TreeLeaf[WorkspaceEntry]) =>
-          Attempt.Left(ClientFailure(s"$workspaceFolderId is a leaf, not a node in workspace $workspaceId"))
-
-        case None =>
-          Attempt.Left(NotFoundFailure(s"$workspaceFolderId not found in workspace $workspaceId"))
-
-        case Some(node: TreeNode[WorkspaceEntry]) =>
-          Attempt.Right(findBlobsInWorkspaceFolder(node))
-      }
-    }
-  }
+  def buildBlobFiltersForWorkspaceFolder(username: String, workspaceId: String, workspaceFolderId: String, annotations: Annotations)(implicit ec: ExecutionContext): Attempt[List[String]] =
+    annotations.getBlobUrisInWorkspaceFolder(username, workspaceId, workspaceFolderId)
 
   def buildFilters(parameters: SearchParameters, context: SearchContext): BoolQuery = {
     val createdAtFilter = buildCreatedAtFilter(parameters.start, parameters.end)
@@ -55,19 +41,6 @@ object SearchContext {
       visibilityFilters ++
       mimeFilter
     )
-  }
-
-  def findBlobsInWorkspaceFolder(folder: TreeEntry[WorkspaceEntry]): List[String] = {
-    folder match {
-      case leaf: TreeLeaf[WorkspaceEntry] => leaf.data match {
-        case node: WorkspaceLeaf => List(node.uri)
-        case _ => throw new IllegalStateException(s"Unexpected WorkspaceNode wrapped by TreeLeaf ${leaf.id}")
-      }
-
-      case node: TreeNode[WorkspaceEntry] => node.children.foldLeft(List.empty[String]) { (acc, entry) =>
-        acc ++ findBlobsInWorkspaceFolder(entry)
-      }
-    }
   }
 
   private def buildWorkspaceFilter(workspaceId: String) = {
