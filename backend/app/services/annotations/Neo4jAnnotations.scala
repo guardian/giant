@@ -53,8 +53,8 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
         |MATCH (creator :User)-[:CREATED]->(workspace)<-[:FOLLOWING]-(follower :User)
         |MATCH (owner :User)-[:OWNS]->(workspace)
         |WITH workspace, creator, owner, collect(distinct follower) AS followers
-        |OPTIONAL MATCH (workspace)<-[:PART_OF]-(node :WorkspaceNode)
-        |RETURN workspace, creator, owner, followers, count(node) AS nodeCount
+        |RETURN workspace, creator, owner, followers,
+        |  COUNT { (workspace)<-[:PART_OF]-() } AS nodeCount
       """.stripMargin,
       parameters(
         "currentUser", currentUser
@@ -80,8 +80,8 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
         |MATCH (creator :User)-[:CREATED]->(workspace)<-[:FOLLOWING]-(follower :User)
         |MATCH (owner :User)-[:OWNS]->(workspace)
         |WITH workspace, creator, owner, collect(distinct follower) AS followers
-        |OPTIONAL MATCH (workspace)<-[:PART_OF]-(node :WorkspaceNode)
-        |RETURN workspace, creator, owner, followers, count(node) AS nodeCount
+        |RETURN workspace, creator, owner, followers,
+        |  COUNT { (workspace)<-[:PART_OF]-() } AS nodeCount
       """.stripMargin,
       parameters(
         "currentUser", currentUser,
