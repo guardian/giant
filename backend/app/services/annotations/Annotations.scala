@@ -16,6 +16,8 @@ trait Annotations {
   def getAllWorkspacesMetadata(currentUser: String): Attempt[List[WorkspaceMetadata]]
   def getWorkspaceMetadata(currentUser: String, id: String): Attempt[WorkspaceMetadata]
   def getWorkspaceContents(currentUser: String, id: String, remoteIngestsToMixin: List[RemoteIngest] = List.empty): Attempt[TreeEntry[WorkspaceEntry]]
+  def getWorkspaceStructure(currentUser: String, id: String, remoteIngestsToMixin: List[RemoteIngest] = List.empty): Attempt[TreeEntry[WorkspaceEntry]]
+  def getWorkspaceStatus(currentUser: String, id: String): Attempt[List[WorkspaceFileStatus]]
   def insertWorkspace(username: String, id: String, name: String, isPublic: Boolean, tagColor: String): Attempt[Unit]
   def updateWorkspaceName(currentUser: String, id: String, name: String): Attempt[Unit]
   def updateWorkspaceOwner(currentUser: String, id: String, owner: String): Attempt[Unit]

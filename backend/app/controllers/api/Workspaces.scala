@@ -3,7 +3,7 @@ package controllers.api
 import software.amazon.awssdk.services.sns.SnsClient
 import commands.DeleteResource
 import model.Uri
-import model.annotations.{ProcessingStage, Workspace, WorkspaceEntry, WorkspaceLeaf}
+import model.annotations.{ProcessingStage, Workspace, WorkspaceEntry, WorkspaceFileStatus, WorkspaceLeaf}
 import model.frontend.{TreeEntry, TreeLeaf, TreeNode}
 import model.ingestion.{ RemoteIngest, RemoteIngestStatus}
 import model.user.UserPermission.CanPerformAdminOperations
@@ -178,6 +178,34 @@ class Workspaces(
   def getContents(workspaceId: String) = ApiAction.attempt { req =>
     annotation.getWorkspaceContents(req.user.username, workspaceId)
       .map(workspace => Ok(Json.toJson(workspace)))
+  }
+
+  // Structure half of the structure/status split (issue #369). Returns the same
+  // Workspace envelope as `get` but the tree is built from a structure-only
+  // Cypher query — no per-file Resource lookups, all processingStage values are
+  // `Unknown`, and folder processing/failure roll-up counts are 0. The frontend
+  // pairs this with `/status` to fill in per-file state and recomputes the
+  // roll-up counts client-side.
+  def getStructure(workspaceId: String) = ApiAction.attempt { req: UserIdentityRequest[_] =>
+    for {
+      metadata <- annotation.getWorkspaceMetadata(req.user.username, workspaceId)
+      relevantRemoteJobs <- remoteIngestStore.getRelevantRemoteIngestJobs(workspaceId)
+      structure <- annotation.getWorkspaceStructure(req.user.username, workspaceId, relevantRemoteJobs)
+    } yield {
+      Ok(Json.toJson(Workspace.fromMetadataAndRootNode(metadata, structure)))
+    }
+  }
+
+  // Status half of the structure/status split (issue #369). Returns a flat list
+  // of file URIs with their current processing state — cheap to poll while
+  // ingestion runs.
+  def getStatus(workspaceId: String) = ApiAction.attempt { req =>
+    for {
+      _ <- annotation.getWorkspaceMetadata(req.user.username, workspaceId) // check workspace exists and user has access
+      statuses <- annotation.getWorkspaceStatus(req.user.username, workspaceId)
+    } yield {
+      Ok(Json.toJson(statuses))
+    }
   }
 
   def getTotalWordCount(workspaceId: String) = ApiAction.attempt { req =>
