@@ -1268,9 +1268,29 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
 
   render() {
     if (!this.props.currentWorkspace && this.props.match.params.id) {
+      const workspaceId = this.props.match.params.id;
+      const metadata = this.props.workspacesMetadata.find(
+        (w) => w.id === workspaceId,
+      );
+      const isLargeWorkspace =
+        metadata?.nodeCount !== undefined && metadata.nodeCount > 50000;
+
       return (
         <div className="app__main-content">
           <EuiLoadingSpinner size="l" />
+          {isLargeWorkspace && metadata && (
+            <EuiText
+              size="s"
+              color="subdued"
+              style={{ marginTop: 16, textAlign: "center" }}
+            >
+              <p>
+                The workspace <strong>{metadata.name}</strong> contains
+                approximately {metadata.nodeCount!.toLocaleString()} items and
+                may take some time to load. Please be patient.
+              </p>
+            </EuiText>
+          )}
         </div>
       );
     }
