@@ -160,14 +160,18 @@ case class WorkspaceMetadata(id: String,
                              tagColor: String,
                              creator: PartialUser,
                              owner: PartialUser,
-                             followers: List[PartialUser]
+                             followers: List[PartialUser],
+                             // Total count of WorkspaceNodes in the workspace.
+                             // Optional because some metadata fetches (e.g. blob → workspace lookup)
+                             // don't need the count and skip the aggregation.
+                             nodeCount: Option[Long] = None
 )
 
 object WorkspaceMetadata {
   implicit val write: Writes[WorkspaceMetadata] = Json.writes[WorkspaceMetadata]
   implicit val read: Reads[WorkspaceMetadata] = Json.reads[WorkspaceMetadata]
 
-  def fromNeo4jValue(v: Value, creator: DBUser, owner:DBUser, followers: List[DBUser]): WorkspaceMetadata = {
+  def fromNeo4jValue(v: Value, creator: DBUser, owner: DBUser, followers: List[DBUser], nodeCount: Option[Long] = None): WorkspaceMetadata = {
     WorkspaceMetadata(
       v.get("id").asString(),
       v.get("name").asString(),
@@ -175,7 +179,8 @@ object WorkspaceMetadata {
       v.get("tagColor").asString(),
       creator.toPartial,
       owner.toPartial,
-      followers.map(_.toPartial)
+      followers.map(_.toPartial),
+      nodeCount
     )
   }
 }

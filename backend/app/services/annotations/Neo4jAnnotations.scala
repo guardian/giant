@@ -52,7 +52,9 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
         |WHERE (:User { username: $currentUser })-[:FOLLOWING|OWNS]->(workspace) OR workspace.isPublic
         |MATCH (creator :User)-[:CREATED]->(workspace)<-[:FOLLOWING]-(follower :User)
         |MATCH (owner :User)-[:OWNS]->(workspace)
-        |RETURN workspace, creator, owner, collect(distinct follower) as followers
+        |WITH workspace, creator, owner, collect(distinct follower) AS followers
+        |OPTIONAL MATCH (workspace)<-[:PART_OF]-(node :WorkspaceNode)
+        |RETURN workspace, creator, owner, followers, count(node) AS nodeCount
       """.stripMargin,
       parameters(
         "currentUser", currentUser
@@ -63,8 +65,9 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
         val creator = DBUser.fromNeo4jValue(r.get("creator"))
         val owner = DBUser.fromNeo4jValue(r.get("owner"))
         val followers = r.get("followers").asList[DBUser](DBUser.fromNeo4jValue(_)).asScala.toList
+        val nodeCount = Some(r.get("nodeCount").asLong())
 
-        WorkspaceMetadata.fromNeo4jValue(workspace, creator, owner, followers)
+        WorkspaceMetadata.fromNeo4jValue(workspace, creator, owner, followers, nodeCount)
       }
     }
   }
@@ -76,7 +79,9 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
         |WHERE (:User { username: $currentUser })-[:FOLLOWING|OWNS]->(workspace) OR workspace.isPublic
         |MATCH (creator :User)-[:CREATED]->(workspace)<-[:FOLLOWING]-(follower :User)
         |MATCH (owner :User)-[:OWNS]->(workspace)
-        |RETURN workspace, creator, owner, collect(distinct follower) as followers
+        |WITH workspace, creator, owner, collect(distinct follower) AS followers
+        |OPTIONAL MATCH (workspace)<-[:PART_OF]-(node :WorkspaceNode)
+        |RETURN workspace, creator, owner, followers, count(node) AS nodeCount
       """.stripMargin,
       parameters(
         "currentUser", currentUser,
@@ -91,8 +96,9 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
         val creator = DBUser.fromNeo4jValue(r.head.get("creator"))
         val owner = DBUser.fromNeo4jValue(r.head.get("owner"))
         val followers = r.head.get("followers").asList[DBUser](DBUser.fromNeo4jValue(_)).asScala.toList
+        val nodeCount = Some(r.head.get("nodeCount").asLong())
 
-        WorkspaceMetadata.fromNeo4jValue(workspace, creator, owner, followers)
+        WorkspaceMetadata.fromNeo4jValue(workspace, creator, owner, followers, nodeCount)
       }
     }
   }
