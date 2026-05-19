@@ -7,6 +7,7 @@ import { Auth } from "../Auth";
 import { Config } from "../Config";
 import { Resource, BasicResource } from "../Resource";
 import { SearchResults } from "../SearchResults";
+import { SuggestedField } from "../SuggestedFields";
 import { PagedDocument } from "../../reducers/pagesReducer";
 
 export interface WorkspacesState {
@@ -41,7 +42,7 @@ export interface UrlParamsState {
   view?: string;
   details?: object;
   page?: string;
-  pageSize?: number;
+  pageSize?: string;
   sortBy?: string;
   highlight?: string;
   currentWorkspace?: string;
@@ -54,10 +55,11 @@ export type ExpandedFiltersState = { [key: string]: boolean };
 export type DescendantResources = { [key: string]: BasicResource };
 
 export type SearchState = {
-  // TODO: type the rest of search state
   currentResults?: SearchResults;
   currentQuery?: { q: string };
   isSearchInProgress: boolean;
+  suggestedFields: SuggestedField[];
+  searchFailed?: boolean;
 };
 
 export type LoadingState = boolean;

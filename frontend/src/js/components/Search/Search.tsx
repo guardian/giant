@@ -1,5 +1,4 @@
 import React from "react";
-import PropTypes from "prop-types";
 
 import _isEqual from "lodash/fp/isEqual";
 import SearchBox from "./SearchBox";
@@ -11,69 +10,81 @@ import { Checkbox } from "../UtilComponents/Checkbox";
 import { KeyboardShortcut } from "../UtilComponents/KeyboardShortcut";
 import Select from "react-select";
 
-import { searchResultsPropType } from "../../types/SearchResults";
 import _get from "lodash/get";
 import _debounce from "lodash/debounce";
 
-import { suggestedFieldsPropType } from "../../types/SuggestedFields";
 import { keyboardShortcuts } from "../../util/keyboardShortcuts";
 import SearchVisualizations from "./SearchVisualizations";
 import { calculateSearchTitle } from "../UtilComponents/documentTitle";
 
 import { connect } from "react-redux";
 import { bindActionCreators } from "redux";
+import { AnyAction } from "redux";
+import { ThunkDispatch } from "redux-thunk";
 
-import { updateSearchText } from "../../actions/urlParams/updateSearchQuery";
+import { GiantState } from "../../types/redux/GiantState";
+import {
+  updateSearchText,
+  updateSearchQueryFilters,
+  updatePage,
+  updatePageSize,
+  updateSortBy,
+} from "../../actions/urlParams/updateSearchQuery";
 import { performSearch } from "../../actions/search/performSearch";
 import { clearSearch } from "../../actions/search/clearSearch";
-import { updateSearchQueryFilters } from "../../actions/urlParams/updateSearchQuery";
-import { updatePage } from "../../actions/urlParams/updateSearchQuery";
-import { updatePageSize } from "../../actions/urlParams/updateSearchQuery";
-import { updateSortBy } from "../../actions/urlParams/updateSearchQuery";
 import { getSuggestedFields } from "../../actions/search/getSuggestedFields";
 import { resetResource } from "../../actions/resources/getResource";
 import { updatePreference } from "../../actions/preferences";
 
-class Search extends React.Component {
-  static propTypes = {
-    urlParams: PropTypes.shape({
-      q: PropTypes.string,
-      page: PropTypes.any,
-      pageSize: PropTypes.any,
-      sortBy: PropTypes.string,
-      filters: PropTypes.any,
-    }),
-    lastUri: PropTypes.string,
-    updateSearchText: PropTypes.func.isRequired,
-    updatePage: PropTypes.func.isRequired,
-    updatePageSize: PropTypes.func.isRequired,
-    updateSortBy: PropTypes.func.isRequired,
-    performSearch: PropTypes.func.isRequired,
-    clearSearch: PropTypes.func.isRequired,
-    updateSearchQueryFilters: PropTypes.func.isRequired,
-    resetResource: PropTypes.func.isRequired,
-    getSuggestedFields: PropTypes.func.isRequired,
-    updatePreference: PropTypes.func.isRequired,
-    preferences: PropTypes.object,
-    search: PropTypes.shape({
-      isSearchInProgress: PropTypes.bool.isRequired,
-      currentQuery: PropTypes.object,
-      currentResults: searchResultsPropType,
-      suggestedFields: PropTypes.arrayOf(suggestedFieldsPropType),
-      searchFailed: PropTypes.bool,
-    }).isRequired,
-  };
+interface StateProps {
+  urlParams: GiantState["urlParams"];
+  search: GiantState["search"];
+  lastUri: string | undefined;
+  preferences: GiantState["app"]["preferences"];
+}
 
-  state = {
+interface DispatchProps {
+  getSuggestedFields: () => void;
+  updateSearchText: (text: string) => void;
+  updatePage: (page: string) => void;
+  updatePageSize: (pageSize: string) => void;
+  updateSortBy: (sortBy: string) => void;
+  performSearch: (query: GiantState["urlParams"]) => void;
+  clearSearch: () => void;
+  updateSearchQueryFilters: (filters: object) => void;
+  resetResource: () => void;
+  updatePreference: (key: string, value: unknown) => void;
+}
+
+type SearchProps = StateProps & DispatchProps;
+
+interface SearchState {
+  visibleText: string;
+}
+
+interface SelectOption {
+  value: string;
+  label: string;
+}
+
+interface SearchBoxHandle {
+  focus(): void;
+  select(): void;
+}
+
+class Search extends React.Component<SearchProps, SearchState> {
+  searchBox: SearchBoxHandle | null = null;
+
+  state: SearchState = {
     visibleText: "",
   };
 
-  selectSearchBox = (e) => {
+  selectSearchBox = (e: KeyboardEvent) => {
     e.preventDefault();
-    this.searchBox.focus();
+    this.searchBox?.focus();
   };
 
-  clearSearch = (e) => {
+  clearSearch = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
 
     this.updateVisibleText("");
@@ -82,25 +93,27 @@ class Search extends React.Component {
     this.props.updateSearchQueryFilters({});
     this.props.updatePage("1");
     this.setState({ visibleText: "" });
-    this.searchBox.select();
+    this.searchBox?.select();
   };
 
-  debouncedUpdate = _debounce((text) => {
+  debouncedUpdate = _debounce((text: string) => {
     if (text !== this.props.urlParams.q) {
       this.props.updatePage("1");
     }
     this.props.updateSearchText(text);
 
-    this.triggerSearch(this.props.urlParams);
+    // Use the freshly-typed text rather than this.props.urlParams.q, which
+    // is the pre-dispatch value and would lag by one Enter press.
+    this.triggerSearch({ ...this.props.urlParams, q: text });
   }, 500);
 
-  updateVisibleText = (text) => {
+  updateVisibleText = (text: string) => {
     this.setState({
       visibleText: text,
     });
   };
 
-  triggerSearch(query) {
+  triggerSearch(query: GiantState["urlParams"]) {
     if (query.q) {
       this.props.resetResource();
       this.props.performSearch(query);
@@ -131,7 +144,7 @@ class Search extends React.Component {
     document.title = calculateSearchTitle(this.props.search.currentQuery);
   }
 
-  UNSAFE_componentWillReceiveProps(props) {
+  UNSAFE_componentWillReceiveProps(props: SearchProps) {
     const before = {
       filters: props.urlParams.filters,
       page: props.urlParams.page,
@@ -159,7 +172,7 @@ class Search extends React.Component {
     document.title = "Giant";
   }
 
-  pageSelectCallback = (page) => {
+  pageSelectCallback = (page: number) => {
     this.props.updatePage(page.toString());
   };
 
@@ -179,9 +192,33 @@ class Search extends React.Component {
 
   renderControls() {
     // TODO replace with user preferences for page size
-    const pageSize = this.props.urlParams.pageSize || "100";
+    const pageSizeValue = this.props.urlParams.pageSize ?? "100";
     // TODO replace with user preferences for sort order
-    const sortBy = this.props.urlParams.sortBy || "relevance";
+    const sortByValue = this.props.urlParams.sortBy || "relevance";
+
+    const sortByOptions: SelectOption[] = [
+      { value: "relevance", label: "Sort by relevance" },
+      { value: "size-asc", label: "Sort by size (smallest first)" },
+      { value: "size-desc", label: "Sort by size (largest first)" },
+      {
+        value: "date-created-asc",
+        label: "Sort by date created (oldest first)",
+      },
+      {
+        value: "date-created-desc",
+        label: "Sort by date created (newest first)",
+      },
+    ];
+    const pageSizeOptions: SelectOption[] = [
+      { value: "25", label: "25 results per page" },
+      { value: "50", label: "50 results per page" },
+      { value: "100", label: "100 results per page" },
+    ];
+
+    const currentSortBy = sortByOptions.find((o) => o.value === sortByValue);
+    const currentPageSize = pageSizeOptions.find(
+      (o) => o.value === pageSizeValue,
+    );
 
     return (
       <div className="search__controls">
@@ -199,37 +236,25 @@ class Search extends React.Component {
         </Checkbox>
         <Select
           className="search__control"
-          value={sortBy}
-          options={[
-            { value: "relevance", label: "Sort by relevance" },
-            { value: "size-asc", label: "Sort by size (smallest first)" },
-            { value: "size-desc", label: "Sort by size (largest first)" },
-            {
-              value: "date-created-asc",
-              label: "Sort by date created (oldest first)",
-            },
-            {
-              value: "date-created-desc",
-              label: "Sort by date created (newest first)",
-            },
-          ]}
+          value={currentSortBy}
+          options={sortByOptions}
           onChange={(v) => {
+            const option = v as SelectOption | null;
+            if (!option) return;
             this.props.updatePage("1");
-            this.props.updateSortBy(v.value);
+            this.props.updateSortBy(option.value);
           }}
           clearable={false}
         />
         <Select
           className="search__control"
-          value={pageSize}
-          options={[
-            { value: "25", label: "25 results per page" },
-            { value: "50", label: "50 results per page" },
-            { value: "100", label: "100 results per page" },
-          ]}
+          value={currentPageSize}
+          options={pageSizeOptions}
           onChange={(v) => {
+            const option = v as SelectOption | null;
+            if (!option) return;
             this.props.updatePage("1");
-            this.props.updatePageSize(v.value);
+            this.props.updatePageSize(option.value);
           }}
           clearable={false}
         />
@@ -267,10 +292,9 @@ class Search extends React.Component {
           func={this.selectSearchBox}
         />
         <SearchBox
-          ref={(input) => (this.searchBox = input)}
+          ref={(input: SearchBoxHandle | null) => (this.searchBox = input)}
           updateVisibleText={this.updateVisibleText}
           resetQuery={this.clearSearch}
-          addQuery={this.addQuery}
           q={this.state.visibleText}
           isSearchInProgress={this.props.search.isSearchInProgress}
           suggestedFields={this.props.search.suggestedFields}
@@ -308,7 +332,7 @@ class Search extends React.Component {
   }
 }
 
-function mapStateToProps(state) {
+function mapStateToProps(state: GiantState): StateProps {
   return {
     urlParams: state.urlParams,
     search: state.search,
@@ -317,7 +341,9 @@ function mapStateToProps(state) {
   };
 }
 
-function mapDispatchToProps(dispatch) {
+function mapDispatchToProps(
+  dispatch: ThunkDispatch<GiantState, undefined, AnyAction>,
+): DispatchProps {
   return {
     getSuggestedFields: bindActionCreators(getSuggestedFields, dispatch),
     updateSearchText: bindActionCreators(updateSearchText, dispatch),
@@ -335,4 +361,12 @@ function mapDispatchToProps(dispatch) {
   };
 }
 
-export default connect(mapStateToProps, mapDispatchToProps)(Search);
+export default connect<
+  StateProps,
+  DispatchProps,
+  Record<string, never>,
+  GiantState
+>(
+  mapStateToProps,
+  mapDispatchToProps,
+)(Search);

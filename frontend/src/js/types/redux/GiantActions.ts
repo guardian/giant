@@ -127,11 +127,11 @@ interface SearchQueryTextUpdateType {
 }
 interface SearchQueryPageUpdateType {
   type: UrlParamsActionType.SEARCHQUERY_PAGE_UPDATE;
-  page: any;
+  page: string;
 }
 interface SearchQueryPageSizeUpdateType {
   type: UrlParamsActionType.SEARCHQUERY_PAGE_SIZE_UPDATE;
-  pageSize: any;
+  pageSize: string;
 }
 interface SearchQuerySortByUpdateType {
   type: UrlParamsActionType.SEARCHQUERY_SORT_BY_UPDATE;
