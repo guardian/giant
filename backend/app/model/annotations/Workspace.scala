@@ -13,6 +13,9 @@ object ProcessingStage {
   case class Processing(tasksRemaining: Int, note: Option[String]) extends ProcessingStage
   case object Processed extends ProcessingStage
   case object Failed extends ProcessingStage
+  // Placeholder used by the structure-only workspace endpoint, where per-file
+  // processing state is fetched separately via /status and merged client-side.
+  case object Unknown extends ProcessingStage
 
   implicit val format: Format[ProcessingStage] = Format(
     (value: JsValue) => (value \ "type").validate[String].flatMap {
@@ -29,6 +32,9 @@ object ProcessingStage {
 
       case "failed" =>
         JsSuccess(Failed)
+
+      case "unknown" =>
+        JsSuccess(Unknown)
     }
     ,
     {
@@ -43,6 +49,9 @@ object ProcessingStage {
 
       case Failed =>
         Json.obj("type" -> "failed")
+
+      case Unknown =>
+        Json.obj("type" -> "unknown")
     }
   )
 }
@@ -115,6 +124,24 @@ object WorkspaceEntry {
       ProcessingStage.Processed
     }
 
+    buildEntry(v, createdBy, maybeParentId, maybeCapturedFromURL, processingStage)
+  }
+
+  def fromNeo4jStructuralValue(
+    v: Value,
+    createdBy: PartialUser,
+    maybeParentId: Option[String],
+    maybeCapturedFromURL: Option[String]
+  ): TreeEntry[WorkspaceEntry] =
+    buildEntry(v, createdBy, maybeParentId, maybeCapturedFromURL, ProcessingStage.Unknown)
+
+  private def buildEntry(
+    v: Value,
+    createdBy: PartialUser,
+    maybeParentId: Option[String],
+    maybeCapturedFromURL: Option[String],
+    processingStage: ProcessingStage
+  ): TreeEntry[WorkspaceEntry] = {
     v.get("type").asString() match {
       case "folder" => TreeNode[WorkspaceNode](
         id = v.get("id").asString(),
@@ -152,6 +179,18 @@ object WorkspaceEntry {
       )
     }
   }
+}
+
+case class WorkspaceFileStatus(
+  uri: String,
+  processingStage: ProcessingStage,
+  numberOfTodos: Int,
+  note: Option[String],
+  hasFailures: Boolean
+)
+
+object WorkspaceFileStatus {
+  implicit val format: Format[WorkspaceFileStatus] = Json.format[WorkspaceFileStatus]
 }
 
 case class WorkspaceMetadata(id: String,

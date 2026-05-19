@@ -201,6 +201,125 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
     }
   }
 
+  override def getWorkspaceStructure(currentUser: String, id: String, remoteIngestsToMixin: List[RemoteIngest] = List.empty): Attempt[TreeEntry[WorkspaceEntry]] = attemptTransaction { tx =>
+    tx.run(
+      """
+        |MATCH (workspace: Workspace { id: $id })
+        |WHERE (:User { username: $currentUser })-[:FOLLOWING|OWNS]->(workspace) OR workspace.isPublic
+        |
+        |OPTIONAL MATCH (workspace)<-[:PART_OF]-(node :WorkspaceNode)<-[:CREATED]-(nodeCreator :User)
+        |
+        |OPTIONAL MATCH (node)-[:PARENT]->(parentNode :WorkspaceNode)
+        |
+        |OPTIONAL MATCH (node)-[:FROM]->(remoteIngest: RemoteIngest)
+        |
+        |RETURN node, nodeCreator, parentNode.id, remoteIngest.url
+      """.stripMargin,
+      parameters(
+        "currentUser", currentUser,
+        "id", id
+      )
+    ).map { summary =>
+      val rows = summary.list().asScala
+
+      val realEntries = rows.map { r =>
+        val node = r.get("node")
+        val nodeCreator = DBUser.fromNeo4jValue(r.get("nodeCreator")).toPartial
+        val maybeParentNodeId = r.get("parentNode.id").optionally(_.asString())
+        val maybeCapturedFromURL = r.get("remoteIngest.url").optionally(_.asString())
+
+        WorkspaceEntry.fromNeo4jStructuralValue(node, nodeCreator, maybeParentNodeId, maybeCapturedFromURL)
+      }.toList
+
+      val synthesisedEntries = remoteIngestsToMixin.flatMap(_.asSyntheticEntries(
+        (parentFolderId: String, name: String) => {
+          realEntries.find { entry =>
+            entry.data.maybeParentId.contains(parentFolderId) &&
+              entry.name.equalsIgnoreCase(name)
+          }.map(_.id)
+        }
+      ))
+
+      val entries = realEntries ++ synthesisedEntries
+      val childrenByParent: Map[String, List[TreeEntry[WorkspaceEntry]]] =
+        entries.groupBy(_.data.maybeParentId.getOrElse("noParent"))
+
+      def buildNode(currentEntry: TreeEntry[WorkspaceEntry]): TreeEntry[WorkspaceEntry] = {
+        currentEntry match {
+          case leaf: TreeLeaf[WorkspaceEntry] => leaf
+          case node: TreeNode[WorkspaceEntry] => {
+            val children = childrenByParent.getOrElse(node.id, List.empty).map(buildNode)
+            node.copy(
+              children = children,
+              data = node.data match {
+                case wNode: WorkspaceNode => wNode.copy(
+                  descendantsLeafCount = children.map {
+                    case TreeNode(_, _, childNode: WorkspaceNode, _) => childNode.descendantsLeafCount
+                    case _: TreeLeaf[WorkspaceEntry] => 1
+                    case _ => 0
+                  }.sum,
+                  descendantsNodeCount = children.map {
+                    case TreeNode(_, _, childNode: WorkspaceNode, _) => 1 + childNode.descendantsNodeCount
+                    case _: TreeLeaf[WorkspaceEntry] => 0
+                    case _ => 0
+                  }.sum,
+                  // descendantsProcessingTaskCount and descendantsFailedCount are
+                  // recomputed client-side after /status merges; we leave them at 0
+                  // here so structure responses can be cached independently of state.
+                  descendantsProcessingTaskCount = 0,
+                  descendantsFailedCount = 0
+                )
+                case _ => node.data
+              },
+            )
+          }
+        }
+      }
+
+      val root = entries.find(_.data.maybeParentId.isEmpty).get
+      buildNode(root)
+    }
+  }
+
+  override def getWorkspaceStatus(currentUser: String, id: String): Attempt[List[WorkspaceFileStatus]] = attemptTransaction { tx =>
+    tx.run(
+      """
+        |MATCH (workspace: Workspace { id: $id })
+        |WHERE (:User { username: $currentUser })-[:FOLLOWING|OWNS]->(workspace) OR workspace.isPublic
+        |
+        |MATCH (workspace)<-[:PART_OF]-(node :WorkspaceNode { type: 'file' })
+        |WITH DISTINCT node.uri AS uri
+        |
+        |OPTIONAL MATCH (:Resource {uri: uri})<-[todo:TODO|PROCESSING_EXTERNALLY]-(:Extractor)
+        |RETURN uri,
+        |	count(todo) AS numberOfTodos,
+        |	collect(todo)[0].note AS note,
+        |	EXISTS { (:Resource {uri: uri})<-[:EXTRACTION_FAILURE]-(:Extractor) } AS hasFailures
+      """.stripMargin,
+      parameters(
+        "currentUser", currentUser,
+        "id", id
+      )
+    ).map { summary =>
+      summary.list().asScala.toList.map { r =>
+        val uri = r.get("uri").asString()
+        val numberOfTodos = r.get("numberOfTodos").asInt()
+        val note = r.get("note").optionally(_.asString())
+        val hasFailures = r.get("hasFailures").asBoolean()
+
+        val processingStage = if (hasFailures) {
+          ProcessingStage.Failed
+        } else if (numberOfTodos > 0) {
+          ProcessingStage.Processing(numberOfTodos, note)
+        } else {
+          ProcessingStage.Processed
+        }
+
+        WorkspaceFileStatus(uri, processingStage, numberOfTodos, note, hasFailures)
+      }
+    }
+  }
+
   override def insertWorkspace(username: String, id: String, name: String, isPublic: Boolean, tagColor: String): Attempt[Unit] = attemptTransaction { tx =>
     tx.run(
       """

@@ -3,7 +3,7 @@ package controllers.api
 import com.dimafeng.testcontainers.lifecycle.and
 import com.dimafeng.testcontainers.scalatest.TestContainersForAll
 import com.dimafeng.testcontainers.{ElasticsearchContainer, Neo4jContainer}
-import model.annotations.{Workspace, WorkspaceEntry}
+import model.annotations.{ProcessingStage, Workspace, WorkspaceEntry, WorkspaceLeaf, WorkspaceNode}
 import model.frontend.{TreeEntry, TreeLeaf, TreeNode}
 import org.apache.pekko.util.Timeout
 import org.scalatest._
@@ -602,6 +602,127 @@ class WorkspacesITest extends AnyFunSuite
         parentNodeId = jimmyWorkspace.rootNodeId,
         name = "i"
       )) should be(404)
+    }
+  }
+
+  // Issue #369 structure/status split — parity coverage.
+  // Build the same fixture tree, fetch via both the legacy /get path and the new
+  // /structure + /status pair, and assert the new pair reassembles to content
+  // equivalent to /get. A drift between them is a regression.
+
+  // (id, name, maybeParentId, isFolder)
+  private type StructuralTuple = (String, String, Option[String], Boolean)
+
+  private def flattenStructure(entry: TreeEntry[WorkspaceEntry]): List[StructuralTuple] = {
+    val head: StructuralTuple = entry match {
+      case TreeNode(id, name, data, _) => (id, name, data.maybeParentId, true)
+      case leaf: TreeLeaf[WorkspaceEntry] => (leaf.id, leaf.name, leaf.data.maybeParentId, false)
+    }
+    val tail = entry match {
+      case TreeNode(_, _, _, children) => children.flatMap(flattenStructure)
+      case _: TreeLeaf[WorkspaceEntry] => List.empty
+    }
+    head :: tail
+  }
+
+  // (uri, processingStage, numberOfTodos, note, hasFailures)
+  private type StatusTuple = (String, ProcessingStage, Int, Option[String], Boolean)
+
+  private def leafStatusTuples(entry: TreeEntry[WorkspaceEntry]): List[StatusTuple] = entry match {
+    case TreeNode(_, _, _, children) => children.flatMap(leafStatusTuples)
+    case TreeLeaf(_, _, data: WorkspaceLeaf, _) =>
+      val numberOfTodos = data.processingStage match {
+        case ProcessingStage.Processing(tasksRemaining, _) => tasksRemaining
+        case _ => 0
+      }
+      val note = data.processingStage match {
+        case ProcessingStage.Processing(_, n) => n
+        case _ => None
+      }
+      val hasFailures = data.processingStage == ProcessingStage.Failed
+      List((data.uri, data.processingStage, numberOfTodos, note, hasFailures))
+    case _ => List.empty
+  }
+
+  test("getStructure returns the same tree shape as getContents") {
+    asUser("paul") { implicit controllers =>
+      val contents = getWorkspace(paulWorkspace.id).rootNode
+      val structure = getWorkspaceStructure(paulWorkspace.id).rootNode
+
+      flattenStructure(structure).sortBy(_._1) should be(flattenStructure(contents).sortBy(_._1))
+    }
+  }
+
+  test("getStructure marks every file leaf as Unknown and zeroes processing roll-ups") {
+    asUser("paul") { implicit controllers =>
+      val structure = getWorkspaceStructure(paulWorkspace.id).rootNode
+
+      def walk(entry: TreeEntry[WorkspaceEntry]): Unit = entry match {
+        case TreeNode(_, _, data: WorkspaceNode, children) =>
+          data.descendantsProcessingTaskCount should be(0)
+          data.descendantsFailedCount should be(0)
+          children.foreach(walk)
+        case TreeLeaf(_, _, data: WorkspaceLeaf, _) =>
+          data.processingStage should be(ProcessingStage.Unknown)
+        case _ => ()
+      }
+
+      walk(structure)
+    }
+  }
+
+  test("getStructure preserves structural roll-up counts (leaf + node)") {
+    asUser("paul") { implicit controllers =>
+      val contents = getWorkspace(paulWorkspace.id).rootNode
+      val structure = getWorkspaceStructure(paulWorkspace.id).rootNode
+
+      def nodeCounts(entry: TreeEntry[WorkspaceEntry]): List[(String, Long, Long)] = entry match {
+        case TreeNode(id, _, data: WorkspaceNode, children) =>
+          (id, data.descendantsLeafCount, data.descendantsNodeCount) :: children.flatMap(nodeCounts)
+        case _ => List.empty
+      }
+
+      nodeCounts(structure).sortBy(_._1) should be(nodeCounts(contents).sortBy(_._1))
+    }
+  }
+
+  test("getStatus returns one entry per unique file URI") {
+    asUser("paul") { implicit controllers =>
+      val contents = getWorkspace(paulWorkspace.id).rootNode
+      val statuses = getWorkspaceStatus(paulWorkspace.id)
+
+      val expectedUris = leafStatusTuples(contents).map(_._1).toSet
+      statuses.map(_.uri).toSet should be(expectedUris)
+      statuses.map(_.uri).distinct.size should be(statuses.size)
+    }
+  }
+
+  test("getStatus values match the per-file state in getContents") {
+    asUser("paul") { implicit controllers =>
+      val contents = getWorkspace(paulWorkspace.id).rootNode
+      val statuses = getWorkspaceStatus(paulWorkspace.id).map(s =>
+        s.uri -> (s.processingStage, s.numberOfTodos, s.note, s.hasFailures)
+      ).toMap
+
+      // Multiple workspace nodes may reference the same blob URI; their status
+      // tuples must agree (they come from the same Resource lookups).
+      val expectedByUri = leafStatusTuples(contents).groupBy(_._1).view.mapValues { tuples =>
+        val distinct = tuples.map { case (_, stage, todos, note, failures) => (stage, todos, note, failures) }.distinct
+        distinct should have size 1
+        distinct.head
+      }.toMap
+
+      statuses.keySet should be(expectedByUri.keySet)
+      expectedByUri.foreach { case (uri, expected) =>
+        statuses(uri) should be(expected)
+      }
+    }
+  }
+
+  test("getStatus returns an empty list for a workspace with no files") {
+    asUser("paul") { implicit controllers =>
+      val emptyWorkspace = createWorkspace("paul-empty", isPublic = false)
+      getWorkspaceStatus(emptyWorkspace.id) should be(List.empty)
     }
   }
 }
