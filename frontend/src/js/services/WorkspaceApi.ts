@@ -1,5 +1,9 @@
 import authFetch from "../util/auth/authFetch";
-import { WorkspaceMetadata } from "../types/Workspaces";
+import {
+  Workspace,
+  WorkspaceFileStatus,
+  WorkspaceMetadata,
+} from "../types/Workspaces";
 
 export function createWorkspace(
   name: string,
@@ -55,8 +59,17 @@ export function getWorkspacesMetadata(): Promise<WorkspaceMetadata[]> {
   return authFetch("/api/workspaces").then((res) => res.json());
 }
 
-export function getWorkspace(id: string) {
-  return authFetch(`/api/workspaces/${id}`).then((res) => res.json());
+// Structure half of the structure/status split (issue #369): the full tree
+// shape with all leaf processingStage values `unknown` and folder
+// processing/failure roll-up counts zeroed. Cheap enough to render immediately.
+export function getWorkspaceStructure(id: string): Promise<Workspace> {
+  return authFetch(`/api/workspaces/${id}/structure`).then((res) => res.json());
+}
+
+// Status half: a flat per-file list of processing state, merged into the
+// structure tree client-side and polled while ingestion runs.
+export function getWorkspaceStatus(id: string): Promise<WorkspaceFileStatus[]> {
+  return authFetch(`/api/workspaces/${id}/status`).then((res) => res.json());
 }
 
 export function getWorkspaceTotalWordCount(id: string): Promise<number> {

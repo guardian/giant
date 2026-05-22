@@ -4,7 +4,10 @@ import { PartialUser } from "./User";
 export type ProcessingStage =
   | { type: "processing"; tasksRemaining: number; note?: string }
   | { type: "processed" }
-  | { type: "failed" };
+  | { type: "failed" }
+  // Placeholder for a workspace file leaf fetched from /structure before its
+  // per-file state has been merged in from /status. Indeterminate, not an error.
+  | { type: "unknown" };
 
 export type BasicResource = {
   uri: string;

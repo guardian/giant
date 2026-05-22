@@ -47,6 +47,16 @@ export type WorkspaceMetadata = {
   followers: PartialUser[];
 };
 
+// One entry per file leaf returned by GET /api/workspaces/:id/status. Merged
+// into the structure tree by uri to fill in per-file processing state.
+export type WorkspaceFileStatus = {
+  uri: string;
+  processingStage: ProcessingStage;
+  numberOfTodos: number;
+  note?: string;
+  hasFailures: boolean;
+};
+
 export type WorkspaceContents = {
   rootNode: TreeNode<WorkspaceEntry>;
 };

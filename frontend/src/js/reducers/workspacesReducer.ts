@@ -5,6 +5,7 @@ import {
 } from "../types/redux/GiantActions";
 import { WorkspacesState } from "../types/redux/GiantState";
 import { WorkspaceEntry } from "../types/Workspaces";
+import { mergeWorkspaceStatus } from "../util/workspaceUtils";
 
 export default function workspaces(
   state: WorkspacesState = {
@@ -31,6 +32,25 @@ export default function workspaces(
         ...state,
         currentWorkspace: action.workspace,
         isGettingWorkspace: false,
+        currentWorkspaceLastRefreshedAt: new Date(),
+      };
+    }
+
+    case WorkspacesActionType.WORKSPACE_STATUS_RECEIVE: {
+      // Ignore status that arrived for a workspace the user has since navigated
+      // away from — it can't be merged into a tree that isn't loaded.
+      if (
+        !state.currentWorkspace ||
+        state.currentWorkspace.id !== action.workspaceId
+      ) {
+        return state;
+      }
+      return {
+        ...state,
+        currentWorkspace: mergeWorkspaceStatus(
+          state.currentWorkspace,
+          action.statuses,
+        ),
         currentWorkspaceLastRefreshedAt: new Date(),
       };
     }

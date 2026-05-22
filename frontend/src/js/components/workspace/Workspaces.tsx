@@ -20,7 +20,10 @@ import { setEntryBeingRenamed } from "../../actions/workspaces/setEntryBeingRena
 import { renameWorkspace } from "../../actions/workspaces/renameWorkspace";
 import { setWorkspaceFollowers } from "../../actions/workspaces/setWorkspaceFollowers";
 import { getWorkspacesMetadata } from "../../actions/workspaces/getWorkspacesMetadata";
-import { getWorkspace } from "../../actions/workspaces/getWorkspace";
+import {
+  getWorkspace,
+  refreshWorkspaceStatus,
+} from "../../actions/workspaces/getWorkspace";
 import { getCollections } from "../../actions/collections/getCollections";
 import { setNodeAsCollapsed } from "../../actions/workspaces/setNodeAsCollapsed";
 import { setNodeAsExpanded } from "../../actions/workspaces/setNodeAsExpanded";
@@ -160,6 +163,19 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
               inline
               size="small"
               className="file-browser__icon"
+            />
+          );
+        case "unknown":
+          // Structure loaded but /status not yet merged: indeterminate, not an
+          // error and not yet known to be complete.
+          return (
+            <Icon
+              name="circle"
+              inline
+              size="small"
+              className="file-browser__icon"
+              style={{ color: "#ccc" }}
+              title="Loading status…"
             />
           );
         default:
@@ -546,7 +562,9 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
       this.props.currentWorkspace &&
       workspaceHasProcessingFiles(this.props.currentWorkspace)
     ) {
-      this.props.getWorkspace(this.props.currentWorkspace.id);
+      // Processing progress only changes per-file status, not the tree shape, so
+      // poll the cheap /status endpoint rather than refetching the structure.
+      this.props.refreshWorkspaceStatus(this.props.currentWorkspace.id);
     }
   };
 
@@ -1430,6 +1448,10 @@ function mapDispatchToProps(dispatch: GiantDispatch) {
     getCollections: bindActionCreators(getCollections, dispatch),
     getWorkspacesMetadata: bindActionCreators(getWorkspacesMetadata, dispatch),
     getWorkspace: bindActionCreators(getWorkspace, dispatch),
+    refreshWorkspaceStatus: bindActionCreators(
+      refreshWorkspaceStatus,
+      dispatch,
+    ),
     getMyPermissions: bindActionCreators(getMyPermissions, dispatch),
   };
 }

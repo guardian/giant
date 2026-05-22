@@ -1,5 +1,10 @@
 import { TreeEntry, TreeNode } from "../Tree";
-import { WorkspaceMetadata, WorkspaceEntry, Workspace } from "../Workspaces";
+import {
+  WorkspaceMetadata,
+  WorkspaceEntry,
+  Workspace,
+  WorkspaceFileStatus,
+} from "../Workspaces";
 import { MimeTypeCoverage } from "../MimeType";
 import { ExtractionFailures } from "../ExtractionFailures";
 import { UrlParamsState } from "./GiantState";
@@ -10,6 +15,7 @@ export enum WorkspacesActionType {
   WORKSPACES_METADATA_GET_RECEIVE = "WORKSPACES_METADATA_GET_RECEIVE",
   WORKSPACE_GET_START = "WORKSPACE_GET_START",
   WORKSPACE_GET_RECEIVE = "WORKSPACE_GET_RECEIVE",
+  WORKSPACE_STATUS_RECEIVE = "WORKSPACE_STATUS_RECEIVE",
   SET_SELECTED_ENTRIES = "SET_SELECTED_ENTRIES",
   SET_FOCUSED_ENTRY = "SET_FOCUSED_ENTRY",
   SET_ENTRY_BEING_RENAMED = "SET_ENTRY_BEING_RENAMED",
@@ -59,6 +65,12 @@ interface StartGetWorkspaceAction {
   type: WorkspacesActionType.WORKSPACE_GET_START;
 }
 
+interface ReceiveWorkspaceStatusAction {
+  type: WorkspacesActionType.WORKSPACE_STATUS_RECEIVE;
+  workspaceId: string;
+  statuses: WorkspaceFileStatus[];
+}
+
 export type WorkspacesAction =
   | TreeNodeAction
   | TreeNodesAction
@@ -67,7 +79,8 @@ export type WorkspacesAction =
   | EntryBeingRenamedAction
   | ReceiveWorkspacesMetadataAction
   | ReceiveWorkspaceAction
-  | StartGetWorkspaceAction;
+  | StartGetWorkspaceAction
+  | ReceiveWorkspaceStatusAction;
 
 export enum AppActionType {
   APP_SHOW_ERROR = "APP_SHOW_ERROR",
