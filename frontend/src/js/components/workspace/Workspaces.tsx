@@ -23,7 +23,7 @@ import { getWorkspacesMetadata } from "../../actions/workspaces/getWorkspacesMet
 // POC (issue #369 lazy-loading spike): lazy loaders replace the eager getWorkspace
 import {
   getWorkspacePoc,
-  expandWorkspaceNode,
+  loadWorkspaceNodeChildren,
 } from "../../actions/workspaces/lazyLoadingPoc";
 import { getCollections } from "../../actions/collections/getCollections";
 import { setNodeAsCollapsed } from "../../actions/workspaces/setNodeAsCollapsed";
@@ -277,6 +277,8 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
               workspaceId,
               this.props.entryBeingRenamed.id,
               newName,
+              // POC: refresh just the renamed item's parent
+              [this.props.entryBeingRenamed.data.maybeParentId],
             );
           }
         };
@@ -560,7 +562,7 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
   onExpandNode = (node: TreeNode<WorkspaceEntry>) => {
     this.props.setNodeAsExpanded(node);
     if (!this.props.loadedNodeIds.includes(node.id)) {
-      this.props.expandWorkspaceNode(this.props.match.params.id, node.id);
+      this.props.loadWorkspaceNodeChildren(this.props.match.params.id, node.id);
     }
   };
 
@@ -732,6 +734,8 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
           workspaceId,
           entry.data.uri,
           this.onDeleteCompleteHandler,
+          // POC: refresh just the deleted item's parent
+          [entry.data.maybeParentId],
         );
         this.props.resetFocusedAndSelectedEntries();
       }
@@ -752,6 +756,8 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
           workspaceId,
           entry.id,
           this.onRemoveCompleteHandler,
+          // POC: refresh just the removed item's parent
+          [entry.data.maybeParentId],
         );
         this.props.resetFocusedAndSelectedEntries();
       }
@@ -779,19 +785,31 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
 
   onMoveItems = (itemIds: string[], newParentId: string) => {
     const workspaceId = this.props.match.params.id;
+    // POC: refresh the destination + each moved item's old parent, not the whole tree.
+    const oldParentIds = this.props.selectedEntries
+      .filter((e) => itemIds.includes(e.id))
+      .map((e) => e.data.maybeParentId);
+    const affectedParentIds = [...oldParentIds, newParentId];
     this.setState((prev) => ({
       itemsBeingMoved: prev.itemsBeingMoved + itemIds.length,
     }));
-    this.props.moveItems(workspaceId, itemIds, workspaceId, newParentId, () => {
-      this.setState((prev) => {
-        const newItemsWithMoveSettled = prev.itemsWithMoveSettled + 1;
-        const isAllSettled = newItemsWithMoveSettled === prev.itemsBeingMoved;
-        return {
-          itemsWithMoveSettled: isAllSettled ? 0 : newItemsWithMoveSettled,
-          itemsBeingMoved: isAllSettled ? 0 : prev.itemsBeingMoved,
-        };
-      });
-    });
+    this.props.moveItems(
+      workspaceId,
+      itemIds,
+      workspaceId,
+      newParentId,
+      () => {
+        this.setState((prev) => {
+          const newItemsWithMoveSettled = prev.itemsWithMoveSettled + 1;
+          const isAllSettled = newItemsWithMoveSettled === prev.itemsBeingMoved;
+          return {
+            itemsWithMoveSettled: isAllSettled ? 0 : newItemsWithMoveSettled,
+            itemsBeingMoved: isAllSettled ? 0 : prev.itemsBeingMoved,
+          };
+        });
+      },
+      affectedParentIds,
+    );
   };
 
   /**
@@ -1457,7 +1475,10 @@ function mapDispatchToProps(dispatch: GiantDispatch) {
     getWorkspacesMetadata: bindActionCreators(getWorkspacesMetadata, dispatch),
     // POC: route all workspace loads through the lazy (root + depth-1) loader
     getWorkspace: bindActionCreators(getWorkspacePoc, dispatch),
-    expandWorkspaceNode: bindActionCreators(expandWorkspaceNode, dispatch),
+    loadWorkspaceNodeChildren: bindActionCreators(
+      loadWorkspaceNodeChildren,
+      dispatch,
+    ),
     getMyPermissions: bindActionCreators(getMyPermissions, dispatch),
   };
 }

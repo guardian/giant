@@ -1,5 +1,6 @@
 jest.mock("../../services/WorkspaceApi");
-jest.mock("./getWorkspace");
+// POC: moveItems now refreshes affected parents via lazyLoadingPoc instead of getWorkspace
+jest.mock("./lazyLoadingPoc");
 
 import { moveItems } from "./moveItem";
 import { moveItem as moveItemApi } from "../../services/WorkspaceApi";

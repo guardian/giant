@@ -1,5 +1,5 @@
 import { deleteResourceFromWorkspace as deleteResourceFromWorkspaceApi } from "../../services/WorkspaceApi";
-import { getWorkspace } from "./getWorkspace";
+import { refreshAfterMutation } from "./lazyLoadingPoc";
 import { ThunkAction } from "redux-thunk";
 import {
   AppAction,
@@ -12,11 +12,13 @@ export function deleteResourceFromWorkspace(
   workspaceId: string,
   blobUri: string,
   onCompleteHandler: (isSuccess: boolean) => void,
+  // POC: parent folder(s) to refresh after the mutation instead of reloading the whole tree.
+  affectedParentIds?: (string | undefined)[],
 ): ThunkAction<void, GiantState, null, WorkspacesAction | AppAction> {
   return (dispatch) => {
     return deleteResourceFromWorkspaceApi(workspaceId, blobUri)
       .then(() => {
-        dispatch(getWorkspace(workspaceId));
+        refreshAfterMutation(dispatch, workspaceId, affectedParentIds);
         onCompleteHandler(true);
       })
       .catch((error) => {

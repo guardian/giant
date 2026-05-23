@@ -1,5 +1,5 @@
 import { addFolderToWorkspace as addFolderToWorkspaceApi } from "../../services/WorkspaceApi";
-import { getWorkspace } from "./getWorkspace";
+import { refreshAfterMutation } from "./lazyLoadingPoc";
 import { ThunkAction } from "redux-thunk";
 import {
   AppAction,
@@ -16,7 +16,8 @@ export function addFolderToWorkspace(
   return (dispatch) => {
     return addFolderToWorkspaceApi(workspaceId, parentId, name)
       .then(() => {
-        dispatch(getWorkspace(workspaceId));
+        // POC: the new folder's parent is exactly `parentId` — refresh just that.
+        refreshAfterMutation(dispatch, workspaceId, [parentId]);
       })
       .catch((error) => dispatch(errorAddingFolder(error)));
   };

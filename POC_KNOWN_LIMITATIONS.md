@@ -22,17 +22,28 @@ which had broken everything that identifies a folder **structurally** —
 nodes again, that whole cluster works: **drag-move into a folder, drag-upload and
 click-to-upload into a folder, create-subfolder, the right-click context menu,
 and stable sort on expand are all restored** (a folder no longer changes type
-when expanded). Note the *targeting* works; completing a mutation still hits the
-reload in #1 below.
+when expanded).
+
+## Mutations (now incremental)
+
+Rename, delete (item + resource), create-folder, and **move** no longer reload the
+whole tree: each refetches only the **affected parent folder(s)** — for move, the
+destination *and* each item's old parent — via the same children endpoint, and the
+reducer merge **preserves already-loaded descendant subtrees**, so mutating one
+item doesn't collapse its expanded siblings. The mutation thunks take an
+`affectedParentIds` argument supplied by the component (from each entry's
+`maybeParentId`). No more eager `/nodes` reload on these paths, so no timeout.
 
 ## Limitations
 
-1. **Every mutation triggers a full-tree reload.** Rename / move / delete / add /
-   upload still call the real `getWorkspace` thunk, which fetches `/nodes` (slow
-   on large workspaces) and replaces the tree, collapsing everything expanded. So
-   although you can now *target* a folder for an upload/move, completing it
-   reloads the whole tree. Making mutations incremental ("refetch only the
-   affected parent") is the natural next spike. *For the demo: navigate and read.*
+1. **Upload, copy, and reprocess still reload to depth-1.** These refresh via paths
+   the spike didn't rewire (`UploadFiles`' own refresh prop; copy/reprocess thunks),
+   which now route through the lazy loader — so they reload **root + depth 1**
+   rather than the full tree. That's fast (no timeout) but **collapses the expanded
+   tree to the top level**. Same "refresh affected parent" treatment would fix them;
+   left as follow-up. Move's old-parent set is taken from `selectedEntries`, so a
+   drag of a non-selected item refreshes the destination only (source goes stale
+   until reload) — an edge case.
 
 2. **No folder counts or badges.** Descendant counts aren't computed under lazy
    loading, so folders and the workspace header show **"counts pending..."**
@@ -65,4 +76,6 @@ reload in #1 below.
 - Drilling down — folders are nodes, fetched on first expand, cached thereafter.
 - Drag/drop into folders, uploads into a selected folder, context menu, and
   sort-stable-on-expand (all fixed by the node representation).
+- Rename / delete / create-folder / move — incremental, refreshing only the
+  affected parent(s) and keeping the rest of the tree expanded.
 - Selecting / focusing entries and search-within-folder (targeted Stage-1 query).

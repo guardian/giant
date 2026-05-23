@@ -6,19 +6,45 @@ import {
 import { WorkspacesState } from "../types/redux/GiantState";
 import { WorkspaceEntry } from "../types/Workspaces";
 
-// POC (issue #369 lazy-loading spike): replace the entry with id === replacement.id
-// anywhere in the tree (an expandable leaf "becomes" a node once its children load).
-function replaceEntryById(
+// POC (issue #369 lazy-loading spike): merge a freshly-fetched node (`fresh`, with its
+// direct children) into the tree at the node with the same id. Used both for first
+// expansion and for refreshing a parent after a mutation.
+//
+// Crucially it *preserves already-loaded descendant subtrees*: when refreshing a parent,
+// any child folder that was already loaded keeps its expanded subtree (we only adopt the
+// fresh name/data), so a rename/delete/move of one item doesn't collapse its expanded
+// siblings. New children appear as placeholders; removed children drop out.
+function mergeFetchedNode(
   entry: TreeEntry<WorkspaceEntry>,
-  replacement: TreeEntry<WorkspaceEntry>,
+  fresh: TreeNode<WorkspaceEntry>,
+  loadedNodeIds: string[],
 ): TreeEntry<WorkspaceEntry> {
-  if (entry.id === replacement.id) {
-    return replacement;
+  if (entry.id === fresh.id) {
+    if (!isTreeNode(entry)) {
+      return fresh;
+    }
+    const oldChildrenById = new Map(entry.children.map((c) => [c.id, c]));
+    const children = fresh.children.map((freshChild) => {
+      const oldChild = oldChildrenById.get(freshChild.id);
+      if (
+        oldChild &&
+        isTreeNode(oldChild) &&
+        isTreeNode(freshChild) &&
+        loadedNodeIds.includes(freshChild.id)
+      ) {
+        // keep the previously-loaded subtree, but take fresh name/data (handles rename)
+        return { ...oldChild, name: freshChild.name, data: freshChild.data };
+      }
+      return freshChild;
+    });
+    return { ...fresh, children };
   }
   if (isTreeNode(entry)) {
     return {
       ...entry,
-      children: entry.children.map((c) => replaceEntryById(c, replacement)),
+      children: entry.children.map((c) =>
+        mergeFetchedNode(c, fresh, loadedNodeIds),
+      ),
     };
   }
   return entry;
@@ -86,17 +112,18 @@ export default function workspaces(
         ),
       };
 
-    // POC (issue #369 lazy-loading spike): a folder's children have been fetched.
-    // Replace the placeholder folder node (empty children) with the loaded one, and
-    // record its id as loaded so re-expanding doesn't refetch. Expansion is handled by
-    // the onExpandNode handler, so we don't touch expandedNodes here.
+    // POC (issue #369 lazy-loading spike): a node's children have been fetched (on
+    // expand, or to refresh a parent after a mutation). Merge them in, preserving any
+    // already-loaded descendant subtrees, and record the node as loaded so re-expanding
+    // doesn't refetch. Expansion state is handled by onExpandNode, not here.
     case WorkspacesActionType.WORKSPACE_POC_MERGE_NODE: {
-      if (!state.currentWorkspace) {
+      if (!state.currentWorkspace || !isTreeNode(action.node)) {
         return state;
       }
-      const rootNode = replaceEntryById(
+      const rootNode = mergeFetchedNode(
         state.currentWorkspace.rootNode,
         action.node,
+        state.loadedNodeIds,
       ) as TreeNode<WorkspaceEntry>;
       return {
         ...state,

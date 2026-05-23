@@ -6,7 +6,7 @@ import {
   getWorkspacePocRoot as getWorkspacePocRootApi,
   getWorkspacePocChildren as getWorkspacePocChildrenApi,
 } from "../../services/WorkspaceApi";
-import { ThunkAction } from "redux-thunk";
+import { ThunkAction, ThunkDispatch } from "redux-thunk";
 import {
   AppAction,
   AppActionType,
@@ -47,8 +47,10 @@ export function getWorkspacePoc(
   };
 }
 
-// Fetch a folder's direct children on expand and merge them into the loaded tree.
-export function expandWorkspaceNode(
+// Fetch a node's direct children and merge them into the loaded tree. Used both to
+// expand a folder for the first time and to refresh a parent after a mutation (the
+// merge preserves already-loaded descendant subtrees — see the reducer).
+export function loadWorkspaceNodeChildren(
   workspaceId: string,
   nodeId: string,
 ): ThunkAction<void, GiantState, null, WorkspacesAction | AppAction> {
@@ -68,4 +70,24 @@ export function expandWorkspaceNode(
         }),
       );
   };
+}
+
+// POC: after a mutation, refresh just the affected parent folder(s) — preserving the
+// rest of the lazily-expanded tree — instead of reloading everything. Falls back to a
+// (fast, depth-1) reload via getWorkspacePoc when the affected parents are unknown.
+export function refreshAfterMutation(
+  dispatch: ThunkDispatch<GiantState, null, WorkspacesAction | AppAction>,
+  workspaceId: string,
+  affectedParentIds?: (string | undefined)[],
+): void {
+  const ids = Array.from(
+    new Set(
+      (affectedParentIds ?? []).filter((id): id is string => Boolean(id)),
+    ),
+  );
+  if (ids.length > 0) {
+    ids.forEach((id) => dispatch(loadWorkspaceNodeChildren(workspaceId, id)));
+  } else {
+    dispatch(getWorkspacePoc(workspaceId));
+  }
 }

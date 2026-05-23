@@ -1,5 +1,5 @@
 import { moveItem as moveItemApi } from "../../services/WorkspaceApi";
-import { getWorkspace } from "./getWorkspace";
+import { refreshAfterMutation } from "./lazyLoadingPoc";
 import { ThunkAction } from "redux-thunk";
 import {
   AppAction,
@@ -15,11 +15,14 @@ export function moveItems(
   newWorkspaceId?: string,
   newParentId?: string,
   onEachSettled?: () => void,
+  // POC: parents to refresh after the move — the destination plus each moved item's old
+  // parent — instead of reloading the whole tree.
+  affectedParentIds?: (string | undefined)[],
 ): ThunkAction<void, GiantState, null, WorkspacesAction | AppAction> {
   return async (dispatch) => {
     const throttledCallback = throttle(
       () => {
-        dispatch(getWorkspace(workspaceId));
+        refreshAfterMutation(dispatch, workspaceId, affectedParentIds);
       },
       1000, // don't refresh the workspace more than once per second
     );
