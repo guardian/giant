@@ -48,28 +48,38 @@ depth-1 reload only when the affected parent is genuinely unknown. No eager
    reprocessing progresses. *Copy:* refreshes the destination if it's in the
    current workspace; cross-workspace copies fall back to a depth-1 reload.
 
-2. **No folder counts or badges.** Descendant counts aren't computed under lazy
-   loading, so folders and the workspace header show **"counts pending..."**
-   rather than a (wrong) "empty"/"0 files", and there are no processing/error
-   badges or spinners. Honest-but-absent, by design — counts are a later stage.
+2. **Counts: the cheap ones show; the hard one is deferred.** The header shows the
+   **accurate workspace total** (a cheap `COUNT` on root load, any size). A folder
+   shows its **real file/folder counts once its whole subtree is loaded** — so
+   small/shallow workspaces and any fully-drilled folder show real numbers, while a
+   folder with un-fetched descendants honestly shows **"counts pending..."**. Still
+   deferred (the genuinely hard part): accurate roll-ups for *partially*-loaded
+   folders in big, deep workspaces — that's the real Stage 9. Processing/error
+   badges + spinners remain absent (status roll-ups deferred, polling disabled).
 
-3. **Polling is disabled.** Per-file processing status does not auto-refresh; a
+3. **No size gate — every workspace uses the lazy path.** The POC lazy-loads all
+   workspaces regardless of size (the gate keys off `nodeCount`/PR #742, not in this
+   branch). The real plan keeps workspaces under the gate (~50k) on the eager
+   full-tree path with zero regression; here even a tiny workspace is lazy (now with
+   real counts, so it still looks right).
+
+4. **Polling is disabled.** Per-file processing status does not auto-refresh; a
    running poll would re-fetch the root and discard the expanded tree. Reopen the
    workspace to refresh status.
 
-4. **Deep-linking does not auto-expand.** Opening `/workspaces/:id/:nodeId` will
+5. **Deep-linking does not auto-expand.** Opening `/workspaces/:id/:nodeId` will
    not reveal a node that hasn't been loaded — the client-side path search only
    sees the already-loaded tree. Open via the bare `/workspaces/:id` URL.
 
-5. **Flat folders with >5,000 direct children** still hit the existing truncation
+6. **Flat folders with >5,000 direct children** still hit the existing truncation
    ("N files. Click to load…"). Lazy-by-depth does nothing for a single huge
    folder — that needs pagination (a later stage), not depth-based loading.
 
-6. **Remote-ingest in-progress items are not shown.** The POC endpoints skip the
+7. **Remote-ingest in-progress items are not shown.** The POC endpoints skip the
    `remoteIngestsToMixin` synthetic entries that the real `get` endpoint mixes in,
    so in-progress captured URLs won't appear in the tree.
 
-7. **Brief empty flash on expand.** Expanding a folder marks it open immediately
+8. **Brief empty flash on expand.** Expanding a folder marks it open immediately
    but renders nothing until the children fetch returns (~ms on playground). A
    real build would show a per-folder loading row.
 
@@ -82,4 +92,6 @@ depth-1 reload only when the affected parent is genuinely unknown. No eager
 - All mutations (rename / delete / create-folder / move / copy / reprocess /
   upload) — incremental, refreshing only the affected parent(s) and keeping the
   rest of the tree expanded.
+- Accurate workspace total in the header, and real per-folder counts for any
+  fully-loaded subtree (deeper un-drilled folders show "counts pending...").
 - Selecting / focusing entries and search-within-folder (targeted Stage-1 query).

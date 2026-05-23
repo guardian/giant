@@ -59,6 +59,7 @@ import {
 import { setFocusedEntry } from "../../actions/workspaces/setFocusedEntry";
 import {
   findNodeById,
+  fullyLoadedDescendantCounts,
   getEntryLink,
   processingStageToString,
   workspaceEntryPath,
@@ -148,6 +149,19 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
     } else {
       return 0;
     }
+  };
+
+  // POC: show a folder's real counts once its whole subtree is loaded, else "counts pending..."
+  renderFolderCounts = (entry: TreeEntry<WorkspaceEntry>) => {
+    const counts = fullyLoadedDescendantCounts(entry, this.props.loadedNodeIds);
+    return (
+      <FileAndFolderCounts
+        marginLeft="5px"
+        countsKnown={counts.known}
+        descendantsNodeCount={counts.descendantsNodeCount}
+        descendantsLeafCount={counts.descendantsLeafCount}
+      />
+    );
   };
 
   renderIcon = (entry: TreeEntry<WorkspaceEntry>) => {
@@ -312,14 +326,7 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
               name={entry.name}
               onFinishRename={curryRename}
             />
-            {/* POC: countsKnown=false — descendant counts aren't computed under lazy loading */}
-            {isWorkspaceNode(entry.data) && (
-              <FileAndFolderCounts
-                marginLeft="5px"
-                countsKnown={false}
-                {...entry.data}
-              />
-            )}
+            {isWorkspaceNode(entry.data) && this.renderFolderCounts(entry)}
           </React.Fragment>
         );
       },

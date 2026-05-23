@@ -202,11 +202,12 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
   }
 
   // POC (issue #369 lazy-loading spike): fetch a single node and its direct children only.
-  // Child folders are returned as *expandable leaves* (isExpandable = true when they have their
-  // own children) so the existing TreeBrowser fetch-on-expand machinery drives drill-down; they
-  // "become" nodes once their own children are fetched. maybeParentId = None returns the workspace
-  // root node and its top-level children. Roll-up counts are left at 0 (deferred for the POC);
-  // per-file processing status is fetched inline, scoped to this folder's files, so it stays cheap.
+  // Child folders are returned as lazy TreeNodes with empty children (the client fetches them on
+  // expand). maybeParentId = None returns the workspace root node and its top-level children, and in
+  // that case we also attach the workspace-wide file/folder totals (a cheap COUNT, once per open) so
+  // the header can show an accurate total at any size. Per-folder roll-up counts stay 0 — the client
+  // computes them from the loaded tree where a subtree is fully loaded, else shows "counts pending".
+  // Per-file processing status is fetched inline, scoped to this folder's files, so it stays cheap.
   override def getWorkspaceChildren(currentUser: String, workspaceId: String, maybeParentId: Option[String]): Attempt[TreeEntry[WorkspaceEntry]] = attemptTransaction { tx =>
     tx.run(
       """
@@ -253,21 +254,44 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
             buildPocChildEntry(child, childCreator, parentId, capturedFromURL, numberOfTodos, note, hasFailures)
           }
 
-          Attempt.Right(TreeNode[WorkspaceEntry](
-            id = parentId,
-            name = parentValue.get("name").asString(),
-            data = WorkspaceNode(
-              addedBy = parentCreator,
-              addedOn = parentValue.get("addedOn").optionally(_.asLong()),
-              // the parent's own parent isn't needed: the client merges this node into the tree by id
-              maybeParentId = None,
-              descendantsLeafCount = 0,
-              descendantsNodeCount = 0,
-              descendantsProcessingTaskCount = 0,
-              descendantsFailedCount = 0
-            ),
-            children = children
-          ))
+          def buildParent(descendantsLeafCount: Long, descendantsNodeCount: Long): TreeEntry[WorkspaceEntry] =
+            TreeNode[WorkspaceEntry](
+              id = parentId,
+              name = parentValue.get("name").asString(),
+              data = WorkspaceNode(
+                addedBy = parentCreator,
+                addedOn = parentValue.get("addedOn").optionally(_.asLong()),
+                // the parent's own parent isn't needed: the client merges this node into the tree by id
+                maybeParentId = None,
+                descendantsLeafCount = descendantsLeafCount,
+                descendantsNodeCount = descendantsNodeCount,
+                descendantsProcessingTaskCount = 0,
+                descendantsFailedCount = 0
+              ),
+              children = children
+            )
+
+          if (maybeParentId.isEmpty) {
+            // Root load: attach workspace-wide totals so the header is accurate at any size.
+            // Only for the root — running this on every expand would add O(total) work and
+            // undermine the "expand is cheap regardless of size" property.
+            tx.run(
+              """
+                |MATCH (workspace: Workspace { id: $id })<-[:PART_OF]-(n :WorkspaceNode)
+                |RETURN count(CASE WHEN n.type = 'file' THEN 1 END) AS files,
+                |       count(CASE WHEN n.type = 'folder' THEN 1 END) AS folders
+              """.stripMargin,
+              parameters("id", workspaceId)
+            ).map { countSummary =>
+              val countRow = countSummary.list().asScala.headOption
+              val files = countRow.map(_.get("files").asLong()).getOrElse(0L)
+              val folders = countRow.map(_.get("folders").asLong()).getOrElse(0L)
+              // descendantsNodeCount excludes the root folder itself, matching the eager buildNode
+              buildParent(files, math.max(folders - 1L, 0L))
+            }
+          } else {
+            Attempt.Right(buildParent(0L, 0L))
+          }
       }
     }
   }

@@ -8,6 +8,43 @@ import { isTreeLeaf, isTreeNode, TreeEntry, TreeNode } from "../types/Tree";
 import { ProcessingStage } from "../types/Resource";
 import { useRouteMatch } from "react-router-dom";
 
+// POC (issue #369 lazy-loading spike): compute a folder's descendant counts client-side, but
+// report them as `known` only when the whole subtree is loaded (the folder and every descendant
+// folder have had their children fetched). Un-drilled deep folders return known: false so the UI
+// honestly shows "counts pending..." rather than an undercount. Cheap counts, deferred rollups.
+export function fullyLoadedDescendantCounts(
+  entry: TreeEntry<WorkspaceEntry>,
+  loadedNodeIds: string[],
+): {
+  known: boolean;
+  descendantsLeafCount: number;
+  descendantsNodeCount: number;
+} {
+  if (isTreeLeaf(entry)) {
+    return { known: true, descendantsLeafCount: 0, descendantsNodeCount: 0 };
+  }
+  if (!loadedNodeIds.includes(entry.id)) {
+    return { known: false, descendantsLeafCount: 0, descendantsNodeCount: 0 };
+  }
+  let known = true;
+  let descendantsLeafCount = 0;
+  let descendantsNodeCount = 0;
+  for (const child of entry.children) {
+    if (isTreeLeaf(child)) {
+      descendantsLeafCount += 1;
+    } else {
+      descendantsNodeCount += 1;
+      const childCounts = fullyLoadedDescendantCounts(child, loadedNodeIds);
+      if (!childCounts.known) {
+        known = false;
+      }
+      descendantsLeafCount += childCounts.descendantsLeafCount;
+      descendantsNodeCount += childCounts.descendantsNodeCount;
+    }
+  }
+  return { known, descendantsLeafCount, descendantsNodeCount };
+}
+
 export function findNodeById(
   root: TreeNode<WorkspaceEntry>,
   targetId: string,
