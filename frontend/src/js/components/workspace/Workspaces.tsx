@@ -307,18 +307,28 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
               name={entry.name}
               onFinishRename={curryRename}
             />
+            {/* POC: countsKnown=false — descendant counts aren't computed under lazy loading */}
             {isWorkspaceNode(entry.data) && (
-              <FileAndFolderCounts marginLeft="5px" {...entry.data} />
+              <FileAndFolderCounts
+                marginLeft="5px"
+                countsKnown={false}
+                {...entry.data}
+              />
             )}
           </React.Fragment>
         );
       },
       sort: (a: TreeEntry<WorkspaceEntry>, b: TreeEntry<WorkspaceEntry>) => {
-        // Folders grouped separately (top or bottom)
-        if (isTreeNode(a) && isTreeLeaf(b)) {
+        // Folders grouped separately (top or bottom).
+        // POC: group by SEMANTIC type (isWorkspaceNode), not structural (isTreeNode),
+        // so a folder doesn't jump from the files group up into the folders group when
+        // expanding turns it from an expandable leaf into a node.
+        const aIsFolder = isWorkspaceNode(a.data);
+        const bIsFolder = isWorkspaceNode(b.data);
+        if (aIsFolder && !bIsFolder) {
           return -1;
         }
-        if (isTreeNode(b) && isTreeLeaf(a)) {
+        if (bIsFolder && !aIsFolder) {
           return 1;
         }
         return this.stringSort(a.name, b.name);
@@ -544,6 +554,15 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
       this.clearFocus();
     }
   }
+
+  // POC: expanding a folder fetches its children on first open; collapse/re-expand is
+  // cached (id recorded in loadedNodeIds), so no refetch.
+  onExpandNode = (node: TreeNode<WorkspaceEntry>) => {
+    this.props.setNodeAsExpanded(node);
+    if (!this.props.loadedNodeIds.includes(node.id)) {
+      this.props.expandWorkspaceNode(this.props.match.params.id, node.id);
+    }
+  };
 
   performPollingIfRequired = () => {
     if (
@@ -1184,6 +1203,7 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
                 <br />
                 <FileAndFolderCounts
                   prefix="ultimately containing"
+                  countsKnown={false}
                   descendantsNodeCount={
                     selectedTotalCounts.descendantsNodeCount
                   }
@@ -1246,15 +1266,11 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
             onSelectLeaf={onSelectLeaf}
             columnsConfig={this.state.columnsConfig}
             onClickColumn={this.onClickColumn}
-            // POC: lazily fetch this folder's children when it is expanded
-            onExpandLeaf={(leaf) =>
-              this.props.expandWorkspaceNode(
-                this.props.match.params.id,
-                leaf.id,
-              )
-            }
+            // POC: folders are nodes now, so drill-down happens via onExpandNode;
+            // files aren't expandable, so this is a no-op.
+            onExpandLeaf={() => {}}
             expandedEntries={this.props.expandedNodes}
-            onExpandNode={this.props.setNodeAsExpanded}
+            onExpandNode={this.onExpandNode}
             onCollapseNode={this.props.setNodeAsCollapsed}
             onContextMenu={this.onContextMenu}
           />
@@ -1395,6 +1411,7 @@ function mapStateToProps(state: GiantState) {
     currentUser: state.auth.token?.user,
     users: state.users.userList,
     expandedNodes: state.workspaces.expandedNodes,
+    loadedNodeIds: state.workspaces.loadedNodeIds,
     collections: state.collections,
     myPermissions: state.users.myPermissions,
   };

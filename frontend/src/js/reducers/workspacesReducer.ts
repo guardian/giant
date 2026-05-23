@@ -34,6 +34,7 @@ export default function workspaces(
     focusedEntry: null,
     expandedNodes: [],
     entryBeingRenamed: null,
+    loadedNodeIds: [],
   },
   action: WorkspacesAction,
 ): WorkspacesState {
@@ -50,6 +51,9 @@ export default function workspaces(
         currentWorkspace: action.workspace,
         isGettingWorkspace: false,
         currentWorkspaceLastRefreshedAt: new Date(),
+        // POC: the initial fetch loads the root + its direct children, so the root
+        // counts as loaded; everything below it is fetched lazily on expand.
+        loadedNodeIds: action.workspace ? [action.workspace.rootNode.id] : [],
       };
     }
 
@@ -82,8 +86,10 @@ export default function workspaces(
         ),
       };
 
-    // POC (issue #369 lazy-loading spike): splice a lazily-fetched node (with its
-    // children) into the tree, and mark it expanded so its children show immediately.
+    // POC (issue #369 lazy-loading spike): a folder's children have been fetched.
+    // Replace the placeholder folder node (empty children) with the loaded one, and
+    // record its id as loaded so re-expanding doesn't refetch. Expansion is handled by
+    // the onExpandNode handler, so we don't touch expandedNodes here.
     case WorkspacesActionType.WORKSPACE_POC_MERGE_NODE: {
       if (!state.currentWorkspace) {
         return state;
@@ -92,16 +98,12 @@ export default function workspaces(
         state.currentWorkspace.rootNode,
         action.node,
       ) as TreeNode<WorkspaceEntry>;
-      const alreadyExpanded = state.expandedNodes.some(
-        (n) => n.id === action.node.id,
-      );
       return {
         ...state,
         currentWorkspace: { ...state.currentWorkspace, rootNode },
-        expandedNodes:
-          alreadyExpanded || !isTreeNode(action.node)
-            ? state.expandedNodes
-            : [...state.expandedNodes, action.node],
+        loadedNodeIds: state.loadedNodeIds.includes(action.node.id)
+          ? state.loadedNodeIds
+          : [...state.loadedNodeIds, action.node.id],
       };
     }
 

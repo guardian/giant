@@ -223,8 +223,7 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
         |RETURN parent, parentCreator, child, childCreator, childRemoteIngest.url AS childCapturedFromURL,
         |	count(todo) AS numberOfTodos,
         |	collect(todo)[0].note AS note,
-        |	EXISTS { (:Resource {uri: child.uri})<-[:EXTRACTION_FAILURE]-(:Extractor) } AS hasFailures,
-        |	EXISTS { (:WorkspaceNode)-[:PARENT]->(child) } AS childIsExpandable
+        |	EXISTS { (:Resource {uri: child.uri})<-[:EXTRACTION_FAILURE]-(:Extractor) } AS hasFailures
       """.stripMargin,
       parameters(
         "currentUser", currentUser,
@@ -250,9 +249,8 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
             val numberOfTodos = r.get("numberOfTodos").asInt()
             val note = r.get("note").optionally(_.asString())
             val hasFailures = r.get("hasFailures").asBoolean()
-            val isExpandable = r.get("childIsExpandable").asBoolean()
 
-            buildPocChildEntry(child, childCreator, parentId, capturedFromURL, numberOfTodos, note, hasFailures, isExpandable)
+            buildPocChildEntry(child, childCreator, parentId, capturedFromURL, numberOfTodos, note, hasFailures)
           }
 
           Attempt.Right(TreeNode[WorkspaceEntry](
@@ -274,7 +272,10 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
     }
   }
 
-  // POC helper: build one direct child. Folders become expandable leaves; files become plain leaves.
+  // POC helper: build one direct child. Folders become real TreeNodes with no children
+  // loaded yet (the client tracks which node ids it has fetched and loads them on expand,
+  // so a folder behaves like a folder — drop target, context menu, stable sort — rather than
+  // a leaf). Files become plain leaves.
   private def buildPocChildEntry(
     v: Value,
     createdBy: model.frontend.user.PartialUser,
@@ -282,15 +283,13 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
     maybeCapturedFromURL: Option[String],
     numberOfTodos: Int,
     note: Option[String],
-    hasFailures: Boolean,
-    isExpandable: Boolean
+    hasFailures: Boolean
   ): TreeEntry[WorkspaceEntry] = {
     v.get("type").asString() match {
       case "folder" =>
-        TreeLeaf[WorkspaceEntry](
+        TreeNode[WorkspaceEntry](
           id = v.get("id").asString(),
           name = v.get("name").asString(),
-          isExpandable = isExpandable,
           data = WorkspaceNode(
             addedBy = createdBy,
             addedOn = v.get("addedOn").optionally(_.asLong()),
@@ -300,7 +299,8 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
             descendantsNodeCount = 0,
             descendantsProcessingTaskCount = 0,
             descendantsFailedCount = 0
-          )
+          ),
+          children = List.empty
         )
 
       case _ =>

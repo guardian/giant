@@ -107,7 +107,9 @@ export default function WorkspaceSummary({
           <>
             <br />
             <EuiText size="s">
+              {/* POC: descendant counts aren't computed under lazy loading */}
               <FileAndFolderCounts
+                countsKnown={false}
                 descendantsNodeCount={maybeRootNodeData.descendantsNodeCount}
                 descendantsLeafCount={maybeRootNodeData.descendantsLeafCount}
               />

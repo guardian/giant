@@ -18,6 +18,9 @@ export interface WorkspacesState {
   focusedEntry: TreeEntry<WorkspaceEntry> | null;
   expandedNodes: TreeNode<WorkspaceEntry>[];
   entryBeingRenamed: TreeEntry<WorkspaceEntry> | null;
+  // POC (issue #369 lazy-loading spike): ids of folder nodes whose children have been
+  // fetched. Lets the tree distinguish a loaded-but-empty folder from one not yet loaded.
+  loadedNodeIds: string[];
 }
 
 export interface MetricsState {
