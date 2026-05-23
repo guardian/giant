@@ -16,6 +16,8 @@ export enum WorkspacesActionType {
   SET_NODE_AS_EXPANDED = "SET_NODE_AS_EXPANDED",
   SET_NODES_AS_EXPANDED = "SET_NODES_AS_EXPANDED",
   SET_NODE_AS_COLLAPSED = "SET_NODE_AS_COLLAPSED",
+  // POC (issue #369 lazy-loading spike): merge a lazily-fetched node + its children into the tree.
+  WORKSPACE_POC_MERGE_NODE = "WORKSPACE_POC_MERGE_NODE",
 }
 
 interface TreeNodeAction {
@@ -59,6 +61,12 @@ interface StartGetWorkspaceAction {
   type: WorkspacesActionType.WORKSPACE_GET_START;
 }
 
+// POC (issue #369 lazy-loading spike)
+interface PocMergeNodeAction {
+  type: WorkspacesActionType.WORKSPACE_POC_MERGE_NODE;
+  node: TreeEntry<WorkspaceEntry>;
+}
+
 export type WorkspacesAction =
   | TreeNodeAction
   | TreeNodesAction
@@ -67,7 +75,8 @@ export type WorkspacesAction =
   | EntryBeingRenamedAction
   | ReceiveWorkspacesMetadataAction
   | ReceiveWorkspaceAction
-  | StartGetWorkspaceAction;
+  | StartGetWorkspaceAction
+  | PocMergeNodeAction;
 
 export enum AppActionType {
   APP_SHOW_ERROR = "APP_SHOW_ERROR",

@@ -64,6 +64,8 @@ PUT           /api/workspaces/:workspaceId/isPublic                         cont
 PUT           /api/workspaces/:workspaceId/name                             controllers.api.Workspaces.updateWorkspaceName(workspaceId: String)
 GET           /api/workspaces/:workspaceId                                  controllers.api.Workspaces.get(workspaceId: String)
 GET           /api/workspaces/:workspaceId/nodes                            controllers.api.Workspaces.getContents(workspaceId: String)
+GET           /api/workspaces/:workspaceId/poc-root                         controllers.api.Workspaces.getPocRoot(workspaceId: String)
+GET           /api/workspaces/:workspaceId/poc-children/:nodeId             controllers.api.Workspaces.getPocChildren(workspaceId: String, nodeId: String)
 GET           /api/workspaces/:workspaceId/totalWordCount                   controllers.api.Workspaces.getTotalWordCount(workspaceId: String)
 POST          /api/workspaces/:workspaceId/text                             controllers.api.Workspaces.getText(workspaceId: String)
 PUT           /api/workspaces/:workspaceId/owner                            controllers.api.Workspaces.updateWorkspaceOwner(workspaceId: String)

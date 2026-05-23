@@ -180,6 +180,22 @@ class Workspaces(
       .map(workspace => Ok(Json.toJson(workspace)))
   }
 
+  // POC (issue #369 lazy-loading spike): root node + its direct children only.
+  def getPocRoot(workspaceId: String) = ApiAction.attempt { req: UserIdentityRequest[_] =>
+    for {
+      metadata <- annotation.getWorkspaceMetadata(req.user.username, workspaceId)
+      rootNode <- annotation.getWorkspaceChildren(req.user.username, workspaceId, None)
+    } yield {
+      Ok(Json.toJson(Workspace.fromMetadataAndRootNode(metadata, rootNode)))
+    }
+  }
+
+  // POC: direct children of a single node, returned as that node with its children populated.
+  def getPocChildren(workspaceId: String, nodeId: String) = ApiAction.attempt { req =>
+    annotation.getWorkspaceChildren(req.user.username, workspaceId, Some(nodeId))
+      .map(node => Ok(Json.toJson(node)))
+  }
+
   def getTotalWordCount(workspaceId: String) = ApiAction.attempt { req =>
     for {
       _ <- annotation.getWorkspaceMetadata(req.user.username, workspaceId) // check workspace exists and user has access

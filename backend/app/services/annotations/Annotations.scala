@@ -17,6 +17,9 @@ trait Annotations {
   def getWorkspaceMetadata(currentUser: String, id: String): Attempt[WorkspaceMetadata]
   def getWorkspaceContents(currentUser: String, id: String, remoteIngestsToMixin: List[RemoteIngest] = List.empty): Attempt[TreeEntry[WorkspaceEntry]]
   def getBlobUrisInWorkspaceFolder(currentUser: String, workspaceId: String, folderId: String): Attempt[List[String]]
+  // POC (issue #369 lazy-loading spike): a single node plus its direct children only.
+  // maybeParentId = None returns the workspace root node and its top-level children.
+  def getWorkspaceChildren(currentUser: String, workspaceId: String, maybeParentId: Option[String]): Attempt[TreeEntry[WorkspaceEntry]]
   def insertWorkspace(username: String, id: String, name: String, isPublic: Boolean, tagColor: String): Attempt[Unit]
   def updateWorkspaceName(currentUser: String, id: String, name: String): Attempt[Unit]
   def updateWorkspaceOwner(currentUser: String, id: String, owner: String): Attempt[Unit]

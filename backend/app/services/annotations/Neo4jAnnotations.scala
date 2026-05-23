@@ -201,6 +201,132 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
     }
   }
 
+  // POC (issue #369 lazy-loading spike): fetch a single node and its direct children only.
+  // Child folders are returned as *expandable leaves* (isExpandable = true when they have their
+  // own children) so the existing TreeBrowser fetch-on-expand machinery drives drill-down; they
+  // "become" nodes once their own children are fetched. maybeParentId = None returns the workspace
+  // root node and its top-level children. Roll-up counts are left at 0 (deferred for the POC);
+  // per-file processing status is fetched inline, scoped to this folder's files, so it stays cheap.
+  override def getWorkspaceChildren(currentUser: String, workspaceId: String, maybeParentId: Option[String]): Attempt[TreeEntry[WorkspaceEntry]] = attemptTransaction { tx =>
+    tx.run(
+      """
+        |MATCH (workspace: Workspace { id: $id })
+        |WHERE (:User { username: $currentUser })-[:FOLLOWING|OWNS]->(workspace) OR workspace.isPublic
+        |MATCH (workspace)<-[:PART_OF]-(parent :WorkspaceNode)
+        |WHERE ($parentId IS NULL AND NOT (parent)-[:PARENT]->(:WorkspaceNode))
+        |   OR (parent.id = $parentId)
+        |OPTIONAL MATCH (parent)<-[:CREATED]-(parentCreator :User)
+        |OPTIONAL MATCH (workspace)<-[:PART_OF]-(child :WorkspaceNode)-[:PARENT]->(parent)
+        |OPTIONAL MATCH (child)<-[:CREATED]-(childCreator :User)
+        |OPTIONAL MATCH (child)-[:FROM]->(childRemoteIngest :RemoteIngest)
+        |OPTIONAL MATCH (:Resource {uri: child.uri})<-[todo:TODO|PROCESSING_EXTERNALLY]-(:Extractor)
+        |RETURN parent, parentCreator, child, childCreator, childRemoteIngest.url AS childCapturedFromURL,
+        |	count(todo) AS numberOfTodos,
+        |	collect(todo)[0].note AS note,
+        |	EXISTS { (:Resource {uri: child.uri})<-[:EXTRACTION_FAILURE]-(:Extractor) } AS hasFailures,
+        |	EXISTS { (:WorkspaceNode)-[:PARENT]->(child) } AS childIsExpandable
+      """.stripMargin,
+      parameters(
+        "currentUser", currentUser,
+        "id", workspaceId,
+        "parentId", maybeParentId.orNull
+      )
+    ).flatMap { summary =>
+      val rows = summary.list().asScala.toList
+
+      rows match {
+        case Nil =>
+          Attempt.Left(NotFoundFailure(s"Node ${maybeParentId.getOrElse("<root>")} not found in workspace $workspaceId"))
+
+        case firstRow :: _ =>
+          val parentValue = firstRow.get("parent")
+          val parentCreator = DBUser.fromNeo4jValue(firstRow.get("parentCreator")).toPartial
+          val parentId = parentValue.get("id").asString()
+
+          val children: List[TreeEntry[WorkspaceEntry]] = rows.filterNot(_.get("child").isNull).map { r =>
+            val child = r.get("child")
+            val childCreator = DBUser.fromNeo4jValue(r.get("childCreator")).toPartial
+            val capturedFromURL = r.get("childCapturedFromURL").optionally(_.asString())
+            val numberOfTodos = r.get("numberOfTodos").asInt()
+            val note = r.get("note").optionally(_.asString())
+            val hasFailures = r.get("hasFailures").asBoolean()
+            val isExpandable = r.get("childIsExpandable").asBoolean()
+
+            buildPocChildEntry(child, childCreator, parentId, capturedFromURL, numberOfTodos, note, hasFailures, isExpandable)
+          }
+
+          Attempt.Right(TreeNode[WorkspaceEntry](
+            id = parentId,
+            name = parentValue.get("name").asString(),
+            data = WorkspaceNode(
+              addedBy = parentCreator,
+              addedOn = parentValue.get("addedOn").optionally(_.asLong()),
+              // the parent's own parent isn't needed: the client merges this node into the tree by id
+              maybeParentId = None,
+              descendantsLeafCount = 0,
+              descendantsNodeCount = 0,
+              descendantsProcessingTaskCount = 0,
+              descendantsFailedCount = 0
+            ),
+            children = children
+          ))
+      }
+    }
+  }
+
+  // POC helper: build one direct child. Folders become expandable leaves; files become plain leaves.
+  private def buildPocChildEntry(
+    v: Value,
+    createdBy: model.frontend.user.PartialUser,
+    parentId: String,
+    maybeCapturedFromURL: Option[String],
+    numberOfTodos: Int,
+    note: Option[String],
+    hasFailures: Boolean,
+    isExpandable: Boolean
+  ): TreeEntry[WorkspaceEntry] = {
+    v.get("type").asString() match {
+      case "folder" =>
+        TreeLeaf[WorkspaceEntry](
+          id = v.get("id").asString(),
+          name = v.get("name").asString(),
+          isExpandable = isExpandable,
+          data = WorkspaceNode(
+            addedBy = createdBy,
+            addedOn = v.get("addedOn").optionally(_.asLong()),
+            maybeParentId = Some(parentId),
+            maybeCapturedFromURL = maybeCapturedFromURL,
+            descendantsLeafCount = 0,
+            descendantsNodeCount = 0,
+            descendantsProcessingTaskCount = 0,
+            descendantsFailedCount = 0
+          )
+        )
+
+      case _ =>
+        val processingStage =
+          if (hasFailures) ProcessingStage.Failed
+          else if (numberOfTodos > 0) ProcessingStage.Processing(numberOfTodos, note)
+          else ProcessingStage.Processed
+
+        TreeLeaf[WorkspaceEntry](
+          id = v.get("id").asString(),
+          name = v.get("name").asString(),
+          isExpandable = false,
+          data = WorkspaceLeaf(
+            addedBy = createdBy,
+            addedOn = v.get("addedOn").optionally(_.asLong()),
+            maybeParentId = Some(parentId),
+            maybeCapturedFromURL = maybeCapturedFromURL,
+            processingStage = processingStage,
+            uri = v.get("uri").asString(),
+            mimeType = v.get("mimeType").asString(),
+            size = v.get("size").optionally(_.asLong())
+          )
+        )
+    }
+  }
+
   override def getBlobUrisInWorkspaceFolder(currentUser: String, workspaceId: String, folderId: String): Attempt[List[String]] = attemptTransaction { tx =>
     tx.run(
       """

@@ -20,7 +20,11 @@ import { setEntryBeingRenamed } from "../../actions/workspaces/setEntryBeingRena
 import { renameWorkspace } from "../../actions/workspaces/renameWorkspace";
 import { setWorkspaceFollowers } from "../../actions/workspaces/setWorkspaceFollowers";
 import { getWorkspacesMetadata } from "../../actions/workspaces/getWorkspacesMetadata";
-import { getWorkspace } from "../../actions/workspaces/getWorkspace";
+// POC (issue #369 lazy-loading spike): lazy loaders replace the eager getWorkspace
+import {
+  getWorkspacePoc,
+  expandWorkspaceNode,
+} from "../../actions/workspaces/lazyLoadingPoc";
 import { getCollections } from "../../actions/collections/getCollections";
 import { setNodeAsCollapsed } from "../../actions/workspaces/setNodeAsCollapsed";
 import { setNodeAsExpanded } from "../../actions/workspaces/setNodeAsExpanded";
@@ -441,8 +445,8 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
     this.props.getCollections();
     this.props.getWorkspace(this.props.match.params.id);
 
-    // poll every minute
-    this.poller = setInterval(this.performPollingIfRequired, 60 * 1000);
+    // POC: polling disabled — re-fetching the workspace would discard the lazily-expanded tree.
+    // this.poller = setInterval(this.performPollingIfRequired, 60 * 1000);
 
     const workspaceLocationParam = this.props.match.params.workspaceLocation;
     if (!workspaceLocationParam || workspaceLocationParam.length === 0) {
@@ -1242,8 +1246,13 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
             onSelectLeaf={onSelectLeaf}
             columnsConfig={this.state.columnsConfig}
             onClickColumn={this.onClickColumn}
-            // entire tree is in memory up-front
-            onExpandLeaf={() => {}}
+            // POC: lazily fetch this folder's children when it is expanded
+            onExpandLeaf={(leaf) =>
+              this.props.expandWorkspaceNode(
+                this.props.match.params.id,
+                leaf.id,
+              )
+            }
             expandedEntries={this.props.expandedNodes}
             onExpandNode={this.props.setNodeAsExpanded}
             onCollapseNode={this.props.setNodeAsCollapsed}
@@ -1429,7 +1438,9 @@ function mapDispatchToProps(dispatch: GiantDispatch) {
     createWarning: bindActionCreators(createWarning, dispatch),
     getCollections: bindActionCreators(getCollections, dispatch),
     getWorkspacesMetadata: bindActionCreators(getWorkspacesMetadata, dispatch),
-    getWorkspace: bindActionCreators(getWorkspace, dispatch),
+    // POC: route all workspace loads through the lazy (root + depth-1) loader
+    getWorkspace: bindActionCreators(getWorkspacePoc, dispatch),
+    expandWorkspaceNode: bindActionCreators(expandWorkspaceNode, dispatch),
     getMyPermissions: bindActionCreators(getMyPermissions, dispatch),
   };
 }

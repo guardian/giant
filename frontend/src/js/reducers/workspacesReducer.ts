@@ -1,10 +1,28 @@
-import { TreeNode } from "../types/Tree";
+import { TreeEntry, TreeNode, isTreeNode } from "../types/Tree";
 import {
   WorkspacesAction,
   WorkspacesActionType,
 } from "../types/redux/GiantActions";
 import { WorkspacesState } from "../types/redux/GiantState";
 import { WorkspaceEntry } from "../types/Workspaces";
+
+// POC (issue #369 lazy-loading spike): replace the entry with id === replacement.id
+// anywhere in the tree (an expandable leaf "becomes" a node once its children load).
+function replaceEntryById(
+  entry: TreeEntry<WorkspaceEntry>,
+  replacement: TreeEntry<WorkspaceEntry>,
+): TreeEntry<WorkspaceEntry> {
+  if (entry.id === replacement.id) {
+    return replacement;
+  }
+  if (isTreeNode(entry)) {
+    return {
+      ...entry,
+      children: entry.children.map((c) => replaceEntryById(c, replacement)),
+    };
+  }
+  return entry;
+}
 
 export default function workspaces(
   state: WorkspacesState = {
@@ -63,6 +81,29 @@ export default function workspaces(
           [],
         ),
       };
+
+    // POC (issue #369 lazy-loading spike): splice a lazily-fetched node (with its
+    // children) into the tree, and mark it expanded so its children show immediately.
+    case WorkspacesActionType.WORKSPACE_POC_MERGE_NODE: {
+      if (!state.currentWorkspace) {
+        return state;
+      }
+      const rootNode = replaceEntryById(
+        state.currentWorkspace.rootNode,
+        action.node,
+      ) as TreeNode<WorkspaceEntry>;
+      const alreadyExpanded = state.expandedNodes.some(
+        (n) => n.id === action.node.id,
+      );
+      return {
+        ...state,
+        currentWorkspace: { ...state.currentWorkspace, rootNode },
+        expandedNodes:
+          alreadyExpanded || !isTreeNode(action.node)
+            ? state.expandedNodes
+            : [...state.expandedNodes, action.node],
+      };
+    }
 
     default:
       return state;

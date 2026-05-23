@@ -1,5 +1,10 @@
 import authFetch from "../util/auth/authFetch";
-import { WorkspaceMetadata } from "../types/Workspaces";
+import {
+  WorkspaceMetadata,
+  Workspace,
+  WorkspaceEntry,
+} from "../types/Workspaces";
+import { TreeEntry } from "../types/Tree";
 
 export function createWorkspace(
   name: string,
@@ -57,6 +62,21 @@ export function getWorkspacesMetadata(): Promise<WorkspaceMetadata[]> {
 
 export function getWorkspace(id: string) {
   return authFetch(`/api/workspaces/${id}`).then((res) => res.json());
+}
+
+// POC (issue #369 lazy-loading spike): workspace root node + its direct children only.
+export function getWorkspacePocRoot(id: string): Promise<Workspace> {
+  return authFetch(`/api/workspaces/${id}/poc-root`).then((res) => res.json());
+}
+
+// POC: direct children of a node, returned as that node with its children populated.
+export function getWorkspacePocChildren(
+  id: string,
+  nodeId: string,
+): Promise<TreeEntry<WorkspaceEntry>> {
+  return authFetch(
+    `/api/workspaces/${id}/poc-children/${encodeURIComponent(nodeId)}`,
+  ).then((res) => res.json());
 }
 
 export function getWorkspaceTotalWordCount(id: string): Promise<number> {
