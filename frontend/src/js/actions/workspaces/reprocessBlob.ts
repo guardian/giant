@@ -6,15 +6,19 @@ import {
   AppActionType,
   WorkspacesAction,
 } from "../../types/redux/GiantActions";
-import { getWorkspace } from "./getWorkspace";
+import { refreshAfterMutation } from "./lazyLoadingPoc";
 
 export function reprocessBlob(
   workspaceID: string,
   itemId: string,
+  // POC: parent folder(s) to refresh after reprocessing instead of reloading the whole tree.
+  affectedParentIds?: (string | undefined)[],
 ): ThunkAction<void, GiantState, null, WorkspacesAction | AppAction> {
   return (dispatch) => {
     return reprocessBlobApi(itemId)
-      .then(() => dispatch(getWorkspace(workspaceID)))
+      .then(() =>
+        refreshAfterMutation(dispatch, workspaceID, affectedParentIds),
+      )
       .catch((error) => dispatch(errorReprocessingBlob(error)));
   };
 }

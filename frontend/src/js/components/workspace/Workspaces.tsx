@@ -190,7 +190,10 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
     const reprocessAction = (entry: TreeEntry<WorkspaceEntry>) => {
       if (isWorkspaceLeaf(entry.data)) {
         const workspaceId = this.props.match.params.id;
-        this.props.reprocessBlob(workspaceId, entry.data.uri);
+        // POC: refresh just the reprocessed file's parent
+        this.props.reprocessBlob(workspaceId, entry.data.uri, [
+          entry.data.maybeParentId,
+        ]);
       }
     };
 
@@ -1096,7 +1099,10 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
               menuItemProps.content === "Reprocess source file" &&
               workspaceLeaf
             ) {
-              this.props.reprocessBlob(workspaceId, workspaceLeaf.uri);
+              // POC: refresh just the reprocessed file's parent
+              this.props.reprocessBlob(workspaceId, workspaceLeaf.uri, [
+                workspaceLeaf.maybeParentId,
+              ]);
             }
 
             if (
@@ -1334,7 +1340,20 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
           deleteWorkspace={this.props.deleteWorkspace}
           takeOwnershipOfWorkspace={this.props.takeOwnershipOfWorkspace}
           collections={this.props.collections}
-          getWorkspaceContents={this.props.getWorkspace}
+          // POC: after upload, refresh just the target folder instead of reloading the
+          // whole tree to depth-1 (which would collapse expansion). Best-effort target:
+          // the drop target, else the focused folder (or its parent), else the root.
+          getWorkspaceContents={(wsId: string) => {
+            const targetId =
+              this.state.droppedFiles?.targetFolder?.id ??
+              (this.props.focusedEntry &&
+              isWorkspaceNode(this.props.focusedEntry.data)
+                ? this.props.focusedEntry.id
+                : this.props.focusedEntry?.data.maybeParentId) ??
+              this.props.currentWorkspace?.rootNode.id ??
+              "";
+            return this.props.loadWorkspaceNodeChildren(wsId, targetId);
+          }}
           focusedEntry={this.props.focusedEntry}
           workspaces={this.props.workspacesMetadata}
           expandedNodes={this.props.expandedNodes}

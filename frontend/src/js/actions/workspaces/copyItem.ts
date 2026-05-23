@@ -6,7 +6,7 @@ import {
   AppActionType,
   WorkspacesAction,
 } from "../../types/redux/GiantActions";
-import { getWorkspace } from "./getWorkspace";
+import { refreshAfterMutation } from "./lazyLoadingPoc";
 
 export function copyItems(
   workspaceId: string,
@@ -32,7 +32,8 @@ export function copyItem(
   return (dispatch) => {
     return copyItemApi(workspaceId, itemId, newWorkspaceId, newParentId)
       .then(() => {
-        dispatch(getWorkspace(workspaceId));
+        // POC: refresh the copy destination (falls back to a depth-1 reload if unknown)
+        refreshAfterMutation(dispatch, workspaceId, [newParentId]);
       })
       .catch((error) => dispatch(() => errorCopyingItem(error)));
   };

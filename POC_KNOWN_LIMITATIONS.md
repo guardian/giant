@@ -26,24 +26,27 @@ when expanded).
 
 ## Mutations (now incremental)
 
-Rename, delete (item + resource), create-folder, and **move** no longer reload the
-whole tree: each refetches only the **affected parent folder(s)** — for move, the
-destination *and* each item's old parent — via the same children endpoint, and the
-reducer merge **preserves already-loaded descendant subtrees**, so mutating one
-item doesn't collapse its expanded siblings. The mutation thunks take an
+All mutations now refresh only the **affected parent folder(s)** rather than
+reloading the whole tree — rename, delete (item + resource), create-folder, move
+(destination *plus* each item's old parent), copy, reprocess (blob → its parent;
+folder → itself), and **upload** (the drop target / focused folder). The reducer
+merge **preserves already-loaded descendant subtrees**, so mutating one item
+doesn't collapse its expanded siblings. Mutation thunks take an
 `affectedParentIds` argument supplied by the component (from each entry's
-`maybeParentId`). No more eager `/nodes` reload on these paths, so no timeout.
+`maybeParentId`); `refreshAfterMutation` refetches those, falling back to a fast
+depth-1 reload only when the affected parent is genuinely unknown. No eager
+`/nodes` reload remains on any mutation path.
 
 ## Limitations
 
-1. **Upload, copy, and reprocess still reload to depth-1.** These refresh via paths
-   the spike didn't rewire (`UploadFiles`' own refresh prop; copy/reprocess thunks),
-   which now route through the lazy loader — so they reload **root + depth 1**
-   rather than the full tree. That's fast (no timeout) but **collapses the expanded
-   tree to the top level**. Same "refresh affected parent" treatment would fix them;
-   left as follow-up. Move's old-parent set is taken from `selectedEntries`, so a
-   drag of a non-selected item refreshes the destination only (source goes stale
-   until reload) — an edge case.
+1. **A few mutation-refresh edge cases.** *Move:* old-parent ids come from
+   `selectedEntries`, so dragging a *non-selected* item refreshes the destination
+   only (source goes stale until next reload). *Upload:* the refreshed folder is a
+   best-effort target (drop target → focused folder → root), so an upload via an
+   unusual path may refresh the wrong folder. *Reprocess:* refreshes the folder's
+   status immediately, but with polling disabled (below) it won't keep updating as
+   reprocessing progresses. *Copy:* refreshes the destination if it's in the
+   current workspace; cross-workspace copies fall back to a depth-1 reload.
 
 2. **No folder counts or badges.** Descendant counts aren't computed under lazy
    loading, so folders and the workspace header show **"counts pending..."**
@@ -76,6 +79,7 @@ item doesn't collapse its expanded siblings. The mutation thunks take an
 - Drilling down — folders are nodes, fetched on first expand, cached thereafter.
 - Drag/drop into folders, uploads into a selected folder, context menu, and
   sort-stable-on-expand (all fixed by the node representation).
-- Rename / delete / create-folder / move — incremental, refreshing only the
-  affected parent(s) and keeping the rest of the tree expanded.
+- All mutations (rename / delete / create-folder / move / copy / reprocess /
+  upload) — incremental, refreshing only the affected parent(s) and keeping the
+  rest of the tree expanded.
 - Selecting / focusing entries and search-within-folder (targeted Stage-1 query).

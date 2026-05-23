@@ -6,7 +6,7 @@ import {
   AppActionType,
   WorkspacesAction,
 } from "../../types/redux/GiantActions";
-import { getWorkspace } from "./getWorkspace";
+import { refreshAfterMutation } from "./lazyLoadingPoc";
 
 export function reprocessFolder(
   workspaceId: string,
@@ -14,14 +14,17 @@ export function reprocessFolder(
   mode: "all" | "errored",
 ): ThunkAction<void, GiantState, null, WorkspacesAction | AppAction> {
   return (dispatch) => {
-    return reprocessFolderApi(workspaceId, folderId, mode)
-      .then(() => dispatch(getWorkspace(workspaceId)))
-      .catch((error) =>
-        dispatch({
-          type: AppActionType.APP_SHOW_ERROR,
-          message: "Failed to reprocess folder contents",
-          error,
-        }),
-      );
+    return (
+      reprocessFolderApi(workspaceId, folderId, mode)
+        // POC: refresh just the reprocessed folder (its children's status changes)
+        .then(() => refreshAfterMutation(dispatch, workspaceId, [folderId]))
+        .catch((error) =>
+          dispatch({
+            type: AppActionType.APP_SHOW_ERROR,
+            message: "Failed to reprocess folder contents",
+            error,
+          }),
+        )
+    );
   };
 }
