@@ -187,7 +187,7 @@ object WorkspaceMetadata {
   }
 }
 
-// Workspace-wide totals computed in a single aggregate query, for lazy loading (issue #369).
+// Workspace-wide totals computed in a single aggregate query, for lazy loading (issue #744).
 // Under lazy loading the client never holds the whole tree, so it can't roll these up itself —
 // this feeds the summary header (an accurate total at any size) and the "is anything still
 // processing?" polling decision. The four fields mirror the eager tree's root-node rollup

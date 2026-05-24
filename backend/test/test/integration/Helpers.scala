@@ -384,7 +384,7 @@ object Helpers extends Matchers with Logging with OptionValues with Inside {
     contentAsJson(controllers.workspace.get(workspaceId).apply(FakeRequest())).as[Workspace]
   }
 
-  // Lazy-loading read endpoints (issue #369).
+  // Lazy-loading read endpoints (issue #744).
   def getWorkspaceRootChildren(workspaceId: String)(implicit controllers: Controllers, timeout: Timeout): TreeEntry[WorkspaceEntry] = {
     contentAsJson(controllers.workspace.getRootChildren(workspaceId).apply(FakeRequest())).as[TreeEntry[WorkspaceEntry]]
   }
