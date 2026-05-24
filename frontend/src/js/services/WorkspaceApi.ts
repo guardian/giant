@@ -79,6 +79,16 @@ export function getWorkspacePocChildren(
   ).then((res) => res.json());
 }
 
+// POC: ancestor folder ids (root → parent) for revealing a deep-linked node.
+export function getWorkspacePocAncestors(
+  id: string,
+  nodeId: string,
+): Promise<string[]> {
+  return authFetch(
+    `/api/workspaces/${id}/poc-ancestors/${encodeURIComponent(nodeId)}`,
+  ).then((res) => res.json());
+}
+
 export function getWorkspaceTotalWordCount(id: string): Promise<number> {
   return authFetch(`/api/workspaces/${id}/totalWordCount`).then((res) =>
     res.json(),

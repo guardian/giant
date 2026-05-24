@@ -1,10 +1,12 @@
 // POC (issue #369 lazy-loading spike) — throwaway, not for production merge.
-// Loads only the workspace root + its direct children, then fetches each folder's
-// children on demand when it is expanded. No counts, mutations, polling, or deep
-// linking — see the spike notes. Mirrors the viewer's LazyTreeBrowser pattern.
+// Loads only the workspace root + its direct children, then fetches each folder's children
+// on demand — on expand, to refresh an affected parent after a mutation, or to reveal a
+// deep-linked node down its ancestor path. Counts (cheap subset) and mutations are wired;
+// polling stays disabled. Mirrors the viewer's LazyTreeBrowser fetch/merge pattern.
 import {
   getWorkspacePocRoot as getWorkspacePocRootApi,
   getWorkspacePocChildren as getWorkspacePocChildrenApi,
+  getWorkspacePocAncestors as getWorkspacePocAncestorsApi,
 } from "../../services/WorkspaceApi";
 import { ThunkAction, ThunkDispatch } from "redux-thunk";
 import {
@@ -90,4 +92,31 @@ export function refreshAfterMutation(
   } else {
     dispatch(getWorkspacePoc(workspaceId));
   }
+}
+
+// POC: reveal a deep-linked node by loading children down its ancestor path (root → parent), so
+// the target is materialised in the partial tree. The component's existing reveal logic then
+// expands + focuses it. Loaded sequentially so each ancestor exists before its children merge in
+// (a production build would fetch the path in one round-trip — see #744 Stage 6).
+export function loadWorkspaceNodePath(
+  workspaceId: string,
+  nodeId: string,
+): ThunkAction<void, GiantState, null, WorkspacesAction | AppAction> {
+  return async (dispatch) => {
+    try {
+      const ancestorIds = await getWorkspacePocAncestorsApi(
+        workspaceId,
+        nodeId,
+      );
+      for (const id of ancestorIds) {
+        await dispatch(loadWorkspaceNodeChildren(workspaceId, id));
+      }
+    } catch (error) {
+      dispatch({
+        type: AppActionType.APP_SHOW_ERROR,
+        message: "Failed to reveal item " + nodeId,
+        error: error as Error,
+      });
+    }
+  };
 }

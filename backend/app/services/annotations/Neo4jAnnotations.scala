@@ -351,6 +351,32 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
     }
   }
 
+  // POC (issue #369 lazy-loading spike): ancestor folder ids from the workspace root down to (but
+  // excluding) the given node. The client loads children along this path to materialise the target
+  // in the partial tree, then expands + focuses it (deep-link reveal). Walking up the single PARENT
+  // chain is cheap; returns [] if the node isn't found.
+  override def getWorkspaceAncestors(currentUser: String, workspaceId: String, nodeId: String): Attempt[List[String]] = attemptTransaction { tx =>
+    tx.run(
+      """
+        |MATCH (workspace: Workspace { id: $id })
+        |WHERE (:User { username: $currentUser })-[:FOLLOWING|OWNS]->(workspace) OR workspace.isPublic
+        |MATCH (target: WorkspaceNode { id: $nodeId })-[:PART_OF]->(workspace)
+        |MATCH path = (target)-[:PARENT*0..]->(root: WorkspaceNode)
+        |WHERE NOT (root)-[:PARENT]->(:WorkspaceNode)
+        |RETURN [n IN reverse(nodes(path))[0..-1] | n.id] AS ancestorIds
+      """.stripMargin,
+      parameters(
+        "currentUser", currentUser,
+        "id", workspaceId,
+        "nodeId", nodeId
+      )
+    ).map { summary =>
+      summary.list().asScala.headOption
+        .map(_.get("ancestorIds").asList[String]((v: Value) => v.asString()).asScala.toList)
+        .getOrElse(List.empty)
+    }
+  }
+
   override def getBlobUrisInWorkspaceFolder(currentUser: String, workspaceId: String, folderId: String): Attempt[List[String]] = attemptTransaction { tx =>
     tx.run(
       """

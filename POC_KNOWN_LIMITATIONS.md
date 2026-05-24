@@ -67,21 +67,19 @@ depth-1 reload only when the affected parent is genuinely unknown. No eager
    running poll would re-fetch the root and discard the expanded tree. Reopen the
    workspace to refresh status.
 
-5. **Deep-linking does not auto-expand.** Opening `/workspaces/:id/:nodeId` will
-   not reveal a node that hasn't been loaded — the client-side path search only
-   sees the already-loaded tree. Open via the bare `/workspaces/:id` URL.
-
-6. **Flat folders with >5,000 direct children** still hit the existing truncation
+5. **Flat folders with >5,000 direct children** still hit the existing truncation
    ("N files. Click to load…"). Lazy-by-depth does nothing for a single huge
    folder — that needs pagination (a later stage), not depth-based loading.
 
-7. **Remote-ingest in-progress items are not shown.** The POC endpoints skip the
+6. **Remote-ingest in-progress items are not shown.** The POC endpoints skip the
    `remoteIngestsToMixin` synthetic entries that the real `get` endpoint mixes in,
    so in-progress captured URLs won't appear in the tree.
 
-8. **Brief empty flash on expand.** Expanding a folder marks it open immediately
+7. **Brief empty flash on expand.** Expanding a folder marks it open immediately
    but renders nothing until the children fetch returns (~ms on playground). A
-   real build would show a per-folder loading row.
+   real build would show a per-folder loading row. (Deep-link reveal does a
+   sequential fetch down the ancestor path; a production build would fetch the
+   path in one round-trip.)
 
 ## What works
 
@@ -94,4 +92,6 @@ depth-1 reload only when the affected parent is genuinely unknown. No eager
   rest of the tree expanded.
 - Accurate workspace total in the header, and real per-folder counts for any
   fully-loaded subtree (deeper un-drilled folders show "counts pending...").
+- Deep-linking / "copy link to file" — opening a link to any node fetches its
+  ancestor path, loads children down it, and reveals the target (Stage 6).
 - Selecting / focusing entries and search-within-folder (targeted Stage-1 query).

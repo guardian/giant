@@ -196,6 +196,12 @@ class Workspaces(
       .map(node => Ok(Json.toJson(node)))
   }
 
+  // POC: ancestor folder ids (root → parent) for revealing a deep-linked node.
+  def getPocAncestors(workspaceId: String, nodeId: String) = ApiAction.attempt { req =>
+    annotation.getWorkspaceAncestors(req.user.username, workspaceId, nodeId)
+      .map(ancestorIds => Ok(Json.toJson(ancestorIds)))
+  }
+
   def getTotalWordCount(workspaceId: String) = ApiAction.attempt { req =>
     for {
       _ <- annotation.getWorkspaceMetadata(req.user.username, workspaceId) // check workspace exists and user has access

@@ -20,6 +20,9 @@ trait Annotations {
   // POC (issue #369 lazy-loading spike): a single node plus its direct children only.
   // maybeParentId = None returns the workspace root node and its top-level children.
   def getWorkspaceChildren(currentUser: String, workspaceId: String, maybeParentId: Option[String]): Attempt[TreeEntry[WorkspaceEntry]]
+  // POC: the ancestor folder ids from the workspace root down to (but excluding) the given node,
+  // for deep-link reveal — the client loads children along this path to materialise the target.
+  def getWorkspaceAncestors(currentUser: String, workspaceId: String, nodeId: String): Attempt[List[String]]
   def insertWorkspace(username: String, id: String, name: String, isPublic: Boolean, tagColor: String): Attempt[Unit]
   def updateWorkspaceName(currentUser: String, id: String, name: String): Attempt[Unit]
   def updateWorkspaceOwner(currentUser: String, id: String, owner: String): Attempt[Unit]

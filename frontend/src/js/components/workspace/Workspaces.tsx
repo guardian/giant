@@ -24,6 +24,7 @@ import { getWorkspacesMetadata } from "../../actions/workspaces/getWorkspacesMet
 import {
   getWorkspacePoc,
   loadWorkspaceNodeChildren,
+  loadWorkspaceNodePath,
 } from "../../actions/workspaces/lazyLoadingPoc";
 import { getCollections } from "../../actions/collections/getCollections";
 import { setNodeAsCollapsed } from "../../actions/workspaces/setNodeAsCollapsed";
@@ -102,6 +103,8 @@ type Props = ReturnType<typeof mapStateToProps> &
 type State = {
   createFolderModalOpen: boolean;
   haveAppliedWorkspaceLocationParam: boolean;
+  // POC: guard so we only fetch a deep-linked node's ancestor path once
+  triedAncestorLoad: boolean;
   hoverOverReprocessIconEntry: null | TreeEntry<WorkspaceEntry>;
   contextMenu: {
     isOpen: boolean;
@@ -430,6 +433,7 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
   state: State = {
     createFolderModalOpen: false,
     haveAppliedWorkspaceLocationParam: false,
+    triedAncestorLoad: false,
     hoverOverReprocessIconEntry: null,
     contextMenu: {
       isOpen: false,
@@ -502,22 +506,33 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
           workspaceLocation,
           this.props.currentWorkspace.rootNode,
         ) || [];
-      const entriesWithoutRoot = entryTreeEntries.filter(
-        (entry) =>
-          this.props.currentWorkspace &&
-          entry.id !== this.props.currentWorkspace.rootNode.id,
-      );
-      const entryTreeNodes = entriesWithoutRoot.filter(isTreeNode);
 
-      if (entryTreeNodes.length > 0) {
-        this.props.setNodesAsExpanded(entryTreeNodes);
-      }
+      if (entryTreeEntries.length === 0) {
+        // POC Stage 6: the deep-linked node isn't in the loaded (partial) tree. Fetch its
+        // ancestor path and load children down it; once merged, this handler re-runs and finds
+        // it below. Guarded so we only kick the load off once.
+        if (!this.state.triedAncestorLoad) {
+          this.setState({ triedAncestorLoad: true });
+          this.props.loadWorkspaceNodePath(workspaceId, workspaceLocation);
+        }
+      } else {
+        const entriesWithoutRoot = entryTreeEntries.filter(
+          (entry) =>
+            this.props.currentWorkspace &&
+            entry.id !== this.props.currentWorkspace.rootNode.id,
+        );
+        const entryTreeNodes = entriesWithoutRoot.filter(isTreeNode);
 
-      if (entriesWithoutRoot.length > 0) {
-        const lastEntry = entriesWithoutRoot[entriesWithoutRoot.length - 1];
-        this.props.setFocusedEntry(lastEntry);
+        if (entryTreeNodes.length > 0) {
+          this.props.setNodesAsExpanded(entryTreeNodes);
+        }
+
+        if (entriesWithoutRoot.length > 0) {
+          const lastEntry = entriesWithoutRoot[entriesWithoutRoot.length - 1];
+          this.props.setFocusedEntry(lastEntry);
+        }
+        this.setState({ haveAppliedWorkspaceLocationParam: true });
       }
-      this.setState({ haveAppliedWorkspaceLocationParam: true });
     }
 
     const isMoveInProgress = this.state.itemsBeingMoved > 0;
@@ -1505,6 +1520,7 @@ function mapDispatchToProps(dispatch: GiantDispatch) {
       loadWorkspaceNodeChildren,
       dispatch,
     ),
+    loadWorkspaceNodePath: bindActionCreators(loadWorkspaceNodePath, dispatch),
     getMyPermissions: bindActionCreators(getMyPermissions, dispatch),
   };
 }
