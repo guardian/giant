@@ -180,6 +180,33 @@ class Workspaces(
       .map(workspace => Ok(Json.toJson(workspace)))
   }
 
+  // Lazy-loading read endpoints (issue #369). Additive — nothing in the frontend consumes them yet.
+
+  // The workspace root node and its direct children only (the initial depth-1 load).
+  def getRootChildren(workspaceId: String) = ApiAction.attempt { req: UserIdentityRequest[_] =>
+    annotation.getWorkspaceChildren(req.user.username, workspaceId, None)
+      .map(rootNode => Ok(Json.toJson(rootNode)))
+  }
+
+  // The direct children of a single node, returned as that node with its children populated.
+  def getNodeChildren(workspaceId: String, nodeId: String) = ApiAction.attempt { req: UserIdentityRequest[_] =>
+    annotation.getWorkspaceChildren(req.user.username, workspaceId, Some(nodeId))
+      .map(node => Ok(Json.toJson(node)))
+  }
+
+  // The root → parent path (each ancestor populated with its direct children) for revealing a
+  // deep-linked node in one round-trip.
+  def getNodeAncestors(workspaceId: String, nodeId: String) = ApiAction.attempt { req: UserIdentityRequest[_] =>
+    annotation.getWorkspaceAncestors(req.user.username, workspaceId, nodeId)
+      .map(ancestors => Ok(Json.toJson(ancestors)))
+  }
+
+  // Workspace-wide totals (file/folder/processing/failed counts) for the summary header and polling.
+  def getAggregate(workspaceId: String) = ApiAction.attempt { req: UserIdentityRequest[_] =>
+    annotation.getWorkspaceAggregate(req.user.username, workspaceId)
+      .map(aggregate => Ok(Json.toJson(aggregate)))
+  }
+
   def getTotalWordCount(workspaceId: String) = ApiAction.attempt { req =>
     for {
       _ <- annotation.getWorkspaceMetadata(req.user.username, workspaceId) // check workspace exists and user has access
