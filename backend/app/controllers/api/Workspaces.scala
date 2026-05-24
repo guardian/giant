@@ -180,7 +180,7 @@ class Workspaces(
       .map(workspace => Ok(Json.toJson(workspace)))
   }
 
-  // Lazy-loading read endpoints (issue #369). Additive — nothing in the frontend consumes them yet.
+  // Lazy-loading read endpoints (issue #744). Additive — nothing in the frontend consumes them yet.
 
   // The workspace root node and its direct children only (the initial depth-1 load).
   def getRootChildren(workspaceId: String) = ApiAction.attempt { req: UserIdentityRequest[_] =>

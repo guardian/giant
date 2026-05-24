@@ -258,7 +258,7 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
     }
   }
 
-  // === Lazy-loading read primitives (issue #369) ===
+  // === Lazy-loading read primitives (issue #744) ===
   // These three additive endpoints let the client fetch a workspace one level at a time. They share
   // the same row shape and assembly helpers (buildLazyParentNode / buildLazyChildEntry) below.
 
@@ -401,7 +401,7 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
   // Assemble a parent folder (a lazy TreeNode) and its direct children from a group of query rows
   // that share the same parent. The parent's own data comes from the first row; children come from
   // every row with a non-null child. Roll-up counts stay 0 — the client computes them where a
-  // subtree is fully loaded and shows "counts pending" otherwise (issue #369).
+  // subtree is fully loaded and shows "counts pending" otherwise (issue #744).
   private def buildLazyParentNode(rows: List[Record]): TreeNode[WorkspaceEntry] = {
     val firstRow = rows.head
     val parentValue = firstRow.get("parent")
