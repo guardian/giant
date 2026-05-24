@@ -3,7 +3,7 @@ package controllers.api
 import com.dimafeng.testcontainers.lifecycle.and
 import com.dimafeng.testcontainers.scalatest.TestContainersForAll
 import com.dimafeng.testcontainers.{ElasticsearchContainer, Neo4jContainer}
-import model.annotations.{Workspace, WorkspaceEntry}
+import model.annotations.{Workspace, WorkspaceEntry, WorkspaceMetadata}
 import model.frontend.{TreeEntry, TreeLeaf, TreeNode}
 import org.apache.pekko.util.Timeout
 import org.scalatest._
@@ -602,6 +602,31 @@ class WorkspacesITest extends AnyFunSuite
         parentNodeId = jimmyWorkspace.rootNodeId,
         name = "i"
       )) should be(404)
+    }
+  }
+
+  test("workspace metadata includes nodeCount") {
+    asUser("paul") { implicit controllers =>
+      val allMetadata = getAllWorkspaces()
+      val paulMetadata = allMetadata.find(_.id == paulWorkspace.id).value
+
+      // buildTree creates 9 items (6 files + 3 folders) plus the root node = 10
+      paulMetadata.nodeCount should contain(10L)
+    }
+  }
+
+  test("nodeCount updates when items are added") {
+    asUser("paul") { implicit controllers =>
+      createWorkspaceFolderAssertingSuccess(
+        workspaceId = paulWorkspace.id,
+        parentNodeId = paulWorkspace.rootNodeId,
+        name = "new-folder"
+      )
+
+      val allMetadata = getAllWorkspaces()
+      val paulMetadata = allMetadata.find(_.id == paulWorkspace.id).value
+
+      paulMetadata.nodeCount should contain(11L)
     }
   }
 }
