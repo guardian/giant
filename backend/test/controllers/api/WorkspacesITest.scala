@@ -3,12 +3,13 @@ package controllers.api
 import com.dimafeng.testcontainers.lifecycle.and
 import com.dimafeng.testcontainers.scalatest.TestContainersForAll
 import com.dimafeng.testcontainers.{ElasticsearchContainer, Neo4jContainer}
-import model.annotations.{Workspace, WorkspaceEntry, WorkspaceMetadata}
+import model.annotations.{Workspace, WorkspaceEntry, WorkspaceMetadata, WorkspaceNode}
 import model.frontend.{TreeEntry, TreeLeaf, TreeNode}
 import org.apache.pekko.util.Timeout
 import org.scalatest._
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.time.{Millis, Seconds, Span}
+import play.api.test.FakeRequest
 import play.api.test.Helpers.status
 import test.integration.Helpers._
 import test.integration._
@@ -627,6 +628,131 @@ class WorkspacesITest extends AnyFunSuite
       val paulMetadata = allMetadata.find(_.id == paulWorkspace.id).value
 
       paulMetadata.nodeCount should contain(11L)
+    }
+  }
+
+  // === Lazy-loading read primitives (issue #369) ===
+  // These verify the new endpoints against the same paulWorkspace fixture the eager tests use, so
+  // the lazy path is checked for parity with the eager full-tree path.
+
+  test("rootChildren returns the root node and its direct children only") {
+    asUser("paul") { implicit controllers =>
+      val eagerTopLevel = getWorkspace(paulWorkspace.id).rootNode match {
+        case TreeNode(_, _, _, children) => children
+        case other => fail(s"expected the workspace root to be a TreeNode, got $other")
+      }
+
+      insideNode(getWorkspaceRootChildren(paulWorkspace.id)) { root =>
+        root.id should be(paulWorkspace.rootNodeId)
+        root.name should be("paul-workspace")
+
+        // same direct children as the eager tree's top level
+        root.children.map(_.name) should contain theSameElementsAs eagerTopLevel.map(_.name)
+        root.children.map(_.name) should contain theSameElementsAs List("root-1.txt", "f")
+
+        // a file child is a leaf...
+        root.children.find(_.name == "root-1.txt").value shouldBe a[TreeLeaf[_]]
+        // ...and a folder child is a lazy TreeNode with no children loaded yet
+        insideNode(root.children.find(_.name == "f").value) { f =>
+          f.id should be(itemIds.f)
+          f.children should be(empty)
+        }
+      }
+    }
+  }
+
+  test("node children returns a folder's direct children with subfolders lazy") {
+    asUser("paul") { implicit controllers =>
+      insideNode(getWorkspaceNodeChildren(paulWorkspace.id, itemIds.f)) { f =>
+        f.id should be(itemIds.f)
+        f.name should be("f")
+        f.data.maybeParentId should contain(paulWorkspace.rootNodeId)
+
+        f.children.map(_.name) should contain theSameElementsAs List("f-1.txt", "f-2.txt", "f/g", "f/h")
+        f.children.find(_.name == "f-1.txt").value shouldBe a[TreeLeaf[_]]
+
+        // subfolders come back as lazy placeholders, not expanded
+        insideChildren(f.children.find(_.name == "f/g").value)(_ should be(empty))
+        insideChildren(f.children.find(_.name == "f/h").value)(_ should be(empty))
+      }
+    }
+  }
+
+  test("node children for a leaf folder returns it with no children") {
+    asUser("paul") { implicit controllers =>
+      insideNode(getWorkspaceNodeChildren(paulWorkspace.id, itemIds.`f/h`)) { fh =>
+        fh.children.map(_.name) should contain theSameElementsAs List("f-h-1.txt")
+      }
+    }
+  }
+
+  test("requesting children of a node that does not exist is a 404") {
+    asUser("paul") { implicit controllers =>
+      status(controllers.workspace.getNodeChildren(paulWorkspace.id, "does-not-exist").apply(FakeRequest())) should be(404)
+    }
+  }
+
+  test("ancestors returns the root-first path, each populated with its children") {
+    asUser("paul") { implicit controllers =>
+      val ancestors = getWorkspaceAncestors(paulWorkspace.id, itemIds.`f/g/1.txt`.nodeId)
+
+      // root -> f -> f/g (the target itself is excluded)
+      ancestors.map(_.id) should be(List(paulWorkspace.rootNodeId, itemIds.f, itemIds.`f/g`))
+
+      insideChildren(ancestors.head)(_.map(_.name) should contain theSameElementsAs List("root-1.txt", "f"))
+      insideChildren(ancestors(1))(_.map(_.name) should contain theSameElementsAs List("f-1.txt", "f-2.txt", "f/g", "f/h"))
+      insideChildren(ancestors(2)) { children =>
+        children.map(_.name) should contain theSameElementsAs List("f-g-1.txt", "f-g-2.txt")
+        // the deep-linked target is materialised as a child of the last ancestor
+        children.exists(_.id == itemIds.`f/g/1.txt`.nodeId) should be(true)
+      }
+    }
+  }
+
+  test("ancestors of a direct child of root is just the root") {
+    asUser("paul") { implicit controllers =>
+      getWorkspaceAncestors(paulWorkspace.id, itemIds.f).map(_.id) should be(List(paulWorkspace.rootNodeId))
+    }
+  }
+
+  test("ancestors of the root itself is empty") {
+    asUser("paul") { implicit controllers =>
+      getWorkspaceAncestors(paulWorkspace.id, paulWorkspace.rootNodeId) should be(empty)
+    }
+  }
+
+  test("ancestors of a node that does not exist is a 404") {
+    asUser("paul") { implicit controllers =>
+      status(controllers.workspace.getNodeAncestors(paulWorkspace.id, "does-not-exist").apply(FakeRequest())) should be(404)
+    }
+  }
+
+  test("aggregate counts match the eager tree's root rollup") {
+    asUser("paul") { implicit controllers =>
+      val aggregate = getWorkspaceAggregate(paulWorkspace.id)
+
+      // deterministic structure of the fixture: 6 files, 3 folders (excluding the root)
+      aggregate.fileCount should be(6)
+      aggregate.folderCount should be(3)
+
+      // parity with the rollup the eager full-tree path computes on the root node
+      inside(getWorkspace(paulWorkspace.id).rootNode) {
+        case TreeNode(_, _, root: WorkspaceNode, _) =>
+          aggregate.fileCount should be(root.descendantsLeafCount)
+          aggregate.folderCount should be(root.descendantsNodeCount)
+          aggregate.processingTaskCount should be(root.descendantsProcessingTaskCount)
+          aggregate.failedCount should be(root.descendantsFailedCount)
+      }
+    }
+  }
+
+  test("lazy read endpoints respect workspace access") {
+    // barry neither owns nor follows paul's private workspace, so every lazy read 404s for him
+    asUser("barry") { implicit controllers =>
+      status(controllers.workspace.getRootChildren(paulWorkspace.id).apply(FakeRequest())) should be(404)
+      status(controllers.workspace.getNodeChildren(paulWorkspace.id, itemIds.f).apply(FakeRequest())) should be(404)
+      status(controllers.workspace.getNodeAncestors(paulWorkspace.id, itemIds.f).apply(FakeRequest())) should be(404)
+      status(controllers.workspace.getAggregate(paulWorkspace.id).apply(FakeRequest())) should be(404)
     }
   }
 }
