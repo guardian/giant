@@ -631,7 +631,7 @@ class WorkspacesITest extends AnyFunSuite
     }
   }
 
-  // === Lazy-loading read primitives (issue #369) ===
+  // === Lazy-loading read primitives (issue #744) ===
   // These verify the new endpoints against the same paulWorkspace fixture the eager tests use, so
   // the lazy path is checked for parity with the eager full-tree path.
 

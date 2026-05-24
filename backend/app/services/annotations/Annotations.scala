@@ -18,7 +18,7 @@ trait Annotations {
   def getWorkspaceContents(currentUser: String, id: String, remoteIngestsToMixin: List[RemoteIngest] = List.empty): Attempt[TreeEntry[WorkspaceEntry]]
   def getBlobUrisInWorkspaceFolder(currentUser: String, workspaceId: String, folderId: String): Attempt[List[String]]
 
-  // Lazy-loading read primitives (issue #369). These let the client fetch a workspace one level at
+  // Lazy-loading read primitives (issue #744). These let the client fetch a workspace one level at
   // a time instead of dragging the whole tree on every open. Additive: nothing consumes them yet.
 
   // A single node plus its direct children only. Child folders come back as lazy TreeNodes with
