@@ -6,7 +6,6 @@ import java.util.UUID
 import model.{RichValue, Uri}
 import model.annotations._
 import model.frontend.{TreeEntry, TreeLeaf, TreeNode}
-import model.frontend.user.PartialUser
 import model.ingestion.RemoteIngest
 import model.user.DBUser
 import org.neo4j.driver.{Driver, Record, Value}
@@ -260,7 +259,8 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
 
   // === Lazy-loading read primitives (issue #744) ===
   // These three additive endpoints let the client fetch a workspace one level at a time. They share
-  // the same row shape and assembly helpers (buildLazyParentNode / buildLazyChildEntry) below.
+  // the same row shape and the buildLazyParentNode helper below, which turns a parent's child rows
+  // into entries via the existing WorkspaceEntry.fromNeo4jValue.
 
   override def getWorkspaceChildren(currentUser: String, workspaceId: String, maybeNodeId: Option[String]): Attempt[TreeEntry[WorkspaceEntry]] = attemptTransaction { tx =>
     tx.run(
@@ -410,16 +410,20 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
     val maybeParentParentId = firstRow.get("parentParentId").optionally(_.asString())
 
     // A child with no creator is dropped, matching the eager query which couples node and creator.
+    // WorkspaceEntry.fromNeo4jValue produces exactly the flat entry lazy loading needs: a child
+    // folder becomes a TreeNode with empty children (a placeholder the client fetches on expand, so
+    // it still behaves structurally like a folder — drop target, context menu, stable sort), and a
+    // child file becomes a leaf carrying its processing status inline.
     val children: List[TreeEntry[WorkspaceEntry]] =
       rows.filter(r => !r.get("child").isNull && !r.get("childCreator").isNull).map { r =>
-        buildLazyChildEntry(
-          childValue = r.get("child"),
-          childCreator = DBUser.fromNeo4jValue(r.get("childCreator")).toPartial,
-          parentId = parentId,
-          maybeCapturedFromURL = r.get("childCapturedFromURL").optionally(_.asString()),
-          numberOfTodos = r.get("numberOfTodos").asInt(),
-          note = r.get("note").optionally(_.asString()),
-          hasFailures = r.get("hasFailures").asBoolean()
+        WorkspaceEntry.fromNeo4jValue(
+          r.get("child"),
+          DBUser.fromNeo4jValue(r.get("childCreator")).toPartial,
+          Some(parentId),
+          r.get("childCapturedFromURL").optionally(_.asString()),
+          r.get("numberOfTodos").asInt(),
+          r.get("note").optionally(_.asString()),
+          r.get("hasFailures").asBoolean()
         )
       }
 
@@ -438,60 +442,6 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
       ),
       children = children
     )
-  }
-
-  // Build one direct child for the lazy endpoints. A child folder becomes a real TreeNode with no
-  // children loaded yet, so it still behaves structurally like a folder (drop target, context menu,
-  // stable sort) while the client fetches its children on expand. A child file becomes a leaf
-  // carrying its processing status inline.
-  private def buildLazyChildEntry(
-    childValue: Value,
-    childCreator: PartialUser,
-    parentId: String,
-    maybeCapturedFromURL: Option[String],
-    numberOfTodos: Int,
-    note: Option[String],
-    hasFailures: Boolean
-  ): TreeEntry[WorkspaceEntry] = childValue.get("type").asString() match {
-    case "folder" =>
-      TreeNode[WorkspaceEntry](
-        id = childValue.get("id").asString(),
-        name = childValue.get("name").asString(),
-        data = WorkspaceNode(
-          addedBy = childCreator,
-          addedOn = childValue.get("addedOn").optionally(_.asLong()),
-          maybeParentId = Some(parentId),
-          maybeCapturedFromURL = maybeCapturedFromURL,
-          descendantsLeafCount = 0,
-          descendantsNodeCount = 0,
-          descendantsProcessingTaskCount = 0,
-          descendantsFailedCount = 0
-        ),
-        children = List.empty
-      )
-
-    case _ =>
-      val processingStage =
-        if (hasFailures) ProcessingStage.Failed
-        else if (numberOfTodos > 0) ProcessingStage.Processing(numberOfTodos, note)
-        else ProcessingStage.Processed
-
-      TreeLeaf[WorkspaceEntry](
-        id = childValue.get("id").asString(),
-        name = childValue.get("name").asString(),
-        // these are direct children we are returning now, so never "expandable but unfetched"
-        isExpandable = false,
-        data = WorkspaceLeaf(
-          addedBy = childCreator,
-          addedOn = childValue.get("addedOn").optionally(_.asLong()),
-          maybeParentId = Some(parentId),
-          maybeCapturedFromURL = maybeCapturedFromURL,
-          processingStage = processingStage,
-          uri = childValue.get("uri").asString(),
-          mimeType = childValue.get("mimeType").asString(),
-          size = childValue.get("size").optionally(_.asLong())
-        )
-      )
   }
 
   override def insertWorkspace(username: String, id: String, name: String, isPublic: Boolean, tagColor: String): Attempt[Unit] = attemptTransaction { tx =>
