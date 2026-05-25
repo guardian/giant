@@ -7,9 +7,11 @@ import {
 } from "../types/Tree";
 import React from "react";
 import {
+  collectNodeIds,
   getIdsOfEntriesToMove,
   getShiftClickSelectedEntries,
   isDescendantOf,
+  mergeFetchedNode,
   newSelectionFromShiftClick,
   treeToOrderedEntries,
 } from "./treeUtils";
@@ -260,5 +262,102 @@ describe("getIdsOfEntriesToMove", () => {
   test("returns nothing if the dragged entry is not in the selection (sanity check)", () => {
     expect(getIdsOfEntriesToMove([a, b, c], d.id)).toStrictEqual([]);
     expect(getIdsOfEntriesToMove([a, b, c], e.id)).toStrictEqual([]);
+  });
+});
+
+// --- lazy-loading tree helpers (#744) ---
+
+const mkLeaf = (id: string): TreeLeaf<string> => ({
+  id,
+  name: id,
+  data: id,
+  isExpandable: false,
+});
+const mkNode = (
+  id: string,
+  children: TreeEntry<string>[],
+  data: string = id,
+  name: string = id,
+): TreeNode<string> => ({ id, name, data, children });
+
+describe("mergeFetchedNode", () => {
+  test("replaces an unfetched placeholder folder with the fetched node and its children", () => {
+    const tree = mkNode("root", [mkNode("x", []), mkLeaf("l")]);
+    const fresh = mkNode("x", [mkLeaf("x1"), mkLeaf("x2")]);
+
+    const result = mergeFetchedNode(tree, fresh, ["root"]) as TreeNode<string>;
+    const x = result.children.find((c) => c.id === "x") as TreeNode<string>;
+    expect(x.children.map((c) => c.id)).toStrictEqual(["x1", "x2"]);
+  });
+
+  test("merges a node nested several levels deep, by id", () => {
+    const tree = mkNode("root", [mkNode("a", [mkNode("b", [])])]);
+    const fresh = mkNode("b", [mkLeaf("b1")]);
+
+    const result = mergeFetchedNode(tree, fresh, ["root", "a"]);
+    const a = (result as TreeNode<string>).children[0] as TreeNode<string>;
+    const b = a.children[0] as TreeNode<string>;
+    expect(b.children.map((c) => c.id)).toStrictEqual(["b1"]);
+  });
+
+  test("preserves an already-loaded child subtree when refreshing its parent, adopting fresh name/data", () => {
+    // x is already loaded with a grandchild; refreshing root must keep that grandchild
+    const tree = mkNode("root", [
+      mkNode("x", [mkLeaf("g")], "old-data", "x"),
+      mkLeaf("l"),
+    ]);
+    // the refreshed root returns x as a placeholder (empty children) with a new name/data (renamed)
+    const fresh = mkNode("root", [
+      mkNode("x", [], "new-data", "x-renamed"),
+      mkLeaf("l"),
+    ]);
+
+    const result = mergeFetchedNode(tree, fresh, ["root", "x"]);
+    const x = (result as TreeNode<string>).children.find(
+      (c) => c.id === "x",
+    ) as TreeNode<string>;
+    expect(x.children.map((c) => c.id)).toStrictEqual(["g"]); // subtree preserved
+    expect(x.name).toBe("x-renamed"); // fresh name adopted
+    expect(x.data).toBe("new-data"); // fresh data adopted
+  });
+
+  test("does not preserve a child subtree that is not in loadedNodeIds (takes the fresh placeholder)", () => {
+    const tree = mkNode("root", [mkNode("x", [mkLeaf("g")])]);
+    const fresh = mkNode("root", [mkNode("x", [])]);
+
+    // x is present in the store but was never loaded, so the fresh placeholder wins
+    const result = mergeFetchedNode(tree, fresh, ["root"]);
+    const x = (result as TreeNode<string>).children.find(
+      (c) => c.id === "x",
+    ) as TreeNode<string>;
+    expect(x.children).toStrictEqual([]);
+  });
+
+  test("adds children new to fresh and drops children absent from fresh", () => {
+    const tree = mkNode("root", [mkLeaf("old")]);
+    const fresh = mkNode("root", [mkLeaf("new")]);
+
+    const result = mergeFetchedNode(tree, fresh, ["root"]) as TreeNode<string>;
+    expect(result.children.map((c) => c.id)).toStrictEqual(["new"]);
+  });
+
+  test("returns the tree unchanged when the fresh node's id is not present", () => {
+    const tree = mkNode("root", [mkLeaf("l")]);
+    const fresh = mkNode("absent", [mkLeaf("a1")]);
+    expect(mergeFetchedNode(tree, fresh, ["root"])).toStrictEqual(tree);
+  });
+});
+
+describe("collectNodeIds", () => {
+  test("returns all folder ids inclusive, excluding leaves", () => {
+    const tree = mkNode("root", [
+      mkNode("a", [mkLeaf("a1"), mkNode("b", [mkLeaf("b1")])]),
+      mkLeaf("l"),
+    ]);
+    expect(collectNodeIds(tree).sort()).toStrictEqual(["a", "b", "root"]);
+  });
+
+  test("returns nothing for a leaf", () => {
+    expect(collectNodeIds(mkLeaf("l"))).toStrictEqual([]);
   });
 });
