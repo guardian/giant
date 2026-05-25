@@ -263,14 +263,28 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
   // into entries via the existing WorkspaceEntry.fromNeo4jValue.
 
   override def getWorkspaceChildren(currentUser: String, workspaceId: String, maybeNodeId: Option[String]): Attempt[TreeEntry[WorkspaceEntry]] = attemptTransaction { tx =>
-    tx.run(
-      """
-        |MATCH (workspace: Workspace { id: $id })
-        |WHERE (:User { username: $currentUser })-[:FOLLOWING|OWNS]->(workspace) OR workspace.isPublic
-        |MATCH (workspace)<-[:PART_OF]-(parent :WorkspaceNode)
-        |WHERE ($nodeId IS NULL AND NOT (parent)-[:PARENT]->(:WorkspaceNode))
-        |   OR (parent.id = $nodeId)
-        |MATCH (parent)<-[:CREATED]-(parentCreator :User)
+    // Select the parent by id (an index seek on the WorkspaceNode.id uniqueness constraint) for a
+    // known node, or as the parentless root otherwise. These are kept as separate predicates rather
+    // than one `parent.id = $nodeId OR NOT (parent)-[:PARENT]->()`: that OR stops the planner using
+    // the id index, so it expands every PART_OF node and filters — making even a single-folder fetch
+    // O(total). Split out, the by-id case is an index seek.
+    //
+    // Finding the root still scans (a NOT-EXISTS predicate can't use an index), so the first-paint
+    // root load is O(total). Deferred for now — the POC measured ~2s on a 101k-item workspace,
+    // acceptable versus the eager path it replaces — but a rootNodeId marker on the Workspace node
+    // would make this an index seek too (see #744).
+    val parentSelection = maybeNodeId match {
+      case Some(_) =>
+        "MATCH (workspace)<-[:PART_OF]-(parent :WorkspaceNode) WHERE parent.id = $nodeId"
+      case None =>
+        "MATCH (workspace)<-[:PART_OF]-(parent :WorkspaceNode) WHERE NOT (parent)-[:PARENT]->(:WorkspaceNode)"
+    }
+
+    val query = List(
+      """MATCH (workspace: Workspace { id: $id })
+        |WHERE (:User { username: $currentUser })-[:FOLLOWING|OWNS]->(workspace) OR workspace.isPublic""".stripMargin,
+      parentSelection,
+      """MATCH (parent)<-[:CREATED]-(parentCreator :User)
         |OPTIONAL MATCH (parent)-[:PARENT]->(parentParent :WorkspaceNode)
         |OPTIONAL MATCH (workspace)<-[:PART_OF]-(child :WorkspaceNode)-[:PARENT]->(parent)
         |OPTIONAL MATCH (child)<-[:CREATED]-(childCreator :User)
@@ -280,8 +294,11 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
         |       child, childCreator, childRemoteIngest.url AS childCapturedFromURL,
         |       count(todo) AS numberOfTodos,
         |       collect(todo)[0].note AS note,
-        |       EXISTS { (:Resource { uri: child.uri })<-[:EXTRACTION_FAILURE]-(:Extractor) } AS hasFailures
-      """.stripMargin,
+        |       EXISTS { (:Resource { uri: child.uri })<-[:EXTRACTION_FAILURE]-(:Extractor) } AS hasFailures""".stripMargin
+    ).mkString("\n")
+
+    tx.run(
+      query,
       parameters(
         "currentUser", currentUser,
         "id", workspaceId,
