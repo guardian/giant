@@ -25,6 +25,8 @@ export enum WorkspacesActionType {
   SET_NODE_AS_EXPANDED = "SET_NODE_AS_EXPANDED",
   SET_NODES_AS_EXPANDED = "SET_NODES_AS_EXPANDED",
   SET_NODE_AS_COLLAPSED = "SET_NODE_AS_COLLAPSED",
+  // Lazy loading (#744): merge a lazily-fetched node + its direct children into the loaded tree.
+  WORKSPACE_MERGE_NODE = "WORKSPACE_MERGE_NODE",
 }
 
 interface TreeNodeAction {
@@ -68,6 +70,12 @@ interface StartGetWorkspaceAction {
   type: WorkspacesActionType.WORKSPACE_GET_START;
 }
 
+// Lazy loading (#744): a node's direct children have been fetched; merge them into the tree.
+interface MergeNodeAction {
+  type: WorkspacesActionType.WORKSPACE_MERGE_NODE;
+  node: TreeEntry<WorkspaceEntry>;
+}
+
 export type WorkspacesAction =
   | TreeNodeAction
   | TreeNodesAction
@@ -76,7 +84,8 @@ export type WorkspacesAction =
   | EntryBeingRenamedAction
   | ReceiveWorkspacesMetadataAction
   | ReceiveWorkspaceAction
-  | StartGetWorkspaceAction;
+  | StartGetWorkspaceAction
+  | MergeNodeAction;
 
 export enum AppActionType {
   APP_SHOW_ERROR = "APP_SHOW_ERROR",

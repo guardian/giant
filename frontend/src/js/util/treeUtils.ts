@@ -149,3 +149,59 @@ export function newSelectionFromShiftClick<T>(
     ...newShiftClickSelectedEntries,
   ];
 }
+
+// Merge a freshly-fetched node (`fresh`, carrying its direct children) into `entry` at the node
+// with the same id. Used by lazy loading (#744): when a folder's children arrive — on first
+// expand, or when refreshing a parent after a mutation — they are merged into the partial tree.
+//
+// It preserves already-loaded descendant subtrees: a child folder that has already been loaded
+// (its id is in `loadedNodeIds`) keeps its existing children and only adopts the fresh name/data,
+// so refreshing a parent doesn't collapse its expanded siblings. Children new to `fresh` appear as
+// placeholders; children absent from `fresh` drop out.
+export function mergeFetchedNode<T>(
+  entry: TreeEntry<T>,
+  fresh: TreeNode<T>,
+  loadedNodeIds: string[],
+): TreeEntry<T> {
+  if (entry.id === fresh.id) {
+    // A previously-unfetched placeholder (a leaf, or a node with no children yet) is simply
+    // replaced by the freshly-loaded node.
+    if (!isTreeNode(entry)) {
+      return fresh;
+    }
+    const oldChildrenById = new Map(entry.children.map((c) => [c.id, c]));
+    const children = fresh.children.map((freshChild) => {
+      const oldChild = oldChildrenById.get(freshChild.id);
+      if (
+        oldChild &&
+        isTreeNode(oldChild) &&
+        isTreeNode(freshChild) &&
+        loadedNodeIds.includes(freshChild.id)
+      ) {
+        // Keep the already-loaded subtree, but adopt the fresh name/data (e.g. after a rename).
+        return { ...oldChild, name: freshChild.name, data: freshChild.data };
+      }
+      return freshChild;
+    });
+    return { ...fresh, children };
+  }
+  if (isTreeNode(entry)) {
+    return {
+      ...entry,
+      children: entry.children.map((c) =>
+        mergeFetchedNode(c, fresh, loadedNodeIds),
+      ),
+    };
+  }
+  return entry;
+}
+
+// All folder (TreeNode) ids in a tree, including `entry` itself when it is a node. Lazy loading
+// (#744) uses this on the initial eager load to mark every folder as already loaded: the whole
+// tree is present on that path, so re-expanding a folder never needs a fetch.
+export function collectNodeIds<T>(entry: TreeEntry<T>): string[] {
+  if (!isTreeNode(entry)) {
+    return [];
+  }
+  return [entry.id, ...entry.children.flatMap(collectNodeIds)];
+}
