@@ -1,5 +1,6 @@
 import authFetch from "../util/auth/authFetch";
-import { WorkspaceMetadata } from "../types/Workspaces";
+import { WorkspaceMetadata, WorkspaceEntry } from "../types/Workspaces";
+import { TreeEntry } from "../types/Tree";
 
 export function createWorkspace(
   name: string,
@@ -57,6 +58,16 @@ export function getWorkspacesMetadata(): Promise<WorkspaceMetadata[]> {
 
 export function getWorkspace(id: string) {
   return authFetch(`/api/workspaces/${id}`).then((res) => res.json());
+}
+
+// Lazy loading (#744): a node's direct children, returned as that node with its children populated.
+export function getWorkspaceNodeChildren(
+  id: string,
+  nodeId: string,
+): Promise<TreeEntry<WorkspaceEntry>> {
+  return authFetch(
+    `/api/workspaces/${id}/nodes/${encodeURIComponent(nodeId)}/children`,
+  ).then((res) => res.json());
 }
 
 export function getWorkspaceTotalWordCount(id: string): Promise<number> {

@@ -1,10 +1,11 @@
-import { TreeNode } from "../types/Tree";
+import { TreeNode, isTreeNode } from "../types/Tree";
 import {
   WorkspacesAction,
   WorkspacesActionType,
 } from "../types/redux/GiantActions";
 import { WorkspacesState } from "../types/redux/GiantState";
 import { WorkspaceEntry } from "../types/Workspaces";
+import { collectNodeIds, mergeFetchedNode } from "../util/treeUtils";
 
 export default function workspaces(
   state: WorkspacesState = {
@@ -16,6 +17,7 @@ export default function workspaces(
     focusedEntry: null,
     expandedNodes: [],
     entryBeingRenamed: null,
+    loadedNodeIds: [],
   },
   action: WorkspacesAction,
 ): WorkspacesState {
@@ -32,6 +34,11 @@ export default function workspaces(
         currentWorkspace: action.workspace,
         isGettingWorkspace: false,
         currentWorkspaceLastRefreshedAt: new Date(),
+        // The eager load returns the whole tree, so every folder is loaded. Lazy loading
+        // (Stage 4) will instead record only the levels it has actually fetched.
+        loadedNodeIds: action.workspace
+          ? collectNodeIds(action.workspace.rootNode)
+          : [],
       };
     }
 
@@ -63,6 +70,28 @@ export default function workspaces(
           [],
         ),
       };
+
+    // Lazy loading (#744): a node's children have been fetched (on first expand, or to refresh a
+    // parent after a mutation). Merge them in — preserving any already-loaded descendant subtrees —
+    // and record the node as loaded so re-expanding it doesn't refetch. Expansion state is handled
+    // by the expand actions above, not here. No consumer dispatches this yet (Stage 4 wires it up).
+    case WorkspacesActionType.WORKSPACE_MERGE_NODE: {
+      if (!state.currentWorkspace || !isTreeNode(action.node)) {
+        return state;
+      }
+      const rootNode = mergeFetchedNode(
+        state.currentWorkspace.rootNode,
+        action.node,
+        state.loadedNodeIds,
+      ) as TreeNode<WorkspaceEntry>;
+      return {
+        ...state,
+        currentWorkspace: { ...state.currentWorkspace, rootNode },
+        loadedNodeIds: state.loadedNodeIds.includes(action.node.id)
+          ? state.loadedNodeIds
+          : [...state.loadedNodeIds, action.node.id],
+      };
+    }
 
     default:
       return state;
