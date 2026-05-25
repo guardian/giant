@@ -258,9 +258,26 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
   }
 
   // === Lazy-loading read primitives (issue #744) ===
-  // These three additive endpoints let the client fetch a workspace one level at a time. They share
-  // the same row shape and the buildLazyParentNode helper below, which turns a parent's child rows
-  // into entries via the existing WorkspaceEntry.fromNeo4jValue.
+  // These additive endpoints let the client fetch a workspace one level at a time. They share the
+  // childrenWithStatusClause query fragment below and the buildLazyParentNode helper, which turns a
+  // parent's child rows into entries via the existing WorkspaceEntry.fromNeo4jValue.
+
+  // The OPTIONAL MATCHes + RETURN that buildLazyParentNode reads, to assemble a parent folder and its
+  // direct children with inline processing status. Shared verbatim by getWorkspaceChildren and
+  // getWorkspaceAncestors so their row shape can't drift — buildLazyParentNode consumes both. Expects
+  // `workspace` and `parent` to be bound by the clauses prepended to it.
+  private val childrenWithStatusClause: String =
+    """MATCH (parent)<-[:CREATED]-(parentCreator :User)
+      |OPTIONAL MATCH (parent)-[:PARENT]->(parentParent :WorkspaceNode)
+      |OPTIONAL MATCH (workspace)<-[:PART_OF]-(child :WorkspaceNode)-[:PARENT]->(parent)
+      |OPTIONAL MATCH (child)<-[:CREATED]-(childCreator :User)
+      |OPTIONAL MATCH (child)-[:FROM]->(childRemoteIngest :RemoteIngest)
+      |OPTIONAL MATCH (:Resource { uri: child.uri })<-[todo:TODO|PROCESSING_EXTERNALLY]-(:Extractor)
+      |RETURN parent, parentCreator, parentParent.id AS parentParentId,
+      |       child, childCreator, childRemoteIngest.url AS childCapturedFromURL,
+      |       count(todo) AS numberOfTodos,
+      |       collect(todo)[0].note AS note,
+      |       EXISTS { (:Resource { uri: child.uri })<-[:EXTRACTION_FAILURE]-(:Extractor) } AS hasFailures""".stripMargin
 
   override def getWorkspaceChildren(currentUser: String, workspaceId: String, maybeNodeId: Option[String]): Attempt[TreeEntry[WorkspaceEntry]] = attemptTransaction { tx =>
     // Select the parent by id (an index seek on the WorkspaceNode.id uniqueness constraint) for a
@@ -284,17 +301,7 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
       """MATCH (workspace: Workspace { id: $id })
         |WHERE (:User { username: $currentUser })-[:FOLLOWING|OWNS]->(workspace) OR workspace.isPublic""".stripMargin,
       parentSelection,
-      """MATCH (parent)<-[:CREATED]-(parentCreator :User)
-        |OPTIONAL MATCH (parent)-[:PARENT]->(parentParent :WorkspaceNode)
-        |OPTIONAL MATCH (workspace)<-[:PART_OF]-(child :WorkspaceNode)-[:PARENT]->(parent)
-        |OPTIONAL MATCH (child)<-[:CREATED]-(childCreator :User)
-        |OPTIONAL MATCH (child)-[:FROM]->(childRemoteIngest :RemoteIngest)
-        |OPTIONAL MATCH (:Resource { uri: child.uri })<-[todo:TODO|PROCESSING_EXTERNALLY]-(:Extractor)
-        |RETURN parent, parentCreator, parentParent.id AS parentParentId,
-        |       child, childCreator, childRemoteIngest.url AS childCapturedFromURL,
-        |       count(todo) AS numberOfTodos,
-        |       collect(todo)[0].note AS note,
-        |       EXISTS { (:Resource { uri: child.uri })<-[:EXTRACTION_FAILURE]-(:Extractor) } AS hasFailures""".stripMargin
+      childrenWithStatusClause
     ).mkString("\n")
 
     tx.run(
@@ -345,23 +352,14 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
           } else {
             // Step 2: fetch the direct children (with inline status) of every ancestor in one query.
             // Access is already authorised by step 1 within this transaction, so no re-check needed.
-            tx.run(
-              """
-                |MATCH (workspace: Workspace { id: $id })
+            val childrenQuery = List(
+              """MATCH (workspace: Workspace { id: $id })
                 |MATCH (workspace)<-[:PART_OF]-(parent :WorkspaceNode)
-                |WHERE parent.id IN $parentIds
-                |MATCH (parent)<-[:CREATED]-(parentCreator :User)
-                |OPTIONAL MATCH (parent)-[:PARENT]->(parentParent :WorkspaceNode)
-                |OPTIONAL MATCH (workspace)<-[:PART_OF]-(child :WorkspaceNode)-[:PARENT]->(parent)
-                |OPTIONAL MATCH (child)<-[:CREATED]-(childCreator :User)
-                |OPTIONAL MATCH (child)-[:FROM]->(childRemoteIngest :RemoteIngest)
-                |OPTIONAL MATCH (:Resource { uri: child.uri })<-[todo:TODO|PROCESSING_EXTERNALLY]-(:Extractor)
-                |RETURN parent, parentCreator, parentParent.id AS parentParentId,
-                |       child, childCreator, childRemoteIngest.url AS childCapturedFromURL,
-                |       count(todo) AS numberOfTodos,
-                |       collect(todo)[0].note AS note,
-                |       EXISTS { (:Resource { uri: child.uri })<-[:EXTRACTION_FAILURE]-(:Extractor) } AS hasFailures
-              """.stripMargin,
+                |WHERE parent.id IN $parentIds""".stripMargin,
+              childrenWithStatusClause
+            ).mkString("\n")
+            tx.run(
+              childrenQuery,
               parameters(
                 "id", workspaceId,
                 "parentIds", ancestorIds.toArray
