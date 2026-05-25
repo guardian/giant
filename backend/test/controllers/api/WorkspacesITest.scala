@@ -6,6 +6,7 @@ import com.dimafeng.testcontainers.{ElasticsearchContainer, Neo4jContainer}
 import model.annotations.{Workspace, WorkspaceEntry, WorkspaceMetadata, WorkspaceNode}
 import model.frontend.{TreeEntry, TreeLeaf, TreeNode}
 import org.apache.pekko.util.Timeout
+import org.neo4j.driver.Values.parameters
 import org.scalatest._
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.time.{Millis, Seconds, Span}
@@ -744,6 +745,61 @@ class WorkspacesITest extends AnyFunSuite
           aggregate.failedCount should be(root.descendantsFailedCount)
       }
     }
+  }
+
+  test("aggregate counts outstanding tasks and failed extractions, excluding failed files from the task count") {
+    asUser("paul") { implicit controllers =>
+      // The fixture uploads files that ingest cleanly, so inject the status the pipeline never
+      // leaves behind: outstanding extractor tasks on two files, and a failed extraction on a third.
+      addOutstandingTasks(itemIds.`f/1.txt`.nodeId, count = 2)
+      addOutstandingTasks(itemIds.`f/2.txt`.nodeId, count = 1)
+      // A failed file that *also* has an outstanding task: it must count as 1 failure and contribute
+      // 0 to the task count — exercising the `AND NOT hasFailures` guard in the aggregate's sum(CASE).
+      addFailedExtraction(itemIds.`f/g/1.txt`.nodeId)
+      addOutstandingTasks(itemIds.`f/g/1.txt`.nodeId, count = 1)
+
+      val aggregate = getWorkspaceAggregate(paulWorkspace.id)
+
+      aggregate.failedCount should be(1)
+      // 2 (f-1.txt) + 1 (f-2.txt); f-g-1.txt's task is excluded because its extraction failed
+      aggregate.processingTaskCount should be(3)
+
+      // the two independent implementations now agree on non-zero data (a real cross-check)
+      inside(getWorkspace(paulWorkspace.id).rootNode) {
+        case TreeNode(_, _, root: WorkspaceNode, _) =>
+          aggregate.processingTaskCount should be(root.descendantsProcessingTaskCount)
+          aggregate.failedCount should be(root.descendantsFailedCount)
+      }
+    }
+  }
+
+  // Attach `count` outstanding extractor tasks to a workspace file's blob. The fixture's files are
+  // all fully processed, so this is how we exercise a non-zero processing-task count.
+  private def addOutstandingTasks(nodeId: String, count: Int): Unit =
+    (1 to count).foreach(_ =>
+      runOnNeo4j(
+        """MATCH (n:WorkspaceNode {id: $nodeId})
+          |MATCH (r:Resource {uri: n.uri})
+          |MERGE (e:Extractor {name: 'itest-extractor'})
+          |CREATE (r)<-[:TODO]-(e)""".stripMargin,
+        nodeId,
+      ),
+    )
+
+  // Attach a failed extraction to a workspace file's blob.
+  private def addFailedExtraction(nodeId: String): Unit =
+    runOnNeo4j(
+      """MATCH (n:WorkspaceNode {id: $nodeId})
+        |MATCH (r:Resource {uri: n.uri})
+        |MERGE (e:Extractor {name: 'itest-extractor'})
+        |CREATE (r)<-[:EXTRACTION_FAILURE]-(e)""".stripMargin,
+      nodeId,
+    )
+
+  private def runOnNeo4j(query: String, nodeId: String): Unit = {
+    val session = neo4jTestService.neo4jDriver.session()
+    try session.run(query, parameters("nodeId", nodeId)).consume()
+    finally session.close()
   }
 
   test("lazy read endpoints respect workspace access") {
