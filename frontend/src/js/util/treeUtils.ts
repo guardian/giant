@@ -172,6 +172,11 @@ export function mergeFetchedNode<T>(
     const oldChildrenById = new Map(entry.children.map((c) => [c.id, c]));
     const children = fresh.children.map((freshChild) => {
       const oldChild = oldChildrenById.get(freshChild.id);
+      // The `loadedNodeIds.includes` membership test below is O(n). That's fine while the tree is
+      // partially loaded (loadedNodeIds is bounded by the folders the user has expanded). But if
+      // Stage 9's background backfill merges repeatedly into a large, fully-loaded tree,
+      // loadedNodeIds grows to every folder and this becomes O(n·children) per merge — build a
+      // Set<string> once per merge and test against that instead. See #744 (Stage 9).
       if (
         oldChild &&
         isTreeNode(oldChild) &&
