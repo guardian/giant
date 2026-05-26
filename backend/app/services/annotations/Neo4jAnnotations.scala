@@ -207,6 +207,40 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
     }
   }
 
+  override def getBlobUrisInWorkspaceFolder(currentUser: String, workspaceId: String, folderId: String): Attempt[List[String]] = attemptTransaction { tx =>
+    tx.run(
+      """
+        |MATCH (workspace :Workspace {id: $workspaceId})
+        |WHERE (:User {username: $currentUser})-[:FOLLOWING|OWNS]->(workspace) OR workspace.isPublic
+        |OPTIONAL MATCH (folder :WorkspaceNode {id: $folderId})-[:PART_OF]->(workspace)
+        |WITH folder
+        |OPTIONAL MATCH (descendant :WorkspaceNode {type: 'file'})-[:PARENT*0..]->(folder)
+        |RETURN folder.type AS folderType, collect(descendant.uri) AS blobUris
+      """.stripMargin,
+      parameters(
+        "currentUser", currentUser,
+        "workspaceId", workspaceId,
+        "folderId", folderId
+      )
+    ).flatMap { summary =>
+      val rows = summary.list().asScala.toList
+      rows match {
+        case Nil =>
+          Attempt.Left(NotFoundFailure(s"Workspace $workspaceId does not exist"))
+        case row :: _ =>
+          row.get("folderType").optionally(_.asString()) match {
+            case None =>
+              Attempt.Left(NotFoundFailure(s"$folderId not found in workspace $workspaceId"))
+            case Some("file") =>
+              Attempt.Left(ClientFailure(s"$folderId is a leaf, not a node in workspace $workspaceId"))
+            case Some(_) =>
+              val blobUris = row.get("blobUris").asList[String](_.asString()).asScala.toList
+              Attempt.Right(blobUris)
+          }
+      }
+    }
+  }
+
   override def insertWorkspace(username: String, id: String, name: String, isPublic: Boolean, tagColor: String): Attempt[Unit] = attemptTransaction { tx =>
     tx.run(
       """
