@@ -45,6 +45,7 @@ export type WorkspaceMetadata = {
   owner: PartialUser;
   creator: PartialUser;
   followers: PartialUser[];
+  nodeCount?: number;
 };
 
 export type WorkspaceContents = {
