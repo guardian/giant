@@ -23,11 +23,3 @@ echo $(java --version)
 
 # Do a full build of PFI including all tests and upload it to Riff-Raff under the playground stack
 sbt -DPFI_STACK=pfi-playground clean riffRaffUploadWithIntegrationTests
-
-# Do another build limited to just the binaries and upload under the Giant stack
-# To achieve this we unfortunately need to edit riff-raff.yaml directly.
-sed -i -e "s/pfi-playground/pfi-giant/g" riff-raff.yaml
-sbt -DPFI_STACK=pfi-giant riffRaffUpload
-
-# Avoid problems in case we re-use this checkout again
-sed -i -e "s/pfi-giant/pfi-playground/g" riff-raff.yaml

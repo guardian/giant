@@ -21,6 +21,10 @@ jobs:
 
       # Setup AWS credentials to enable uploading to S3 for Riff-Raff.
       # See https://github.com/aws-actions/configure-aws-credentials
+
+      ############################################################
+      ## THIS SECTION IS TO BE REMOVED WHEN RIFF RAFF ACTION WORKS
+      ############################################################
       - uses: aws-actions/configure-aws-credentials@v4
         name: setup-riffraff-credentials
         with:
@@ -59,4 +63,14 @@ jobs:
         run: |
           LAST_TEAMCITY_BUILD=5000
           export GITHUB_RUN_NUMBER=$(( $GITHUB_RUN_NUMBER + $LAST_TEAMCITY_BUILD ))
-          ./scripts/ci.sh
+          ./scripts/ci-1-playground.sh
+
+      - name: Run script/teamcity
+        run: |
+          LAST_TEAMCITY_BUILD=5000
+          export GITHUB_RUN_NUMBER=$(( $GITHUB_RUN_NUMBER + $LAST_TEAMCITY_BUILD ))
+          ./scripts/ci-2-giant.sh
+
+      - name: Run script/teamcity
+        run: |
+          ./scripts/ci-3-clean.sh
