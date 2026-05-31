@@ -156,6 +156,10 @@ class CloudWatchReportingFailureToResultMapper(metricsService: MetricsService) e
          // Not found can occur during normal usage, for example clicking the path to an ingestion you can't see
          // from a file within that ingestion that is shared with you via a workspace
          NotFoundFailure(_) |
+         // A 409 from Elasticsearch is an optimistic-concurrency (version) conflict, which happens during normal
+         // usage when two operations touch the same document at once (e.g. concurrent workspace add/remove). It's
+         // not a fault, so don't alarm on it.
+         ElasticSearchQueryFailure(_, 409, _) |
          // We expect this to happen if a worker is terminated midway through an OCR job. Another worker will pick it up
          SubprocessInterruptedFailure =>
 
