@@ -159,7 +159,7 @@ case class PreviewConfig(
 case class S3Config(
   region: String,
   buckets: BucketConfig,
-  // These settings are used just for Minio
+  // These settings are used just for Garage
   endpoint: Option[String],
   accessKey: Option[String],
   secretKey: Option[String],

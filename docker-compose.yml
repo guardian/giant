@@ -1,4 +1,4 @@
-version: '3'
+version: "3"
 services:
   neo4j:
 #    image: ${NEO4J_IMAGE_OVERRIDE:-neo4j/neo4j-arm64-experimental:3.5.30}
@@ -51,16 +51,18 @@ services:
     container_name: garage
     restart: unless-stopped
     volumes:
-        - ./infra/garage/garage.toml:/etc/garage.toml:ro
-        - /var/lib/garage/meta:/var/lib/garage/meta
-        - /var/lib/garage/data:/var/lib/garage/data
+      - ./infra/garage/garage.toml:/etc/garage.toml:ro
+      - garage-data:/var/lib/garage/data
+      - garage-meta:/var/lib/garage/meta
     environment:
       GARAGE_DEFAULT_ACCESS_KEY: "garage-user"
       GARAGE_DEFAULT_SECRET_KEY: "reallyverysecret"
-      GARAGE_DEFAULT_BUCKET: "test_bucket"
+      # to make garage work with a default user we need to specific a default bucket
+      GARAGE_DEFAULT_BUCKET: "unused-bucket"
     ports:
-        - 9090:3900
-        - 9093:3903
+      - 3900:3900
+      - 3903:3903
+    command: /garage server --single-node --default-bucket
 
   garage-ui:
     image: noooste/garage-ui:latest
@@ -81,7 +83,6 @@ services:
       GARAGE_UI_SERVER_ENVIRONMENT: "production"
       GARAGE_UI_GARAGE_ADMIN_TOKEN: "secret"
       GARAGE_UI_GARAGE_REGION: "garage"
-
 
   postgres:
     image: postgres:15.3
@@ -105,7 +106,10 @@ volumes:
   elasticsearch:
     driver: local
 
-  minio:
+  garage-data:
+    driver: local
+
+  garage-meta:
     driver: local
 
   postgres-data:

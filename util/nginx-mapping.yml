@@ -9,7 +9,7 @@ mappings:
     port: 7687
   - prefix: elasticsearch.pfi
     port: 9200
-  - prefix: minio.pfi
-    port: 9090
+  - prefix: garage.pfi
+    port: 3900
   - prefix: cerebro.pfi
     port: 9091
