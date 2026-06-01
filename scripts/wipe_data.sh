@@ -17,6 +17,3 @@ curl                                                  \
      "localhost:9200/_all/_delete_by_query?q=*" 2>&1 > /dev/null
 
 
-if [ -d ../minio-data ]; then
-    rm -r ../minio-data
-fi
