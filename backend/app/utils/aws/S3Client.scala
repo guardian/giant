@@ -27,7 +27,7 @@ class S3Client(config: S3Config)(implicit executionContext: ExecutionContext) {
 
   def attemptS3[T](f: => T): Attempt[T] = Attempt.catchNonFatal(f)(AwsErrors.exceptionToFailure)
 
-  // Minio only works with the deprecated method on the client. This is a copy paste into our code to avoid the warnings
+  // Garage only works with the deprecated method on the client. This is a copy paste into our code to avoid the warnings
   def doesBucketExist(bucket: String): Boolean = try {
     s3.headBucket(HeadBucketRequest.builder().bucket(bucket).build())
     true

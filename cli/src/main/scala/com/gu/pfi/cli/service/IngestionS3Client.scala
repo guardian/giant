@@ -25,11 +25,10 @@ trait IngestionS3Client {
 }
 
 class DefaultIngestionS3Client(cmd: IngestCommandOptions, credentials: AwsCredentialsProvider)(implicit ec: ExecutionContext) extends IngestionS3Client with Logging {
-  val s3Async: S3AsyncClient = (cmd.minioAccessKey.toOption, cmd.minioSecretKey.toOption, cmd.minioEndpoint.toOption) match {
-    case (Some(_), Some(_), Some(minioEndpoint)) =>
-      // https://docs.minio.io/docs/how-to-use-aws-sdk-for-java-with-minio-server
+  val s3Async: S3AsyncClient = (cmd.garageAccessKey.toOption, cmd.garageSecretKey.toOption, cmd.garageEndpoint.toOption) match {
+    case (Some(_), Some(_), Some(garageEndpoint)) =>
       S3AsyncClient.crtBuilder()
-        .endpointOverride(new URI(minioEndpoint))
+        .endpointOverride(new URI(garageEndpoint))
         .credentialsProvider(credentials)
         .forcePathStyle(true)
         .minimumPartSizeInBytes(100L * 1024 * 1024)
@@ -37,25 +36,24 @@ class DefaultIngestionS3Client(cmd: IngestCommandOptions, credentials: AwsCreden
         .build()
 
     case _ =>
-      logger.info("Not all minio parameters were supplied, using AWS S3")
+      logger.info("Not all garage parameters were supplied, using AWS S3")
       S3AsyncClient.crtBuilder()
         .credentialsProvider(credentials)
         .region(Region.of(cmd.region()))
         .build()
   }
 
-  val s3: S3Client  = (cmd.minioAccessKey.toOption, cmd.minioSecretKey.toOption, cmd.minioEndpoint.toOption) match {
-    case (Some(_), Some(_), Some(minioEndpoint)) =>
-      // https://docs.minio.io/docs/how-to-use-aws-sdk-for-java-with-minio-server
+  val s3: S3Client  = (cmd.garageAccessKey.toOption, cmd.garageSecretKey.toOption, cmd.garageEndpoint.toOption) match {
+    case (Some(_), Some(_), Some(garageEndpoint)) =>
       S3Client.builder()
-        .endpointOverride(new URI(minioEndpoint))
+        .endpointOverride(new URI(garageEndpoint))
         .credentialsProvider(credentials)
         .forcePathStyle(true)
         .region(Region.of(cmd.region()))
         .build()
 
     case _ =>
-      logger.info("Not all minio parameters were supplied, using AWS S3")
+      logger.info("Not all garage parameters were supplied, using AWS S3")
       S3Client.builder()
         .credentialsProvider(credentials)
         .region(Region.of(cmd.region()))

@@ -68,6 +68,6 @@ pfi-cli ingest \
   --ingestionUri <collection_name>/<ingestion_name> \
   --path <path to the data on disk>
   --languages <comma_separated_languages eg english,russian> \
-  --minioAccessKey <see application.conf> \
-  --minioSecretKey <see application.conf>
+  --garageAccessKey <see application.conf> \
+  --garageSecretKey <see application.conf>
 ```

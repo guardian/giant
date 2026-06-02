@@ -66,9 +66,9 @@ class IngestCommandOptions extends Subcommand("ingest") with CommonOptions with 
     val region = opt[String]("region", noshort = true, default = Some("eu-west-1"),
       descr = "AWS region for the ingestion S3 bucket")
 
-    val minioAccessKey = opt[String]("minioAccessKey", descr = "Access key (only required when using Minio)", noshort = true)
-    val minioSecretKey = opt[String]("minioSecretKey", descr = "Secret key (only required when using Minio)", noshort = true)
-    val minioEndpoint = opt[String]("minioEndpoint", descr = "Endpoint (only required when using Minio, defaults to localhost)", default = Some("http://127.0.0.1:9090"))
+    val garageAccessKey = opt[String]("garageAccessKey", descr = "Access key (only required when using Garage)", noshort = true)
+    val garageSecretKey = opt[String]("garageSecretKey", descr = "Secret key (only required when using Garage)", noshort = true)
+    val garageEndpoint = opt[String]("garageEndpoint", descr = "Endpoint (only required when using Garage, defaults to localhost)", default = Some("http://127.0.0.1:3900"))
 
     val awsProfile = opt[String]("awsProfile", descr = "AWS profile to use for S3 upload credentials", noshort = true)
     val sseAlgorithm = opt[String]("sseAlgorithm", descr = "Mandate S3 use a server-side encryption algorithm (eg aws:kms)", noshort = true)

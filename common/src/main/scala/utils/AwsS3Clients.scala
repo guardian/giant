@@ -22,10 +22,9 @@ object AwsS3Clients {
   }
 
   private def buildS3ClientV2(credentials: AwsCredentialsProvider, region: Region, endpoint: Option[String]): S3Client = endpoint match {
-    case Some(minioEndpoint) =>
-      // https://docs.minio.io/docs/how-to-use-aws-sdk-for-java-with-minio-server
+    case Some(garageEndpoint) =>
       S3Client.builder()
-        .endpointOverride(new URI(minioEndpoint))
+        .endpointOverride(new URI(garageEndpoint))
         .credentialsProvider(credentials)
         .forcePathStyle(true)
         .region(region)
@@ -39,10 +38,9 @@ object AwsS3Clients {
   }
 
   private def buildS3ClientAsyncV2(credentials: AwsCredentialsProvider, region: Region, endpoint: Option[String]): S3AsyncClient = endpoint match {
-    case Some(minioEndpoint) =>
-      // https://docs.minio.io/docs/how-to-use-aws-sdk-for-java-with-minio-server
+    case Some(garageEndpoint) =>
       S3AsyncClient.builder()
-        .endpointOverride(new URI(minioEndpoint))
+        .endpointOverride(new URI(garageEndpoint))
         .credentialsProvider(credentials)
         .forcePathStyle(true)
         .region(region)

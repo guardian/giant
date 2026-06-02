@@ -31,7 +31,7 @@ Giant uses three databases, run locally in Docker through [docker-compose.yaml](
 
 - [neo4j](https://neo4j.com/)
 - [Elasticsearch](https://www.elastic.co/elasticsearch/)
-- [minio](https://min.io/) (for S3 compatibility)
+- [garage](https://garagehq.deuxfleurs.fr) (for S3 compatibility)
 
 There are two optional dependencies:
 
@@ -105,8 +105,8 @@ dev-nginx setup-app util/nginx-mapping.yml
     - Enter `bob` as the password when prompted
 - Elasticsearch: https://elasticsearch.pfi.local.dev-gutools.co.uk/
 - Cerebro (to manage Elasticsearch): https://cerebro.pfi.local.dev-gutools.co.uk/
-- Minio: https://minio.pfi.local.dev-gutools.co.uk/
-    - Username: `minio-user`
+- Garage: https://garage.pfi.local.dev-gutools.co.uk/
+    - Username: `garage-user`
     - Password: `reallyverysecret`
 
 ### Running Tests

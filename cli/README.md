@@ -74,12 +74,12 @@ nohup pfi-cli ingest \
 
 ### Running pfi-cli locally
 When running locally pfi-cli works best when pointed directly at the play server rather than at giant.local.blah. You also
-need to make sure you tell pfi-cli to use minio rather than uploading stuff to S3. Here are some example commands:
+need to make sure you tell pfi-cli to use garage rather than uploading stuff to S3. Here are some example commands:
 
 ```bash
 ./pfi cli login --token $GIANT_KEY --uri http://localhost:9001
 ./pfi-cli create-ingestion --uri http://localhost:9001 --ingestionUri testfolder/test
-./pfi-cli ingest --path ~/stufftoingest --languages english --ingestionUri testfolder/test --minioAccessKey minio-user --minioEndpoint http://localhost:9090 --minioSecretKey reallyverysecret
+./pfi-cli ingest --path ~/stufftoingest --languages english --ingestionUri testfolder/test --garageIngestKey garage-user --garageEndpoint http://localhost:3900 --garageSecretKey reallyverysecret
 ```
 
 **Tip:** Add `--verbose` to see detailed output during development:
