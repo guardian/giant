@@ -54,9 +54,10 @@ case class GetResource(uri: Uri, mode: ResourceFetchMode, username: String, mani
 
     case ResourceFetchMode.WithData(query) =>
       index.getPageCount(uri).flatMap {
-        // From testing we know that page counts over 500 start to run into
-        // rendering difficulties in the browser.
-        case Some(pageCount) if pageCount > 500 => Attempt.Right(resource)
+        // Above this page count we return the bare resource rather than merging
+        // in its text/OCR/preview, to avoid rendering difficulties in the browser
+        // for very large documents.
+        case Some(pageCount) if pageCount > 1000 => Attempt.Right(resource)
         case _ => (for {
           indexed <- index.getResource(uri, query)
           comments <- annotations.getComments(uri)
