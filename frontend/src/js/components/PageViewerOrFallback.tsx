@@ -1,4 +1,4 @@
-import React, { FC, useCallback, useEffect, useState } from "react";
+import React, { FC, useCallback, useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import authFetch from "../util/auth/authFetch";
 import { useParams } from "react-router-dom";
@@ -59,6 +59,8 @@ const PageViewerContent: FC<{
   focusedFindHighlight: HighlightForSearchNavigation | null;
   rotation: number;
   scale: number;
+  jumpRequest: { page: number; nonce: number } | null;
+  onVisiblePageChange: (pageNumber: number) => void;
 }> = ({
   uri,
   totalPages,
@@ -69,6 +71,8 @@ const PageViewerContent: FC<{
   focusedFindHighlight,
   rotation,
   scale,
+  jumpRequest,
+  onVisiblePageChange,
 }) => {
   const dispatch = useDispatch();
   const resource = useSelector<GiantState, Resource | null>(
@@ -88,6 +92,8 @@ const PageViewerContent: FC<{
         focusedFindHighlight={focusedFindHighlight}
         rotation={rotation}
         scale={scale}
+        jumpRequest={jumpRequest}
+        onVisiblePageChange={onVisiblePageChange}
       />
     );
   }
@@ -172,6 +178,29 @@ export const PageViewerOrFallback: FC<{}> = () => {
 
   const [rotation, setRotation] = useState(0);
   const [scale, setScale] = useState(1);
+
+  // Page position readout + jump-to-page for the combined view footer.
+  // currentPage is the page at the centre of the viewport, reported by
+  // VirtualScroll as the user scrolls. jumpRequest carries an incrementing
+  // nonce so the same target can be requested more than once.
+  const [currentPage, setCurrentPage] = useState(1);
+  const [jumpRequest, setJumpRequest] = useState<{
+    page: number;
+    nonce: number;
+  } | null>(null);
+  const jumpNonce = useRef(0);
+
+  const jumpToPage = useCallback((page: number) => {
+    jumpNonce.current += 1;
+    setJumpRequest({ page, nonce: jumpNonce.current });
+  }, []);
+
+  // Reset position state when navigating to a different document. The viewer
+  // remounts (keyed on uri) and starts at the top, but this state lives here.
+  useEffect(() => {
+    setCurrentPage(1);
+    setJumpRequest(null);
+  }, [uri]);
 
   const rotateClockwise = useCallback(
     () => setRotation((r) => (r + 90) % 360),
@@ -265,6 +294,8 @@ export const PageViewerOrFallback: FC<{}> = () => {
         focusedFindHighlight={pageFind.focusedHighlight}
         rotation={rotation}
         scale={scale}
+        jumpRequest={jumpRequest}
+        onVisiblePageChange={setCurrentPage}
       />
     );
     return (
@@ -289,6 +320,11 @@ export const PageViewerOrFallback: FC<{}> = () => {
             pageFind={isCombinedOrUnset(view) ? pageFind : undefined}
             pageViewControls={
               isCombinedOrUnset(view) ? pageViewControls : undefined
+            }
+            pageNav={
+              isCombinedOrUnset(view)
+                ? { currentPage, onJumpToPage: jumpToPage }
+                : undefined
             }
           />
         )}

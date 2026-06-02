@@ -1,0 +1,35 @@
+.container {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-right: 8px;
+  font-weight: normal;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.label {
+  opacity: 0.8;
+}
+
+.input {
+  width: 3.5em;
+  box-sizing: border-box;
+  padding: 2px 4px;
+  text-align: center;
+  font-size: 13px;
+  color: white;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 3px;
+}
+
+.input:focus {
+  outline: none;
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.7);
+}
+
+.total {
+  opacity: 0.8;
+}
