@@ -233,6 +233,9 @@ class Viewer extends React.Component<Props, State> {
 
   renderFullContents(resource: Resource, view: string) {
     if (view === "table") {
+      if (!resource.text) {
+        return this.renderNoPreview();
+      }
       return <TablePreview text={resource.text.contents} />;
     } else if (view === "preview") {
       return <Preview resource={resource} />;
@@ -269,7 +272,7 @@ class Viewer extends React.Component<Props, State> {
         // Only matters if a user has manually changed the view in the URL params or is visiting a link with them in
         return this.renderNoPreview();
       }
-    } else if (resource.extracted) {
+    } else if (resource.extracted && resource.text) {
       return this.renderTextPreview(resource, resource.text, "text");
     } else if (resource.children.length) {
       return (

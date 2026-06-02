@@ -71,7 +71,10 @@ export type Resource = BasicResource & {
   comments: CommentData[];
   selection?: ResourceRange;
   previewStatus: string;
-  text: HighlightableText;
+  // The API omits `text` entirely for resources with no extracted text
+  // (e.g. large documents whose document-level extraction was skipped/failed).
+  // It must be optional so call sites are forced to guard against it.
+  text?: HighlightableText;
   ocr?: {
     [lang: string]: HighlightableText;
   };

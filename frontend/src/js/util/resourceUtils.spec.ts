@@ -44,6 +44,13 @@ describe("hasTextContent", () => {
     });
     expect(hasTextContent(resource)).toBe(false);
   });
+
+  test("returns false when text is undefined", () => {
+    const resource = makeResource({
+      text: undefined,
+    });
+    expect(hasTextContent(resource)).toBe(false);
+  });
 });
 
 describe("getDefaultView", () => {
@@ -122,7 +129,7 @@ describe("getDefaultView", () => {
 
   test("returns undefined when resource.text is undefined", () => {
     const resource = makeResource({
-      text: undefined as unknown as HighlightableText,
+      text: undefined,
     });
     expect(getDefaultView(resource)).toBeUndefined();
   });

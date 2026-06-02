@@ -78,7 +78,7 @@ export function getCurrentResource(prefix: string): string {
 }
 
 export function hasTextContent(resource: Resource): boolean {
-  return resource.text.contents.trim() !== "";
+  return !!resource.text && resource.text.contents.trim() !== "";
 }
 
 export function getDefaultView(resource: Resource): string | undefined {
@@ -136,7 +136,7 @@ export function definitelyNotAUnifiedViewer(
   }
 
   const noTextButHasOcr =
-    resource.text.contents.length === 0 && resource.ocr
+    (!resource.text || resource.text.contents.length === 0) && resource.ocr
       ? Object.entries(resource.ocr)[0]
       : undefined;
   if (noTextButHasOcr) {
@@ -145,6 +145,10 @@ export function definitelyNotAUnifiedViewer(
       view,
       highlightableText,
     };
+  }
+
+  if (!resource.text) {
+    return undefined;
   }
 
   return {
