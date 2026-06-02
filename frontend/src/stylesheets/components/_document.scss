@@ -102,6 +102,8 @@
   display: flex;
   align-items: center;
   gap: 2px;
+  // Small breathing room before the view switcher ("Combined" etc.)
+  margin-right: 8px;
 
   button {
     background: none;
