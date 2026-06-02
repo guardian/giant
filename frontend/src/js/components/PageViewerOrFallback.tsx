@@ -97,6 +97,9 @@ const PageViewerContent: FC<{
   }
 
   if (view === "table") {
+    if (!resource.text) {
+      return renderNoPreview();
+    }
     return <TablePreview text={resource.text.contents} />;
   } else if (view === "preview") {
     return <Preview resource={resource} />;
