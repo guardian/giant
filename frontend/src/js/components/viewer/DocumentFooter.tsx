@@ -1,9 +1,9 @@
 import React, { FC, useCallback, useEffect, useMemo, useRef } from "react";
 import { useSelector } from "react-redux";
-import RotateLeft from "react-icons/lib/md/rotate-left";
-import RotateRight from "react-icons/lib/md/rotate-right";
-import ZoomInIcon from "react-icons/lib/md/zoom-in";
-import ZoomOutIcon from "react-icons/lib/md/zoom-out";
+import RotateLeft from "react-icons/lib/fa/rotate-left";
+import RotateRight from "react-icons/lib/fa/repeat";
+import ZoomInIcon from "react-icons/lib/fa/search-plus";
+import ZoomOutIcon from "react-icons/lib/fa/search-minus";
 
 import PreviewSwitcher from "./PreviewSwitcher";
 import { DocNavButton } from "./DocNavButton";

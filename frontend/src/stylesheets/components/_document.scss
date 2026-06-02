@@ -109,6 +109,9 @@
     color: white;
     cursor: pointer;
     padding: 2px;
+    // Icons are sized in em, so bumping font-size enlarges them for
+    // legibility at footer scale (zoom +/- and rotate direction).
+    font-size: 17px;
     display: flex;
     align-items: center;
 
