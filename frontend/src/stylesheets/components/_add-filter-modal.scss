@@ -1,0 +1,200 @@
+// ── Add / Edit Filter Modal ──────────────────────────────────────────
+
+.add-filter-modal {
+  &__panel {
+    width: 420px;
+    max-width: 90vw;
+  }
+
+  &__title {
+    margin: 0 0 $baseSpacing * 1.5;
+    font-size: 18px;
+    font-weight: 600;
+    color: $primaryDark;
+    padding-bottom: $baseSpacing;
+    border-bottom: 1px solid $borderColour;
+  }
+
+  &__field {
+    margin-bottom: $baseSpacing * 1.5;
+  }
+
+  &__label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: $primary;
+    margin-bottom: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  &__select {
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid $borderColour;
+    border-radius: $borderRadius;
+    background: white;
+    color: $primaryDark;
+    font-size: 14px;
+
+    &:focus {
+      border-color: $highlightColour;
+      outline: none;
+      box-shadow: 0 0 0 2px rgba($highlightColour, 0.2);
+    }
+
+    &:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+  }
+
+  &__radio-group {
+    display: flex;
+    gap: $baseSpacing;
+  }
+
+  &__radio {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 14px;
+    cursor: pointer;
+    color: $primaryDark;
+
+    input {
+      margin: 0;
+    }
+  }
+
+  // ── Value inputs ─────────────────
+
+  &__text-input {
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid $borderColour;
+    border-radius: $borderRadius;
+    background: white;
+    color: $primaryDark;
+    font-size: 14px;
+
+    &:focus {
+      border-color: $highlightColour;
+      outline: none;
+      box-shadow: 0 0 0 2px rgba($highlightColour, 0.2);
+    }
+  }
+
+  &__date-input {
+    padding: 8px 10px;
+    border: 1px solid $borderColour;
+    border-radius: $borderRadius;
+    background: white;
+    color: $primaryDark;
+    font-size: 14px;
+
+    &:focus {
+      border-color: $highlightColour;
+      outline: none;
+      box-shadow: 0 0 0 2px rgba($highlightColour, 0.2);
+    }
+  }
+
+  &__date-range {
+    display: flex;
+    gap: $baseSpacing;
+  }
+
+  &__date-range-label {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 13px;
+    font-weight: 500;
+    color: $primary;
+
+    input {
+      width: 100%;
+    }
+  }
+
+  &__multi-select {
+    max-height: 220px;
+    overflow-y: auto;
+    border: 1px solid $borderColour;
+    border-radius: $borderRadius;
+    background: white;
+    padding: 4px 0;
+  }
+
+  &__option {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    cursor: pointer;
+    font-size: 14px;
+    color: $primaryDark;
+
+    &:hover {
+      background: rgba($highlightColour, 0.1);
+    }
+
+    input[type="checkbox"] {
+      margin: 0;
+      flex-shrink: 0;
+    }
+  }
+
+  &__option-label {
+    flex: 1;
+    user-select: none;
+  }
+
+  // ── Actions ──────────────────────
+
+  &__actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    padding-top: $baseSpacing;
+    border-top: 1px solid $borderColour;
+    margin-top: $baseSpacing * 0.5;
+  }
+
+  &__cancel-btn {
+    background: $secondary;
+    color: $primaryDark;
+    border: 1px solid $borderColour;
+    padding: 8px 16px;
+    border-radius: $borderRadius;
+    cursor: pointer;
+    font-size: 14px;
+
+    &:hover {
+      background: $secondaryDark;
+    }
+  }
+
+  &__confirm-btn {
+    background: $primary;
+    color: white;
+    border: none;
+    padding: 8px 20px;
+    border-radius: $borderRadius;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+
+    &:hover {
+      background: $primaryDark;
+    }
+
+    &:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+  }
+}
