@@ -74,7 +74,12 @@ jobs:
           buildNumberOffset: 5000
           #    riffRaffUploadArtifactBucket := Some("riffraff-artifact"),
           #    riffRaffUploadManifestBucket := Some("riffraff-builds"),
-          contentDirectories: ./target
+          contentDirectories: |
+            backend:
+              - target/pfi_0.1.0-${{ GITHUB_RUN_NUMBER }}_all.deb
+              - target/universal/pfi-0.1.0-${{ GITHUB_RUN_NUMBER }}.tgz
+            cli:
+              - target/pfi-cli_0.1.0-${{ GITHUB_RUN_NUMBER }}_all.deb
           #    riffRaffArtifactResources := Seq(
           #      (backend / Debian / packageBin).value -> s"${(backend / name).value}/${(backend / name).value}.deb",
           #      (cli / Debian / packageBin).value -> s"${(cli / name).value}/${(cli / name).value}.deb",
