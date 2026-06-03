@@ -75,7 +75,12 @@ export const PageNavInput: FC<PageNavInputProps> = ({
         onChange={(e) => setValue(e.target.value.replace(/[^0-9]/g, ""))}
         onKeyDown={onKeyDown}
       />
-      <span className={styles.total}>/ {totalPages}</span>
+      <span
+        className={styles.total}
+        title="Total number of pages in the document. This may not match the page numbers printed on the pages (e.g. when a document has introductory pages before page 1)."
+      >
+        / {totalPages}
+      </span>
     </span>
   );
 };
