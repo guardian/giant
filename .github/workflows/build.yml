@@ -76,6 +76,7 @@ jobs:
               - cli/target/pfi-cli_0.1.0-SNAPSHOT_all.deb
               - cli/target/universal/pfi-cli-0.1.0-SNAPSHOT.tgz
           configPath: riff-raff.yaml
+          commentingEnabled: 'false'
 
       - name: Edit riff-raff file prior to re-upload
         run: sed -i -e "s/pfi-playground/pfi-giant/g" riff-raff.yaml
@@ -94,6 +95,7 @@ jobs:
               - cli/target/pfi-cli_0.1.0-SNAPSHOT_all.deb
               - cli/target/universal/pfi-cli-0.1.0-SNAPSHOT.tgz
           configPath: riff-raff.yaml
+          commentingEnabled: 'false'
 
       - name: Reset checkout just in case
         run: sed -i -e "s/pfi-giant/pfi-playground/g" riff-raff.yaml
