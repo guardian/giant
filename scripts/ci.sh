@@ -23,8 +23,3 @@ echo $(java --version)
 
 # Do a full build of PFI including all tests
 sbt -DPFI_STACK=pfi-playground clean runAllTests debian:packageBin Universal/packageZipTarball
-
-mkdir -p target
-mv backend/target/pfi_0.1.0-SNAPSHOT_all.deb backend/target/pfi_0.1.0-${GITHUB_RUN_NUMBER}_all.deb
-mv backend/target/universal/pfi-0.1.0-SNAPSHOT.tgz backend/target/universal/pfi-0.1.0-${GITHUB_RUN_NUMBER}.tgz
-mv cli/target/pfi-cli_0.1.0-SNAPSHOT_all.deb cli/target/pfi-cli_0.1.0-${GITHUB_RUN_NUMBER}_all.deb

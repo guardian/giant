@@ -59,41 +59,41 @@ jobs:
           cache: npm
           cache-dependency-path: frontend/package-lock.json
 
-      - name: Run script/ci-1-playground.sh to build for playground
-        run: |
-          LAST_TEAMCITY_BUILD=5000
-          export GITHUB_RUN_NUMBER=$(( $GITHUB_RUN_NUMBER + $LAST_TEAMCITY_BUILD ))
-          ./scripts/ci-1-playground.sh
+      - name: Run script/ci.sh to build artefacts
+        run: ./scripts/ci.sh
 
-      - uses: guardian/actions-riff-raff@v4
+      - name: Upload for playground
+        uses: guardian/actions-riff-raff@v4
         with:
-          #     riffRaffManifestProjectName := s"investigations::${sys.props.getOrElse("PFI_STACK", "pfi-playground")}",
           projectName: investigations::pfi-playground
           roleArn: ${{ secrets.GU_RIFF_RAFF_ROLE_ARN }}
           githubToken: ${{ secrets.GITHUB_TOKEN }}
           buildNumberOffset: 5000
-          #    riffRaffUploadArtifactBucket := Some("riffraff-artifact"),
-          #    riffRaffUploadManifestBucket := Some("riffraff-builds"),
           contentDirectories: |
             backend:
-              - target/pfi_0.1.0-${{ GITHUB_RUN_NUMBER }}_all.deb
-              - target/universal/pfi-0.1.0-${{ GITHUB_RUN_NUMBER }}.tgz
+              - backend/target/pfi_0.1.0-SNAPSHOT_all.deb
             cli:
-              - target/pfi-cli_0.1.0-${{ GITHUB_RUN_NUMBER }}_all.deb
-          #    riffRaffArtifactResources := Seq(
-          #      (backend / Debian / packageBin).value -> s"${(backend / name).value}/${(backend / name).value}.deb",
-          #      (cli / Debian / packageBin).value -> s"${(cli / name).value}/${(cli / name).value}.deb",
-          #      (cli / Universal / packageZipTarball).value -> s"pfi-public-downloads/${(cli / name).value}.tar.gz",
-          configPath: riff-raff.yaml # location of riff-raff.yaml
-          #      file("riff-raff.yaml") -> "riff-raff.yaml"
-          #    )
+              - cli/target/pfi-cli_0.1.0-SNAPSHOT_all.deb
+              - cli/target/universal/pfi-cli-0.1.0-SNAPSHOT.tgz
+          configPath: riff-raff.yaml
 
-      - name: Run script/ci-2-giant.sh to build for giant
-        run: |
-          LAST_TEAMCITY_BUILD=5000
-          export GITHUB_RUN_NUMBER=$(( $GITHUB_RUN_NUMBER + $LAST_TEAMCITY_BUILD ))
-          ./scripts/ci-2-giant.sh
+      - name: Edit riff-raff file prior to re-upload
+        run: sed -i -e "s/pfi-playground/pfi-giant/g" riff-raff.yaml
 
-      - name: Run script/ci-3-clean.sh to reset checkout just in case
-        run: |
-          ./scripts/ci-3-clean.sh
+      - name: Upload for giant
+        uses: guardian/actions-riff-raff@v4
+        with:
+          projectName: investigations::pfi-giant
+          roleArn: ${{ secrets.GU_RIFF_RAFF_ROLE_ARN }}
+          githubToken: ${{ secrets.GITHUB_TOKEN }}
+          buildNumberOffset: 5000
+          contentDirectories: |
+            backend:
+              - backend/target/pfi_0.1.0-SNAPSHOT_all.deb
+            cli:
+              - cli/target/pfi-cli_0.1.0-SNAPSHOT_all.deb
+              - cli/target/universal/pfi-cli-0.1.0-SNAPSHOT.tgz
+          configPath: riff-raff.yaml
+
+      - name: Reset checkout just in case
+        run: sed -i -e "s/pfi-giant/pfi-playground/g" riff-raff.yaml
