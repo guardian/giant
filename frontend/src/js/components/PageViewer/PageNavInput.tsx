@@ -1,5 +1,6 @@
 import React, { FC, KeyboardEventHandler, useEffect, useState } from "react";
 import styles from "./PageNavInput.module.css";
+import { parsePageInput } from "./pageInput";
 
 type PageNavInputProps = {
   // The page currently at the centre of the viewport.
@@ -27,18 +28,18 @@ export const PageNavInput: FC<PageNavInputProps> = ({
   }, [currentPage, isFocused]);
 
   const commit = () => {
-    const parsed = parseInt(value, 10);
-    if (Number.isFinite(parsed)) {
-      const clamped = Math.min(Math.max(parsed, 1), totalPages);
-      // Skip no-op jumps so simply focusing and blurring doesn't snap the
-      // scroll to the top of the page you're already on.
-      if (clamped !== currentPage) {
-        onJumpToPage(clamped);
-      }
-      setValue(String(clamped));
-    } else {
+    const target = parsePageInput(value, totalPages);
+    if (target === null) {
+      // Unusable input (empty, non-numeric): revert to the current page.
       setValue(String(currentPage));
+      return;
     }
+    // Skip no-op jumps so simply focusing and blurring doesn't snap the
+    // scroll to the top of the page you're already on.
+    if (target !== currentPage) {
+      onJumpToPage(target);
+    }
+    setValue(String(target));
   };
 
   const onKeyDown: KeyboardEventHandler<HTMLInputElement> = (event) => {
