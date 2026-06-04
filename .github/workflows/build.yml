@@ -19,18 +19,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # Setup AWS credentials to enable uploading to S3 for Riff-Raff.
-      # See https://github.com/aws-actions/configure-aws-credentials
-
-      ############################################################
-      ## THIS SECTION IS TO BE REMOVED WHEN RIFF RAFF ACTION WORKS
-      ############################################################
-      - uses: aws-actions/configure-aws-credentials@v4
-        name: setup-riffraff-credentials
-        with:
-          role-to-assume: ${{ secrets.GU_RIFF_RAFF_ROLE_ARN }}
-          aws-region: eu-west-1
-
       # TODO: configure caching
       # See https://github.com/actions/setup-java
       - name: Setup Java
