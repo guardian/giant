@@ -62,6 +62,13 @@ jobs:
       - name: Run script/ci.sh to build artefacts
         run: ./scripts/ci.sh
 
+      - name: Put artifacts in the right place
+        run: |
+          mkdir -p pfi pfi-cli pfi-public-downloads
+          mv backend/target/pfi_0.1.0-SNAPSHOT_all.deb pfi/pfi.deb
+          mv cli/target/pfi-cli_0.1.0-SNAPSHOT_all.deb pfi-cli/pfi-cli.deb
+          mv cli/target/universal/pfi-cli-0.1.0-SNAPSHOT.tgz pfi-public-downloads/pfi-cli.tar.gz
+
       - name: Upload for playground
         uses: guardian/actions-riff-raff@v4
         with:
@@ -70,11 +77,12 @@ jobs:
           githubToken: ${{ secrets.GITHUB_TOKEN }}
           buildNumberOffset: 5000
           contentDirectories: |
-            backend:
-              - backend/target/pfi_0.1.0-SNAPSHOT_all.deb
-            cli:
-              - cli/target/pfi-cli_0.1.0-SNAPSHOT_all.deb
-              - cli/target/universal/pfi-cli-0.1.0-SNAPSHOT.tgz
+            pfi:
+              - pfi/pfi.deb
+            pfi-cli:
+              - pfi-cli/pfi-cli.deb
+            pfi-public-downloads:
+              - pfi-public-downloads/pfi-cli.tar.gz
           configPath: riff-raff.yaml
           commentingEnabled: 'false'
 
@@ -89,11 +97,12 @@ jobs:
           githubToken: ${{ secrets.GITHUB_TOKEN }}
           buildNumberOffset: 5000
           contentDirectories: |
-            backend:
-              - backend/target/pfi_0.1.0-SNAPSHOT_all.deb
-            cli:
-              - cli/target/pfi-cli_0.1.0-SNAPSHOT_all.deb
-              - cli/target/universal/pfi-cli-0.1.0-SNAPSHOT.tgz
+            pfi:
+              - pfi/pfi.deb
+            pfi-cli:
+              - pfi-cli/pfi-cli.deb
+            pfi-public-downloads:
+              - pfi-public-downloads/pfi-cli.tar.gz
           configPath: riff-raff.yaml
           commentingEnabled: 'false'
 
