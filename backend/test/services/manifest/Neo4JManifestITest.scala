@@ -533,5 +533,60 @@ class Neo4JManifestITest extends AnyFreeSpec
         manifest.getResource(Uri("upload/test/wut/up")).toOption.get.children(0).`type` shouldBe "blob"
       }
     }
+
+    "Deleting blobs" - {
+      val collection = Uri("delete-test")
+      val ingestion = collection.chain("test")
+
+      // Mirror the InsertBlob shape used elsewhere in these tests: the File node takes the path
+      // uri and the Blob node takes a content-hash uri.
+      def insertBlobAt(fileUri: Uri, mimeType: String): Uri = {
+        val insertBlob = Manifest.InsertBlob(
+          IngestionFile(fileUri, ingestion, 10L, None, None, None, true),
+          Uri(Hashing.goodFastHash(32).hashString(fileUri.value, StandardCharsets.UTF_8).toString),
+          parentBlobs = List.empty,
+          MimeType(mimeType),
+          ingestion.value,
+          List(English.key),
+          extractors = List.empty,
+          workspace = None,
+          isFastLane = false
+        )
+        manifest.insert(Seq(insertBlob), ingestion).isRight shouldBe true
+        insertBlob.blobUri
+      }
+
+      "removes a childless blob along with its File node" in {
+        manifest.insertCollection(collection.value, collection.value, "test").eitherValue.isRight shouldBe true
+        manifest.insertIngestion(collection, ingestion, "test", None, List(English), fixed = false, default = false).eitherValue.isRight shouldBe true
+
+        val fileUri = ingestion.chain("childless.txt")
+        val blobUri = insertBlobAt(fileUri, "text/plain")
+
+        manifest.getBlob(blobUri).isRight shouldBe true
+        manifest.getResource(fileUri).isRight shouldBe true
+
+        manifest.deleteBlob(blobUri).successValue
+
+        manifest.getBlob(blobUri).swap.toOption.get shouldBe a[NotFoundFailure]
+        manifest.getResource(fileUri).swap.toOption.get shouldBe a[NotFoundFailure]
+      }
+
+      "removes structural descendants beneath the blob (matched by uri prefix)" in {
+        val fileUri = ingestion.chain("container.zip")
+        val blobUri = insertBlobAt(fileUri, "application/zip")
+
+        // A structural node whose uri is prefixed by the blob's uri, as extraction would create
+        // for the contents of a container (down to, but not including, the next blob).
+        val descendantUri = blobUri.chain("inner")
+        manifest.insert(Seq(Manifest.InsertDirectory(blobUri, descendantUri)), ingestion).isRight shouldBe true
+        manifest.getResource(descendantUri).isRight shouldBe true
+
+        manifest.deleteBlob(blobUri).successValue
+
+        manifest.getBlob(blobUri).swap.toOption.get shouldBe a[NotFoundFailure]
+        manifest.getResource(descendantUri).swap.toOption.get shouldBe a[NotFoundFailure]
+      }
+    }
   }
 }
