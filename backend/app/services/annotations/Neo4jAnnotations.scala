@@ -40,6 +40,10 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
         tx.run("CREATE CONSTRAINT IF NOT EXISTS FOR (workspace :Workspace) REQUIRE workspace.id IS UNIQUE")
         tx.run("CREATE CONSTRAINT IF NOT EXISTS FOR (node :WorkspaceNode) REQUIRE node.id IS UNIQUE")
         tx.run("CREATE CONSTRAINT IF NOT EXISTS FOR (comment :Comment) REQUIRE comment.id IS UNIQUE")
+        // WorkspaceNode is looked up by uri (not just id) when deleting a blob. Without this index
+        // that lookup is a label scan over every WorkspaceNode on every delete, which dominates the
+        // delete cost as the number of workspace items grows. (id is already unique-constrained.)
+        tx.run("CREATE INDEX IF NOT EXISTS FOR (node :WorkspaceNode) ON (node.uri)")
         Right(())
       }
     } yield Right(())
