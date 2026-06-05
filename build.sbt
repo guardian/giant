@@ -25,6 +25,10 @@ val log4jVersion = "2.20.0"
 val slf4jVersion = "2.0.7"
 // To match what the main app gets from scalatestplus-play transitively
 val scalatestVersion = "3.2.17"
+// 0.44.x brings a docker-java that negotiates Docker Engine's API version; older releases
+// pinned a version below the minimum (1.40) enforced by Engine 29+, so testcontainers could
+// not start (HTTP 400 from the daemon).
+val testcontainersScalaVersion = "0.44.1"
 
 val port = 9001
 
@@ -186,9 +190,9 @@ lazy val backend = (project in file("backend"))
       "org.scalacheck" %% "scalacheck" % "1.14.0" % Test,
       "org.scalatestplus.play" %% "scalatestplus-play" % "7.0.0" % Test,
       "org.scalamock" %% "scalamock" % "4.4.0" % Test,
-      "com.dimafeng" %% "testcontainers-scala-scalatest" % "0.41.4" % Test,
-      "com.dimafeng" %% "testcontainers-scala-neo4j" % "0.41.4" % Test,
-      "com.dimafeng" %% "testcontainers-scala-elasticsearch" % "0.41.4" % Test
+      "com.dimafeng" %% "testcontainers-scala-scalatest" % testcontainersScalaVersion % Test,
+      "com.dimafeng" %% "testcontainers-scala-neo4j" % testcontainersScalaVersion % Test,
+      "com.dimafeng" %% "testcontainers-scala-elasticsearch" % testcontainersScalaVersion % Test
     ),
 
     // set up separate tests and integration tests - http://www.scala-sbt.org/0.13.1/docs/Detailed-Topics/Testing.html#custom-test-configuration
