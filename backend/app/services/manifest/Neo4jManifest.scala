@@ -15,6 +15,7 @@ import model.user.DBUser
 import org.joda.time.DateTime
 import org.neo4j.driver.Values.parameters
 import org.neo4j.driver.{Driver, Result, QueryRunner, Value}
+import org.neo4j.driver.summary.ProfiledPlan
 import services.Neo4jQueryLoggingConfig
 import services.manifest.Manifest.WorkCounts
 import utils._
@@ -1296,6 +1297,90 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
         Attempt.Right(())
       }
     }
+  }
+
+  // TEMPORARY DIAGNOSTIC (throwaway): PROFILE the uri-keyed WorkspaceNode queries, create the
+  // WorkspaceNode.uri index, re-PROFILE, then drop the index. Lets us measure the index's effect on
+  // a real deployment (e.g. playground) without Cypher console access. Read/schema ops run in
+  // separate transactions because Neo4j forbids mixing data reads with schema changes in one tx.
+  override def profileWorkspaceNodeUriIndex(maybeUri: Option[String]): Attempt[String] = {
+    val getWorkspacesForBlobQ =
+      """PROFILE
+        |MATCH (w:WorkspaceNode {uri: $uri})-[:PART_OF]->(workspace:Workspace)
+        |MATCH (creator :User)-[:CREATED]->(workspace)<-[:FOLLOWING]-(follower :User)
+        |MATCH (owner :User)-[:OWNS]->(workspace)
+        |RETURN workspace, creator, owner, collect(distinct follower) AS followers""".stripMargin
+
+    val deleteLookupQ =
+      """PROFILE
+        |OPTIONAL MATCH (w: WorkspaceNode { uri: $uri})
+        |OPTIONAL MATCH (b: Blob:Resource { uri: $uri})-[:PARENT]->(f: File)
+        |OPTIONAL MATCH (descendant :Resource) WHERE descendant.uri STARTS WITH $uri
+        |RETURN count(*)""".stripMargin
+
+    def profile(query: String, uri: String): Attempt[(Long, List[String])] = attemptTransaction { tx =>
+      tx.run(query, parameters("uri", uri)).map(result => summarisePlan(result.consume().profile()))
+    }
+
+    def schema(stmt: String): Attempt[Unit] = attemptTransaction { tx =>
+      tx.run(stmt).map(_ => ())
+    }
+
+    def resolveSample(): Attempt[(String, Long)] = attemptTransaction { tx =>
+      for {
+        countResult <- tx.run("MATCH (w:WorkspaceNode) RETURN count(w) AS c")
+        count = countResult.list().asScala.toList.headOption.map(_.get("c").asLong()).getOrElse(0L)
+        uri <- maybeUri match {
+          case Some(u) => Attempt.Right(u)
+          case None =>
+            tx.run("MATCH (w:WorkspaceNode)-[:PART_OF]->(:Workspace) WHERE w.uri IS NOT NULL RETURN w.uri AS uri LIMIT 1")
+              .flatMap { r =>
+                r.list().asScala.toList.headOption
+                  .map(row => Attempt.Right(row.get("uri").asString()))
+                  .getOrElse(Attempt.Left[String](NotFoundFailure("No WorkspaceNode with a uri found to profile")))
+              }
+        }
+      } yield (uri, count)
+    }
+
+    for {
+      uriAndCount <- resolveSample()
+      (uri, wsCount) = uriAndCount
+      beforeWs <- profile(getWorkspacesForBlobQ, uri)
+      beforeDel <- profile(deleteLookupQ, uri)
+      _ <- schema("CREATE INDEX diag_workspacenode_uri IF NOT EXISTS FOR (node:WorkspaceNode) ON (node.uri)")
+      _ <- schema("CALL db.awaitIndexes(300)")
+      afterWs <- profile(getWorkspacesForBlobQ, uri)
+      afterDel <- profile(deleteLookupQ, uri)
+      _ <- schema("DROP INDEX diag_workspacenode_uri IF EXISTS")
+    } yield {
+      def block(name: String, before: (Long, List[String]), after: (Long, List[String])): String =
+        s"""== $name ==
+           |BEFORE  total DB hits: ${before._1}
+           |  ${before._2.mkString("\n  ")}
+           |AFTER   total DB hits: ${after._1}
+           |  ${after._2.mkString("\n  ")}""".stripMargin
+
+      s"""WorkspaceNode.uri index diagnostic
+         |Sample blob uri: $uri
+         |Total WorkspaceNode count: $wsCount
+         |
+         |${block("getWorkspacesForBlob", beforeWs, afterWs)}
+         |
+         |${block("deleteBlob WorkspaceNode lookup", beforeDel, afterDel)}
+         |""".stripMargin
+    }
+  }
+
+  // Walk a PROFILE plan tree, returning (total DB hits, one line per operator).
+  private def summarisePlan(plan: ProfiledPlan): (Long, List[String]) = {
+    def walk(p: ProfiledPlan): (Long, List[String]) = {
+      val details = Option(p.arguments().get("Details")).map(_.asString()).filter(_.nonEmpty).map(d => s" — $d").getOrElse("")
+      val line = s"${p.operatorType()} (hits=${p.dbHits()}, rows=${p.records()})$details"
+      val children = p.children().asScala.toList.map(walk)
+      (p.dbHits() + children.map(_._1).sum, line :: children.flatMap(_._2))
+    }
+    walk(plan)
   }
 
   override def setProgressNote(blobUri: Uri, extractor: Extractor, note: String): Either[Failure, Unit] = transaction { tx =>

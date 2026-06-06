@@ -45,13 +45,14 @@ class Neo4JManifestITest extends AnyFreeSpec
 
   var manifest: Manifest = _
   var fetchWorkTestManifest: Manifest = _
+  var neo4jDriver: org.neo4j.driver.Driver = _
 
   override type Containers = Neo4jContainer
 
   override def startContainers(): Containers = {
     val neo4jContainer = getNeo4jContainer()
 
-    val neo4jDriver = new Neo4jTestService(neo4jContainer.container.getBoltUrl).neo4jDriver
+    neo4jDriver = new Neo4jTestService(neo4jContainer.container.getBoltUrl).neo4jDriver
 
     manifest = {
       Neo4jManifest.setupManifest(neo4jDriver, global, new Neo4jQueryLoggingConfig(1.second, logAllQueries = false)).toOption.get
@@ -531,6 +532,31 @@ class Neo4JManifestITest extends AnyFreeSpec
         result.isRight should be(true)
 
         manifest.getResource(Uri("upload/test/wut/up")).toOption.get.children(0).`type` shouldBe "blob"
+      }
+    }
+
+    "WorkspaceNode.uri index diagnostic (throwaway)" - {
+      "reports the WorkspaceNode lookup flipping from a label scan to an index seek" in {
+        val session = neo4jDriver.session()
+        try {
+          session.run(
+            """
+              |CREATE (ws:Workspace {id:'diagws', isPublic:true})
+              |CREATE (u:User {username:'diaguser'})
+              |CREATE (n:WorkspaceNode {id:'diagnode', uri:'diag/blob1'})
+              |CREATE (n)-[:PART_OF]->(ws)
+              |CREATE (n)<-[:CREATED]-(u)
+              |CREATE (u)-[:CREATED]->(ws)
+              |CREATE (u)-[:FOLLOWING]->(ws)
+              |CREATE (u)-[:OWNS]->(ws)
+            """.stripMargin)
+        } finally session.close()
+
+        val report = manifest.profileWorkspaceNodeUriIndex(Some("diag/blob1")).successValue
+
+        // Before the index the WorkspaceNode {uri} lookup is a label scan; after, an index seek.
+        report should include("NodeByLabelScan")
+        report should include("NodeIndexSeek")
       }
     }
   }

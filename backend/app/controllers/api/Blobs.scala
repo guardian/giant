@@ -57,6 +57,14 @@ class Blobs(override val controllerComponents: AuthControllerComponents, manifes
     }
   }
 
+  // TEMPORARY DIAGNOSTIC (throwaway branch): PROFILE the WorkspaceNode.uri index effect and return
+  // a before/after report. Lets us measure on a real deployment without Cypher console access.
+  def profileWorkspaceNodeUriIndex(uri: Option[String]) = ApiAction.attempt { req =>
+    checkPermission(CanPerformAdminOperations, req) {
+      manifest.profileWorkspaceNodeUriIndex(uri).map(report => Ok(report).as("text/plain"))
+    }
+  }
+
   def reprocess(id: String, rerunSuccessfulParam: Option[Boolean], rerunFailedParam: Option[Boolean]) = ApiAction.attempt { req =>
     userHasViewAccessToBlob(id, req.user.username).flatMap { hasAccess =>
       if (hasAccess) {

@@ -106,6 +106,11 @@ trait Manifest extends WorkerManifest {
 
   def deleteResourceAndDescendants(uri: Uri): Attempt[Unit]
 
+  // TEMPORARY DIAGNOSTIC (throwaway branch ljh-diag-workspacenode-uri-profile):
+  // measures the effect of a WorkspaceNode.uri index by PROFILE-ing the uri-keyed queries
+  // before and after creating the index, then drops it. Returns a human-readable report.
+  def profileWorkspaceNodeUriIndex(maybeUri: Option[String]): Attempt[String]
+
   def getWorkspaceChildrenWithUri(workspaceNodeId: Option[WorkspaceItemUploadContext], childUri: String): Attempt[List[IngestFileResult]]
 
   def moveIngestionToCollection(ingestionUri: Uri, targetCollectionUri: Uri, newIngestionUri: Uri): Attempt[Unit]
