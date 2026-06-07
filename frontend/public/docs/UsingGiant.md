@@ -951,6 +951,19 @@ Giant supports keyboard shortcuts to speed up common actions. They are also note
 
 </div>
 
+## **Workspace tree**
+
+<div style="max-width: 700px;">
+
+| Shortcut           | Action                                         |
+| :----------------- | :--------------------------------------------- |
+| `Cursor down`      | Move selection to next row                     |
+| `Cursor up`        | Move selection to previous row                 |
+| `Return`           | _(If a folder is selected)_ Expand/collapse folder    |
+| `Return`           | _(If a document is selected)_ Open the document in a new window      |
+
+</div>
+
 ## **Document viewer**
 
 <div style="max-width: 700px;">
@@ -962,8 +975,10 @@ Giant supports keyboard shortcuts to speed up common actions. They are also note
 | `Shift-N`          | Jump to the previous search highlight          |
 | `Shift-→`          | Open the next result from your search list     |
 | `Shift-←`          | Open the previous result from your search list |
-| `Shift-X`          | Switch to Text (OCR) view mode                 |
-| `Shift-C`          | Switch to Preview view mode                    |
+| `Shift-T`          | Switch to Text view mode                       |
+| `Shift-C`          | Switch to Combined view mode                   |
+| `Shift-O`          | Switch to OCR view mode                        |
+| `Shift-P`          | Switch to Preview/video/audio mode             |
 
 </div>
 
