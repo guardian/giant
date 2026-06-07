@@ -7,6 +7,7 @@ import com.sksamuel.elastic4s.requests.common.FetchSourceContext
 import com.sksamuel.elastic4s.requests.script.Script
 import com.sksamuel.elastic4s.requests.searches.DateHistogramInterval
 import com.sksamuel.elastic4s.requests.searches.SearchResponse
+import com.sksamuel.elastic4s.requests.searches.queries.Query
 import com.sksamuel.elastic4s.requests.searches.queries.compound.BoolQuery
 import com.sksamuel.elastic4s.requests.update.UpdateByQueryRequest
 import extraction.{EnrichedMetadata, TranscriptionResult}
@@ -519,36 +520,51 @@ class ElasticsearchResources(override val client: ElasticClient, indexName: Stri
     )
   }
 
-  override def getTotalWordCountForWorkspace(workspaceId: String): Attempt[Long] = {
-    val query = search(indexName)
-      .query(
-        buildWorkspaceIdFilter(workspaceId)
-      )
-      .aggregations(
-        scriptedMetricAggregation("workspaceWordCount")
-          .initScript(Script("state.total = 0L").lang("painless"))
-          .mapScript(Script("""
-                              |if (params._source != null) {
-                              |  Map text = params._source.ocr != null ? params._source.ocr :
-                              |     (params._source.text != null ? params._source.text : params._source.transcript);
-                              |  if (text != null) {
-                              |    for (entry in text.entrySet()) {
-                              |      if (entry.getValue() != null && entry.getValue().length() > 0) {
-                              |        state.total += /\s+/.split(entry.getValue()).length;
-                              |      }
-                              |    }
-                              |  }
-                              |}
-          """.stripMargin.trim).lang("painless"))
-          .combineScript(Script("return state.total").lang("painless"))
-          .reduceScript(Script("long total = 0; for (s in states) { total += s } return total").lang("painless"))
-      )
+  // Counts whitespace-separated words across the text (or, where present, OCR) of every language for
+  // every document matched by the query. Shared by the workspace- and folder-scoped word counts so they
+  // always use the same counting method (only the set of matched documents differs).
+  private val wordCountAggregation =
+    scriptedMetricAggregation("workspaceWordCount")
+      .initScript(Script("state.total = 0L").lang("painless"))
+      .mapScript(Script("""
+                          |if (params._source != null) {
+                          |  Map text = params._source.ocr != null ? params._source.ocr :
+                          |     (params._source.text != null ? params._source.text : params._source.transcript);
+                          |  if (text != null) {
+                          |    for (entry in text.entrySet()) {
+                          |      if (entry.getValue() != null && entry.getValue().length() > 0) {
+                          |        state.total += /\s+/.split(entry.getValue()).length;
+                          |      }
+                          |    }
+                          |  }
+                          |}
+      """.stripMargin.trim).lang("painless"))
+      .combineScript(Script("return state.total").lang("painless"))
+      .reduceScript(Script("long total = 0; for (s in states) { total += s } return total").lang("painless"))
+
+  private def wordCountForQuery(query: Query): Attempt[Long] = {
+    val searchDefinition = search(indexName)
+      .query(query)
+      .aggregations(wordCountAggregation)
       .size(0)
 
-    execute(query).map { response =>
+    execute(searchDefinition).map { response =>
       response.aggregations.data("workspaceWordCount").asInstanceOf[Map[String, Number]]("value").longValue()
     }
   }
+
+  override def getTotalWordCountForWorkspace(workspaceId: String): Attempt[Long] =
+    wordCountForQuery(buildWorkspaceIdFilter(workspaceId))
+
+  override def getWordCountForBlobs(workspaceId: String, blobUris: List[String]): Attempt[Long] =
+    wordCountForQuery(
+      must(
+        idsQuery(blobUris),
+        // mirror getTextForBlobs: restrict to blobs that are actually in this workspace, so this can't be
+        // used to probe for or count text in blobs the user has no access to
+        buildWorkspaceIdFilter(workspaceId)
+      )
+    )
 
   override def getTextForBlobs(workspaceId: String, blobUris: List[String]): Attempt[Map[String, Map[String, String]]] = {
     val query = search(indexName)

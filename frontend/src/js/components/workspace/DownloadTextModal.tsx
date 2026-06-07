@@ -6,6 +6,7 @@ import {
 import Modal from "../UtilComponents/Modal";
 import { isTreeNode, TreeEntry } from "../../types/Tree";
 import {
+  getWordCountForBlobs,
   getWorkspaceText,
   getWorkspaceTotalWordCount,
 } from "../../services/WorkspaceApi";
@@ -21,6 +22,10 @@ interface DownloadTextModalProps {
   isOpen: boolean;
   dismiss: () => void;
   workspace: Workspace;
+  // When supplied, the download is scoped to this folder's subtree rather than the whole workspace.
+  // `label` is used for the modal heading and the downloaded filename.
+  rootEntry?: TreeEntry<WorkspaceEntry>;
+  label?: string;
 }
 
 const getFileBlobUriMap = (
@@ -49,23 +54,42 @@ export const DownloadTextModal = ({
   isOpen,
   dismiss,
   workspace,
+  rootEntry,
+  label,
 }: DownloadTextModalProps) => {
-  const [workspaceWordCount, setWorkspaceWordCount] = useState<number | null>(
-    null,
-  );
-  useEffect(() => {
-    getWorkspaceTotalWordCount(workspace.id).then(setWorkspaceWordCount);
-  }, [workspace.id]);
+  const isFolderDownload = rootEntry !== undefined;
+  const downloadName = label ?? workspace.name;
+  const scopeNoun = isFolderDownload ? "folder" : "workspace";
 
-  const blobUriToWorkspacePath = useMemo(
-    () => getFileBlobUriMap(workspace.rootNode),
-    [workspace.rootNode],
-  );
+  // Always build full, workspace-root-relative paths (for provenance in the file headers), then restrict
+  // to the chosen subtree's blobs when scoped to a folder.
+  const blobUriToWorkspacePath = useMemo(() => {
+    const fullMap = getFileBlobUriMap(workspace.rootNode);
+    if (!rootEntry) {
+      return fullMap;
+    }
+    const scopeUris = new Set(Object.keys(getFileBlobUriMap(rootEntry)));
+    return Object.fromEntries(
+      Object.entries(fullMap).filter(([uri]) => scopeUris.has(uri)),
+    );
+  }, [workspace.rootNode, rootEntry]);
 
   const allBlobUris = useMemo(
     () => Object.keys(blobUriToWorkspacePath),
     [blobUriToWorkspacePath],
   );
+
+  const [totalWordCount, setTotalWordCount] = useState<number | null>(null);
+  useEffect(() => {
+    // Folder counts go via the blob-scoped endpoint; the whole-workspace count keeps its dedicated
+    // (cheaper, tag-filtered) endpoint. Both use the same Elasticsearch aggregation, so the figures
+    // are computed identically and reconcile.
+    if (rootEntry) {
+      getWordCountForBlobs(workspace.id, allBlobUris).then(setTotalWordCount);
+    } else {
+      getWorkspaceTotalWordCount(workspace.id).then(setTotalWordCount);
+    }
+  }, [workspace.id, rootEntry, allBlobUris]);
 
   const [targetNumOfResultFiles, setTargetNumOfResultFiles] = useState(
     Math.min(allBlobUris.length, 250),
@@ -76,7 +100,7 @@ export const DownloadTextModal = ({
   const downloadAllText = async () => {
     setProgress(0.01);
 
-    const fetchTextBatchSize = Math.min(1000, workspaceWordCount! / 15_000);
+    const fetchTextBatchSize = Math.min(1000, totalWordCount! / 15_000);
 
     let buffer: {
       [blobUri: string]: {
@@ -91,7 +115,7 @@ export const DownloadTextModal = ({
     };
 
     const dumpToFile = async () => {
-      const filename = `${workspace.name} (${workspace.id}).${currentOutputFile.number}.txt`;
+      const filename = `${downloadName} (${workspace.id}).${currentOutputFile.number}.txt`;
       const myBlob = new Blob([currentOutputFile.text.trim()], {
         type: "text/plain",
       });
@@ -168,27 +192,26 @@ export const DownloadTextModal = ({
   };
 
   const wordsPerFile =
-    workspaceWordCount &&
-    Math.ceil(workspaceWordCount / targetNumOfResultFiles);
+    totalWordCount && Math.ceil(totalWordCount / targetNumOfResultFiles);
 
   return (
     <Modal isOpen={isOpen} dismiss={dismiss}>
       <div style={{ padding: "10px" }}>
-        <h2>Download Workspace as Text</h2>
+        <h2>Download {isFolderDownload ? "Folder" : "Workspace"} as Text</h2>
         <p>
-          {workspaceWordCount === null ? (
+          {totalWordCount === null ? (
             <span>
-              <EuiLoadingSpinner size="s" /> Calculating total word count for
-              workspace...
+              <EuiLoadingSpinner size="s" /> Calculating total word count for{" "}
+              {scopeNoun}...
             </span>
           ) : (
-            `This workspace has a total of ${workspaceWordCount.toLocaleString()} words across all files and languages.`
+            `This ${scopeNoun} has a total of ${totalWordCount.toLocaleString()} words across all files and languages.`
           )}
         </p>
         <p>
           This will download the text for all the{" "}
-          <strong>{allBlobUris.length.toLocaleString()}</strong> files in this
-          workspace, with each file's text separated by a header indicating the
+          <strong>{allBlobUris.length.toLocaleString()}</strong> files in this{" "}
+          {scopeNoun}, with each file's text separated by a header indicating the
           file path and language.
         </p>
         <p>
@@ -225,7 +248,7 @@ export const DownloadTextModal = ({
         ) : (
           <EuiButton
             onClick={downloadAllText}
-            disabled={!workspaceWordCount || allBlobUris.length === 0}
+            disabled={!totalWordCount || allBlobUris.length === 0}
           >
             Start Download
           </EuiButton>

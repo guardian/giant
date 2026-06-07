@@ -626,6 +626,44 @@ class ElasticsearchResourcesITest extends AnyFreeSpec with Matchers with BeforeA
       }
     }
 
+    "getWordCountForBlobs" - {
+      "counts whitespace-separated words for blobs in the workspace" in {
+        val workspaceId = "word-count-workspace-id"
+        val docUri = indexTestHelpers.addTestDocument(catCollection, "word_count_text", maybeText = Map(
+          English -> "one two three four five")
+        ).await()
+        elasticsearchTestService.elasticResources.addResourceToWorkspace(docUri, workspaceId, "word-count-node").await()
+
+        val count = elasticsearchTestService.elasticResources.getWordCountForBlobs(workspaceId, List(docUri.value)).await()
+        count shouldBe 5L
+
+        elasticsearchTestService.elasticResources.removeResourceFromWorkspace(docUri, workspaceId, "word-count-node").await()
+      }
+
+      "returns zero for blobs that are not in the given workspace (no cross-workspace probing)" in {
+        val docUri = indexTestHelpers.addTestDocument(catCollection, "word_count_not_in_workspace", maybeText = Map(
+          English -> "one two three")
+        ).await()
+
+        val count = elasticsearchTestService.elasticResources.getWordCountForBlobs("some-other-workspace-id", List(docUri.value)).await()
+        count shouldBe 0L
+      }
+
+      "prefers OCR text over extracted text when both are present" in {
+        val workspaceId = "word-count-ocr-workspace-id"
+        val docUri = indexTestHelpers.addTestDocument(catCollection, "word_count_ocr",
+          maybeText = Map(English -> "one two three"),
+          maybeOcrText = Map(English -> "alpha beta gamma delta")
+        ).await()
+        elasticsearchTestService.elasticResources.addResourceToWorkspace(docUri, workspaceId, "word-count-ocr-node").await()
+
+        val count = elasticsearchTestService.elasticResources.getWordCountForBlobs(workspaceId, List(docUri.value)).await()
+        count shouldBe 4L
+
+        elasticsearchTestService.elasticResources.removeResourceFromWorkspace(docUri, workspaceId, "word-count-ocr-node").await()
+      }
+    }
+
     // TODO MRB: add test to properly cover the painless update scripts
     // TODO MRB: add some tests for duplicate removal in fileUris, email recipients, collections and ingestions etc
   }
