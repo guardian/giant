@@ -955,14 +955,15 @@ Giant supports keyboard shortcuts to speed up common actions. They are also note
 
 <div style="max-width: 700px;">
 
-| Shortcut           | Action                                         |
-| :----------------- | :--------------------------------------------- |
-| `Cursor down`      | Move selection to next row                     |
-| `Cursor up`        | Move selection to previous row                 |
-| `Return`           | _(If a folder is selected)_ Expand/collapse folder    |
-| `Return`           | _(If a document is selected)_ Open the document in a new window      |
-| `Shift click`           | Select/deselect multiple contiguous rows      |
-| `Command click`           | Select/deselect multiple non-contiguous rows      |
+| Shortcut        | Action                                                          |
+| :-------------- | :-------------------------------------------------------------- |
+| `Cursor down`   | Move selection to next row                                      |
+| `Cursor up`     | Move selection to previous row                                  |
+| `Return`        | _(If a folder is selected)_ Expand/collapse folder              |
+| `Return`        | _(If a document is selected)_ Open the document in a new window |
+| `Shift click`   | Select/deselect multiple contiguous rows                        |
+| `Command click` | Select/deselect multiple non-contiguous rows                    |
+
 </div>
 
 ## **Document viewer**
