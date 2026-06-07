@@ -227,6 +227,11 @@ export const PageViewerOrFallback: FC<{}> = () => {
   const dispatch = useDispatch();
 
   useEffect(() => {
+    // Clear the previous document's page count while we fetch the new one.
+    // Otherwise, because this component is not remounted when the :uri route
+    // param changes, a stale count would make us briefly treat the new
+    // document as paged (and wrongly impose the Combined view on it).
+    setResponse(null);
     authFetch(`/api/pages2/${uri}/pageCount`)
       .then((res) => res.json())
       .then((obj: PageCountResponse) => setResponse(obj))
