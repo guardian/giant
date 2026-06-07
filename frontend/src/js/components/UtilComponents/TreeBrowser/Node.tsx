@@ -316,6 +316,11 @@ export default class Node<T> extends React.Component<Props<T>, State> {
   }
 
   render() {
+    // Child refs are pushed (not assigned) by the ref callbacks below, and
+    // unmounted children never remove themselves, so the array must be reset
+    // each render to avoid retaining stale/detached rows (mirrors index.tsx).
+    this.childReactComponents = [];
+
     const { hoveredOver } = this.state;
     const focused = this.isFocused();
     const selected = this.isSelected();
