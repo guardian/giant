@@ -217,7 +217,9 @@ export const PageViewerOrFallback: FC<{}> = () => {
     }
   }, [highlightStepper.currentHighlight, highlightStepper.totalHighlights]);
 
-  const [response, setResponse] = useState<PageCountResponse | null>(null);
+  const [response, setResponse] = useState<
+    (PageCountResponse & { uri: string }) | null
+  >(null);
   const view = useSelector<GiantState, string | undefined>(
     (state) => state.urlParams.view,
   );
@@ -227,18 +229,18 @@ export const PageViewerOrFallback: FC<{}> = () => {
   const dispatch = useDispatch();
 
   useEffect(() => {
-    // Clear the previous document's page count while we fetch the new one.
-    // Otherwise, because this component is not remounted when the :uri route
-    // param changes, a stale count would make us briefly treat the new
-    // document as paged (and wrongly impose the Combined view on it).
-    setResponse(null);
     authFetch(`/api/pages2/${uri}/pageCount`)
       .then((res) => res.json())
-      .then((obj: PageCountResponse) => setResponse(obj))
-      .catch(() => setResponse({ pageCount: 0, dimensions: null }));
+      .then((obj: PageCountResponse) => setResponse({ ...obj, uri }))
+      .catch(() => setResponse({ pageCount: 0, dimensions: null, uri }));
   }, [uri]);
 
-  const totalPages = response?.pageCount ?? null;
+  // This component is not remounted when the :uri route param changes, so until
+  // the new document's count arrives `response` still holds the previous one's.
+  // Tagging it with its uri lets us treat a stale count as "not yet known"
+  // rather than wrongly imposing the Combined view on the next document.
+  const pageData = response && response.uri === uri ? response : null;
+  const totalPages = pageData ? pageData.pageCount : null;
 
   const searchQuery = searchParams.get("q") ?? undefined;
 
@@ -318,9 +320,9 @@ export const PageViewerOrFallback: FC<{}> = () => {
     }
   }, [uri, totalPages, view, searchQuery, searchMatchesInPages, dispatch]);
 
-  if (response === null) {
+  if (totalPages === null) {
     return null;
-  } else if (response.pageCount === 0) {
+  } else if (totalPages === 0) {
     return (
       <div className="document__viewer-fallback">
         <SearchStepperOverlay highlightStepper={highlightStepper} />
@@ -337,8 +339,8 @@ export const PageViewerOrFallback: FC<{}> = () => {
       <PageViewerContent
         key={uri}
         uri={uri}
-        totalPages={response.pageCount}
-        firstPageDimensions={response.dimensions ?? undefined}
+        totalPages={totalPages}
+        firstPageDimensions={pageData?.dimensions ?? undefined}
         view={view}
         findQuery={pageFind.findQuery}
         findHighlightsState={pageFind.highlightsState}
@@ -365,7 +367,7 @@ export const PageViewerOrFallback: FC<{}> = () => {
           <DocumentFooter
             uri={uri}
             workspaceNav={workspaceNav}
-            totalPages={response.pageCount}
+            totalPages={totalPages}
             pageFind={isCombinedOrUnset(view) ? pageFind : undefined}
             pageViewControls={
               isCombinedOrUnset(view) ? pageViewControls : undefined
