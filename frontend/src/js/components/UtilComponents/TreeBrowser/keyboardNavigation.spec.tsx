@@ -162,4 +162,22 @@ describe("workspace tree keyboard navigation", () => {
     // Only the deliberate middle collapse — not a second one from the final Enter.
     expect(handlers.onCollapseNode).toHaveBeenCalledTimes(1);
   });
+
+  // Arrow keys must cancel their default action, otherwise the browser's native
+  // scroll fights the focus-driven scroll and pushes the selected row out of view.
+  it("prevents the default (native scroll) on arrow keys", () => {
+    mount();
+    rowByName(container, "folder").focus();
+
+    const arrowDown = new KeyboardEvent("keydown", {
+      key: "ArrowDown",
+      bubbles: true,
+      cancelable: true,
+    });
+    act(() => {
+      (document.activeElement as HTMLElement).dispatchEvent(arrowDown);
+    });
+
+    expect(arrowDown.defaultPrevented).toBe(true);
+  });
 });
