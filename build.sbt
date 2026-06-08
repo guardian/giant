@@ -58,32 +58,21 @@ lazy val buildInfoSettings = Seq(
   buildInfoPackage := "utils.buildinfo"
 )
 
-lazy val riffRaffUploadWithIntegrationTests = taskKey[Unit](
-  "Perform riffRaffUpload after running tests or integration tests"
+lazy val runAllTests = taskKey[Unit](
+  "Running all tests or integration tests"
 )
 
 lazy val root = (project in file("."))
-  .enablePlugins(RiffRaffArtifact)
   .aggregate(common, backend, cli)
   .settings(
-    riffRaffUploadWithIntegrationTests := Def
+    runAllTests := Def
       .sequential(
         common / Test / test,
         cli / Test / test,
         backend / Test / test,
-        backend / IntTest / test,
-        riffRaffUpload
+        backend / IntTest / test
       )
       .value,
-    riffRaffManifestProjectName := s"investigations::${sys.props.getOrElse("PFI_STACK", "pfi-playground")}",
-    riffRaffUploadArtifactBucket := Some("riffraff-artifact"),
-    riffRaffUploadManifestBucket := Some("riffraff-builds"),
-    riffRaffArtifactResources := Seq(
-      (backend / Debian / packageBin).value -> s"${(backend / name).value}/${(backend / name).value}.deb",
-      (cli / Debian / packageBin).value -> s"${(cli / name).value}/${(cli / name).value}.deb",
-      (cli / Universal / packageZipTarball).value -> s"pfi-public-downloads/${(cli / name).value}.tar.gz",
-      file("riff-raff.yaml") -> "riff-raff.yaml"
-    )
   )
 
 lazy val common = (project in file("common"))
@@ -112,7 +101,7 @@ lazy val common = (project in file("common"))
 import play.sbt.routes.RoutesKeys
 
 lazy val backend = (project in file("backend"))
-  .enablePlugins(PlayScala, JDebPackaging, SystemdPlugin, BuildInfoPlugin)
+  .enablePlugins(PlayScala, JDebPackaging, SystemdPlugin, BuildInfoPlugin, UniversalPlugin)
   .dependsOn(common)
   .configs(IntTest)
   .settings(buildInfoSettings)
@@ -219,7 +208,7 @@ lazy val backend = (project in file("backend"))
 
 lazy val cli = (project in file("cli"))
   .dependsOn(common)
-  .enablePlugins(JavaAppPackaging, BuildInfoPlugin)
+  .enablePlugins(JavaAppPackaging, BuildInfoPlugin, UniversalPlugin)
   .settings(buildInfoSettings)
   .settings(
     name := "pfi-cli",

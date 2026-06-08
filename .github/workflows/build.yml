@@ -19,14 +19,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # Setup AWS credentials to enable uploading to S3 for Riff-Raff.
-      # See https://github.com/aws-actions/configure-aws-credentials
-      - uses: aws-actions/configure-aws-credentials@v4
-        name: setup-riffraff-credentials
-        with:
-          role-to-assume: ${{ secrets.GU_RIFF_RAFF_ROLE_ARN }}
-          aws-region: eu-west-1
-
       # TODO: configure caching
       # See https://github.com/actions/setup-java
       - name: Setup Java
@@ -55,8 +47,52 @@ jobs:
           cache: npm
           cache-dependency-path: frontend/package-lock.json
 
-      - name: Run script/teamcity
+      - name: Run script/ci.sh to build artefacts
+        run: ./scripts/ci.sh
+
+      - name: Put artifacts in the right place
         run: |
-          LAST_TEAMCITY_BUILD=5000
-          export GITHUB_RUN_NUMBER=$(( $GITHUB_RUN_NUMBER + $LAST_TEAMCITY_BUILD ))
-          ./scripts/ci.sh
+          mkdir -p pfi pfi-cli pfi-public-downloads
+          mv backend/target/pfi_0.1.0-SNAPSHOT_all.deb pfi/pfi.deb
+          mv cli/target/pfi-cli_0.1.0-SNAPSHOT_all.deb pfi-cli/pfi-cli.deb
+          mv cli/target/universal/pfi-cli-0.1.0-SNAPSHOT.tgz pfi-public-downloads/pfi-cli.tar.gz
+
+      - name: Upload for playground
+        uses: guardian/actions-riff-raff@v4
+        with:
+          projectName: investigations::pfi-playground
+          roleArn: ${{ secrets.GU_RIFF_RAFF_ROLE_ARN }}
+          githubToken: ${{ secrets.GITHUB_TOKEN }}
+          buildNumberOffset: 5000
+          contentDirectories: |
+            pfi:
+              - pfi/pfi.deb
+            pfi-cli:
+              - pfi-cli/pfi-cli.deb
+            pfi-public-downloads:
+              - pfi-public-downloads/pfi-cli.tar.gz
+          configPath: riff-raff.yaml
+          commentingEnabled: 'false'
+
+      - name: Edit riff-raff file prior to re-upload
+        run: sed -i -e "s/pfi-playground/pfi-giant/g" riff-raff.yaml
+
+      - name: Upload for giant
+        uses: guardian/actions-riff-raff@v4
+        with:
+          projectName: investigations::pfi-giant
+          roleArn: ${{ secrets.GU_RIFF_RAFF_ROLE_ARN }}
+          githubToken: ${{ secrets.GITHUB_TOKEN }}
+          buildNumberOffset: 5000
+          contentDirectories: |
+            pfi:
+              - pfi/pfi.deb
+            pfi-cli:
+              - pfi-cli/pfi-cli.deb
+            pfi-public-downloads:
+              - pfi-public-downloads/pfi-cli.tar.gz
+          configPath: riff-raff.yaml
+          commentingEnabled: 'false'
+
+      - name: Reset checkout just in case
+        run: sed -i -e "s/pfi-giant/pfi-playground/g" riff-raff.yaml
