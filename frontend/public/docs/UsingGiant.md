@@ -295,9 +295,9 @@ Find-in-document results are highlighted in pale pink, with the active result in
 
 </div>
 
-Once highlights are shown, use `n` to jump to the next one and `Shift-N` to go to the previous one without touching the mouse.
+Once highlights are shown, use `return` to jump to the next one and `shift-return` to go to the previous one without touching the mouse.
 
-If you arrived at a document from a search, you can move directly to the next or previous result in your search list with `Shift-→` and `Shift-←`, without returning to the search page.
+If you arrived at a document from a search, you can move directly to the next or previous match in the document by stepping through the results counter in the top right of the viewer.
 
 ## **Email documents** {#email-documents}
 
@@ -323,7 +323,7 @@ Switching between the Summary and Thread tabs in the email viewer
 Giant can process other file formats such as emails, images, video files, audio files. For many of these when you open the file you'll be given the option to view it in different ways. You can switch between view modes using the buttons at the bottom of the document viewer, or with keyboard shortcuts:
 
 - `Shift-C` for the combined view
-- `Shift-T` for Text view
+- `Shift-T` for Text or Transcript view
 - `Shift-O` for OCR view
 - `Shift-P` for Preview, Audio, or Video.
 
@@ -951,6 +951,21 @@ Giant supports keyboard shortcuts to speed up common actions. They are also note
 
 </div>
 
+## **Workspace tree**
+
+<div style="max-width: 700px;">
+
+| Shortcut        | Action                                                          |
+| :-------------- | :-------------------------------------------------------------- |
+| `Cursor down`   | Move selection to next row                                      |
+| `Cursor up`     | Move selection to previous row                                  |
+| `Return`        | _(If a folder is selected)_ Expand/collapse folder              |
+| `Return`        | _(If a document is selected)_ Open the document in a new window |
+| `Shift click`   | Select/deselect multiple contiguous rows                        |
+| `Command click` | Select/deselect multiple non-contiguous rows                    |
+
+</div>
+
 ## **Document viewer**
 
 <div style="max-width: 700px;">
@@ -962,8 +977,10 @@ Giant supports keyboard shortcuts to speed up common actions. They are also note
 | `Shift-N`          | Jump to the previous search highlight          |
 | `Shift-→`          | Open the next result from your search list     |
 | `Shift-←`          | Open the previous result from your search list |
-| `Shift-X`          | Switch to Text (OCR) view mode                 |
-| `Shift-C`          | Switch to Preview view mode                    |
+| `Shift-T`          | Switch to Text view mode                       |
+| `Shift-C`          | Switch to Combined view mode                   |
+| `Shift-O`          | Switch to OCR view mode                        |
+| `Shift-P`          | Switch to Preview/video/audio mode             |
 
 </div>
 
