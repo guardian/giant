@@ -529,7 +529,8 @@ class ElasticsearchResources(override val client: ElasticClient, indexName: Stri
           .initScript(Script("state.total = 0L").lang("painless"))
           .mapScript(Script("""
                               |if (params._source != null) {
-                              |  Map text = params._source.ocr != null ? params._source.ocr : params._source.text;
+                              |  Map text = params._source.ocr != null ? params._source.ocr :
+                              |     (params._source.text != null ? params._source.text : params._source.transcript);
                               |  if (text != null) {
                               |    for (entry in text.entrySet()) {
                               |      if (entry.getValue() != null && entry.getValue().length() > 0) {
@@ -561,13 +562,17 @@ class ElasticsearchResources(override val client: ElasticClient, indexName: Stri
       )
       .sourceInclude(
         "text.*",
-        "ocr.*"
+        "ocr.*",
+        "transcript.*"
       )
       .size(blobUris.size)
 
     execute(query).map { response =>
       response.hits.hits.flatMap { hit =>
-        hit.sourceAsMap.get(IndexFields.ocr).orElse(hit.sourceAsMap.get(IndexFields.text)).map(text => hit.id -> text.asInstanceOf[Map[String, String]])
+        hit.sourceAsMap.get(IndexFields.ocr)
+          .orElse(hit.sourceAsMap.get(IndexFields.text))
+          .orElse(hit.sourceAsMap.get(IndexFields.transcript))
+          .map(text => hit.id -> text.asInstanceOf[Map[String, String]])
       }.toMap
     }
   }
