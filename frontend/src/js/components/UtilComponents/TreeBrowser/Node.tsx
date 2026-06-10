@@ -78,6 +78,13 @@ export default class Node<T> extends React.Component<Props<T>, State> {
   onKeyDown = (e: React.KeyboardEvent<HTMLTableRowElement>) => {
     e.stopPropagation();
 
+    // The arrow keys drive selection and expand/collapse. Prevent the browser's
+    // native arrow-scroll, which otherwise fights the focus-driven scroll and
+    // shoves the selected row up out of view behind the toolbar.
+    if (e.key.startsWith("Arrow")) {
+      e.preventDefault();
+    }
+
     switch (e.key) {
       case "Escape":
         this.props.clearFocus();
@@ -316,6 +323,11 @@ export default class Node<T> extends React.Component<Props<T>, State> {
   }
 
   render() {
+    // Child refs are pushed (not assigned) by the ref callbacks below, and
+    // unmounted children never remove themselves, so the array must be reset
+    // each render to avoid retaining stale/detached rows (mirrors index.tsx).
+    this.childReactComponents = [];
+
     const { hoveredOver } = this.state;
     const focused = this.isFocused();
     const selected = this.isSelected();

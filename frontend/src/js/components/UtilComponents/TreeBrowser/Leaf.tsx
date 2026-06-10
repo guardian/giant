@@ -62,6 +62,14 @@ export default class Leaf<T> extends React.Component<Props<T>, {}> {
 
   onKeyDown = (e: React.KeyboardEvent<HTMLTableRowElement>) => {
     e.stopPropagation();
+
+    // The arrow keys drive selection and expansion. Prevent the browser's
+    // native arrow-scroll, which otherwise fights the focus-driven scroll and
+    // shoves the selected row up out of view behind the toolbar.
+    if (e.key.startsWith("Arrow")) {
+      e.preventDefault();
+    }
+
     switch (e.key) {
       case "Enter":
         this.props.onSelect(this.props.entry);
