@@ -211,8 +211,8 @@ export const DownloadTextModal = ({
         <p>
           This will download the text for all the{" "}
           <strong>{allBlobUris.length.toLocaleString()}</strong> files in this{" "}
-          {scopeNoun}, with each file's text separated by a header indicating the
-          file path and language.
+          {scopeNoun}, with each file's text separated by a header indicating
+          the file path and language.
         </p>
         <p>
           <label>
