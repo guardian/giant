@@ -21,7 +21,7 @@ abstract class BaseOcrExtractor(scratchSpace: ScratchSpace, index:Index)  (impli
 
   final override def extract(blob: Blob, file: File, params: ExtractionParams): Either[Failure, Unit] = {
     // extractors are synchronous so we have to await here
-    val detectedLanguageCode = Await.result(index.getDetectedLanguage(blob.uri).asFuture, 3.seconds).toOption
+    val detectedLanguageCode = Await.result(index.getTextDetectedLanguage(blob.uri).asFuture, 3.seconds).toOption
 
     if (params.languages.isEmpty && detectedLanguageCode.isDefined) {
       throw new IllegalStateException(s"${this.name} requires a language")

@@ -76,7 +76,7 @@ object IngestionServices extends Logging {
       * @param text
       * @return
       */
-    def detectLanguage(blobUri: String, text: String): Option[String] = {
+    def detectLanguage(fieldIdentifier: String, text: String): Option[String] = {
       // clean a large block of text in case the file starts with lots of junk
       val textToClean = text.take(50000)
       val cleanedText = cleanTextForLanguageDetection(textToClean)
@@ -85,7 +85,7 @@ object IngestionServices extends Logging {
       if (result.isReasonablyCertain) {
         Some(result.getLanguage)
       } else {
-        logger.info(s"Unable to detect language for text in blob $blobUri. Tika result: ${result.getLanguage} with confidence ${result.getRawScore}")
+        logger.info(s"Unable to detect language for text in $fieldIdentifier. Tika result: ${result.getLanguage} with confidence ${result.getRawScore}")
         None
       }
     }
@@ -102,9 +102,12 @@ object IngestionServices extends Logging {
 
       val insertions = intermediateResources :+ Manifest.InsertEmail(context.email, context.parents.head)
 
+      val subjectDetectedLanguage = detectLanguage(s"${context.email.uri.value} email subject", context.email.subject)
+      val bodyDetectedLanguage = detectLanguage(s"${context.email.uri.value} email body", context.email.body)
+
       manifest.insert(insertions, rootUri).flatMap( _ =>
         // TODO once we get attempt everywhere we can remove the await
-        index.ingestEmail(context.email, context.ingestion, sourceMimeType, context.parentBlobs, context.workspace, context.languages).awaitEither(10.second)
+        index.ingestEmail(context.email, context.ingestion, sourceMimeType, context.parentBlobs, context.workspace, context.languages, subjectDetectedLanguage, bodyDetectedLanguage).awaitEither(10.second)
       )
     }
 

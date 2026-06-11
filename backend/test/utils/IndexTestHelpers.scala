@@ -61,7 +61,7 @@ class IndexTestHelpers(elasticsearchTestService: ElasticsearchTestService)(impli
 
     for {
       _ <- elasticsearchTestService.elasticResources.ingestDocument(documentUri, 0, ingestionData, languages)
-      _ <- elasticsearchTestService.elasticResources.addDocumentDetails(documentUri, Some(text), Map.empty, MetadataEnrichment.enrich(maybeExtractedMetadata, None), languages)
+      _ <- elasticsearchTestService.elasticResources.addDocumentDetails(documentUri, Some(text), Map.empty, MetadataEnrichment.enrich(maybeExtractedMetadata), languages, Some("en"))
       _ <- _addDocumentOcr(maybeOcrText.toList)
     } yield {
       documentUri

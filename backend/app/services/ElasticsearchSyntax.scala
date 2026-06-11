@@ -9,12 +9,13 @@ import com.sksamuel.elastic4s.requests.common.RefreshPolicy
 import com.sksamuel.elastic4s.requests.indexes.CreateIndexResponse
 import com.sksamuel.elastic4s.requests.indexes.admin.IndexExistsResponse
 import com.sksamuel.elastic4s.requests.mappings.dynamictemplate.DynamicMapping
-import com.sksamuel.elastic4s.requests.mappings.{MappingDefinition}
+import com.sksamuel.elastic4s.requests.mappings.MappingDefinition
 import com.sksamuel.elastic4s.requests.update.{UpdateByQueryRequest, UpdateRequest}
 import model.Language
 import org.apache.http.{ContentTooLongException, HttpHost}
 import org.elasticsearch.client.RestClient
 import org.elasticsearch.client.sniff.Sniffer
+import services.index.IndexFields
 import utils.Logging
 import utils.attempt.{Attempt, ContentTooLongFailure, ElasticSearchQueryFailure, MultipleFailures, UnknownFailure}
 
@@ -47,6 +48,13 @@ trait ElasticsearchSyntax { this: Logging =>
 
   // Each entry is added by a call to multiLanguageField
   def emptyMultiLanguageField(name: String): ObjectField = objectField(name)
+
+  def emptyLanguageDataField(name: String): ObjectField = {
+    ObjectField(name, properties = Seq(
+      textField(IndexFields.languageData.translatableFieldData.detectedLanguageCode),
+      textField(IndexFields.languageData.translatableFieldData.translation)
+    ))
+  }
 
   def multiLanguageField(name: String, language: Language): ObjectField = {
     ObjectField(name, properties = Seq(

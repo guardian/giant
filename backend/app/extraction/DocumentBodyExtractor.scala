@@ -51,12 +51,13 @@ class DocumentBodyExtractor(tika: Tika, index: Index, ingestionServices: Ingesti
     if(passesSafetyCheck(mimeType, blob.size)) {
       tika.parse(stream, mimeType).flatMap { case (metadata, body) =>
         val rawMetadata = metadata.names().map(name => name -> metadata.getValues(name).toSeq).toMap
-        val detectedLanguage = ingestionServices.detectLanguage(blob.uri.value, body.trim())
-        val enrichedMetadata = MetadataEnrichment.enrich(rawMetadata, detectedLanguage)
+        val documentBodyDetectedLanguage = ingestionServices.detectLanguage(blob.uri.value, body.trim())
+        println("DETECTED LANGUAGE: " + documentBodyDetectedLanguage)
+        val enrichedMetadata = MetadataEnrichment.enrich(rawMetadata)
         // Optionally having a body will allow documents without text to default to preview, useful for un-OCR'd documents
         val optionalBody = if (body.trim().isEmpty) None else Some(body)
 
-        index.addDocumentDetails(blob.uri, optionalBody, rawMetadata, enrichedMetadata, params.languages).awaitEither()
+        index.addDocumentDetails(blob.uri, optionalBody, rawMetadata, enrichedMetadata, params.languages, documentBodyDetectedLanguage).awaitEither()
       }
     } else {
       Left(UnsupportedOperationFailure("Failed safety check"))
