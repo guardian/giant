@@ -15,6 +15,7 @@ import { GiantState } from "../../types/redux/GiantState";
 export function loadWorkspaceNodeChildren(
   workspaceId: string,
   nodeId: string,
+  nodeName: string,
 ): ThunkAction<void, GiantState, null, WorkspacesAction | AppAction> {
   return (dispatch) => {
     return getWorkspaceNodeChildrenApi(workspaceId, nodeId)
@@ -27,7 +28,7 @@ export function loadWorkspaceNodeChildren(
       .catch((error) =>
         dispatch({
           type: AppActionType.APP_SHOW_ERROR,
-          message: "Failed to load folder contents " + nodeId,
+          message: `Failed to load the contents of folder "${nodeName}"`,
           error,
         }),
       );
