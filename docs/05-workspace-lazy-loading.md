@@ -56,11 +56,11 @@ was nearly lost exactly this way: recorded in the POC limitations, absent from t
 
 | Regression (over-gate workspaces only) | Introduced | Retired by |
 |---|---|---|
-| Per-folder rollup counts/badges absent on un-drilled branches ("counts pending…") | Stage 4 | Stage 8/9 (Phase III decision); fully-loaded subtrees show real counts from Stage 5's client recompute |
-| Status polling paused (file status refreshes only on expand/refetch) | Stage 4 | Stage 7 |
-| In-progress remote ingests not mixed into the tree | Stage 4 unless mixed in there (acceptance criterion) | Stage 4 |
-| Deep links resolve only to already-loaded nodes | Stage 4 | Stage 6 |
-| "Reprocess errored" button gated on a count that may read zero | Stage 4 | offer it unconditionally in lazy mode (Stage 4) or exact on-open count (Stage 8) |
+| Per-folder rollup counts/badges absent on un-drilled branches ("counts pending…") | Stage 5 | Stage 8/9 (Phase III decision); fully-loaded subtrees show real counts from Stage 4's client recompute |
+| Status polling paused (file status refreshes only on expand/refetch) | Stage 5 | Stage 7 |
+| In-progress remote ingests not mixed into the tree | Stage 5 unless mixed in there (acceptance criterion) | Stage 5 |
+| Deep links resolve only to already-loaded nodes | Stage 5 | Stage 6 |
+| "Reprocess errored" button gated on a count that may read zero | Stage 5 | offer it unconditionally in lazy mode (Stage 5) or exact on-open count (Stage 8) |
 | Flat folders >5,000 children still truncate (pre-existing) | — | Stage 10 |
 
 ## Decision log
