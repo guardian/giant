@@ -34,6 +34,7 @@ pfi-cli login --token YOUR_TOKEN --verbose
 | `show-collection` | Show all ingestions in a collection with details |
 | `create-ingestion` | Create a new ingestion |
 | `ingest` | Upload files into an ingestion |
+| `download-workspace` | Download a whole workspace to disk, preserving folder structure and original file names |
 | `verify` | Check that all source files have been indexed |
 | `delete-ingestion` | Delete an ingestion and its files |
 | `delete-blobs` | Delete a subset of blobs by path prefix (e.g. a subfolder) |
@@ -170,6 +171,50 @@ pfi-cli show-collection --uri https://giant.pfi.gutools.co.uk \
 # Verify all source files have been indexed after phase 2 completes
 pfi-cli verify --uri https://giant.pfi.gutools.co.uk \
   --ingestion "BinLaden/ingestion"
+```
+
+### Downloading a workspace
+
+`download-workspace` reconstructs a workspace on disk: it reads the workspace tree from the API,
+then pulls each file's blob **directly from the `collections` S3 bucket by its content hash** and
+writes it under its original folder path and file name. Pulling from S3 (rather than streaming each
+file through the Giant download endpoint) is dramatically faster and avoids the per-file download
+authorisation step — important for large workspaces with 100,000+ files.
+
+Because it reads S3 directly, you need credentials with read access to the blob bucket. The simplest
+place to run it is on a Giant worker instance (which has the instance role), the same way you'd run a
+large ingestion.
+
+```bash
+pfi-cli download-workspace \
+  --uri https://giant.pfi.gutools.co.uk \
+  --workspaceId <workspaceId> \
+  --bucket pfi-giant-collections-<stack> \
+  --out /data/workspace-export
+```
+
+- `--workspaceId` is the ID in the workspace's URL in the browser.
+- `--bucket` is the **collections** bucket (the blob store), e.g. `pfi-giant-collections-rex`.
+- `--concurrency` (default 8) controls how many files download in parallel.
+- `--dry-run` reports how many files would be written and a sample of paths, without downloading.
+- `--awsProfile` selects an AWS profile if you're not on an instance role.
+
+Notes:
+- Files are written under `<--out>/<workspace-name>/…`, preserving the workspace's folder structure
+  and original file names. The workspace name comes from the tree's root node (falling back to
+  `workspace-<id>` if blank).
+- The same blob can appear under multiple workspace paths — it's written to each location. Genuine
+  on-disk name collisions are disambiguated by inserting a short hash before the extension.
+- Leaves that aren't backed by a blob (e.g. an unprocessed remote-ingest task or a captured URL that
+  never produced a file) are skipped.
+
+For a local stack pointed at Garage, pass the Garage params instead of an AWS profile:
+
+```bash
+./pfi-cli download-workspace --uri http://localhost:9001 \
+  --workspaceId <workspaceId> --out ~/workspace-export \
+  --bucket data \
+  --garageAccessKey garage-user --garageEndpoint http://localhost:3900 --garageSecretKey reallyverysecret
 ```
 
 ### Running pfi-cli locally

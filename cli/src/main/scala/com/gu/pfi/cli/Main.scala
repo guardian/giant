@@ -451,6 +451,17 @@ object Main extends App with Logging {
         }
       }
 
+    case Some(_ @ options.downloadWorkspaceCmd) =>
+      run("Download workspace", options.downloadWorkspaceCmd) { services =>
+        val cmd = options.downloadWorkspaceCmd
+        val outDir = Paths.get(cmd.out()).toAbsolutePath
+        val credentials = AwsCredentials.credentialsV2(cmd.garageAccessKey.toOption, cmd.garageSecretKey.toOption, cmd.awsProfile.toOption)
+        val s3 = new DefaultBlobS3Client(cmd, credentials)
+
+        val command = new DownloadWorkspace(cmd.workspaceId(), outDir, services, s3, cmd.concurrency(), cmd.dryRun())
+        command.run()
+      }
+
     case _ =>
       options.printHelp()
   }

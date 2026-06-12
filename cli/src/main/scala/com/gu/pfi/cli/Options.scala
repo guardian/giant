@@ -86,6 +86,35 @@ class IngestCommandOptions extends Subcommand("ingest") with CommonOptions with 
         "use this flag when adding files from a different source path to an existing ingestion")
 }
 
+class DownloadWorkspaceCommandOptions extends Subcommand("download-workspace") with CommonOptions {
+
+  descr("Download an entire workspace to disk, preserving its folder structure and original file names")
+
+  val workspaceId = opt[String]("workspaceId", noshort = true, required = true,
+    descr = "ID of the workspace to download (from the workspace URL in the browser)")
+
+  val out = opt[String]("out", noshort = true, required = true,
+    descr = "Local output directory to write the workspace into")
+
+  val bucket = opt[String]("bucket", noshort = true, required = true,
+    descr = "S3 bucket holding the blobs (the 'collections' bucket, e.g. pfi-giant-collections-<stack>)")
+
+  val region = opt[String]("region", noshort = true, default = Some("eu-west-1"),
+    descr = "AWS region for the blob S3 bucket")
+
+  val awsProfile = opt[String]("awsProfile", descr = "AWS profile to use for S3 read credentials", noshort = true)
+
+  val garageAccessKey = opt[String]("garageAccessKey", descr = "Access key (only required when using Garage)", noshort = true)
+  val garageSecretKey = opt[String]("garageSecretKey", descr = "Secret key (only required when using Garage)", noshort = true)
+  val garageEndpoint = opt[String]("garageEndpoint", descr = "Endpoint (only required when using Garage, defaults to localhost)", default = Some("http://127.0.0.1:3900"))
+
+  val concurrency = opt[Int]("concurrency", noshort = true, default = Some(8),
+    descr = "Number of files to download in parallel")
+
+  val dryRun = opt[Boolean]("dry-run", noshort = true, default = Some(false),
+    descr = "Show how many files would be written and a sample of paths, without downloading anything")
+}
+
 class Options(args: Seq[String]) extends ScallopConf(args) {
   // Don't forget to add your new subcommand using addSubcommand at the bottom of the file!
 
@@ -254,6 +283,8 @@ class Options(args: Seq[String]) extends ScallopConf(args) {
     val ingestionUri = opt[String]("ingestionUri", required = true, noshort = true)
   }
 
+  val downloadWorkspaceCmd = new DownloadWorkspaceCommandOptions
+
   addSubcommand(loginCmd)
   addSubcommand(logoutCmd)
   addSubcommand(apiCmd)
@@ -271,6 +302,7 @@ class Options(args: Seq[String]) extends ScallopConf(args) {
   addSubcommand(deleteBlobsCmd)
   addSubcommand(deleteCollectionCmd)
   addSubcommand(createIngestion)
+  addSubcommand(downloadWorkspaceCmd)
 
   verify()
 }
