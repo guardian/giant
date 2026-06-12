@@ -21,7 +21,7 @@ export interface WorkspacesState {
   entryBeingRenamed: TreeEntry<WorkspaceEntry> | null;
   // Lazy loading (#744): ids of folder nodes whose children have been fetched. Lets the tree tell a
   // loaded-but-empty folder from one not yet loaded. On the current eager load every folder is
-  // present, so all folder ids are recorded here; lazy loading (Stage 4) will populate it as
+  // present, so all folder ids are recorded here; lazy loading (Stage 5) will populate it as
   // folders are expanded.
   loadedNodeIds: string[];
 }
