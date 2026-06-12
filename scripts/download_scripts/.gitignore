@@ -1,0 +1,3 @@
+# Downloaded workspace content — never commit (may contain sensitive investigation data).
+export/
+local-export/
