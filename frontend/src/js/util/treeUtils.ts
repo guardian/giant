@@ -158,6 +158,11 @@ export function newSelectionFromShiftClick<T>(
 // (its id is in `loadedNodeIds`) keeps its existing children and only adopts the fresh name/data,
 // so refreshing a parent doesn't collapse its expanded siblings. Children new to `fresh` appear as
 // placeholders; children absent from `fresh` drop out.
+//
+// Branches that don't contain the fresh node are returned as the same objects, so references held
+// elsewhere (selection, focus, expansion) stay valid for untouched branches, and a merge whose
+// target is nowhere in the tree returns `entry` itself — callers can detect an unapplied merge
+// with a reference equality check.
 export function mergeFetchedNode<T>(
   entry: TreeEntry<T>,
   fresh: TreeNode<T>,
@@ -191,12 +196,14 @@ export function mergeFetchedNode<T>(
     return { ...fresh, children };
   }
   if (isTreeNode(entry)) {
-    return {
-      ...entry,
-      children: entry.children.map((c) =>
-        mergeFetchedNode(c, fresh, loadedNodeIds),
-      ),
-    };
+    const children = entry.children.map((c) =>
+      mergeFetchedNode(c, fresh, loadedNodeIds),
+    );
+    // No child changed, so the fresh node is not in this branch: keep this object's identity.
+    if (children.every((child, i) => child === entry.children[i])) {
+      return entry;
+    }
+    return { ...entry, children };
   }
   return entry;
 }
