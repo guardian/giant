@@ -35,7 +35,7 @@ export default function workspaces(
         isGettingWorkspace: false,
         currentWorkspaceLastRefreshedAt: new Date(),
         // The eager load returns the whole tree, so every folder is loaded. Lazy loading
-        // (Stage 4) will instead record only the levels it has actually fetched.
+        // (Stage 5) will instead record only the levels it has actually fetched.
         loadedNodeIds: action.workspace
           ? collectNodeIds(action.workspace.rootNode)
           : [],
@@ -74,7 +74,7 @@ export default function workspaces(
     // Lazy loading (#744): a node's children have been fetched (on first expand, or to refresh a
     // parent after a mutation). Merge them in — preserving any already-loaded descendant subtrees —
     // and record the node as loaded so re-expanding it doesn't refetch. Expansion state is handled
-    // by the expand actions above, not here. No consumer dispatches this yet (Stage 4 wires it up).
+    // by the expand actions above, not here. No consumer dispatches this yet (Stages 4–5 wire it up).
     case WorkspacesActionType.WORKSPACE_MERGE_NODE: {
       if (!state.currentWorkspace || !isTreeNode(action.node)) {
         return state;
