@@ -463,6 +463,7 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
         descendantsLeafCount = 0,
         descendantsNodeCount = 0,
         descendantsProcessingTaskCount = 0,
+        descendantsProcessingLeafCount = 0,
         descendantsFailedCount = 0
       ),
       children = children
