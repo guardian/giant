@@ -3,7 +3,7 @@ package controllers.api
 import com.dimafeng.testcontainers.lifecycle.and
 import com.dimafeng.testcontainers.scalatest.TestContainersForAll
 import com.dimafeng.testcontainers.{ElasticsearchContainer, Neo4jContainer}
-import model.annotations.{Workspace, WorkspaceEntry, WorkspaceMetadata, WorkspaceNode}
+import model.annotations.{ProcessingStage, Workspace, WorkspaceEntry, WorkspaceLeaf, WorkspaceMetadata, WorkspaceNode}
 import model.frontend.{TreeEntry, TreeLeaf, TreeNode}
 import org.apache.pekko.util.Timeout
 import org.neo4j.driver.Values.parameters
@@ -809,6 +809,105 @@ class WorkspacesITest extends AnyFunSuite
       status(controllers.workspace.getNodeChildren(paulWorkspace.id, itemIds.f).apply(FakeRequest())) should be(404)
       status(controllers.workspace.getNodeAncestors(paulWorkspace.id, itemIds.f).apply(FakeRequest())) should be(404)
       status(controllers.workspace.getAggregate(paulWorkspace.id).apply(FakeRequest())) should be(404)
+    }
+  }
+
+  test("node children carry inline processing status on file children") {
+    // Inline status on the children fetch is the contract the lazy frontend (#744 Stage 4)
+    // depends on instead of a separate per-folder status round-trip. The fixture's files all
+    // ingest cleanly, so inject the states the pipeline never leaves behind.
+    addOutstandingTasks(itemIds.`f/1.txt`.nodeId, count = 2)
+    addOutstandingTasks(itemIds.`f/2.txt`.nodeId, count = 1)
+    addFailedExtraction(itemIds.`f/g/1.txt`.nodeId)
+
+    asUser("paul") { implicit controllers =>
+      insideNode(getWorkspaceNodeChildren(paulWorkspace.id, itemIds.f)) { f =>
+        inside(f.children.find(_.name == "f-1.txt").value) {
+          case TreeLeaf(_, _, leaf: WorkspaceLeaf, _) =>
+            leaf.processingStage should be(ProcessingStage.Processing(2, None))
+        }
+        inside(f.children.find(_.name == "f-2.txt").value) {
+          case TreeLeaf(_, _, leaf: WorkspaceLeaf, _) =>
+            leaf.processingStage should be(ProcessingStage.Processing(1, None))
+        }
+      }
+
+      insideNode(getWorkspaceNodeChildren(paulWorkspace.id, itemIds.`f/g`)) { fg =>
+        inside(fg.children.find(_.name == "f-g-1.txt").value) {
+          case TreeLeaf(_, _, leaf: WorkspaceLeaf, _) =>
+            leaf.processingStage should be(ProcessingStage.Failed)
+        }
+        inside(fg.children.find(_.name == "f-g-2.txt").value) {
+          case TreeLeaf(_, _, leaf: WorkspaceLeaf, _) =>
+            leaf.processingStage should be(ProcessingStage.Processed)
+        }
+      }
+    }
+  }
+
+  test("children and parent carry capturedFromURL when the node came from a remote ingest") {
+    // Wire folder f to a RemoteIngest node, as the capture pipeline does for captured items.
+    runOnNeo4j(
+      """MATCH (n:WorkspaceNode {id: $nodeId})
+        |CREATE (n)-[:FROM]->(:RemoteIngest {url: 'https://example.org/captured'})""".stripMargin,
+      itemIds.f,
+    )
+
+    asUser("paul") { implicit controllers =>
+      // ...as a child of the root, matching what the eager query has always returned...
+      insideNode(getWorkspaceRootChildren(paulWorkspace.id)) { root =>
+        inside(root.children.find(_.id == itemIds.f).value) {
+          case TreeNode(_, _, node: WorkspaceNode, _) =>
+            node.maybeCapturedFromURL should contain("https://example.org/captured")
+        }
+      }
+      // ...and as the parent of a children fetch, which the client merge adopts wholesale —
+      // without this the URL would be wiped whenever the folder is refreshed (#744 Stage 5).
+      insideNode(getWorkspaceNodeChildren(paulWorkspace.id, itemIds.f)) { f =>
+        inside(f.data) {
+          case node: WorkspaceNode =>
+            node.maybeCapturedFromURL should contain("https://example.org/captured")
+        }
+      }
+    }
+  }
+
+  test("requesting children of a file node is a 404, not a folder-shaped response") {
+    asUser("paul") { implicit controllers =>
+      status(controllers.workspace.getNodeChildren(paulWorkspace.id, itemIds.`f/1.txt`.nodeId).apply(FakeRequest())) should be(404)
+    }
+  }
+
+  test("lazy read endpoints work on a public workspace the user neither owns nor follows") {
+    val publicWorkspace = asUser("paul") { implicit controllers =>
+      createWorkspace("paul-public-workspace", isPublic = true)
+    }
+
+    asUser("barry") { implicit controllers =>
+      // an empty workspace's root loads with no children (the null-child OPTIONAL MATCH path)
+      insideNode(getWorkspaceRootChildren(publicWorkspace.id)) { root =>
+        root.id should be(publicWorkspace.rootNodeId)
+        root.children should be(empty)
+      }
+
+      getWorkspaceAncestors(publicWorkspace.id, publicWorkspace.rootNodeId) should be(empty)
+
+      val aggregate = getWorkspaceAggregate(publicWorkspace.id)
+      aggregate.fileCount should be(0)
+      aggregate.folderCount should be(0)
+    }
+  }
+
+  test("lazy reads of a node that belongs to a different workspace are a 404") {
+    // itemIds.f exists, but in paul's first workspace — the PART_OF match must reject a probe
+    // that pairs it with a workspace the node is not part of.
+    val otherWorkspace = asUser("paul") { implicit controllers =>
+      createWorkspace("paul-other-workspace", isPublic = false)
+    }
+
+    asUser("paul") { implicit controllers =>
+      status(controllers.workspace.getNodeChildren(otherWorkspace.id, itemIds.f).apply(FakeRequest())) should be(404)
+      status(controllers.workspace.getNodeAncestors(otherWorkspace.id, itemIds.f).apply(FakeRequest())) should be(404)
     }
   }
 }
