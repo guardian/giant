@@ -84,6 +84,12 @@ export default function workspaces(
         action.node,
         state.loadedNodeIds,
       ) as TreeNode<WorkspaceEntry>;
+      // An unchanged root means the fetched node is no longer in the tree — deleted or moved
+      // while the fetch was in flight, or the workspace switched. Don't mark it loaded: ids in
+      // loadedNodeIds must only ever describe nodes whose children are really in the tree.
+      if (rootNode === state.currentWorkspace.rootNode) {
+        return state;
+      }
       return {
         ...state,
         currentWorkspace: { ...state.currentWorkspace, rootNode },
