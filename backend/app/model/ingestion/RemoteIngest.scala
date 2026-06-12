@@ -128,6 +128,7 @@ case class RemoteIngest(
           descendantsLeafCount = 0,
           descendantsNodeCount = 0,
           descendantsProcessingTaskCount = 0,
+          descendantsProcessingLeafCount = 0,
           descendantsFailedCount = 0
         ),
         // confusingly we return an empty list here - the folder structure is built later

@@ -13,6 +13,7 @@ export interface WorkspaceNode extends BaseWorkspaceEntry {
   descendantsLeafCount: number;
   descendantsNodeCount: number;
   descendantsProcessingTaskCount: number;
+  descendantsProcessingLeafCount: number;
   descendantsFailedCount: number;
 }
 

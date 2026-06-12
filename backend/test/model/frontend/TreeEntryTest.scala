@@ -77,6 +77,7 @@ class TreeEntryTest extends AnyFreeSpec with Matchers {
         descendantsLeafCount = 0,
         descendantsNodeCount = 0,
         descendantsProcessingTaskCount = 0,
+        descendantsProcessingLeafCount = 0,
         descendantsFailedCount = 0
       ),
       children = children
