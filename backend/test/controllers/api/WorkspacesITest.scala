@@ -813,7 +813,7 @@ class WorkspacesITest extends AnyFunSuite
   }
 
   test("node children carry inline processing status on file children") {
-    // Inline status on the children fetch is the contract the lazy frontend (#744 Stage 4)
+    // Inline status on the children fetch is the contract the lazy frontend (#744 Stages 4–5)
     // depends on instead of a separate per-folder status round-trip. The fixture's files all
     // ingest cleanly, so inject the states the pipeline never leaves behind.
     addOutstandingTasks(itemIds.`f/1.txt`.nodeId, count = 2)
@@ -862,7 +862,7 @@ class WorkspacesITest extends AnyFunSuite
         }
       }
       // ...and as the parent of a children fetch, which the client merge adopts wholesale —
-      // without this the URL would be wiped whenever the folder is refreshed (#744 Stage 5).
+      // without this the URL would be wiped whenever the folder is refreshed (#744 Stage 4).
       insideNode(getWorkspaceNodeChildren(paulWorkspace.id, itemIds.f)) { f =>
         inside(f.data) {
           case node: WorkspaceNode =>
