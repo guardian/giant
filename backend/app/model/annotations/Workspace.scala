@@ -64,6 +64,7 @@ case class WorkspaceNode(
   descendantsLeafCount: Long,
   descendantsNodeCount: Long,
   descendantsProcessingTaskCount: Long,
+  descendantsProcessingLeafCount: Long,
   descendantsFailedCount: Long
 ) extends WorkspaceEntry
 
@@ -127,6 +128,7 @@ object WorkspaceEntry {
           descendantsLeafCount = 0,
           descendantsNodeCount = 0,
           descendantsProcessingTaskCount = 0,
+          descendantsProcessingLeafCount = 0,
           descendantsFailedCount = 0,
         ),
         children = List.empty

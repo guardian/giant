@@ -1200,6 +1200,26 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
                 size="s"
               />
             )}
+            {this.props.currentWorkspace &&
+              isWorkspaceNode(this.props.currentWorkspace.rootNode.data) &&
+              this.props.currentWorkspace.rootNode.data
+                .descendantsProcessingLeafCount > 0 && (
+                <EuiProgress
+                  label="Processing:"
+                  valueText={`${(this.props.currentWorkspace.rootNode.data.descendantsLeafCount - this.props.currentWorkspace.rootNode.data.descendantsProcessingLeafCount).toLocaleString()} of ${this.props.currentWorkspace.rootNode.data.descendantsLeafCount.toLocaleString()}`}
+                  value={
+                    this.props.currentWorkspace.rootNode.data
+                      .descendantsLeafCount -
+                    this.props.currentWorkspace.rootNode.data
+                      .descendantsProcessingLeafCount
+                  }
+                  max={
+                    this.props.currentWorkspace.rootNode.data
+                      .descendantsLeafCount
+                  }
+                  size="s"
+                />
+              )}
           </div>
           <div className="workspace__tree-actions" style={{ gap: "2px" }}>
             <EuiText

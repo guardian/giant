@@ -5,6 +5,7 @@ const standardWorkspaceNodeData: WorkspaceNode = {
   descendantsNodeCount: 0,
   descendantsLeafCount: 0,
   descendantsProcessingTaskCount: 0,
+  descendantsProcessingLeafCount: 0,
   descendantsFailedCount: 0,
 };
 

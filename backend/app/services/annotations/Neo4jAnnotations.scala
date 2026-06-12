@@ -161,6 +161,7 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
             node.copy(
               children = children,
               data = node.data match {
+                // TODO this probably ought to be achieved single pass of the children list rather than multiple children.map calls (probably a reduce)
                 case wNode: WorkspaceNode => wNode.copy(
                   descendantsLeafCount = children.map {
                     case TreeNode(_, _, childNode: WorkspaceNode, _) => childNode.descendantsLeafCount
@@ -177,6 +178,17 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
                     case leaf: TreeLeaf[WorkspaceEntry] => leaf.data match {
                       case wl: WorkspaceLeaf => wl.processingStage match {
                         case ProcessingStage.Processing(tasksRemaining, _) => tasksRemaining
+                        case _ => 0
+                      }
+                      case _ => 0
+                    }
+                    case _ => 0
+                  }.sum,
+                  descendantsProcessingLeafCount = children.map {
+                    case TreeNode(_, _, childNode: WorkspaceNode, _) => childNode.descendantsProcessingTaskCount
+                    case leaf: TreeLeaf[WorkspaceEntry] => leaf.data match {
+                      case wl: WorkspaceLeaf => wl.processingStage match {
+                        case ProcessingStage.Processing(_, _) => 1
                         case _ => 0
                       }
                       case _ => 0
