@@ -51,8 +51,7 @@ validated the approach end-to-end: a 101k-item workspace opened in ~2s versus ~2
 ## Known regressions and which stage retires them
 
 Lazy loading ships value before it reaches parity. This table is the honest list — each entry
-names the stage that retires it, so nothing is lost between plan revisions (the remote-ingest row
-was nearly lost exactly this way: recorded in the POC limitations, absent from the first plan).
+names the stage that retires it, so nothing is lost between plan revisions.
 
 | Regression (over-gate workspaces only) | Introduced | Retired by |
 |---|---|---|
