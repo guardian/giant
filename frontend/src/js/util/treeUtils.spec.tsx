@@ -341,10 +341,24 @@ describe("mergeFetchedNode", () => {
     expect(result.children.map((c) => c.id)).toStrictEqual(["new"]);
   });
 
-  test("returns the tree unchanged when the fresh node's id is not present", () => {
+  test("returns the same tree object when the fresh node's id is not present", () => {
     const tree = mkNode("root", [mkLeaf("l")]);
     const fresh = mkNode("absent", [mkLeaf("a1")]);
-    expect(mergeFetchedNode(tree, fresh, ["root"])).toStrictEqual(tree);
+    // reference equality, not just structural: an unapplied merge must be detectable
+    expect(mergeFetchedNode(tree, fresh, ["root"])).toBe(tree);
+  });
+
+  test("keeps the object identity of branches the merge does not touch", () => {
+    const untouched = mkNode("a", [mkLeaf("a1")]);
+    const tree = mkNode("root", [untouched, mkNode("b", [])]);
+    const fresh = mkNode("b", [mkLeaf("b1")]);
+
+    const result = mergeFetchedNode(tree, fresh, [
+      "root",
+      "a",
+    ]) as TreeNode<string>;
+    expect(result).not.toBe(tree); // the path to b is rebuilt...
+    expect(result.children[0]).toBe(untouched); // ...but a's branch is the same object
   });
 });
 
