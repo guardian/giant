@@ -14,7 +14,7 @@ import utils.Logging
 /**
   * Reads blobs (the original ingested files) directly from the "collections" S3 bucket.
   *
-  * Blobs are stored under a key derived from their content hash via [[model.Uri.toStoragePath]]
+  * Blobs are stored under a key derived from their content hash via model.Uri.toStoragePath
   * (e.g. blob `abcdef123…` lives at `a/b/c/d/e/f/abcdef123…`). This mirrors how the backend's
   * `S3ObjectStorage` reads them in `GetBlobObjectData`.
   */
