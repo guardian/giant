@@ -78,6 +78,8 @@ trait Manifest extends WorkerManifest {
 
   def insertIngestion(collectionUri: Uri, ingestionUri: Uri, display: String, path: Option[Path], languages: List[Language], fixed: Boolean, default: Boolean): Attempt[Uri]
 
+  def addTranslationTodoToBlob(uri:Uri, params: ExtractionParams): Either[Failure, Unit]
+
   def getFailedExtractions: Either[Failure, ExtractionFailures]
 
   def getResourcesForExtractionFailure(extractor: String, stackTrace: String, page: Long, skip: Long, pageSize: Long): Either[Failure, ResourcesForExtractionFailure]

@@ -8,7 +8,7 @@ import com.pff._
 import enumeratum.EnumEntry.Snakecase
 import enumeratum.{EnumEntry, PlayEnum}
 import extraction.email.pst.iterators.{AttachmentIterator, RecipientIterator}
-import model.index.IndexedResource
+import model.index.{IndexedResource, LanguageData}
 import org.apache.commons.io.IOUtils
 import play.api.libs.json._
 import utils.{DateTimeUtils, Logging, UriCleaner}
@@ -78,7 +78,8 @@ case class Email(
                   html: Option[String],
                   attachmentCount: Int,
                   metadata: Map[String, Seq[String]],
-                  flag: Option[String] = None) extends IndexedResource {
+                  flag: Option[String] = None,
+                  languageData: Option[LanguageData]) extends IndexedResource {
   def sentAtMillis(): Option[Long] = {
     sentAt.flatMap { ts =>
       DateTimeUtils.isoToEpochMillis(ts) orElse DateTimeUtils.isoMissingTimeZoneToMillis(ts)
@@ -174,7 +175,9 @@ object Email extends Logging {
       html = html,
       attachmentCount = attachmentCount,
       metadata = metadata,
-      flag = flag
+      flag = flag,
+      // TODO: check this is correct - possibly should be doing some language detection here like in the email extractor
+      languageData = None
     )
   }
 

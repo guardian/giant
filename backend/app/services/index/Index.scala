@@ -1,11 +1,11 @@
 package services.index
 
-import extraction.{EnrichedMetadata, TranscriptionResult}
+import extraction.{EnrichedMetadata}
 import model.frontend.SearchResults
 import model.frontend.email.EmailMetadata
-import model.index.{IndexedBlob, IndexedResource, SearchParameters}
+import model.index.{IndexedBlob, IndexedResource, LanguageData, SearchParameters}
 import model.ingestion.WorkspaceItemContext
-import model.{Email, Language, Uri}
+import model.{Email, Language, TranscriptionResult, Uri}
 import utils.attempt.Attempt
 
 trait Index {
@@ -14,10 +14,12 @@ trait Index {
   def ingestDocument(uri: Uri, size: Long, document: IngestionData, languages: List[Language]): Attempt[Unit]
 
   def addDocumentDetails(uri: Uri, text: Option[String], metadata: Map[String, Seq[String]], enrichedMetadata: EnrichedMetadata, languages: List[Language], documentBodyDetectedLanguage: Option[String]): Attempt[Unit]
+
   def addDocumentOcr(uri: Uri, ocr: Option[String], language: Language, detectedLanguageCode: Option[String]): Attempt[Unit]
+
   def addDocumentTranscription(uri: Uri, transcription: TranscriptionResult): Attempt[Unit]
 
-  def getTextDetectedLanguage(uri:Uri): Attempt[String]
+  def getTextDetectedLanguage(uri: Uri): Attempt[String]
 
   def ingestEmail(email: Email, ingestion: String, sourceMimeType: String, parentBlobs: List[Uri], workspace: Option[WorkspaceItemContext], languages: List[Language], subjectDetectedLanguage: Option[String], bodyDetectedLanguage: Option[String]): Attempt[Unit]
 
@@ -48,5 +50,9 @@ trait Index {
   def updateIngestionPath(oldIngestionPath: String, newIngestionPath: String): Attempt[Unit]
 
   def getTotalWordCountForWorkspace(workspaceId: String): Attempt[Long]
+
   def getTextForBlobs(workspaceId: String, blobUris: List[String]): Attempt[Map[String, Map[String, String]]]
+
+  def updateDocumentLanguageData(uri: Uri, languageData: LanguageData): Attempt[Unit]
 }
+

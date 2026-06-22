@@ -18,6 +18,7 @@ import java.time.Duration
 
 trait ObjectStorage {
   def create(key: String, path: Path, mimeType: Option[String] = None): Either[Failure, Unit]
+  def putText(key: String, text: String, mimeType: Option[String]): Either[Failure, Unit]
   def get(key: String): Either[Failure, InputStream]
   def getSignedUrl(key: String): Either[Failure, String]
   def getUploadSignedUrl(key: String): Either[Failure, String]
@@ -32,6 +33,10 @@ class S3ObjectStorage private(client: S3Client, presigner: S3Presigner,  bucket:
     client.putLargeObject(bucket, key, contentType = mimeType, path)
 
     ()
+  }
+
+  def putText(key: String, text: String, mimeType: Option[String]): Either[Failure, Unit] = run {
+    client.putObjectSync(bucket, key, mimeType, text.getBytes("UTF-8"))
   }
 
   def get(key: String): Either[Failure, InputStream] = {

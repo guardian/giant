@@ -62,6 +62,31 @@ export type HighlightableText = {
   highlights: Highlight[];
 };
 
+export type LanguageDataField = {
+  detectedLanguageCode?: string;
+  translation?: string;
+  textToTranslate?: string;
+};
+
+export type OcrLanguageData = {
+  detectedLanguageCode: {
+    [lang: string]: string;
+  };
+  translation: {
+    [lang: string]: string;
+  };
+  textToTranslate: {
+    [lang: string]: string;
+  };
+};
+
+export type LanguageData = {
+  text?: LanguageDataField;
+  emailSubject?: LanguageDataField;
+  emailBody?: LanguageDataField;
+  ocr?: OcrLanguageData;
+};
+
 export type Resource = BasicResource & {
   extracted: boolean;
   mimeTypes: string[];
@@ -84,6 +109,7 @@ export type Resource = BasicResource & {
   vttTranscript?: {
     [lang: string]: HighlightableText;
   };
+  languageData?: LanguageData;
 };
 
 export const resourcePropType = PropTypes.shape({

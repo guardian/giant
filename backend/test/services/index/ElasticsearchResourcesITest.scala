@@ -577,7 +577,8 @@ class ElasticsearchResourcesITest extends AnyFreeSpec with Matchers with BeforeA
         html = None,
         attachmentCount = 0,
         metadata = Map.empty,
-        flag = None
+        flag = None,
+        languageData = None
       )
 
       val ingestion = s"${catCollection.uri.value}/search_results_email"

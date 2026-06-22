@@ -45,7 +45,7 @@ object AwsS3Clients {
 
   private def buildS3ClientAsyncV2(credentials: AwsCredentialsProvider, region: Region, endpoint: Option[String]): S3AsyncClient = endpoint match {
     case Some(garageEndpoint) =>
-      S3AsyncClient.builder()
+      S3AsyncClient.crtBuilder()
         .endpointOverride(new URI(garageEndpoint))
         .credentialsProvider(credentials)
         .forcePathStyle(true)
@@ -53,7 +53,7 @@ object AwsS3Clients {
         .build()
 
     case _ =>
-      S3AsyncClient.builder()
+      S3AsyncClient.crtBuilder()
         .credentialsProvider(credentials)
         .region(region)
         .build()
