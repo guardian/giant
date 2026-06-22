@@ -78,7 +78,7 @@ class S3Client(config: S3Config)(implicit executionContext: ExecutionContext) {
   }
 
   def putObjectSync(bucket: String, key: String, contentType: Option[String], data: Array[Byte]): PutObjectResponse = {
-    val request = requestBuilder(bucket, key, contentType)
+    val request = requestBuilder(bucket, key, contentType, Some(data.length.toLong))
     s3.putObject(
       request,
       RequestBody.fromInputStream(new ByteArrayInputStream(data), data.length))

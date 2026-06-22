@@ -1,6 +1,6 @@
 package extraction.ocr
 
-import extraction.ExtractionParams
+import extraction.{ExternalTranslationExtractor, ExtractionParams}
 import model.index.{Page, PageDimensions}
 import model.ingestion.{RedoOcr, SkipText}
 import model.manifest.{Blob, MimeType}
@@ -112,7 +112,7 @@ class OcrMyPdfExtractor(scratch: ScratchSpace, index: Index, pageService: Pages,
         previewStorage.create(blob.uri.toStoragePath, path, Some("application/pdf"))
       }
 
-      OcrMyPdfExtractor.insertFullText(blob.uri, pages, index, ingestionServices.detectLanguage)
+      OcrMyPdfExtractor.insertFullText(blob.uri, pages, index, ingestionServices.detectLanguage, ingestionServices, params)
     } finally {
       pdDocuments.foreach { case(_, (path, doc)) =>
         doc.close()
@@ -141,7 +141,7 @@ class OcrMyPdfExtractor(scratch: ScratchSpace, index: Index, pageService: Pages,
 }
 
 object OcrMyPdfExtractor {
-  def insertFullText(uri: Uri, pages: List[Page], index: Index, detectLanguage: (String, String) => Option[String])(implicit ec: ExecutionContext): Unit = {
+  def insertFullText(uri: Uri, pages: List[Page], index: Index, detectLanguage: (String, String) => Option[String], ingestionServices: IngestionServices, params: ExtractionParams)(implicit ec: ExecutionContext): Unit = {
     val textByLanguage = pages.foldLeft(Map.empty[Language, String]) { (acc, page) =>
       page.value.foldLeft(acc) { case (acc, (lang, value)) =>
         acc + (lang -> (acc.getOrElse(lang, "") + value))
@@ -151,6 +151,9 @@ object OcrMyPdfExtractor {
     textByLanguage.foreach { case (lang, value) =>
       val optionalText = if (value.trim().isEmpty) None else Some(value)
       val detectedLanguageCode = detectLanguage(uri.value, value)
+      if (detectedLanguageCode.exists(_ != "en")) {
+        ingestionServices.addTranslationTodo(uri, params)
+      }
       index.addDocumentOcr(uri, optionalText, lang, detectedLanguageCode).awaitEither(10.second)
     }
   }

@@ -9,12 +9,12 @@ import com.sksamuel.elastic4s.requests.searches.DateHistogramInterval
 import com.sksamuel.elastic4s.requests.searches.SearchResponse
 import com.sksamuel.elastic4s.requests.searches.queries.compound.BoolQuery
 import com.sksamuel.elastic4s.requests.update.UpdateByQueryRequest
-import extraction.{EnrichedMetadata, TranscriptionResult}
+import extraction.{EnrichedMetadata}
 import model.frontend._
 import model.frontend.email.EmailMetadata
 import model.index._
 import model.ingestion.WorkspaceItemContext
-import model.{Email, English, ExtractedDateTime, Language, Languages, Recipient, Uri}
+import model.{Email, English, ExtractedDateTime, Language, Languages, Recipient, TranscriptionResult, Uri}
 import services.ElasticsearchSyntax
 import services.ElasticsearchSyntax.NestedField
 import services.index.HitReaders._
@@ -270,7 +270,8 @@ class ElasticsearchResources(override val client: ElasticClient, indexName: Stri
     val updatedLanguageData = documentBodyDetectedLanguage.map { code =>
       IndexFields.languageDataField -> Map(
         IndexFields.languageData.textField -> Map(
-          IndexFields.languageData.translatableFieldData.detectedLanguageCode -> code
+          IndexFields.languageData.translatableFieldData.detectedLanguageCode -> code,
+          IndexFields.languageData.translatableFieldData.translation -> None
         )
       )
     }
@@ -296,7 +297,8 @@ class ElasticsearchResources(override val client: ElasticClient, indexName: Stri
     val updatedLanguageData = detectedLanguageCode.map { code =>
       IndexFields.languageDataField -> Map(
         IndexFields.languageData.ocr -> Map(
-          IndexFields.languageData.translatableFieldData.detectedLanguageCode -> Map(language.key -> code)
+          IndexFields.languageData.translatableFieldData.detectedLanguageCode -> Map(language.key -> code),
+          IndexFields.languageData.translatableFieldData.translation -> Map(language.key -> None)
         )
       )
     }
@@ -318,6 +320,38 @@ class ElasticsearchResources(override val client: ElasticClient, indexName: Stri
     result.recoverWith { case error =>
       logger.error(s"Failed to update OCR for ${uri.value}: ${error.msg}", error.toThrowable)
       Attempt.Left(error)
+    }
+  }
+
+  override def updateDocumentLanguageData(uri: Uri, languageData: LanguageData): Attempt[Unit] = {
+    logger.info(s"Updating language data for ${uri.value} in index")
+
+    def fieldToMap(fieldName: String, field: LanguageDataField): Option[(String, Map[String, Any])] = {
+      Some(fieldName -> Map(
+        IndexFields.languageData.translatableFieldData.detectedLanguageCode -> field.detectedLanguageCode.orNull,
+        IndexFields.languageData.translatableFieldData.translation -> field.translation.orNull
+      ))
+    }
+
+    val simpleFields = Seq(
+      languageData.text.flatMap(fieldToMap(IndexFields.languageData.textField, _)),
+      languageData.emailSubject.flatMap(fieldToMap(IndexFields.languageData.emailSubjectField, _)),
+      languageData.emailBody.flatMap(fieldToMap(IndexFields.languageData.emailBodyField, _))
+    ).flatten
+
+    val ocrField = languageData.ocr.map { ocr =>
+      IndexFields.languageData.ocr -> Map(
+        IndexFields.languageData.translatableFieldData.detectedLanguageCode -> ocr.detectedLanguageCode,
+        IndexFields.languageData.translatableFieldData.translation -> ocr.translation
+      )
+    }
+
+    val languageDataMap = (simpleFields ++ ocrField).toMap
+
+    executeUpdate {
+      updateById(indexName, uri.value).doc(
+        IndexFields.languageDataField -> languageDataMap
+      )
     }
   }
 
@@ -361,12 +395,14 @@ class ElasticsearchResources(override val client: ElasticClient, indexName: Stri
 
     val bodyDetectedLanguageField = bodyDetectedLanguage.map { code =>
         IndexFields.languageData.emailBodyField -> Map(
-          IndexFields.languageData.translatableFieldData.detectedLanguageCode -> code
+          IndexFields.languageData.translatableFieldData.detectedLanguageCode -> code,
+          IndexFields.languageData.translatableFieldData.translation -> None
         )
     }
     val subjectDetectedLanguageField = subjectDetectedLanguage.map { code =>
       IndexFields.languageData.emailSubjectField -> Map(
-        IndexFields.languageData.translatableFieldData.detectedLanguageCode -> code
+        IndexFields.languageData.translatableFieldData.detectedLanguageCode -> code,
+        IndexFields.languageData.translatableFieldData.translation -> None
       )
     }
     val updatedLanguageData = Map(

@@ -135,6 +135,9 @@ object FailureToResultMapper extends Logging {
       case RemoteIngestFailure(msg) =>
         logger.error(msg)
         Results.InternalServerError(msg)
+      case NoTextToTranslateFailure(msg) =>
+        logger.error(msg)
+        Results.InternalServerError(msg)
     }
   }
 }

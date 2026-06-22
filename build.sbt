@@ -89,6 +89,7 @@ lazy val common = (project in file("common"))
       "org.playframework" %% "play-json-joda" % "3.0.1",
       "software.amazon.awssdk" % "s3" % awsSdkVersion2,
       "software.amazon.awssdk" % "s3-transfer-manager" % awsSdkVersion2,
+      "software.amazon.awssdk.crt" % "aws-crt" % "0.44.0",
       "com.amazonaws" % "aws-java-sdk-s3" % awsVersion,
       "org.scalatest" %% "scalatest" % scalatestVersion,
       "software.amazon.awssdk" % "auth" % awsSdkVersion2,

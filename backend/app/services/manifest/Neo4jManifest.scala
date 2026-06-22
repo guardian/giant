@@ -4,9 +4,9 @@ import cats.instances.either._
 import cats.instances.list._
 import cats.syntax.traverse._
 import commands.IngestFileResult
-import extraction.{ExtractionParams, Extractor}
+import extraction.{ExternalTranslationExtractor, ExtractionParams, Extractor}
 import model._
-import model.annotations.WorkspaceMetadata
+import model.annotations.{Workspace, WorkspaceMetadata}
 import model.frontend.email.EmailNeighbours
 import model.frontend.{BasicResource, ExtractionFailureSummary, ExtractionFailures, ResourcesForExtractionFailure}
 import model.ingestion.{IngestionFile, WorkspaceItemContext, WorkspaceItemUploadContext}
@@ -14,9 +14,10 @@ import model.manifest._
 import model.user.DBUser
 import org.joda.time.DateTime
 import org.neo4j.driver.Values.parameters
-import org.neo4j.driver.{Driver, Result, QueryRunner, Value}
+import org.neo4j.driver.{Driver, QueryRunner, Result, Value}
 import services.Neo4jQueryLoggingConfig
 import services.manifest.Manifest.WorkCounts
+import services.manifest.Neo4jManifest.getWorkspaceProperties
 import utils._
 import utils.attempt.{Attempt, Failure, IllegalStateFailure, NotFoundFailure}
 
@@ -29,6 +30,17 @@ object Neo4jManifest {
   def setupManifest(driver: Driver, executionContext: ExecutionContext, queryLoggingConfig: Neo4jQueryLoggingConfig): Either[Failure, Manifest] = {
     val neo4jManifest = new Neo4jManifest(driver, executionContext, queryLoggingConfig)
     neo4jManifest.setup().map(_ => neo4jManifest)
+  }
+
+  private def getWorkspaceProperties(workspace: Option[WorkspaceItemContext]): String = {
+    workspace.map { _ =>
+      """
+        |,
+        |workspaceId: $workspaceId,
+        |workspaceNodeId: $workspaceNodeId,
+        |workspaceBlobUri: $workspaceBlobUri
+        |""".stripMargin
+    }.getOrElse("")
   }
 }
 
@@ -242,6 +254,46 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
     } yield ingestionUri
   }
 
+  override def addTranslationTodoToBlob(uri:Uri, params: ExtractionParams): Either[Failure, Unit] = {
+    logger.info(s"Adding ${ExternalTranslationExtractor.EXTRACTOR_NAME} TODO to blob ${uri.value}")
+
+    val result = transaction { tx =>
+      val maybeWorkspaceProperties = getWorkspaceProperties(params.workspace)
+
+      tx.run(
+        s"""
+          |MATCH (b: Blob:Resource {uri: $$blobUri})
+          |MERGE (extractor :Extractor {name: $$extractorName, indexing: true, priority: 1, external: true})
+          |MERGE (b)<-[todo:TODO {
+          |  ingestion: $$ingestion,
+          |  parentBlobs: $$parentBlobs,
+          |  languages: $$languages
+          |  $maybeWorkspaceProperties
+          |}]-(extractor)
+          |ON CREATE SET todo.cost = extractor.cost, todo.priority = extractor.priority, todo.attempts = 0
+        """.stripMargin,
+        parameters(
+          "blobUri", uri.value,
+          "extractorName", ExternalTranslationExtractor.EXTRACTOR_NAME,
+          "ingestion", params.ingestion,
+          "languages", params.languages.map(_.key).asJava,
+          "parentBlobs", params.parentBlobs.toArray,
+          "workspaceId", params.workspace.map(_.workspaceId).orNull,
+          "workspaceNodeId", params.workspace.map(_.workspaceNodeId).orNull,
+          "workspaceBlobUri", params.workspace.map(_.blobAddedToWorkspace).orNull
+        )
+      )
+
+      Right(())
+    }
+
+    result.left.foreach { failure =>
+      logger.error(s"Failed to add ${ExternalTranslationExtractor.EXTRACTOR_NAME} TODO to blob ${uri.value}: ${failure.msg}")
+    }
+
+    result
+  }
+
   def markResourceAsExpandable(tx: QueryRunner, resourceUri: Uri): Either[Failure, Unit] = {
     // if resource at uri is a blob, both the blob and its parent:File are expandable
     // otherwise it is expandable
@@ -337,14 +389,7 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
       ).asJava
     }
 
-    val maybeWorkspaceProperties = workspace.map { _ =>
-      """
-        |,
-        |workspaceId: $workspaceId,
-        |workspaceNodeId: $workspaceNodeId,
-        |workspaceBlobUri: $workspaceBlobUri
-        |""".stripMargin
-    }.getOrElse("")
+    val maybeWorkspaceProperties = getWorkspaceProperties(workspace)
 
     tx.run(
       s"""
@@ -649,14 +694,7 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
   override def markAsComplete(params: ExtractionParams, blob: Blob, extractor: Extractor): Either[Failure, Unit] = transaction { tx =>
     logger.info(s"Marking ${blob.uri.value} / ${extractor.name} as complete")
 
-    val maybeWorkspaceProperties = params.workspace.map { _ =>
-      """
-        |,
-        |workspaceId: $workspaceId,
-        |workspaceNodeId: $workspaceNodeId,
-        |workspaceBlobUri: $workspaceBlobUri
-        |""".stripMargin
-    }.getOrElse("")
+    val maybeWorkspaceProperties = getWorkspaceProperties(params.workspace)
 
     val resultSummary = tx.run(
       s"""
@@ -700,14 +738,7 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
   override def markExternalAsProcessing(params: ExtractionParams, blob: Blob, extractor: Extractor): Either[Failure, Unit] = transaction { tx =>
     logger.info(s"Marking ${blob.uri.value} / ${extractor.name} as processing")
 
-    val maybeWorkspaceProperties = params.workspace.map { _ =>
-      """
-        |,
-        |workspaceId: $workspaceId,
-        |workspaceNodeId: $workspaceNodeId,
-        |workspaceBlobUri: $workspaceBlobUri
-        |""".stripMargin
-    }.getOrElse("")
+    val maybeWorkspaceProperties = getWorkspaceProperties(params.workspace)
 
     val resultSummary = tx.run(
       s"""
