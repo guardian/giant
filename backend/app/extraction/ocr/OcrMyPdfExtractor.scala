@@ -23,7 +23,7 @@ import scala.concurrent.duration._
 import scala.util.{Try, Using}
 
 class OcrMyPdfExtractor(scratch: ScratchSpace, index: Index, pageService: Pages, previewStorage: ObjectStorage,
-  ingestionServices: IngestionServices)(implicit ec: ExecutionContext) extends BaseOcrExtractor(scratch) with Logging {
+  ingestionServices: IngestionServices)(implicit ec: ExecutionContext) extends BaseOcrExtractor(scratch, index) with Logging {
 
   val mimeTypes = Set(
     "application/pdf"
@@ -112,8 +112,7 @@ class OcrMyPdfExtractor(scratch: ScratchSpace, index: Index, pageService: Pages,
         previewStorage.create(blob.uri.toStoragePath, path, Some("application/pdf"))
       }
 
-      OcrMyPdfExtractor.insertFullText(blob.uri, pages, index)
-
+      OcrMyPdfExtractor.insertFullText(blob.uri, pages, index, ingestionServices.detectLanguage)
     } finally {
       pdDocuments.foreach { case(_, (path, doc)) =>
         doc.close()
@@ -142,7 +141,7 @@ class OcrMyPdfExtractor(scratch: ScratchSpace, index: Index, pageService: Pages,
 }
 
 object OcrMyPdfExtractor {
-  def insertFullText(uri: Uri, pages: List[Page], index: Index)(implicit ec: ExecutionContext): Unit = {
+  def insertFullText(uri: Uri, pages: List[Page], index: Index, detectLanguage: (String, String) => Option[String])(implicit ec: ExecutionContext): Unit = {
     val textByLanguage = pages.foldLeft(Map.empty[Language, String]) { (acc, page) =>
       page.value.foldLeft(acc) { case (acc, (lang, value)) =>
         acc + (lang -> (acc.getOrElse(lang, "") + value))
@@ -151,7 +150,8 @@ object OcrMyPdfExtractor {
 
     textByLanguage.foreach { case (lang, value) =>
       val optionalText = if (value.trim().isEmpty) None else Some(value)
-      index.addDocumentOcr(uri, optionalText, lang).awaitEither(10.second)
+      val detectedLanguageCode = detectLanguage(uri.value, value)
+      index.addDocumentOcr(uri, optionalText, lang, detectedLanguageCode).awaitEither(10.second)
     }
   }
 }

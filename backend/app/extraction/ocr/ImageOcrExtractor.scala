@@ -15,7 +15,7 @@ import scala.concurrent.duration._
 // I've avoided renaming this for compatibility reasons (the extractor name is stored in the Manifest).
 // It should now be called TesseractImageOcrExtractor
 class ImageOcrExtractor(config: OcrConfig, scratch: ScratchSpace, index: Index, ingestionServices: IngestionServices)
-  (implicit ec: ExecutionContext) extends BaseOcrExtractor(scratch) with Logging {
+  (implicit ec: ExecutionContext) extends BaseOcrExtractor(scratch, index) with Logging {
 
   val mimeTypes = Set(
     "image/png",
@@ -40,7 +40,8 @@ class ImageOcrExtractor(config: OcrConfig, scratch: ScratchSpace, index: Index, 
     params.languages.foreach { lang =>
       val text = Ocr.invokeTesseractDirectly(lang.ocr, file.getAbsolutePath, config.tesseract, stdErrLogger)
       val optionalText = if (text.trim().isEmpty) None else Some(text)
-      index.addDocumentOcr(blob.uri, optionalText, lang).awaitEither(10.second)
+      val detectedLanguageCode = ingestionServices.detectLanguage(blob.uri.value, text)
+      index.addDocumentOcr(blob.uri, optionalText, lang, detectedLanguageCode).awaitEither(10.second)
     }
   }
 }

@@ -6,6 +6,7 @@ import extraction.{Extractor, MimeTypeMapper}
 import model.{Language, Uri}
 import model.ingestion.{EmailContext, FileContext, WorkspaceItemContext}
 import model.manifest.{Blob, MimeType}
+import org.apache.tika.language.detect.LanguageDetector
 import services.index.{Index, IngestionData}
 import services.manifest.Manifest
 import services.{ObjectStorage, Tika, TypeDetector}
@@ -15,7 +16,7 @@ import utils.attempt.{Attempt, Failure, NotFoundFailure}
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
-import services.observability.{BlobMetadata, EventDetails, IngestionEvent, IngestionEventType, EventMetadata, PostgresClient, EventStatus}
+import services.observability.{BlobMetadata, EventDetails, EventMetadata, EventStatus, IngestionEvent, IngestionEventType, PostgresClient}
 
 sealed trait UriParent {
   def parent: Uri
@@ -45,11 +46,49 @@ trait IngestionServices {
   def ingestEmail(context: EmailContext, sourceMimeType: String): Either[Failure, Unit]
   def ingestFile(context: FileContext, blobUri: Uri, path: Path, isFastLane: Boolean = false): Either[Failure, Blob]
   def setProgressNote(blobUri: Uri, extractor: Extractor, note: String): Either[Failure, Unit]
+  def detectLanguage(blobUri: String, text: String): Option[String]
 }
 
 object IngestionServices extends Logging {
-  def apply(manifest: Manifest, index: Index, objectStorage: ObjectStorage, typeDetector: TypeDetector, mimeTypeMapper: MimeTypeMapper, postgresClient: PostgresClient)(implicit ec: ExecutionContext): IngestionServices = new IngestionServices {
+
+  private def cleanTextForLanguageDetection(text: String): String = {
+    text
+      .replaceAll("""https?://\S+""", "")                // removes URLs starting with http:// or https:// followed by non-whitespace
+      .replaceAll("""www\.\S+""", "")                     // removes URLs starting with www. that have no scheme
+      .replaceAll("""[\w.+-]+@[\w.-]+\.\w+""", "")        // removes email addresses (e.g. user.name+tag@domain.co.uk)
+      .replaceAll("""[A-Za-z]:\\[\\\w.\-]+""", "")        // removes Windows file paths (e.g. C:\Users\file.txt)
+      .replaceAll("""/[\w./\-]+""", "")                   // removes Unix file paths starting with / (e.g. /usr/local/bin)
+      .replaceAll("""<[^>]+>""", "")                      // removes HTML/XML tags (e.g. <div class="foo">)
+      .replaceAll("""[0-9a-fA-F]{16,}""", "")             // removes hex strings of 16+ characters (e.g. SHA hashes, UUIDs without dashes)
+      .replaceAll("""[A-Za-z0-9+/=]{40,}""", "")          // removes base64-like strings of 40+ alphanumeric/+/=/characters
+      .replaceAll("""\b\d+\b""", "")                      // removes standalone numbers (digits not attached to words)
+      .replaceAll("""\s{2,}""", " ")                      // collapses runs of 2+ whitespace characters into a single space
+      .trim
+  }
+
+  def apply(manifest: Manifest, index: Index, objectStorage: ObjectStorage, typeDetector: TypeDetector, mimeTypeMapper: MimeTypeMapper, postgresClient: PostgresClient, languageDetector: ThreadLocal[LanguageDetector])(implicit ec: ExecutionContext): IngestionServices = new IngestionServices {
     override def recordIngestionEvent(event: IngestionEvent) = postgresClient.insertEvent(event)
+
+    /***
+      * Uses tika to return the iso639-1 language code for the given text. We only store codes where tikka has a high
+      * confidence in the result to try and maintain index quality
+      * See https://en.wikipedia.org/wiki/List_of_ISO_639_language_codes for a list of codes
+      * @param text
+      * @return
+      */
+    def detectLanguage(fieldIdentifier: String, text: String): Option[String] = {
+      // clean a large block of text in case the file starts with lots of junk
+      val textToClean = text.take(50000)
+      val cleanedText = cleanTextForLanguageDetection(textToClean)
+      // Drop to just 10,000 characters to limit performance impact of language detection
+      val result = languageDetector.get().detect(cleanedText.take(10000))
+      if (result.isReasonablyCertain) {
+        Some(result.getLanguage)
+      } else {
+        logger.info(s"Unable to detect language for text in $fieldIdentifier. Tika result: ${result.getLanguage} with confidence ${result.getRawScore}")
+        None
+      }
+    }
 
     override def ingestEmail(context: EmailContext, sourceMimeType: String): Either[Failure, Unit] = {
 
@@ -63,9 +102,12 @@ object IngestionServices extends Logging {
 
       val insertions = intermediateResources :+ Manifest.InsertEmail(context.email, context.parents.head)
 
+      val subjectDetectedLanguage = detectLanguage(s"${context.email.uri.value} email subject", context.email.subject)
+      val bodyDetectedLanguage = detectLanguage(s"${context.email.uri.value} email body", context.email.body)
+
       manifest.insert(insertions, rootUri).flatMap( _ =>
         // TODO once we get attempt everywhere we can remove the await
-        index.ingestEmail(context.email, context.ingestion, sourceMimeType, context.parentBlobs, context.workspace, context.languages).awaitEither(10.second)
+        index.ingestEmail(context.email, context.ingestion, sourceMimeType, context.parentBlobs, context.workspace, context.languages, subjectDetectedLanguage, bodyDetectedLanguage).awaitEither(10.second)
       )
     }
 

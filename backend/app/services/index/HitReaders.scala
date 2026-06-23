@@ -247,7 +247,8 @@ object HitReaders {
       mimeTypes = metadataMap.setField[String](metadata.mimeTypes),
       fileUris  = readFileUris(metadataMap).toSet,
       fileSize  = metadataMap.optLongField(metadata.fileSize).getOrElse(0L),
-      metadata = readMetadata(fields)
+      metadata = readMetadata(fields),
+      languageData = readLanguageData(fields)
     )
   }
 
@@ -269,6 +270,35 @@ object HitReaders {
   private def readTranscript(fields: FieldMap): Option[Map[String, String]] = {
     fields.optField[FieldMap](transcript).map { languages =>
       languages.view.mapValues(_.asInstanceOf[String]).toMap
+    }
+  }
+
+  private def readLanguageData(fields: FieldMap): Option[LanguageData] = {
+    fields.optField[FieldMap](languageDataField).map { ld =>
+      def readField(name: String): Option[LanguageDataField] = {
+        ld.optField[FieldMap](name).map { f =>
+          LanguageDataField(
+            detectedLanguageCode = f.optField[String](languageData.translatableFieldData.detectedLanguageCode),
+            translation = f.optField[String](languageData.translatableFieldData.translation)
+          )
+        }
+      }
+
+      val ocrData = ld.optField[FieldMap](languageData.ocr).map { o =>
+        OcrLanguageData(
+          detectedLanguageCode = o.optField[FieldMap](languageData.translatableFieldData.detectedLanguageCode)
+            .map(_.view.mapValues(_.asInstanceOf[String]).toMap).getOrElse(Map.empty),
+          translation = o.optField[FieldMap](languageData.translatableFieldData.translation)
+            .map(_.view.mapValues(_.asInstanceOf[String]).toMap).getOrElse(Map.empty)
+        )
+      }
+
+      LanguageData(
+        text = readField(languageData.textField),
+        emailSubject = readField(languageData.emailSubjectField),
+        emailBody = readField(languageData.emailBodyField),
+        ocr = ocrData
+      )
     }
   }
 

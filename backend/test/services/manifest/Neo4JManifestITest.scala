@@ -9,6 +9,7 @@ import model.frontend.email.{EmailNeighbours, Neighbour, Email => FrontendEmail}
 import model.ingestion.{IngestionFile, WorkspaceItemContext}
 import model.manifest.{Blob, MimeType, WorkItem}
 import model.{Email, English, Recipient, Uri}
+import org.apache.tika.language.detect.LanguageDetector
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.freespec.AnyFreeSpec
@@ -516,7 +517,10 @@ class Neo4JManifestITest extends AnyFreeSpec
         val index = mock[Index]
         (index.ingestDocument _).expects(*, *, *, *).returning(Attempt.Right(()))
         val tika: Tika = Tika.createInstance
-        val ingestionServices: IngestionServices = IngestionServices(manifest, index, objectStorage, tika, mimeTypeMapper, new TestPostgresClient)(scala.concurrent.ExecutionContext.global)
+        val languageDetect = ThreadLocal.withInitial { () =>
+          LanguageDetector.getDefaultLanguageDetector.loadModels()
+        }
+        val ingestionServices: IngestionServices = IngestionServices(manifest, index, objectStorage, tika, mimeTypeMapper, new TestPostgresClient, languageDetect)(scala.concurrent.ExecutionContext.global)
 
         manifest.insertCollection(collectionUri.value, collectionUri.value, createdBy = "me").eitherValue.isRight should be(true)
         insertIngestion(collectionUri, Some(ingestionUri), fixed = false).eitherValue.isRight should be(true)

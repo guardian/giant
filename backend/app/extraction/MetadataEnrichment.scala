@@ -12,7 +12,7 @@ case class EnrichedMetadata(title: Option[String],
                             lastModified: Option[Long],
                             createdWith: Option[String],
                             pageCount: Option[Int],
-                           wordCount: Option[Int]) {
+                            wordCount: Option[Int]) {
   def toMap: Map[String, AnyRef] = {
     val t = this.title.map(IndexFields.metadata.enrichedMetadata.title -> _)
     val a = this.author.map(IndexFields.metadata.enrichedMetadata.author -> _)
