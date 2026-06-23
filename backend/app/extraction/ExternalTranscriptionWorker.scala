@@ -21,7 +21,7 @@ case class TranscriptionMessageAttribute(receiveCount: Option[Int], messageGroup
 
 class ExternalTranscriptionWorker(manifest: WorkerManifest, sqsClient: SqsClient, transcribeConfig: TranscribeConfig, blobStorage: ObjectStorage, index: Index)(implicit executionContext: ExecutionContext)  extends Logging{
 
-  val MAX_RECEIVE_COUNT = 3
+  private val MAX_RECEIVE_COUNT = 3
 
   def pollForResults(): Int  = {
     logger.info(s"Fetching messages from external transcription output queue ${transcribeConfig.transcriptionOutputQueueUrl}")
@@ -75,7 +75,9 @@ class ExternalTranscriptionWorker(manifest: WorkerManifest, sqsClient: SqsClient
           } else {
             Left(ExternalTranscriptionOutputFailure.apply(s"External transcription service failed to transcribe the file ${output.originalFilename}"))
           }
-        case output: LlmOutputSuccess => for {
+        case output: LlmOutputSuccess =>
+          logger.info(s"Processing LLM job ${output.id} with output key ${output.outputKey}")
+          for {
           languageData <- getLlmOutput(output)
           _ <- addDocumentTranslation(output, languageData)
           _ <- markExternalExtractorAsComplete(output.id, ExternalTranslationExtractor.EXTRACTOR_NAME)
