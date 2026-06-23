@@ -588,7 +588,9 @@ class ElasticsearchResourcesITest extends AnyFreeSpec with Matchers with BeforeA
         sourceMimeType = "message/rfc822",
         parentBlobs = List.empty,
         workspace = None,
-        languages = List(English)
+        languages = List(English),
+        subjectDetectedLanguage = Some("en"),
+        bodyDetectedLanguage = Some("en"),
       ).await()
 
       TestSetup(users, reqUser = canSeeCatsUser) { controller =>
