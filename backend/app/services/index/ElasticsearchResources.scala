@@ -65,16 +65,6 @@ class ElasticsearchResources(override val client: ElasticClient, indexName: Stri
             intField(IndexFields.metadata.enrichedMetadata.pageCount),
             intField(IndexFields.metadata.enrichedMetadata.wordCount),
           )),
-          ObjectField(IndexFields.languageDataField, properties = Seq(
-           emptyLanguageDataField(IndexFields.languageData.textField),
-           emptyLanguageDataField(IndexFields.languageData.emailBodyField),
-           emptyLanguageDataField(IndexFields.languageData.emailSubjectField),
-            // at the moment OCR can be an arbitrary number of languages, so this is a bit more complicated
-            ObjectField(IndexFields.languageData.ocr, properties = Seq(
-              emptyMultiLanguageField(IndexFields.languageData.translatableFieldData.translation),
-              emptyMultiLanguageField(IndexFields.languageData.translatableFieldData.detectedLanguageCode),
-            )),
-          )),
           // Emails Only
           ObjectField(IndexFields.metadata.fromField, properties = Seq(
             emptyMultiLanguageField(IndexFields.metadata.from.name),
@@ -92,8 +82,18 @@ class ElasticsearchResources(override val client: ElasticClient, indexName: Stri
           textKeywordField(IndexFields.metadata.inReplyTo),
           emptyMultiLanguageField(IndexFields.metadata.html),
           intField(IndexFields.metadata.attachmentCount)
-        )
-    ))).flatMap { _ =>
+        )),
+        ObjectField(IndexFields.languageDataField, properties = Seq(
+          emptyLanguageDataField(IndexFields.languageData.textField),
+          emptyLanguageDataField(IndexFields.languageData.emailBodyField),
+          emptyLanguageDataField(IndexFields.languageData.emailSubjectField),
+          // at the moment OCR can be an arbitrary number of languages, so this is a bit more complicated
+          ObjectField(IndexFields.languageData.ocr, properties = Seq(
+            emptyMultiLanguageField(IndexFields.languageData.translatableFieldData.translation),
+            emptyMultiLanguageField(IndexFields.languageData.translatableFieldData.detectedLanguageCode),
+          )),
+        ))
+    )).flatMap { _ =>
       Attempt.sequence(Languages.all.map(addLanguage))
     }.map { _ =>
       this
