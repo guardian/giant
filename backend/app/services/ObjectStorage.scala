@@ -8,7 +8,8 @@ import model.ObjectMetadata
 import software.amazon.awssdk.services.s3.model.{Delete, DeleteObjectRequest, DeleteObjectsRequest, GetObjectRequest, HeadObjectRequest, ListObjectsV2Request, ListObjectsV2Response, ObjectIdentifier, PutObjectRequest}
 import software.amazon.awssdk.services.s3.presigner.S3Presigner
 import software.amazon.awssdk.services.s3.presigner.model.{GetObjectPresignRequest, PutObjectPresignRequest}
-import utils.attempt.{Failure, IllegalStateFailure, UnknownFailure}
+import utils.Logging
+import utils.attempt.{Failure, GzipUnzipFailed, IllegalStateFailure, UnknownFailure}
 import utils.aws.{AwsErrors, S3Client}
 
 import java.nio.charset.StandardCharsets
@@ -16,7 +17,7 @@ import scala.jdk.CollectionConverters._
 import scala.util.control.NonFatal
 import java.time.Duration
 import java.util.zip.GZIPInputStream
-import scala.util.Using
+import scala.util.{Try, Using}
 
 
 trait ObjectStorage {
@@ -32,7 +33,7 @@ trait ObjectStorage {
   def list(prefix: String): Either[Failure, List[String]]
 }
 
-class S3ObjectStorage private(client: S3Client, presigner: S3Presigner,  bucket: String) extends ObjectStorage {
+class S3ObjectStorage private(client: S3Client, presigner: S3Presigner,  bucket: String) extends ObjectStorage with Logging {
   def create(key: String, path: Path, mimeType: Option[String] = None): Either[Failure, Unit] = run {
     client.putLargeObject(bucket, key, contentType = mimeType, path)
 
@@ -62,9 +63,11 @@ class S3ObjectStorage private(client: S3Client, presigner: S3Presigner,  bucket:
   }
 
   def getGzippedText(key: String): Either[Failure, String] = {
-    get(key).map {stream =>
+    get(key).map { stream =>
       val allBytes = stream.readAllBytes()
-      unzipBytes(allBytes)
+      Try(unzipBytes(allBytes)).toEither.left.map { err =>
+        logger.error(s"Failed to unzip gzipped text for key $key", err)
+        GzipUnzipFailed(err)
     }
   }
 

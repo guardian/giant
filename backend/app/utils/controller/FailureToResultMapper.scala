@@ -138,6 +138,9 @@ object FailureToResultMapper extends Logging {
       case NoTextToTranslateFailure(msg) =>
         logger.error(msg)
         Results.InternalServerError(msg)
+      case GzipUnzipFailed(throwable) =>
+        logger.error("Gzip unzip failedd", throwable)
+        Results.InternalServerError(throwable.getMessage)
     }
   }
 }
