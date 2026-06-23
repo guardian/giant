@@ -53,16 +53,16 @@ object IngestionServices extends Logging {
 
   private def cleanTextForLanguageDetection(text: String): String = {
     text
-      .replaceAll("""https?://\S+""", "")                // URLs
-      .replaceAll("""www\.\S+""", "")                     // www URLs without scheme
-      .replaceAll("""[\w.+-]+@[\w.-]+\.\w+""", "")        // email addresses
-      .replaceAll("""[A-Za-z]:\\[\\\w.\-]+""", "")        // Windows paths
-      .replaceAll("""/[\w./\-]+""", "")                   // Unix paths (conservative)
-      .replaceAll("""<[^>]+>""", "")                      // HTML/XML tags
-      .replaceAll("""[0-9a-fA-F]{16,}""", "")             // long hex strings
-      .replaceAll("""[A-Za-z0-9+/=]{40,}""", "")          // base64-like strings
-      .replaceAll("""\b\d+\b""", "")                      // standalone numbers
-      .replaceAll("""\s{2,}""", " ")                      // collapse whitespace
+      .replaceAll("""https?://\S+""", "")                // removes URLs starting with http:// or https:// followed by non-whitespace
+      .replaceAll("""www\.\S+""", "")                     // removes URLs starting with www. that have no scheme
+      .replaceAll("""[\w.+-]+@[\w.-]+\.\w+""", "")        // removes email addresses (e.g. user.name+tag@domain.co.uk)
+      .replaceAll("""[A-Za-z]:\\[\\\w.\-]+""", "")        // removes Windows file paths (e.g. C:\Users\file.txt)
+      .replaceAll("""/[\w./\-]+""", "")                   // removes Unix file paths starting with / (e.g. /usr/local/bin)
+      .replaceAll("""<[^>]+>""", "")                      // removes HTML/XML tags (e.g. <div class="foo">)
+      .replaceAll("""[0-9a-fA-F]{16,}""", "")             // removes hex strings of 16+ characters (e.g. SHA hashes, UUIDs without dashes)
+      .replaceAll("""[A-Za-z0-9+/=]{40,}""", "")          // removes base64-like strings of 40+ alphanumeric/+/=/characters
+      .replaceAll("""\b\d+\b""", "")                      // removes standalone numbers (digits not attached to words)
+      .replaceAll("""\s{2,}""", " ")                      // collapses runs of 2+ whitespace characters into a single space
       .trim
   }
 
