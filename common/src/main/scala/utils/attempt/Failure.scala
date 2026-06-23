@@ -139,3 +139,5 @@ case class SQSSendMessageFailure(msg: String) extends Failure
 
 case class RemoteIngestFailure(msg: String) extends Failure
 case class NoTextToTranslateFailure(msg: String) extends Failure
+
+case class GzipUnzipFailed(throwable: Throwable) extends FailureWithThrowable
