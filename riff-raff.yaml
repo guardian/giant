@@ -14,7 +14,6 @@ deployments:
       amiTags:
         Recipe: investigations-giant-app-arm
         AmigoStage: PROD
-        Encrypted: investigations
 
   pfi-neo4j-ami-update:
     type: ami-cloudformation-parameter
@@ -24,7 +23,6 @@ deployments:
       amiTags:
         Recipe: investigations-neo4j-2026-jammy-java25
         AmigoStage: PROD
-        Encrypted: true
 
   pfi-elasticsearch-ami-update:
     type: ami-cloudformation-parameter
@@ -34,7 +32,6 @@ deployments:
       amiTags:
         Recipe: investigations-elasticsearch-8-arm64
         AmigoStage: PROD
-        Encrypted: investigations
 
   pfi:
     type: autoscaling
