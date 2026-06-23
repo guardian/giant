@@ -4,7 +4,7 @@ import cats.syntax.either._
 import model.index.LanguageData
 import software.amazon.awssdk.services.sqs.SqsClient
 import software.amazon.awssdk.services.sqs.model.{DeleteMessageRequest, Message, MessageSystemAttributeName, ReceiveMessageRequest, SendMessageRequest}
-import model.{English, Languages, LlmOutputFailure, LlmOutputSuccess, TranscriptionOutput, TranscriptionOutputFailure, TranscriptionOutputSuccess, TranscriptionResult, Uri}
+import model.{LlmOutputFailure, LlmOutputSuccess, TranscriptionOutput, TranscriptionOutputFailure, TranscriptionOutputSuccess, TranscriptionResult, Uri}
 import play.api.libs.json.{JsError, JsSuccess, Json}
 import services.index.Index
 import services.manifest.WorkerManifest
@@ -13,12 +13,9 @@ import utils.Logging
 import utils.attempt.{DocumentUpdateFailure, ExternalTranscriptionOutputFailure, Failure, JsonParseFailure}
 import TranscriptionOutput.transcriptionOutputReads
 
-import java.io.ByteArrayInputStream
-import java.util.zip.GZIPInputStream
-import java.nio.charset.StandardCharsets
 import scala.concurrent.ExecutionContext
 import scala.jdk.CollectionConverters.CollectionHasAsScala
-import scala.util.{Try, Using}
+import scala.util.Try
 
 case class TranscriptionMessageAttribute(receiveCount: Option[Int], messageGroupId: String, blobId: Option[String], extractorName: Option[String])
 
@@ -110,22 +107,13 @@ class ExternalTranscriptionWorker(manifest: WorkerManifest, sqsClient: SqsClient
     }
   }
 
-  private def unzipBytes (data: Array[Byte]): String = {
-    Using.resource(new ByteArrayInputStream(data)){ byteStream =>
-      Using.resource(new GZIPInputStream(byteStream)) { gzipStream =>
-        val decompressedData = gzipStream.readAllBytes()
-        new String(decompressedData, StandardCharsets.UTF_8)
-      }
-    }
-  }
+
 
   private def getLlmOutput(llmOutput: LlmOutputSuccess): Either[Failure, LanguageData] = {
-    val llmOutputStream = blobStorage.get(llmOutput.outputKey)
+    val llmOutputText = blobStorage.getGzippedText(llmOutput.outputKey)
 
-    llmOutputStream.flatMap { outputStream =>
-      val llmOutputText = new String(outputStream.readAllBytes(), StandardCharsets.UTF_8)
-      println(llmOutputText)
-      val parsedLlmOutput = Json.fromJson[LanguageData](Json.parse(llmOutputText))
+    llmOutputText.flatMap { output =>
+      val parsedLlmOutput = Json.fromJson[LanguageData](Json.parse(output))
 
       parsedLlmOutput.asEither.leftMap { errors =>
         JsonParseFailure(errors)
@@ -134,13 +122,10 @@ class ExternalTranscriptionWorker(manifest: WorkerManifest, sqsClient: SqsClient
   }
 
   private def getTranscripts(transcriptionOutput: TranscriptionOutputSuccess): Either[Failure, TranscriptionResult] = {
-    val combinedTranscripts = blobStorage.get(transcriptionOutput.combinedOutputKey)
+    val transcriptOutput = blobStorage.getGzippedText(transcriptionOutput.combinedOutputKey)
 
-    combinedTranscripts.flatMap { transcriptStream =>
-      val allBytes = transcriptStream.readAllBytes()
-      // combined transcript file is gzipped, so we have to unzip it
-      val combinedTranscriptsText = unzipBytes(allBytes)
-      val parsedTranscripts = Json.fromJson[TranscriptionResult](Json.parse(combinedTranscriptsText))
+    transcriptOutput.flatMap { output =>
+      val parsedTranscripts = Json.fromJson[TranscriptionResult](Json.parse(output))
 
       parsedTranscripts.asEither.leftMap { errors =>
         JsonParseFailure(errors)
