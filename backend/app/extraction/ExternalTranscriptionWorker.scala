@@ -17,7 +17,7 @@ import scala.concurrent.ExecutionContext
 import scala.jdk.CollectionConverters.CollectionHasAsScala
 import scala.util.Try
 
-case class TranscriptionMessageAttribute(receiveCount: Option[Int], messageGroupId: String, blobId: Option[String], extractorName: Option[String])
+case class TranscriptionMessageAttribute(receiveCount: Option[Int], messageGroupId: String, blobUri: Option[String], extractorName: Option[String])
 
 class ExternalTranscriptionWorker(manifest: WorkerManifest, sqsClient: SqsClient, transcribeConfig: TranscribeConfig, blobStorage: ObjectStorage, index: Index)(implicit executionContext: ExecutionContext)  extends Logging{
 
@@ -32,7 +32,7 @@ class ExternalTranscriptionWorker(manifest: WorkerManifest, sqsClient: SqsClient
         .messageSystemAttributeNames(MessageSystemAttributeName.MESSAGE_GROUP_ID, MessageSystemAttributeName.APPROXIMATE_RECEIVE_COUNT)
         // request the custom attributes that the transcription worker preserves from the original job so that we can
         // match the output back to the relevant blob/extractor
-        .messageAttributeNames("GiantBlobId", "GiantExtractorName")
+        .messageAttributeNames("GiantBlobUri", "GiantExtractorName")
         .build())
       .messages()
 
@@ -102,12 +102,12 @@ class ExternalTranscriptionWorker(manifest: WorkerManifest, sqsClient: SqsClient
         completed + 1
       case Left(failure: ExternalTranscriptionOutputFailure) =>
         logger.error(failure.msg, failure.toThrowable)
-        handleExternalTranscriptionOutputFailure(message, messageAttributes.messageGroupId, messageAttributes.extractorName, failure.msg)
+        handleExternalTranscriptionOutputFailure(message, messageAttributes, failure.msg)
         completed + 1
       case Left(failure) =>
         logger.error(s"failed to process sqs message", failure.toThrowable)
         if (messageAttributes.receiveCount.exists(_ >= MAX_RECEIVE_COUNT)) {
-          markAsFailure(messageAttributes.blobId.map(new Uri(_)), messageAttributes.extractorName, failure.msg)
+          markAsFailure(messageAttributes, failure.msg)
         }
         completed
     }
@@ -145,7 +145,7 @@ class ExternalTranscriptionWorker(manifest: WorkerManifest, sqsClient: SqsClient
       // Receive count should always be defined, but if there is a problem with localstack it can be null, so wrap in an option
       val receiveCount = Option(attributes.get(MessageSystemAttributeName.APPROXIMATE_RECEIVE_COUNT)).map(_.toInt)
       val messageGroupId = attributes.get(MessageSystemAttributeName.MESSAGE_GROUP_ID)
-      val blobId = Option(message.messageAttributes().get("GiantBlobId")).map(_.stringValue())
+      val blobId = Option(message.messageAttributes().get("GiantBlobUri")).map(_.stringValue())
       val extractorName = Option(message.messageAttributes().get("GiantExtractorName")).map(_.stringValue())
       TranscriptionMessageAttribute(receiveCount, messageGroupId, blobId, extractorName)
     }.toEither
@@ -201,31 +201,31 @@ class ExternalTranscriptionWorker(manifest: WorkerManifest, sqsClient: SqsClient
     }
   }
 
-  private def markAsFailure(uri: Option[Uri], extractorName: Option[String], failureMsg: String): Unit = {
-    logger.error(s"Error in '${extractorName} processing ${uri}': ${failureMsg}")
+  private def markAsFailure(messageAttributes: TranscriptionMessageAttribute, failureMsg: String): Unit = {
+    logger.error(s"Error in '${messageAttributes.extractorName} processing ${messageAttributes.blobUri}', group id ${messageAttributes.messageGroupId}: ${failureMsg}")
 
-    if (extractorName.isEmpty || uri.isEmpty) {
+    if (messageAttributes.extractorName.isEmpty || messageAttributes.blobUri.isEmpty) {
       logger.error(s"Can't mark failure as extractor name or uri missing from extracted message attributes.")
     }
     for {
-      name <- extractorName
-      blobUri <- uri
+      name <- messageAttributes.extractorName
+      blobUri <- messageAttributes.blobUri
     } yield {
-      manifest.logExtractionFailure(blobUri, name, failureMsg).left.foreach { f =>
+      manifest.logExtractionFailure(new Uri(blobUri), name, failureMsg).left.foreach { f =>
         logger.error(s"Failed to log extractor in manifest: ${f.msg}")
       }
     }
   }
 
-  private def handleExternalTranscriptionOutputFailure(message: Message, id: String, extractorName: Option[String], failureMessage: String): Unit  = {
+  private def handleExternalTranscriptionOutputFailure(message: Message, messageAttributes: TranscriptionMessageAttribute, failureMessage: String): Unit  = {
     Try {
       val sendMessageCommand = SendMessageRequest.builder()
         .queueUrl(transcribeConfig.transcriptionOutputDeadLetterQueueUrl)
         .messageBody(message.body())
-        .messageGroupId(id)
+        .messageGroupId(messageAttributes.messageGroupId)
         .build()
       sqsClient.sendMessage(sendMessageCommand)
-      logger.info(s"moved message $id to output dead letter queue")
+      logger.info(s"moved message ${messageAttributes.messageGroupId} to output dead letter queue")
 
       sqsClient.deleteMessage(
         DeleteMessageRequest.builder()
@@ -233,10 +233,10 @@ class ExternalTranscriptionWorker(manifest: WorkerManifest, sqsClient: SqsClient
           .receiptHandle(message.receiptHandle())
           .build()
       )
-      logger.debug(s"deleted message $id")
+      logger.debug(s"deleted message ${messageAttributes.messageGroupId}")
 
 
-      markAsFailure(new Uri(id), extractorName, failureMessage)
+      markAsFailure(messageAttributes, failureMessage)
 
     }.toEither match {
       case Right(_) => ()
