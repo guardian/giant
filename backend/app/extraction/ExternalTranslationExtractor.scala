@@ -117,7 +117,7 @@ abstract class ExternalTranslationExtractor(manifest: Manifest, index: Index, tr
             userEmail = "giant",
             transcriptDestinationService = "Giant",
             combinedOutputUrl = CombinedOutputUrl(url = outputUrl, key = outputKey),
-            ingestion = params.ingestion, backend = Local.name, jobType = LlmJobType.name)
+            ingestion = params.ingestion, backend = transcribeConfig.llmBackend, jobType = LlmJobType.name)
         }
         job
       }

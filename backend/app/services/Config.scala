@@ -86,7 +86,8 @@ case class TranscribeConfig(
                              whisperModelFilename: String,
                              transcriptionServiceQueueUrl: String,
                              transcriptionOutputQueueUrl: String,
-                             transcriptionOutputDeadLetterQueueUrl: String
+                             transcriptionOutputDeadLetterQueueUrl: String,
+                             llmBackend: String
 )
 
 case class RemoteIngestConfig(
