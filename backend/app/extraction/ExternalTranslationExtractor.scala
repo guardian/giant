@@ -1,9 +1,8 @@
 package extraction
 
-import extraction.ExternalTranslationExtractor.EXTRACTOR_NAME
 import model.index.LanguageData.{addTextToTranslate, filterNonEnglish}
 import model.index.{Document, LanguageData}
-import model.{Bedrock, CombinedOutputUrl, Email, English, Language, LlmJob, LlmJobType, LlmPrompt}
+import model.{Bedrock, CombinedOutputUrl, Email, English, Language, LlmJob, LlmJobType, LlmPrompt, Local}
 import model.manifest.Blob
 import org.joda.time.DateTime
 import play.api.libs.json.Json
@@ -16,11 +15,7 @@ import utils.attempt.{Failure, NoTextToTranslateFailure}
 import scala.concurrent.duration.DurationInt
 import scala.concurrent.{Await, ExecutionContext}
 
-object ExternalTranslationExtractor {
-  val EXTRACTOR_NAME = "ExternalTranslationExtractor"
-}
-
-class ExternalTranslationExtractor(manifest: Manifest, index: Index, transcribeConfig: TranscribeConfig, transcriptionServiceBucket: ObjectStorage, sqsClient: SqsClient)(implicit executionContext: ExecutionContext) extends ExternalExtractor {
+abstract class ExternalTranslationExtractor(manifest: Manifest, index: Index, transcribeConfig: TranscribeConfig, transcriptionServiceBucket: ObjectStorage, sqsClient: SqsClient)(implicit executionContext: ExecutionContext) extends ExternalExtractor {
   // No mimeTypes as we rely on language detection in the Ocr/DocumentBody extractors to decide whether to
   // apply this extractor
   val mimeTypes: Set[String] = Set()
@@ -31,6 +26,11 @@ class ExternalTranslationExtractor(manifest: Manifest, index: Index, transcribeC
   // priority shouldn't be too important here as the extractor should be very fast as it just sends a message to sqs
   // and updates the manifest
   override def priority = 2
+
+  // Each concrete extractor is responsible for a subset of the language data fields (e.g. document text vs OCR). This
+  // restricts the already non-English filtered language data to only the field(s) this extractor should translate, so
+  // that each extractor sends - and later updates - only its relevant field(s).
+  def filterRelevantFields(languageData: Option[LanguageData]): Option[LanguageData]
 
   def buildTranslationPrompt(languageData: LanguageData): LlmPrompt = {
     val system =
@@ -79,8 +79,10 @@ class ExternalTranslationExtractor(manifest: Manifest, index: Index, transcribeC
 
 
   override def triggerExtraction(blob: Blob, params: ExtractionParams): Either[Failure, Unit] = {
-    val outputKey = s"${blob.uri.value}-translation.txt"
-    val textToTranslateKey = s"translation-input/${blob.uri.value}.txt"
+    // include the extractor name in the S3 keys so that concurrent translation extractors (e.g. document text and OCR)
+    // running against the same blob don't overwrite each other's input/output objects
+    val outputKey = s"${blob.uri.value}-$name-translation.txt"
+    val textToTranslateKey = s"translation-input/${blob.uri.value}-$name.txt"
     // we block here as extractor jobs are synchronous
     val elasticDocument = Await.result(index.getResource(blob.uri, None).underlying, 5.seconds)
 
@@ -88,15 +90,15 @@ class ExternalTranslationExtractor(manifest: Manifest, index: Index, transcribeC
       val filteredLanguageData = resource match {
         case document: Document =>
           val filtered = filterNonEnglish(document.languageData)
-          addTextToTranslate(filtered, document)
+          filterRelevantFields(addTextToTranslate(filtered, document))
         case email: Email =>
           val filtered = filterNonEnglish(email.languageData)
-          addTextToTranslate(filtered, email)
+          filterRelevantFields(addTextToTranslate(filtered, email))
       }
 
       if (filteredLanguageData.isEmpty) {
         logger.info(s"No non-English text found to translate in blob ${blob.uri.value}")
-        manifest.markExternalAsComplete(blob.uri.value, EXTRACTOR_NAME)
+        manifest.markExternalAsComplete(blob.uri.value, name)
         // TODO log errors here like we do in ExternalTranscriptionWorker - should share logic somehow
         Left(NoTextToTranslateFailure(s"No non-English text found to translate in blob ${blob.uri.value}"))
       } else {
@@ -115,14 +117,14 @@ class ExternalTranslationExtractor(manifest: Manifest, index: Index, transcribeC
             userEmail = "giant",
             transcriptDestinationService = "Giant",
             combinedOutputUrl = CombinedOutputUrl(url = outputUrl, key = outputKey),
-            ingestion = params.ingestion, backend = Bedrock.name, jobType = LlmJobType.name)
+            ingestion = params.ingestion, backend = Local.name, jobType = LlmJobType.name)
         }
         job
       }
     }
 
     llmJob.flatMap { job =>
-      sendToQueue(sqsClient, transcribeConfig.transcriptionServiceQueueUrl, job, blob.uri.value, ExternalTranslationExtractor.EXTRACTOR_NAME)
+      sendToQueue(sqsClient, transcribeConfig.transcriptionServiceQueueUrl, job, blob.uri.value, name)
     }
   }
 }

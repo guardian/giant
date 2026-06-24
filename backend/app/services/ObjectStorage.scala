@@ -63,11 +63,12 @@ class S3ObjectStorage private(client: S3Client, presigner: S3Presigner,  bucket:
   }
 
   def getGzippedText(key: String): Either[Failure, String] = {
-    get(key).map { stream =>
+    get(key).flatMap { stream =>
       val allBytes = stream.readAllBytes()
       Try(unzipBytes(allBytes)).toEither.left.map { err =>
         logger.error(s"Failed to unzip gzipped text for key $key", err)
         GzipUnzipFailed(err)
+      }
     }
   }
 
