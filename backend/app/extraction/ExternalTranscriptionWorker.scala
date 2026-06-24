@@ -107,11 +107,7 @@ class ExternalTranscriptionWorker(manifest: WorkerManifest, sqsClient: SqsClient
       case Left(failure) =>
         logger.error(s"failed to process sqs message", failure.toThrowable)
         if (messageAttributes.receiveCount.exists(_ >= MAX_RECEIVE_COUNT)) {
-          if (messageAttributes.blobId.isDefined && messageAttributes.extractorName.isDefined) {
-            markAsFailure(new Uri(messageAttributes.blobId.get), messageAttributes.extractorName.get, failure.msg)
-          } else {
-            logger.error(s"Message ${message.messageId()} has exceeded max receive count but does not have blobId or extractorName attributes, cannot mark as failure")
-          }
+          markAsFailure(messageAttributes.blobId.map(new Uri(_)), messageAttributes.extractorName, failure.msg)
         }
         completed
     }
@@ -205,15 +201,23 @@ class ExternalTranscriptionWorker(manifest: WorkerManifest, sqsClient: SqsClient
     }
   }
 
-  private def markAsFailure(uri: Uri, extractorName: String, failureMsg: String): Unit = {
+  private def markAsFailure(uri: Option[Uri], extractorName: Option[String], failureMsg: String): Unit = {
     logger.error(s"Error in '${extractorName} processing ${uri}': ${failureMsg}")
 
-    manifest.logExtractionFailure(uri, extractorName, failureMsg).left.foreach { f =>
-      logger.error(s"Failed to log extractor in manifest: ${f.msg}")
+    if (extractorName.isEmpty || uri.isEmpty) {
+      logger.error(s"Can't mark failure as extractor name or uri missing from extracted message attributes.")
+    }
+    for {
+      name <- extractorName
+      blobUri <- uri
+    } yield {
+      manifest.logExtractionFailure(blobUri, name, failureMsg).left.foreach { f =>
+        logger.error(s"Failed to log extractor in manifest: ${f.msg}")
+      }
     }
   }
 
-  private def handleExternalTranscriptionOutputFailure(message: Message, id: String, extractorName: Option[String], failureMessage: String) = {
+  private def handleExternalTranscriptionOutputFailure(message: Message, id: String, extractorName: Option[String], failureMessage: String): Unit  = {
     Try {
       val sendMessageCommand = SendMessageRequest.builder()
         .queueUrl(transcribeConfig.transcriptionOutputDeadLetterQueueUrl)
@@ -231,7 +235,9 @@ class ExternalTranscriptionWorker(manifest: WorkerManifest, sqsClient: SqsClient
       )
       logger.debug(s"deleted message $id")
 
-      markAsFailure(new Uri(id), extractorName.getOrElse(classOf[ExternalTranscriptionExtractor].getSimpleName), failureMessage)
+
+      markAsFailure(new Uri(id), extractorName, failureMessage)
+
     }.toEither match {
       case Right(_) => ()
       case Left(error) => logger.error(s"failed to handle external transcript output failure message", error)
