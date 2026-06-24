@@ -54,7 +54,7 @@ class DocumentBodyExtractor(tika: Tika, index: Index, ingestionServices: Ingesti
         val documentBodyDetectedLanguage = ingestionServices.detectLanguage(blob.uri.value, body.trim())
         // if we managed to detect the language and it's not english then add a translation extractor TODO
         if (documentBodyDetectedLanguage.exists(_ != "en")) {
-          ingestionServices.addTranslationTodo(blob.uri, params)
+          ingestionServices.addTranslationTodo(blob.uri, params, classOf[EDocumentTranslationExtractor].getSimpleName)
         }
         val enrichedMetadata = MetadataEnrichment.enrich(rawMetadata)
         // Optionally having a body will allow documents without text to default to preview, useful for un-OCR'd documents

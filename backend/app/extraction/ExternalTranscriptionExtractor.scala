@@ -12,11 +12,6 @@ import utils.attempt.Failure
 
 import scala.concurrent.ExecutionContext
 
-
-object ExternalTranscriptionExtractor {
-  val EXTRACTOR_NAME = "ExternalTranscriptionExtractor"
-}
-
 class ExternalTranscriptionExtractor(index: Index, transcribeConfig: TranscribeConfig, transcriptionStorage: ObjectStorage, outputStorage: ObjectStorage, sqsClient: SqsClient)(implicit executionContext: ExecutionContext) extends ExternalExtractor {
   val mimeTypes: Set[String] = Set(
     "audio/wav",
@@ -78,7 +73,7 @@ class ExternalTranscriptionExtractor(index: Index, transcribeConfig: TranscribeC
     }
 
     transcriptionJob.flatMap { job =>
-      sendToQueue(sqsClient, transcribeConfig.transcriptionServiceQueueUrl, job, blob.uri.value, ExternalTranscriptionExtractor.EXTRACTOR_NAME)
+      sendToQueue(sqsClient, transcribeConfig.transcriptionServiceQueueUrl, job, blob.uri.value, name)
     }
   }
 }

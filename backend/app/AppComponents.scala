@@ -21,7 +21,7 @@ import extraction.email.olm.OlmEmailExtractor
 import extraction.email.pst.PstEmailExtractor
 import extraction.ocr.{ImageOcrExtractor, OcrMyPdfExtractor, OcrMyPdfImageExtractor, TesseractPdfOcrExtractor}
 import extraction.tables.{CsvTableExtractor, ExcelTableExtractor}
-import extraction.{DocumentBodyExtractor, ExternalTranscriptionExtractor, ExternalTranslationExtractor, ExternalTranscriptionWorker, MimeTypeMapper, TranscriptionExtractor, Worker}
+import extraction.{DocumentBodyExtractor, EDocumentTranslationExtractor, EOcrTranslationExtractor, ExternalTranscriptionExtractor, ExternalTranscriptionWorker, Extractor, MimeTypeMapper, TranscriptionExtractor, Worker}
 import ingestion.phase2.IngestStorePolling
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.neo4j.driver.{AuthTokens, GraphDatabase}
@@ -186,11 +186,14 @@ class AppComponents(context: Context, config: Config)
     val ocrMyPdfImageExtractor = new OcrMyPdfImageExtractor(config.ocr, scratchSpace, esResources, previewStorage, ingestionServices)
 
 
-    val transcriptionExtractor = if (config.worker.useExternalExtractors) {
-      new ExternalTranscriptionExtractor(esResources, config.transcribe, blobStorage, transcriptionServiceStorage, sqsClient)
-      new ExternalTranslationExtractor(manifest, esResources, config.transcribe, transcriptionServiceStorage, sqsClient)
+    val externalExtractors: List[Extractor] = if (config.worker.useExternalExtractors) {
+      List(
+        new ExternalTranscriptionExtractor(esResources, config.transcribe, blobStorage, transcriptionServiceStorage, sqsClient),
+        new EDocumentTranslationExtractor(manifest, esResources, config.transcribe, transcriptionServiceStorage, sqsClient),
+        new EOcrTranslationExtractor(manifest, esResources, config.transcribe, transcriptionServiceStorage, sqsClient)
+      )
     } else {
-      new TranscriptionExtractor(esResources, scratchSpace, config.transcribe)
+      List(new TranscriptionExtractor(esResources, scratchSpace, config.transcribe))
     }
 
     val ocrExtractors = config.ocr.defaultEngine match {
@@ -201,7 +204,7 @@ class AppComponents(context: Context, config: Config)
     val csvTableExtractor = new CsvTableExtractor(scratchSpace, esTables)
     val excelTableExtractor = new ExcelTableExtractor(scratchSpace, esTables)
 
-    val extractors = List(olmExtractor, zipExtractor, rarExtractor, documentBodyExtractor, pstExtractor, emlExtractor, msgExtractor, mboxExtractor, csvTableExtractor, excelTableExtractor, transcriptionExtractor) ++ ocrExtractors
+    val extractors = List(olmExtractor, zipExtractor, rarExtractor, documentBodyExtractor, pstExtractor, emlExtractor, msgExtractor, mboxExtractor, csvTableExtractor, excelTableExtractor) ++ externalExtractors ++ ocrExtractors
     extractors.foreach(mimeTypeMapper.addExtractor)
 
     // Common components

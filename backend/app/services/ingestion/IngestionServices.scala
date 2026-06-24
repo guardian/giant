@@ -47,7 +47,7 @@ trait IngestionServices {
   def ingestFile(context: FileContext, blobUri: Uri, path: Path, isFastLane: Boolean = false): Either[Failure, Blob]
   def setProgressNote(blobUri: Uri, extractor: Extractor, note: String): Either[Failure, Unit]
   def detectLanguage(blobUri: String, text: String): Option[String]
-  def addTranslationTodo(blobUri: Uri, params: ExtractionParams): Either[Failure, Unit]
+  def addTranslationTodo(blobUri: Uri, params: ExtractionParams, extractorName: String): Either[Failure, Unit]
 }
 
 object IngestionServices extends Logging {
@@ -91,8 +91,8 @@ object IngestionServices extends Logging {
       }
     }
 
-    override def addTranslationTodo(blobUri: Uri, params: ExtractionParams): Either[Failure, Unit] = {
-      manifest.addTranslationTodoToBlob(blobUri, params)
+    override def addTranslationTodo(blobUri: Uri, params: ExtractionParams, extractorName: String): Either[Failure, Unit] = {
+      manifest.addTranslationTodoToBlob(blobUri, params, extractorName)
     }
 
     override def ingestEmail(context: EmailContext, sourceMimeType: String): Either[Failure, Unit] = {

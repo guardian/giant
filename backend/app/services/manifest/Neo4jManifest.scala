@@ -4,7 +4,7 @@ import cats.instances.either._
 import cats.instances.list._
 import cats.syntax.traverse._
 import commands.IngestFileResult
-import extraction.{ExternalTranslationExtractor, ExtractionParams, Extractor}
+import extraction.{ExtractionParams, Extractor}
 import model._
 import model.annotations.{Workspace, WorkspaceMetadata}
 import model.frontend.email.EmailNeighbours
@@ -254,8 +254,8 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
     } yield ingestionUri
   }
 
-  override def addTranslationTodoToBlob(uri:Uri, params: ExtractionParams): Either[Failure, Unit] = {
-    logger.info(s"Adding ${ExternalTranslationExtractor.EXTRACTOR_NAME} TODO to blob ${uri.value}")
+  override def addTranslationTodoToBlob(uri:Uri, params: ExtractionParams, extractorName: String): Either[Failure, Unit] = {
+    logger.info(s"Adding $extractorName TODO to blob ${uri.value}")
 
     val result = transaction { tx =>
       val maybeWorkspaceProperties = getWorkspaceProperties(params.workspace)
@@ -274,7 +274,7 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
         """.stripMargin,
         parameters(
           "blobUri", uri.value,
-          "extractorName", ExternalTranslationExtractor.EXTRACTOR_NAME,
+          "extractorName", extractorName,
           "ingestion", params.ingestion,
           "languages", params.languages.map(_.key).asJava,
           "parentBlobs", params.parentBlobs.toArray,
@@ -288,7 +288,7 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
     }
 
     result.left.foreach { failure =>
-      logger.error(s"Failed to add ${ExternalTranslationExtractor.EXTRACTOR_NAME} TODO to blob ${uri.value}: ${failure.msg}")
+      logger.error(s"Failed to add $extractorName TODO to blob ${uri.value}: ${failure.msg}")
     }
 
     result
