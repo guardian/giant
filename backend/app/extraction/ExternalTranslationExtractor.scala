@@ -89,11 +89,9 @@ abstract class ExternalTranslationExtractor(manifest: Manifest, index: Index, tr
     val llmJob = elasticDocument.flatMap { resource =>
       val filteredLanguageData = resource match {
         case document: Document =>
-          val filtered = filterNonEnglish(document.languageData)
-          filterRelevantFields(addTextToTranslate(filtered, document))
+          addTextToTranslate(filterNonEnglish(filterRelevantFields(document.languageData)), document)
         case email: Email =>
-          val filtered = filterNonEnglish(email.languageData)
-          filterRelevantFields(addTextToTranslate(filtered, email))
+          addTextToTranslate(filterNonEnglish(filterRelevantFields(email.languageData)), email)
       }
 
       if (filteredLanguageData.isEmpty) {
@@ -108,7 +106,6 @@ abstract class ExternalTranslationExtractor(manifest: Manifest, index: Index, tr
           downloadSignedUrl <- transcriptionServiceBucket.getSignedUrl(textToTranslateKey)
           outputUrl <- transcriptionServiceBucket.getUploadSignedUrl(outputKey)
         } yield {
-          println(downloadSignedUrl)
           LlmJob(
             id = blob.uri.value,
             originalFilename = blob.uri.value,
