@@ -10,7 +10,7 @@ import services.index.Index
 import services.manifest.WorkerManifest
 import services.{ObjectStorage, TranscribeConfig}
 import utils.Logging
-import utils.attempt.{DocumentUpdateFailure, ExternalTranscriptionOutputFailure, Failure, JsonParseFailure}
+import utils.attempt.{DocumentUpdateFailure, ExternalTranscriptionOutputFailure, Failure, JsonParseFailure, UnknownFailure}
 import TranscriptionOutput.transcriptionOutputReads
 
 import scala.concurrent.ExecutionContext
@@ -119,10 +119,14 @@ class ExternalTranscriptionWorker(manifest: WorkerManifest, sqsClient: SqsClient
     val llmOutputText = blobStorage.getGzippedText(llmOutput.outputKey)
 
     llmOutputText.flatMap { output =>
-      val parsedLlmOutput = Json.fromJson[LanguageData](Json.parse(output))
-
-      parsedLlmOutput.asEither.leftMap { errors =>
-        JsonParseFailure(errors)
+      Try(Json.parse(output)).toEither.leftMap { error =>
+        logger.error(s"Failed to parse LLM output as JSON for ${llmOutput.id}. Raw output: $output", error)
+        UnknownFailure(error)
+      }.flatMap { json =>
+        Json.fromJson[LanguageData](json).asEither.leftMap { errors =>
+          logger.error(s"Failed to deserialize LLM output to LanguageData for ${llmOutput.id}. JSON: $output")
+          JsonParseFailure(errors)
+        }
       }
     }
   }
