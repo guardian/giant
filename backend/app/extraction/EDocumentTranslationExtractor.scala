@@ -1,6 +1,7 @@
 package extraction
 
-import model.index.LanguageData
+import model.{English, TranslationField, TranslationTask}
+import model.index.{Document, IndexedResource, LanguageData}
 import services.index.Index
 import services.manifest.Manifest
 import services.{ObjectStorage, TranscribeConfig}
@@ -15,10 +16,25 @@ import scala.concurrent.ExecutionContext
 class EDocumentTranslationExtractor(manifest: Manifest, index: Index, transcribeConfig: TranscribeConfig, transcriptionServiceBucket: ObjectStorage, sqsClient: SqsClient)(implicit executionContext: ExecutionContext)
   extends ExternalTranslationExtractor(manifest, index, transcribeConfig, transcriptionServiceBucket, sqsClient) {
 
-  override def filterRelevantFields(languageData: Option[LanguageData]): Option[LanguageData] = {
-    languageData.flatMap { ld =>
-      val filtered = ld.copy(emailSubject = None, emailBody = None, ocr = None)
-      if (filtered.text.isDefined) Some(filtered) else None
+  override def getTranslationTask(resource: IndexedResource): Option[TranslationTask] = {
+    val translationData = resource match {
+      case doc: Document if doc.languageData.isDefined => Some(doc.text, doc.languageData.get)
+      case _ => None
     }
-  }
+    val field = translationData.flatMap(_._2.text)
+
+    val detectedLanguage = field.flatMap(_.detectedLanguageCode)
+    val textToTranslate = translationData.map(_._1)
+    detectedLanguage.flatMap { dlc =>
+      if (dlc != English.iso6391Code && textToTranslate.isDefined) {
+        Some(TranslationTask(
+          systemPrompt = getSystemPrompt(List(dlc)),
+          fields = List(TranslationField("text", textToTranslate.get))
+        ))
+      } else None
+    }
+
+
+    }
+
 }

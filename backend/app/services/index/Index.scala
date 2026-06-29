@@ -54,5 +54,7 @@ trait Index {
   def getTextForBlobs(workspaceId: String, blobUris: List[String]): Attempt[Map[String, Map[String, String]]]
 
   def updateDocumentLanguageData(uri: Uri, languageData: LanguageData): Attempt[Unit]
+
+  def addTranslationToLanguageData(uri: Uri, fieldName: String, translation: String): Attempt[Unit]
 }
 

@@ -4,13 +4,13 @@ import cats.syntax.either._
 import model.index.LanguageData
 import software.amazon.awssdk.services.sqs.SqsClient
 import software.amazon.awssdk.services.sqs.model.{DeleteMessageRequest, Message, MessageSystemAttributeName, ReceiveMessageRequest, SendMessageRequest}
-import model.{LlmOutputFailure, LlmOutputSuccess, TranscriptionOutput, TranscriptionOutputFailure, TranscriptionOutputSuccess, TranscriptionResult, Uri}
+import model.{Language, Languages, LlmOutputFailure, LlmOutputSuccess, TranscriptionOutput, TranscriptionOutputFailure, TranscriptionOutputSuccess, TranscriptionResult, TranslationField, Uri}
 import play.api.libs.json.{JsError, JsSuccess, Json}
-import services.index.Index
+import services.index.{Index, IndexFields}
 import services.manifest.WorkerManifest
 import services.{ObjectStorage, TranscribeConfig}
 import utils.Logging
-import utils.attempt.{DocumentUpdateFailure, ExternalTranscriptionOutputFailure, Failure, JsonParseFailure, UnknownFailure}
+import utils.attempt.{Attempt, DocumentUpdateFailure, ExternalTranscriptionOutputFailure, Failure, JsonParseFailure, UnknownFailure}
 import TranscriptionOutput.transcriptionOutputReads
 
 import scala.concurrent.ExecutionContext
@@ -83,7 +83,7 @@ class ExternalTranscriptionWorker(manifest: WorkerManifest, sqsClient: SqsClient
           messageAttributes.extractorName match {
             case Some(extractorName) =>
               for {
-                languageData <- getLlmOutput(output)
+                languageData <- getLlmTranslationOutput(output)
                 _ <- addDocumentTranslation(output, languageData)
                 _ <- markExternalExtractorAsComplete(output.id, extractorName)
               } yield {
@@ -115,7 +115,7 @@ class ExternalTranscriptionWorker(manifest: WorkerManifest, sqsClient: SqsClient
 
 
 
-  private def getLlmOutput(llmOutput: LlmOutputSuccess): Either[Failure, LanguageData] = {
+  private def getLlmTranslationOutput(llmOutput: LlmOutputSuccess): Either[Failure, List[TranslationField]] = {
     val llmOutputText = blobStorage.getGzippedText(llmOutput.outputKey)
 
     llmOutputText.flatMap { output =>
@@ -123,7 +123,7 @@ class ExternalTranscriptionWorker(manifest: WorkerManifest, sqsClient: SqsClient
         logger.error(s"Failed to parse LLM output as JSON for ${llmOutput.id}. Raw output: $output", error)
         UnknownFailure(error)
       }.flatMap { json =>
-        Json.fromJson[LanguageData](json).asEither.leftMap { errors =>
+        Json.fromJson[List[TranslationField]](json).asEither.leftMap { errors =>
           logger.error(s"Failed to deserialize LLM output to LanguageData for ${llmOutput.id}. JSON: $output")
           JsonParseFailure(errors)
         }
@@ -178,17 +178,35 @@ class ExternalTranscriptionWorker(manifest: WorkerManifest, sqsClient: SqsClient
     }
   }
 
-  private def addDocumentTranslation(output: LlmOutputSuccess, languageData: LanguageData) = {
-    Either.catchNonFatal {
-      index.updateDocumentLanguageData(Uri(output.id), languageData)
-        .recoverWith {
-          case _ =>
-            val msg = s"Failed to write language data to elasticsearch for ${output.id}"
-            throw new Error(msg)
-        }
-      ()
-    }.leftMap {
-      case error => DocumentUpdateFailure.apply(error)
+  // we shouldn't trust arbitrary field names we read from SQS
+  private def discardInvalidFields(fields: List[TranslationField]): List[TranslationField] = {
+    val validFields = List(IndexFields.languageData.textField, IndexFields.languageData.emailBodyField, IndexFields.languageData.emailSubjectField)
+    val validOcrFields = Languages.all.map( lang => s"${IndexFields.languageData.ocr}_${lang.key}").toList
+    fields.filter { field =>
+      validFields.contains(field.name) || validOcrFields.contains(field.name)
+    }
+  }
+
+  private def addDocumentTranslation(output: LlmOutputSuccess, fields: List[TranslationField]): Either[Failure, Unit] = {
+    logger.info(s"Adding translation field for ${output.id}: $fields")
+    val result = discardInvalidFields(fields).map{ field =>
+      Either.catchNonFatal {
+        index.addTranslationToLanguageData(Uri(output.id), field.name, field.text)
+          .recoverWith {
+            case _ =>
+              val msg = s"Failed to write language data to elasticsearch for ${output.id}"
+              throw new Error(msg)
+          }
+        ()
+      }.leftMap {
+        case error => DocumentUpdateFailure.apply(error)
+      }
+    }
+
+    // convert List of eithers into single Either that is a Left if any of the eithers is a Left
+    result.collectFirst { case Left(err) => err } match {
+      case Some(err) => Left(err)
+      case None => Right(())
     }
   }
 
