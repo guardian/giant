@@ -323,6 +323,32 @@ class ElasticsearchResources(override val client: ElasticClient, indexName: Stri
     }
   }
 
+  // fieldName is either text, emailSubject, emailBody or ocr_lang where lang is english/french etc
+  override def addTranslationToLanguageData(uri: Uri, fieldName: String, translation: String): Attempt[Unit] = {
+    logger.info(s"Adding translation to language data field '$fieldName' for ${uri.value} in index")
+
+    val languageDataMap: Map[String, Any] = if (fieldName.startsWith("ocr_")) {
+      val langKey = fieldName.stripPrefix("ocr_")
+      Map(
+        IndexFields.languageData.ocr -> Map(
+          IndexFields.languageData.translatableFieldData.translation -> Map(langKey -> translation)
+        )
+      )
+    } else {
+      Map(
+        fieldName -> Map(
+          IndexFields.languageData.translatableFieldData.translation -> translation
+        )
+      )
+    }
+
+    executeUpdate {
+      updateById(indexName, uri.value).doc(
+        IndexFields.languageDataField -> languageDataMap
+      )
+    }
+  }
+
   override def updateDocumentLanguageData(uri: Uri, languageData: LanguageData): Attempt[Unit] = {
     logger.info(s"Updating language data for ${uri.value} in index")
 

@@ -25,6 +25,17 @@ object LlmPrompt {
   implicit val formats: Format[LlmPrompt] = Json.format[LlmPrompt]
 }
 
+case class TranslationField(name: String, text: String)
+
+object TranslationField {
+  implicit val translationFieldFormat: Format[TranslationField] = Json.format[TranslationField]
+}
+
+case class TranslationTask(systemPrompt: String, fields: List[TranslationField])
+object TranslationTask {
+  implicit val formats: Format[TranslationTask] = Json.format[TranslationTask]
+}
+
 case class CombinedOutputUrl(url: String, key: String)
 object CombinedOutputUrl {
   implicit val formats: Format[CombinedOutputUrl] = Json.format[CombinedOutputUrl]
@@ -138,6 +149,9 @@ case object Local extends LlmBackend {
 trait JobType
 case object LlmJobType extends JobType {
   val name = "llm"
+}
+case object LlmTranslationJobType extends JobType {
+  val name = "llm-translation"
 }
 case object TranscriptionJobType extends JobType {
   val name = "transcription"
