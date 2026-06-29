@@ -447,7 +447,7 @@ class Neo4JManifestITest extends AnyFreeSpec
         executor.submit(new Runnable {
           def run(): Unit = {
             barrier.await() // wait for both threads to be ready
-            workerOneResults = manifest
+            workerOneResults = fetchWorkTestManifest
               .fetchWork("concurrentWorkerOne", maxBatchSize = 10, maxCost = 10000, workerCount = 2, workerIndex = 0).toOption.get
             latch.countDown()
           }
@@ -455,7 +455,7 @@ class Neo4JManifestITest extends AnyFreeSpec
         executor.submit(new Runnable {
           def run(): Unit = {
             barrier.await() // wait for both threads to be ready
-            workerTwoResults = manifest.fetchWork("concurrentWorkerTwo", maxBatchSize = 10, maxCost = 10000, workerCount = 2, workerIndex = 1).toOption.get
+            workerTwoResults = fetchWorkTestManifest.fetchWork("concurrentWorkerTwo", maxBatchSize = 10, maxCost = 10000, workerCount = 2, workerIndex = 1).toOption.get
             latch.countDown()
           }
         })
