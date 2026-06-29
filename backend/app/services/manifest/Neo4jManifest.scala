@@ -984,7 +984,7 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
         |  // We SET them afterwards, because we want to copy properties from the PROCESSED
         |  // https://neo4j.com/docs/developer-manual/3.3/cypher/clauses/set/#set-copying-properties-between-nodes-and-relationships.
         |  CREATE (blob)<-[todoForRedoingPreviousSuccess :TODO]-(extractor)
-        |  SET todoForRedoingPreviousSuccess = processedRelation
+        |  SET todoForRedoingPreviousSuccess = properties(processedRelation)
         |  SET todoForRedoingPreviousSuccess.attempts = 0
         |  SET todoForRedoingPreviousSuccess.priority = extractor.priority
         |  SET todoForRedoingPreviousSuccess.cost = extractor.cost
@@ -1087,7 +1087,7 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
         |MATCH (blob :Blob:Resource {uri: $uri})<-[failure :EXTRACTION_FAILURE]-(failedExtractor :Extractor {external: true})
         |MATCH (blob)<-[processing_externally :PROCESSING_EXTERNALLY]-(failedExtractor)
         |MERGE (blob)<-[todo:TODO]-(failedExtractor)
-        |ON CREATE SET todo = processing_externally, todo.attempts = 0
+        |ON CREATE SET todo = properties(processing_externally), todo.attempts = 0
         |DELETE processing_externally
       """.stripMargin,
       parameters(
