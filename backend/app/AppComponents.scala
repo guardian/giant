@@ -95,10 +95,10 @@ class AppComponents(context: Context, config: Config)
     else
       SnsClient.builder().region(config.sqs.regionV2).build()
 
-    val s3Presigner = S3Presigner.builder()
-      .region(config.sqs.regionV2)
-      .credentialsProvider(credentialsProvider)
-      .build()
+    val s3Presigner = if (config.s3.endpoint.isDefined)
+      S3Presigner.builder().endpointOverride(URI.create(config.s3.endpoint.get)).region(config.s3.regionV2).credentialsProvider(s3Client.credentials).build()
+    else
+      S3Presigner.builder().region(config.sqs.regionV2).credentialsProvider(s3Client.credentials).build()
 
     val workerName = config.worker.name.getOrElse(InetAddress.getLocalHost.getHostName)
 
