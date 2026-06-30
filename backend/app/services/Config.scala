@@ -165,7 +165,9 @@ case class S3Config(
   secretKey: Option[String],
   // These settings are just for AWS
   sseAlgorithm: Option[String]
-)
+) {
+  val regionV2: Region = Region.of(region)
+}
 
 case class SQSConfig(
                     region: String,
