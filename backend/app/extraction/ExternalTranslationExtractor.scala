@@ -5,7 +5,7 @@ import model.{Bedrock, CombinedOutputUrl, LlmJob, LlmJobType, LlmPrompt, LlmTran
 import model.manifest.Blob
 import org.joda.time.DateTime
 import play.api.libs.json.Json
-import services.{ObjectStorage, TranscribeConfig}
+import services.{ObjectStorage, TranscribeConfig, TranslationConfig}
 import services.index.Index
 import services.manifest.Manifest
 import software.amazon.awssdk.services.sqs.SqsClient
@@ -14,7 +14,7 @@ import utils.attempt.{Failure, NoTextToTranslateFailure}
 import scala.concurrent.duration.DurationInt
 import scala.concurrent.{Await, ExecutionContext}
 
-abstract class ExternalTranslationExtractor(manifest: Manifest, index: Index, transcribeConfig: TranscribeConfig, transcriptionServiceBucket: ObjectStorage, sqsClient: SqsClient)(implicit executionContext: ExecutionContext) extends ExternalExtractor {
+abstract class ExternalTranslationExtractor(manifest: Manifest, index: Index, transcribeConfig: TranscribeConfig, translateConfig: TranslationConfig, transcriptionServiceBucket: ObjectStorage, sqsClient: SqsClient)(implicit executionContext: ExecutionContext) extends ExternalExtractor {
   // No mimeTypes as we rely on language detection in the Ocr/DocumentBody extractors to decide whether to
   // apply this extractor
   val mimeTypes: Set[String] = Set()
@@ -29,7 +29,7 @@ abstract class ExternalTranslationExtractor(manifest: Manifest, index: Index, tr
   def getTranslationTask(resource: IndexedResource): Option[TranslationTask]
 
   def getSystemPrompt(detectedLanguageCodes: List[String]): String = {
-      s"""You are a professional translator. Translate the text into English.
+      s"""You are a professional translator. Translate the text into ${translateConfig.targetLanguage}.
          |
          |Rules:
          |- The ISO 639 detected language code of the text is ${detectedLanguageCodes.mkString(" or ")}. Use this to inform your translation.
