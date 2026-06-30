@@ -349,38 +349,6 @@ class ElasticsearchResources(override val client: ElasticClient, indexName: Stri
     }
   }
 
-  override def updateDocumentLanguageData(uri: Uri, languageData: LanguageData): Attempt[Unit] = {
-    logger.info(s"Updating language data for ${uri.value} in index")
-
-    def fieldToMap(fieldName: String, field: LanguageDataField): Option[(String, Map[String, Any])] = {
-      Some(fieldName -> Map(
-        IndexFields.languageData.translatableFieldData.detectedLanguageCode -> field.detectedLanguageCode.orNull,
-        IndexFields.languageData.translatableFieldData.translation -> field.translation.orNull
-      ))
-    }
-
-    val simpleFields = Seq(
-      languageData.text.flatMap(fieldToMap(IndexFields.languageData.textField, _)),
-      languageData.emailSubject.flatMap(fieldToMap(IndexFields.languageData.emailSubjectField, _)),
-      languageData.emailBody.flatMap(fieldToMap(IndexFields.languageData.emailBodyField, _))
-    ).flatten
-
-    val ocrField = languageData.ocr.map { ocr =>
-      IndexFields.languageData.ocr -> Map(
-        IndexFields.languageData.translatableFieldData.detectedLanguageCode -> ocr.detectedLanguageCode,
-        IndexFields.languageData.translatableFieldData.translation -> ocr.translation
-      )
-    }
-
-    val languageDataMap = (simpleFields ++ ocrField).toMap
-
-    executeUpdate {
-      updateById(indexName, uri.value).doc(
-        IndexFields.languageDataField -> languageDataMap
-      )
-    }
-  }
-
   override def addDocumentTranscription(uri: Uri, transcription: TranscriptionResult): Attempt[Unit] = {
     logger.info(s"Adding transcription to ${uri.value} in index")
 

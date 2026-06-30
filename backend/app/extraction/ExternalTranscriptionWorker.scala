@@ -79,7 +79,7 @@ class ExternalTranscriptionWorker(manifest: WorkerManifest, sqsClient: SqsClient
             Left(ExternalTranscriptionOutputFailure.apply(s"External transcription service failed to transcribe the file ${output.originalFilename}"))
           }
         case output: LlmOutputSuccess =>
-          logger.info(s"Processing LLM job ${output.id} with output key ${output.outputKey}")
+          logger.info(s"Processing LLM job ${output.id} with output key ${output.outputKey} and extractor name ${messageAttributes.extractorName.getOrElse("unknown")}")
           messageAttributes.extractorName match {
             case Some(extractorName) =>
               for {
@@ -87,7 +87,7 @@ class ExternalTranscriptionWorker(manifest: WorkerManifest, sqsClient: SqsClient
                 _ <- addDocumentTranslation(output, languageData)
                 _ <- markExternalExtractorAsComplete(output.id, extractorName)
               } yield {
-                logger.info(s"LLM job ${output.id} processed successfully")
+                logger.info(s"LLM job ${output.id} for extractor ${extractorName} processed successfully")
               }
             case None =>
               Left(ExternalTranscriptionOutputFailure.apply(s"LLM output message for ${output.id} is missing the GiantExtractorName message attribute, cannot determine which extractor to mark as complete"))

@@ -65,7 +65,6 @@ export type HighlightableText = {
 export type LanguageDataField = {
   detectedLanguageCode?: string;
   translation?: string;
-  textToTranslate?: string;
 };
 
 export type OcrLanguageData = {
@@ -73,9 +72,6 @@ export type OcrLanguageData = {
     [lang: string]: string;
   };
   translation: {
-    [lang: string]: string;
-  };
-  textToTranslate: {
     [lang: string]: string;
   };
 };
