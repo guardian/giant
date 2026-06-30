@@ -1,8 +1,7 @@
 package extraction
 
-import model.index.LanguageData.{addTextToTranslate, filterNonEnglish}
 import model.index.{Document, IndexedResource, LanguageData}
-import model.{Bedrock, CombinedOutputUrl, Email, English, Language, LlmJob, LlmJobType, LlmPrompt, LlmTranslationJobType, Local, TranslationTask}
+import model.{Bedrock, CombinedOutputUrl, LlmJob, LlmJobType, LlmPrompt, LlmTranslationJobType, Local, TranslationTask}
 import model.manifest.Blob
 import org.joda.time.DateTime
 import play.api.libs.json.Json

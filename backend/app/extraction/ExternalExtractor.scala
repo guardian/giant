@@ -37,9 +37,7 @@ abstract class ExternalExtractor extends Extractor with Logging {
         .queueUrl(queueUrl)
         .messageBody(Json.stringify(Json.toJson(job)))
         .messageGroupId(UUID.randomUUID().toString)
-        // these attributes are ignored by the transcription service but in future should be included in message attributes
-        // of output from the transcription worker so that we can still match messages that fail to parse to the relevant
-        // blob/extractor
+        // these attributes should be returned unchanged by the transcription service so we can match the response to the original extractor
         .messageAttributes(Map(
           "GiantBlobUri" -> MessageAttributeValue.builder().dataType("String").stringValue(blobUri).build(),
           "GiantExtractorName" -> MessageAttributeValue.builder().dataType("String").stringValue(extractorName).build()
