@@ -210,7 +210,7 @@ export function TextPreview({
               },
               {
                 key: "translation",
-                text: "english translation",
+                text: "Translation",
                 value: "translation",
               },
             ]}

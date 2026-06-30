@@ -189,8 +189,8 @@ class AppComponents(context: Context, config: Config)
     val externalExtractors: List[Extractor] = if (config.worker.useExternalExtractors) {
       List(
         new ExternalTranscriptionExtractor(esResources, config.transcribe, blobStorage, transcriptionServiceStorage, sqsClient),
-        new EDocumentTranslationExtractor(manifest, esResources, config.transcribe, transcriptionServiceStorage, sqsClient),
-        new EOcrTranslationExtractor(manifest, esResources, config.transcribe, transcriptionServiceStorage, sqsClient)
+        new EDocumentTranslationExtractor(manifest, esResources, config.transcribe, config.translation, transcriptionServiceStorage, sqsClient),
+        new EOcrTranslationExtractor(manifest, esResources, config.transcribe, config.translation, transcriptionServiceStorage, sqsClient)
       )
     } else {
       List(new TranscriptionExtractor(esResources, scratchSpace, config.transcribe))
