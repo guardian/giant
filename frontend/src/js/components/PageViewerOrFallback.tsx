@@ -1,4 +1,4 @@
-import React, { FC, useCallback, useEffect, useState } from "react";
+import React, { FC, useCallback, useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import authFetch from "../util/auth/authFetch";
 import { useParams } from "react-router-dom";
@@ -30,8 +30,12 @@ import { keyboardShortcuts } from "../util/keyboardShortcuts";
 import { KeyboardShortcut } from "./UtilComponents/KeyboardShortcut";
 import history from "../util/history";
 import { useWorkspaceNavigation } from "../util/workspaceNavigation";
-
-const COMBINED_VIEW = "combined";
+import { removeLastUnmatchedQuote } from "../util/stringUtils";
+import {
+  COMBINED_VIEW,
+  isTextLikeView,
+  resolveInitialPagedView,
+} from "./PageViewer/resolveInitialPagedView";
 
 function isCombinedOrUnset(view: string | undefined): boolean {
   return !view || view === COMBINED_VIEW;
@@ -213,7 +217,9 @@ export const PageViewerOrFallback: FC<{}> = () => {
     }
   }, [highlightStepper.currentHighlight, highlightStepper.totalHighlights]);
 
-  const [response, setResponse] = useState<PageCountResponse | null>(null);
+  const [response, setResponse] = useState<
+    (PageCountResponse & { uri: string }) | null
+  >(null);
   const view = useSelector<GiantState, string | undefined>(
     (state) => state.urlParams.view,
   );
@@ -225,22 +231,98 @@ export const PageViewerOrFallback: FC<{}> = () => {
   useEffect(() => {
     authFetch(`/api/pages2/${uri}/pageCount`)
       .then((res) => res.json())
-      .then((obj: PageCountResponse) => setResponse(obj))
-      .catch(() => setResponse({ pageCount: 0, dimensions: null }));
+      .then((obj: PageCountResponse) => setResponse({ ...obj, uri }))
+      .catch(() => setResponse({ pageCount: 0, dimensions: null, uri }));
   }, [uri]);
 
-  const totalPages = response?.pageCount ?? null;
+  // This component is not remounted when the :uri route param changes, so until
+  // the new document's count arrives `response` still holds the previous one's.
+  // Tagging it with its uri lets us treat a stale count as "not yet known"
+  // rather than wrongly imposing the Combined view on the next document.
+  const pageData = response && response.uri === uri ? response : null;
+  const totalPages = pageData ? pageData.pageCount : null;
 
-  // Default to "combined" when we have pages and no view is set.
+  const searchQuery = searchParams.get("q") ?? undefined;
+
+  // We resolve the initial view once per document load so that a user manually
+  // switching tabs afterwards is respected (see resolveInitialPagedView).
+  const decidedForUri = useRef<string | null>(null);
+  // null = the page-match probe has not resolved (or wasn't needed) yet.
+  const [searchMatchesInPages, setSearchMatchesInPages] = useState<
+    boolean | null
+  >(null);
+
   useEffect(() => {
-    if (totalPages && totalPages > 0 && !view) {
-      dispatch(setResourceView(COMBINED_VIEW));
-    }
-  }, [totalPages, view, dispatch]);
+    decidedForUri.current = null;
+    setSearchMatchesInPages(null);
+  }, [uri]);
 
-  if (response === null) {
+  // When search has forced a text-like view on a paged document, probe the page
+  // index to find out whether the query is also reachable in the Combined view.
+  // Elasticsearch can't tell us this up front because it has no notion of the
+  // Combined view (issues #733 / #760). Mirrors the request the PageViewer's
+  // Controls make once Combined is active.
+  useEffect(() => {
+    if (
+      decidedForUri.current === uri ||
+      !searchQuery ||
+      !totalPages ||
+      totalPages <= 0 ||
+      !view ||
+      !isTextLikeView(view)
+    ) {
+      return;
+    }
+
+    let cancelled = false;
+    const params = new URLSearchParams();
+    params.set("q", removeLastUnmatchedQuote(searchQuery));
+
+    authFetch(`/api/pages2/${uri}/search?${params.toString()}`)
+      .then((res) => res.json())
+      .then((results: unknown) => {
+        if (!cancelled) {
+          setSearchMatchesInPages(Array.isArray(results) && results.length > 0);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          // If we can't confirm a page match, honour the search-forced view so
+          // the user still lands on a real match.
+          setSearchMatchesInPages(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [uri, searchQuery, totalPages, view]);
+
+  useEffect(() => {
+    if (decidedForUri.current === uri) {
+      return;
+    }
+
+    const resolution = resolveInitialPagedView({
+      totalPages,
+      currentView: view,
+      hasSearchQuery: Boolean(searchQuery),
+      searchMatchesInPages,
+    });
+
+    if (resolution.kind === "wait") {
+      return;
+    }
+
+    decidedForUri.current = uri;
+    if (resolution.kind === "set" && resolution.view !== view) {
+      dispatch(setResourceView(resolution.view));
+    }
+  }, [uri, totalPages, view, searchQuery, searchMatchesInPages, dispatch]);
+
+  if (totalPages === null) {
     return null;
-  } else if (response.pageCount === 0) {
+  } else if (totalPages === 0) {
     return (
       <div className="document__viewer-fallback">
         <SearchStepperOverlay highlightStepper={highlightStepper} />
@@ -257,8 +339,8 @@ export const PageViewerOrFallback: FC<{}> = () => {
       <PageViewerContent
         key={uri}
         uri={uri}
-        totalPages={response.pageCount}
-        firstPageDimensions={response.dimensions ?? undefined}
+        totalPages={totalPages}
+        firstPageDimensions={pageData?.dimensions ?? undefined}
         view={view}
         findQuery={pageFind.findQuery}
         findHighlightsState={pageFind.highlightsState}
@@ -285,7 +367,7 @@ export const PageViewerOrFallback: FC<{}> = () => {
           <DocumentFooter
             uri={uri}
             workspaceNav={workspaceNav}
-            totalPages={response.pageCount}
+            totalPages={totalPages}
             pageFind={isCombinedOrUnset(view) ? pageFind : undefined}
             pageViewControls={
               isCombinedOrUnset(view) ? pageViewControls : undefined
