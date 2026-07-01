@@ -188,7 +188,7 @@ class ExternalTranscriptionWorker(manifest: WorkerManifest, sqsClient: SqsClient
   }
 
   private def addDocumentTranslation(output: LlmOutputSuccess, fields: List[TranslationField]): Either[Failure, Unit] = {
-    logger.info(s"Adding translation field for ${output.id}: $fields")
+    logger.info(s"Adding translation field for ${output.id} with fields ${fields.map(_.name).mkString(", ")}")
     val result = discardInvalidFields(fields).map{ field =>
       Either.catchNonFatal {
         index.addTranslationToLanguageData(Uri(output.id), field.name, field.text)
