@@ -70,6 +70,7 @@ import {
   RemoveFromWorkspaceModal,
 } from "./ConfirmModal";
 import { ReprocessFolderModal } from "./ReprocessFolderModal";
+import { DownloadTextModal } from "./DownloadTextModal";
 import { PartialUser } from "../../types/User";
 import { getMyPermissions } from "../../actions/users/getMyPermissions";
 import buildLink from "../../util/buildLink";
@@ -117,6 +118,7 @@ type State = {
     status: ModalStatus;
   };
   reprocessFolderModalEntry: null | TreeEntry<WorkspaceEntry>;
+  downloadFolderEntry: null | TreeEntry<WorkspaceEntry>;
   itemsBeingMoved: number;
   itemsWithMoveSettled: number;
   /** Files dropped from the file system via drag-and-drop */
@@ -428,6 +430,7 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
       status: "unconfirmed",
     },
     reprocessFolderModalEntry: null,
+    downloadFolderEntry: null,
     itemsBeingMoved: 0,
     itemsWithMoveSettled: 0,
     droppedFiles: undefined,
@@ -959,6 +962,11 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
         content: "Reprocess folder contents\u2026",
         icon: "redo",
       });
+      items.push({
+        key: "downloadFolderAsText",
+        content: "Download folder as text",
+        icon: "file alternate outline",
+      });
     }
 
     if (isWorkspaceFolder && !isRemoteIngest) {
@@ -1063,6 +1071,13 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
               isWorkspaceFolder
             ) {
               this.setState({ reprocessFolderModalEntry: entry });
+            }
+
+            if (
+              menuItemProps.content === "Download folder as text" &&
+              isWorkspaceFolder
+            ) {
+              this.setState({ downloadFolderEntry: entry });
             }
 
             if (menuItemProps.content === "Search in folder") {
@@ -1406,6 +1421,16 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
               onCancel={() =>
                 this.setState({ reprocessFolderModalEntry: null })
               }
+            />
+          )}
+        {this.state.downloadFolderEntry &&
+          isWorkspaceNode(this.state.downloadFolderEntry.data) && (
+            <DownloadTextModal
+              isOpen={true}
+              dismiss={() => this.setState({ downloadFolderEntry: null })}
+              workspace={this.props.currentWorkspace}
+              rootEntry={this.state.downloadFolderEntry}
+              label={this.state.downloadFolderEntry.name}
             />
           )}
       </div>

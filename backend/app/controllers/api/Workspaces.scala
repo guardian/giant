@@ -187,6 +187,14 @@ class Workspaces(
     } yield Ok(Json.toJson(totalWordCount))
   }
 
+  def getWordCount(workspaceId: String) = ApiAction.attempt(parse.json) { req =>
+    for {
+      _ <- annotation.getWorkspaceMetadata(req.user.username, workspaceId) // check workspace exists and user has access
+      blobUris <- req.body.validate[List[String]].toAttempt
+      wordCount <- index.getWordCountForBlobs(workspaceId, blobUris)
+    } yield Ok(Json.toJson(wordCount))
+  }
+
   def getText(workspaceId: String) = ApiAction.attempt(parse.json) { req =>
     for {
       _ <- annotation.getWorkspaceMetadata(req.user.username, workspaceId) // check workspace exists and user has access
