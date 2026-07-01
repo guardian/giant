@@ -102,6 +102,8 @@
   display: flex;
   align-items: center;
   gap: 2px;
+  // Small breathing room before the view switcher ("Combined" etc.)
+  margin-right: 8px;
 
   button {
     background: none;
@@ -109,6 +111,9 @@
     color: white;
     cursor: pointer;
     padding: 2px;
+    // Icons are sized in em, so bumping font-size enlarges them for
+    // legibility at footer scale (zoom +/- and rotate direction).
+    font-size: 17px;
     display: flex;
     align-items: center;
 

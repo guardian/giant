@@ -30,7 +30,12 @@ type VirtualScrollProps = {
   totalPages: number;
   pageNumbersToPreload: number[];
 
-  jumpToPage?: number | null;
+  // A jump request carries a nonce so the same target page can be requested
+  // repeatedly (e.g. jump to 5, scroll away, jump to 5 again). Keying the jump
+  // effect on the nonce also stops a zoom-driven pageHeight change from
+  // re-triggering an old jump and fighting the scroll-preservation effect.
+  jumpRequest?: { page: number; nonce: number } | null;
+  onVisiblePageChange?: (pageNumber: number) => void;
 
   rotation: number;
   scale: number;
@@ -57,7 +62,8 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
   focusedSearchHighlight,
 
   totalPages,
-  jumpToPage,
+  jumpRequest,
+  onVisiblePageChange,
   pageNumbersToPreload,
 
   rotation,
@@ -232,20 +238,46 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
     });
   }, [pageHeight, totalPages, debouncedSetPageRange]);
 
-  const throttledSetPageRangeFromScrollPosition = useMemo(
-    () => throttle(setPageRangeFromScrollPosition, 75),
-    [setPageRangeFromScrollPosition],
+  // Report which page is at the centre of the viewport for the footer readout.
+  // Computed directly from the scroll position rather than from pageRange.middle
+  // because that value is debounced for large jumps, which would make the
+  // readout visibly lag during fast scrolls.
+  const reportVisiblePage = useCallback(() => {
+    if (viewport?.current && onVisiblePageChange) {
+      const v = viewport.current;
+      const currentMid = v.scrollTop + v.clientHeight / 2;
+      const pageNumber = Math.min(
+        Math.max(Math.floor(currentMid / pageHeight) + 1, 1),
+        totalPages,
+      );
+      onVisiblePageChange(pageNumber);
+    }
+  }, [onVisiblePageChange, pageHeight, totalPages]);
+
+  const handleScroll = useCallback(() => {
+    setPageRangeFromScrollPosition();
+    reportVisiblePage();
+  }, [setPageRangeFromScrollPosition, reportVisiblePage]);
+
+  const throttledHandleScroll = useMemo(
+    () => throttle(handleScroll, 75),
+    [handleScroll],
   );
 
-  // TODO: try just useEffect
+  // Only act on a jump when its nonce changes, not on every pageHeight change.
+  // Otherwise zooming (which changes pageHeight) would re-apply the last jump
+  // and override the scroll-preservation effect above.
+  const lastAppliedJumpNonce = useRef<number | null>(null);
   useLayoutEffect(() => {
-    if (viewport?.current) {
-      if (jumpToPage) {
-        const scrollTo = (jumpToPage - 1) * pageHeight;
-        viewport.current.scrollTop = scrollTo;
-      }
+    if (
+      viewport?.current &&
+      jumpRequest &&
+      jumpRequest.nonce !== lastAppliedJumpNonce.current
+    ) {
+      lastAppliedJumpNonce.current = jumpRequest.nonce;
+      viewport.current.scrollTop = (jumpRequest.page - 1) * pageHeight;
     }
-  }, [pageHeight, jumpToPage]);
+  }, [pageHeight, jumpRequest]);
 
   useLayoutEffect(() => {
     if (viewport?.current && focusedFindHighlight) {
@@ -339,7 +371,7 @@ export const VirtualScroll: FC<VirtualScrollProps> = ({
     <div
       ref={viewport}
       className={styles.scrollContainer}
-      onScroll={throttledSetPageRangeFromScrollPosition}
+      onScroll={throttledHandleScroll}
     >
       <div className={styles.pages} style={{ height: totalPages * pageHeight }}>
         {renderedPages.map((page) => (

@@ -19,6 +19,8 @@ type PageViewerProps = {
   focusedFindHighlight: HighlightForSearchNavigation | null;
   rotation: number;
   scale: number;
+  jumpRequest?: { page: number; nonce: number } | null;
+  onVisiblePageChange?: (pageNumber: number) => void;
 };
 
 export const PageViewer: FC<PageViewerProps> = ({
@@ -30,6 +32,8 @@ export const PageViewer: FC<PageViewerProps> = ({
   focusedFindHighlight,
   rotation,
   scale,
+  jumpRequest,
+  onVisiblePageChange,
 }) => {
   const params = new URLSearchParams(document.location.search);
 
@@ -91,6 +95,8 @@ export const PageViewer: FC<PageViewerProps> = ({
           rotation={rotation}
           scale={scale}
           firstPageDimensions={firstPageDimensions}
+          jumpRequest={jumpRequest}
+          onVisiblePageChange={onVisiblePageChange}
         />
       ) : null}
     </main>
