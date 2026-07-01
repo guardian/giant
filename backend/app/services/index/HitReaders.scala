@@ -228,7 +228,8 @@ object HitReaders {
       html            = metadataMap.optMultiLanguageField[String](metadata.html),
       attachmentCount = metadataMap.optField[Int](metadata.attachmentCount).getOrElse(0),
       metadata        = readMetadata(fields),
-      flag            = fields.optField[String](flags)
+      flag            = fields.optField[String](flags),
+      languageData    = readLanguageData(fields)
     )
   }
 

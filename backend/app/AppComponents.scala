@@ -6,6 +6,7 @@ import java.net.URI
 import software.amazon.awssdk.services.sns.SnsClient
 import software.amazon.awssdk.services.sqs.SqsClient
 import software.amazon.awssdk.services.s3.presigner.S3Presigner
+import software.amazon.awssdk.regions.Region
 import com.gu.pandomainauth
 import com.gu.pandomainauth.PublicSettings
 import controllers.AssetsComponents
@@ -20,7 +21,7 @@ import extraction.email.olm.OlmEmailExtractor
 import extraction.email.pst.PstEmailExtractor
 import extraction.ocr.{ImageOcrExtractor, OcrMyPdfExtractor, OcrMyPdfImageExtractor, TesseractPdfOcrExtractor}
 import extraction.tables.{CsvTableExtractor, ExcelTableExtractor}
-import extraction.{DocumentBodyExtractor, ExternalTranscriptionExtractor, ExternalTranscriptionWorker, MimeTypeMapper, TranscriptionExtractor, Worker}
+import extraction.{DocumentBodyExtractor, EDocumentTranslationExtractor, EOcrTranslationExtractor, ExternalTranscriptionExtractor, ExternalTranscriptionWorker, Extractor, MimeTypeMapper, TranscriptionExtractor, Worker}
 import ingestion.phase2.IngestStorePolling
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.neo4j.driver.{AuthTokens, GraphDatabase}
@@ -81,8 +82,6 @@ class AppComponents(context: Context, config: Config)
     val s3ExecutionContext = actorSystem.dispatchers.lookup("s3-context")
     val ingestionExecutionContext = actorSystem.dispatchers.lookup("ingestion-context")
 
-    val credentialsProvider = AwsCredentials.credentialsV2()
-
     val s3Client = new S3Client(config.s3)(s3ExecutionContext)
 
     val sqsClient = if (config.sqs.endpoint.isDefined)
@@ -108,7 +107,7 @@ class AppComponents(context: Context, config: Config)
     // data storage services
     val ingestStorage = S3IngestStorage(s3Client, s3Presigner, config.s3.buckets.ingestion, config.s3.buckets.deadLetter).valueOr(failure => throw new Exception(failure.msg))
     val blobStorage = S3ObjectStorage(s3Client, s3Presigner, config.s3.buckets.collections).valueOr(failure => throw new Exception(failure.msg))
-    val transcriptStorage = S3ObjectStorage(s3Client, s3Presigner, config.s3.buckets.transcription).valueOr(failure => throw new Exception(failure.msg))
+    val transcriptionServiceStorage = S3ObjectStorage(s3Client, s3Presigner, config.s3.buckets.transcription).valueOr(failure => throw new Exception(failure.msg))
     val remoteIngestStorage = S3IngestStorage(s3Client, s3Presigner, config.s3.buckets.remoteIngestion, config.s3.buckets.deadLetter).valueOr(failure => throw new Exception(failure.msg))
 
     val postgresClient = config.postgres match {
@@ -187,10 +186,14 @@ class AppComponents(context: Context, config: Config)
     val ocrMyPdfImageExtractor = new OcrMyPdfImageExtractor(config.ocr, scratchSpace, esResources, previewStorage, ingestionServices)
 
 
-    val transcriptionExtractor = if (config.worker.useExternalExtractors) {
-      new ExternalTranscriptionExtractor(esResources, config.transcribe, blobStorage, transcriptStorage, sqsClient)
+    val externalExtractors: List[Extractor] = if (config.worker.useExternalExtractors) {
+      List(
+        new ExternalTranscriptionExtractor(esResources, config.transcribe, blobStorage, transcriptionServiceStorage, sqsClient),
+        new EDocumentTranslationExtractor(manifest, esResources, config.transcribe, config.translation, transcriptionServiceStorage, sqsClient),
+        new EOcrTranslationExtractor(manifest, esResources, config.transcribe, config.translation, transcriptionServiceStorage, sqsClient)
+      )
     } else {
-      new TranscriptionExtractor(esResources, scratchSpace, config.transcribe)
+      List(new TranscriptionExtractor(esResources, scratchSpace, config.transcribe))
     }
 
     val ocrExtractors = config.ocr.defaultEngine match {
@@ -201,7 +204,7 @@ class AppComponents(context: Context, config: Config)
     val csvTableExtractor = new CsvTableExtractor(scratchSpace, esTables)
     val excelTableExtractor = new ExcelTableExtractor(scratchSpace, esTables)
 
-    val extractors = List(olmExtractor, zipExtractor, rarExtractor, documentBodyExtractor, pstExtractor, emlExtractor, msgExtractor, mboxExtractor, csvTableExtractor, excelTableExtractor, transcriptionExtractor) ++ ocrExtractors
+    val extractors = List(olmExtractor, zipExtractor, rarExtractor, documentBodyExtractor, pstExtractor, emlExtractor, msgExtractor, mboxExtractor, csvTableExtractor, excelTableExtractor) ++ externalExtractors ++ ocrExtractors
     extractors.foreach(mimeTypeMapper.addExtractor)
 
     // Common components
@@ -257,7 +260,7 @@ class AppComponents(context: Context, config: Config)
       applicationLifecycle.addStopHook(() => workerScheduler.stop())
 
       // external extractor
-      val externalWorker = new ExternalTranscriptionWorker(manifest, sqsClient, config.transcribe, transcriptStorage, esResources)
+      val externalWorker = new ExternalTranscriptionWorker(manifest, sqsClient, config.transcribe, transcriptionServiceStorage, esResources)
       val externalWorkerScheduler = new ExternalWorkerScheduler(actorSystem, externalWorker, config.worker.interval)(workerExecutionContext)
       externalWorkerScheduler.start()
       applicationLifecycle.addStopHook(() => externalWorkerScheduler.stop())

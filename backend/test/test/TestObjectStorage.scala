@@ -15,5 +15,7 @@ class TestObjectStorage extends ObjectStorage {
   override def deleteMultiple(key: Set[String]): Either[Failure, Unit] = Left(UnsupportedOperationFailure(""))
   override def list(prefix: String): Either[Failure, List[String]] = Left(UnsupportedOperationFailure(""))
   override def getSignedUrl(key: String): Either[Failure, String] = Left(UnsupportedOperationFailure(""))
+  override def getGzippedText(key: String): Either[Failure, String] = Left(UnsupportedOperationFailure(""))
   override def getUploadSignedUrl(key: String): Either[Failure, String] = Left(UnsupportedOperationFailure(""))
+  override def putText(key: String, text: String, mimeType: Option[String]): Either[Failure, Unit] = Left(UnsupportedOperationFailure(""))
 }

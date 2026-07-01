@@ -93,7 +93,8 @@ object AwsDiscovery extends Logging {
         whisperModelFilename = readSSMParameter("transcribe/modelFilename", stack, stage, ssmClient),
         transcriptionOutputQueueUrl = readSSMParameter("transcribe/transcriptionOutputQueueUrl", stack, stage, ssmClient),
         transcriptionServiceQueueUrl = readSSMParameter("transcribe/transcriptionServiceQueueUrl", stack, stage, ssmClient),
-        transcriptionOutputDeadLetterQueueUrl = readSSMParameter("transcribe/transcriptionOutputDeadLetterQueueUrl", stack, stage, ssmClient)
+        transcriptionOutputDeadLetterQueueUrl = readSSMParameter("transcribe/transcriptionOutputDeadLetterQueueUrl", stack, stage, ssmClient),
+        llmBackend = readSSMParameter("transcribe/llmBackend", stack, stage, ssmClient)
       ),
       remoteIngest = config.remoteIngest.copy(
         taskTopicArn = readSSMParameter("remoteIngest/taskTopicArn", stack, stage, ssmClient),

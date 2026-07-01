@@ -2,7 +2,7 @@ package extraction
 
 import cats.syntax.either._
 import model.manifest.Blob
-import model.{English, Languages}
+import model.{English, Languages, TranscriptionMetadata, TranscriptionResult, Transcripts}
 import org.apache.commons.io.FileUtils
 import services.{ScratchSpace, TranscribeConfig}
 import services.index.Index

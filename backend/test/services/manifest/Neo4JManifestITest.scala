@@ -114,7 +114,8 @@ class Neo4JManifestITest extends AnyFreeSpec
           Uri(uri), Some(person1), List(person2), Some(DateTimeFormatter.ISO_OFFSET_DATE_TIME.format(sentAt)),
           None, None, subject,
           s"Hi ${to.flatMap(_.displayName).mkString(", ")}! Love from ${from.displayName.getOrElse("?")}",
-          replies, refs, None, 0, Map.empty, None
+          replies, refs, None, 0, Map.empty, None,
+          languageData = None
         )
 
       val emails: Seq[Manifest.InsertEmail] = Seq(
@@ -517,7 +518,7 @@ class Neo4JManifestITest extends AnyFreeSpec
         val index = mock[Index]
         (index.ingestDocument _).expects(*, *, *, *).returning(Attempt.Right(()))
         val tika: Tika = Tika.createInstance
-        val languageDetect = ThreadLocal.withInitial { () =>
+        val languageDetect: ThreadLocal[LanguageDetector] = ThreadLocal.withInitial { () =>
           LanguageDetector.getDefaultLanguageDetector.loadModels()
         }
         val ingestionServices: IngestionServices = IngestionServices(manifest, index, objectStorage, tika, mimeTypeMapper, new TestPostgresClient, languageDetect)(scala.concurrent.ExecutionContext.global)

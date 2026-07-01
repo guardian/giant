@@ -2,24 +2,30 @@ package services
 
 
 
-import java.io.InputStream
+import java.io.{ByteArrayInputStream, InputStream}
 import java.nio.file.Path
 import model.ObjectMetadata
 import software.amazon.awssdk.services.s3.model.{Delete, DeleteObjectRequest, DeleteObjectsRequest, GetObjectRequest, HeadObjectRequest, ListObjectsV2Request, ListObjectsV2Response, ObjectIdentifier, PutObjectRequest}
 import software.amazon.awssdk.services.s3.presigner.S3Presigner
 import software.amazon.awssdk.services.s3.presigner.model.{GetObjectPresignRequest, PutObjectPresignRequest}
-import utils.attempt.{Failure, IllegalStateFailure, UnknownFailure}
+import utils.Logging
+import utils.attempt.{Failure, GzipUnzipFailed, IllegalStateFailure, UnknownFailure}
 import utils.aws.{AwsErrors, S3Client}
 
+import java.nio.charset.StandardCharsets
 import scala.jdk.CollectionConverters._
 import scala.util.control.NonFatal
 import java.time.Duration
+import java.util.zip.GZIPInputStream
+import scala.util.{Try, Using}
 
 
 trait ObjectStorage {
   def create(key: String, path: Path, mimeType: Option[String] = None): Either[Failure, Unit]
+  def putText(key: String, text: String, mimeType: Option[String]): Either[Failure, Unit]
   def get(key: String): Either[Failure, InputStream]
   def getSignedUrl(key: String): Either[Failure, String]
+  def getGzippedText(key: String): Either[Failure, String]
   def getUploadSignedUrl(key: String): Either[Failure, String]
   def getMetadata(key: String): Either[Failure, ObjectMetadata]
   def delete(key: String): Either[Failure, Unit]
@@ -27,11 +33,15 @@ trait ObjectStorage {
   def list(prefix: String): Either[Failure, List[String]]
 }
 
-class S3ObjectStorage private(client: S3Client, presigner: S3Presigner,  bucket: String) extends ObjectStorage {
+class S3ObjectStorage private(client: S3Client, presigner: S3Presigner,  bucket: String) extends ObjectStorage with Logging {
   def create(key: String, path: Path, mimeType: Option[String] = None): Either[Failure, Unit] = run {
     client.putLargeObject(bucket, key, contentType = mimeType, path)
 
     ()
+  }
+
+  def putText(key: String, text: String, mimeType: Option[String]): Either[Failure, Unit] = run {
+    client.putObjectSync(bucket, key, mimeType, text.getBytes("UTF-8"))
   }
 
   def get(key: String): Either[Failure, InputStream] = {
@@ -41,6 +51,25 @@ class S3ObjectStorage private(client: S3Client, presigner: S3Presigner,  bucket:
       .build()
 
     run(client.s3.getObject(getObjectRequest))
+  }
+
+  private def unzipBytes (data: Array[Byte]): String = {
+    Using.resource(new ByteArrayInputStream(data)){ byteStream =>
+      Using.resource(new GZIPInputStream(byteStream)) { gzipStream =>
+        val decompressedData = gzipStream.readAllBytes()
+        new String(decompressedData, StandardCharsets.UTF_8)
+      }
+    }
+  }
+
+  def getGzippedText(key: String): Either[Failure, String] = {
+    get(key).flatMap { stream =>
+      val allBytes = stream.readAllBytes()
+      Try(unzipBytes(allBytes)).toEither.left.map { err =>
+        logger.error(s"Failed to unzip gzipped text for key $key", err)
+        GzipUnzipFailed(err)
+      }
+    }
   }
 
   def getSignedUrl(key: String): Either[Failure, String] = {

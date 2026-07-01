@@ -1,29 +1,27 @@
 package extraction
 
 import cats.syntax.either._
+import model.index.LanguageData
 import software.amazon.awssdk.services.sqs.SqsClient
 import software.amazon.awssdk.services.sqs.model.{DeleteMessageRequest, Message, MessageSystemAttributeName, ReceiveMessageRequest, SendMessageRequest}
-import model.{English, Languages, Uri}
+import model.{Language, Languages, LlmOutputFailure, LlmOutputSuccess, TranscriptionOutput, TranscriptionOutputFailure, TranscriptionOutputSuccess, TranscriptionResult, TranslationField, Uri}
 import play.api.libs.json.{JsError, JsSuccess, Json}
-import services.index.Index
+import services.index.{Index, IndexFields}
 import services.manifest.WorkerManifest
 import services.{ObjectStorage, TranscribeConfig}
 import utils.Logging
-import utils.attempt.{DocumentUpdateFailure, ExternalTranscriptionOutputFailure, Failure, JsonParseFailure}
+import utils.attempt.{Attempt, DocumentUpdateFailure, ExternalTranscriptionOutputFailure, Failure, JsonParseFailure, UnknownFailure}
+import TranscriptionOutput.transcriptionOutputReads
 
-import java.io.ByteArrayInputStream
-import java.util.zip.GZIPInputStream
-import java.nio.charset.StandardCharsets
 import scala.concurrent.ExecutionContext
 import scala.jdk.CollectionConverters.CollectionHasAsScala
-import scala.util.{Try, Using}
+import scala.util.Try
 
-case class TranscriptionMessageAttribute(receiveCount: Option[Int], messageGroupId: String)
+case class TranscriptionMessageAttribute(receiveCount: Option[Int], messageGroupId: String, blobUri: Option[String], extractorName: Option[String])
 
 class ExternalTranscriptionWorker(manifest: WorkerManifest, sqsClient: SqsClient, transcribeConfig: TranscribeConfig, blobStorage: ObjectStorage, index: Index)(implicit executionContext: ExecutionContext)  extends Logging{
 
-  val EXTRACTOR_NAME = "ExternalTranscriptionExtractor"
-  val MAX_RECEIVE_COUNT = 3
+  private val MAX_RECEIVE_COUNT = 3
 
   def pollForResults(): Int  = {
     logger.info(s"Fetching messages from external transcription output queue ${transcribeConfig.transcriptionOutputQueueUrl}")
@@ -32,6 +30,9 @@ class ExternalTranscriptionWorker(manifest: WorkerManifest, sqsClient: SqsClient
         .queueUrl(transcribeConfig.transcriptionOutputQueueUrl)
         .maxNumberOfMessages(10)
         .messageSystemAttributeNames(MessageSystemAttributeName.MESSAGE_GROUP_ID, MessageSystemAttributeName.APPROXIMATE_RECEIVE_COUNT)
+        // request the custom attributes that the transcription worker preserves from the original job so that we can
+        // match the output back to the relevant blob/extractor
+        .messageAttributeNames("GiantBlobUri", "GiantExtractorName")
         .build())
       .messages()
 
@@ -66,17 +67,33 @@ class ExternalTranscriptionWorker(manifest: WorkerManifest, sqsClient: SqsClient
         case output: TranscriptionOutputSuccess => for {
           transcripts <- getTranscripts(output)
           _ <- addDocumentTranscription(output, transcripts)
-          _ <- markExternalExtractorAsComplete(output.id, EXTRACTOR_NAME)
+          _ <- markExternalExtractorAsComplete(output.id, classOf[ExternalTranscriptionExtractor].getSimpleName)
         } yield {
           logger.info(s"Transcript job ${output.id} processed successfully")
         }
         case output: TranscriptionOutputFailure =>
           if (output.noAudioDetected) {
             logger.info(s"No audio detected in job ${output.id}")
-            markExternalExtractorAsComplete(output.id, EXTRACTOR_NAME)
+            markExternalExtractorAsComplete(output.id, classOf[ExternalTranscriptionExtractor].getSimpleName)
           } else {
             Left(ExternalTranscriptionOutputFailure.apply(s"External transcription service failed to transcribe the file ${output.originalFilename}"))
           }
+        case output: LlmOutputSuccess =>
+          logger.info(s"Processing LLM job ${output.id} with output key ${output.outputKey} and extractor name ${messageAttributes.extractorName.getOrElse("unknown")}")
+          messageAttributes.extractorName match {
+            case Some(extractorName) =>
+              for {
+                languageData <- getLlmTranslationOutput(output)
+                _ <- addDocumentTranslation(output, languageData)
+                _ <- markExternalExtractorAsComplete(output.id, extractorName)
+              } yield {
+                logger.info(s"LLM job ${output.id} for extractor ${extractorName} processed successfully")
+              }
+            case None =>
+              Left(ExternalTranscriptionOutputFailure.apply(s"LLM output message for ${output.id} is missing the GiantExtractorName message attribute, cannot determine which extractor to mark as complete"))
+          }
+        case output: LlmOutputFailure =>
+          Left(ExternalTranscriptionOutputFailure.apply(s"External transcription service failed to translate the file ${output.id}"))
       }
     }
 
@@ -85,34 +102,40 @@ class ExternalTranscriptionWorker(manifest: WorkerManifest, sqsClient: SqsClient
         completed + 1
       case Left(failure: ExternalTranscriptionOutputFailure) =>
         logger.error(failure.msg, failure.toThrowable)
-        handleExternalTranscriptionOutputFailure(message, messageAttributes.messageGroupId, failure.msg)
+        handleExternalTranscriptionOutputFailure(message, messageAttributes, failure.msg)
         completed + 1
       case Left(failure) =>
         logger.error(s"failed to process sqs message", failure.toThrowable)
         if (messageAttributes.receiveCount.exists(_ >= MAX_RECEIVE_COUNT)) {
-          markAsFailure(new Uri(messageAttributes.messageGroupId), EXTRACTOR_NAME, failure.msg)
+          markAsFailure(messageAttributes, failure.msg)
         }
         completed
     }
   }
 
-  private def unzipBytes (data: Array[Byte]): String = {
-    Using.resource(new ByteArrayInputStream(data)){ byteStream =>
-      Using.resource(new GZIPInputStream(byteStream)) { gzipStream =>
-        val decompressedData = gzipStream.readAllBytes()
-        new String(decompressedData, StandardCharsets.UTF_8)
+
+
+  private def getLlmTranslationOutput(llmOutput: LlmOutputSuccess): Either[Failure, List[TranslationField]] = {
+    val llmOutputText = blobStorage.getGzippedText(llmOutput.outputKey)
+
+    llmOutputText.flatMap { output =>
+      Try(Json.parse(output)).toEither.leftMap { error =>
+        logger.error(s"Failed to parse LLM output as JSON for ${llmOutput.id}. Raw output: $output", error)
+        UnknownFailure(error)
+      }.flatMap { json =>
+        Json.fromJson[List[TranslationField]](json).asEither.leftMap { errors =>
+          logger.error(s"Failed to deserialize LLM output to LanguageData for ${llmOutput.id}. JSON: $output")
+          JsonParseFailure(errors)
+        }
       }
     }
   }
 
   private def getTranscripts(transcriptionOutput: TranscriptionOutputSuccess): Either[Failure, TranscriptionResult] = {
-    val combinedTranscripts = blobStorage.get(transcriptionOutput.combinedOutputKey)
+    val transcriptOutput = blobStorage.getGzippedText(transcriptionOutput.combinedOutputKey)
 
-    combinedTranscripts.flatMap { transcriptStream =>
-      val allBytes = transcriptStream.readAllBytes()
-      // combined transcript file is gzipped, so we have to unzip it
-      val combinedTranscriptsText = unzipBytes(allBytes)
-      val parsedTranscripts = Json.fromJson[TranscriptionResult](Json.parse(combinedTranscriptsText))
+    transcriptOutput.flatMap { output =>
+      val parsedTranscripts = Json.fromJson[TranscriptionResult](Json.parse(output))
 
       parsedTranscripts.asEither.leftMap { errors =>
         JsonParseFailure(errors)
@@ -126,7 +149,9 @@ class ExternalTranscriptionWorker(manifest: WorkerManifest, sqsClient: SqsClient
       // Receive count should always be defined, but if there is a problem with localstack it can be null, so wrap in an option
       val receiveCount = Option(attributes.get(MessageSystemAttributeName.APPROXIMATE_RECEIVE_COUNT)).map(_.toInt)
       val messageGroupId = attributes.get(MessageSystemAttributeName.MESSAGE_GROUP_ID)
-      TranscriptionMessageAttribute(receiveCount, messageGroupId)
+      val blobId = Option(message.messageAttributes().get("GiantBlobUri")).map(_.stringValue())
+      val extractorName = Option(message.messageAttributes().get("GiantExtractorName")).map(_.stringValue())
+      TranscriptionMessageAttribute(receiveCount, messageGroupId, blobId, extractorName)
     }.toEither
   }
 
@@ -140,7 +165,7 @@ class ExternalTranscriptionWorker(manifest: WorkerManifest, sqsClient: SqsClient
 
   private def addDocumentTranscription(transcriptionOutput: TranscriptionOutputSuccess, transcription: TranscriptionResult) = {
     Either.catchNonFatal {
-      index.addDocumentTranscription(Uri(transcriptionOutput.originalFilename), transcription)
+      index.addDocumentTranscription(Uri(transcriptionOutput.id), transcription)
         .recoverWith {
           case _ =>
             val msg = s"Failed to write transcript result to elasticsearch. Transcript language: ${transcriptionOutput.languageCode}"
@@ -153,14 +178,43 @@ class ExternalTranscriptionWorker(manifest: WorkerManifest, sqsClient: SqsClient
     }
   }
 
+  // we shouldn't trust arbitrary field names we read from SQS
+  private def discardInvalidFields(fields: List[TranslationField]): List[TranslationField] = {
+    val validFields = List(IndexFields.languageData.textField, IndexFields.languageData.emailBodyField, IndexFields.languageData.emailSubjectField)
+    val validOcrFields = Languages.all.map( lang => s"${IndexFields.languageData.ocr}_${lang.key}").toList
+    fields.filter { field =>
+      validFields.contains(field.name) || validOcrFields.contains(field.name)
+    }
+  }
+
+  private def addDocumentTranslation(output: LlmOutputSuccess, fields: List[TranslationField]): Either[Failure, Unit] = {
+    logger.info(s"Adding translation field for ${output.id} with fields ${fields.map(_.name).mkString(", ")}")
+    val result = discardInvalidFields(fields).map{ field =>
+      Either.catchNonFatal {
+        index.addTranslationToLanguageData(Uri(output.id), field.name, field.text)
+          .recoverWith {
+            case _ =>
+              val msg = s"Failed to write language data to elasticsearch for ${output.id}"
+              throw new Error(msg)
+          }
+        ()
+      }.leftMap {
+        case error => DocumentUpdateFailure.apply(error)
+      }
+    }
+
+    // convert List of eithers into single Either that is a Left if any of the eithers is a Left
+    result.collectFirst { case Left(err) => err } match {
+      case Some(err) => Left(err)
+      case None => Right(())
+    }
+  }
+
   private def parseMessage(message: Message): Either[Failure, TranscriptionOutput] = {
     val json = Json.parse(message.body())
 
     Json.fromJson[TranscriptionOutput](json) match {
-      case JsSuccess(output: TranscriptionOutputSuccess, _) =>
-        Right(output)
-
-      case JsSuccess(output: TranscriptionOutputFailure, _) =>
+      case JsSuccess(output, _) =>
         Right(output)
 
       case JsError(errors) =>
@@ -169,23 +223,31 @@ class ExternalTranscriptionWorker(manifest: WorkerManifest, sqsClient: SqsClient
     }
   }
 
-  private def markAsFailure(uri: Uri, extractorName: String, failureMsg: String): Unit = {
-    logger.error(s"Error in '${extractorName} processing ${uri}': ${failureMsg}")
+  private def markAsFailure(messageAttributes: TranscriptionMessageAttribute, failureMsg: String): Unit = {
+    logger.error(s"Error in '${messageAttributes.extractorName} processing ${messageAttributes.blobUri}', group id ${messageAttributes.messageGroupId}: ${failureMsg}")
 
-    manifest.logExtractionFailure(uri, extractorName, failureMsg).left.foreach { f =>
-      logger.error(s"Failed to log extractor in manifest: ${f.msg}")
+    if (messageAttributes.extractorName.isEmpty || messageAttributes.blobUri.isEmpty) {
+      logger.error(s"Can't mark failure as extractor name or uri missing from extracted message attributes.")
+    }
+    for {
+      name <- messageAttributes.extractorName
+      blobUri <- messageAttributes.blobUri
+    } yield {
+      manifest.logExtractionFailure(new Uri(blobUri), name, failureMsg).left.foreach { f =>
+        logger.error(s"Failed to log extractor in manifest: ${f.msg}")
+      }
     }
   }
 
-  private def handleExternalTranscriptionOutputFailure(message: Message, id: String, failureMessage: String) = {
+  private def handleExternalTranscriptionOutputFailure(message: Message, messageAttributes: TranscriptionMessageAttribute, failureMessage: String): Unit  = {
     Try {
       val sendMessageCommand = SendMessageRequest.builder()
         .queueUrl(transcribeConfig.transcriptionOutputDeadLetterQueueUrl)
         .messageBody(message.body())
-        .messageGroupId(id)
+        .messageGroupId(messageAttributes.messageGroupId)
         .build()
       sqsClient.sendMessage(sendMessageCommand)
-      logger.info(s"moved message $id to output dead letter queue")
+      logger.info(s"moved message ${messageAttributes.messageGroupId} to output dead letter queue")
 
       sqsClient.deleteMessage(
         DeleteMessageRequest.builder()
@@ -193,9 +255,11 @@ class ExternalTranscriptionWorker(manifest: WorkerManifest, sqsClient: SqsClient
           .receiptHandle(message.receiptHandle())
           .build()
       )
-      logger.debug(s"deleted message $id")
+      logger.debug(s"deleted message ${messageAttributes.messageGroupId}")
 
-      markAsFailure(new Uri(id), EXTRACTOR_NAME, failureMessage)
+
+      markAsFailure(messageAttributes, failureMessage)
+
     }.toEither match {
       case Right(_) => ()
       case Left(error) => logger.error(s"failed to handle external transcript output failure message", error)
