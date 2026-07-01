@@ -187,6 +187,23 @@ object WorkspaceMetadata {
   }
 }
 
+// Workspace-wide totals computed in a single aggregate query, for lazy loading (issue #744).
+// Under lazy loading the client never holds the whole tree, so it can't roll these up itself —
+// this feeds the summary header (an accurate total at any size) and the "is anything still
+// processing?" polling decision. The four fields mirror the eager tree's root-node rollup
+// (descendantsLeafCount / descendantsNodeCount / descendantsProcessingTaskCount /
+// descendantsFailedCount) so the two paths can be checked for parity.
+case class WorkspaceAggregate(
+  fileCount: Long,            // total files in the workspace
+  folderCount: Long,         // total folders, excluding the workspace root folder
+  processingTaskCount: Long, // sum of outstanding extractor tasks across non-failed files
+  failedCount: Long          // number of files with at least one failed extraction
+)
+
+object WorkspaceAggregate {
+  implicit val format: Format[WorkspaceAggregate] = Json.format[WorkspaceAggregate]
+}
+
 case class Workspace(id: String,
                      name: String,
                      isPublic: Boolean,
