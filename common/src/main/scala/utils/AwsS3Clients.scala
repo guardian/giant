@@ -3,8 +3,7 @@ package utils
 import software.amazon.awssdk.transfer.s3.S3TransferManager
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider
 import software.amazon.awssdk.regions.Region
-import software.amazon.awssdk.services.s3.S3Client
-import software.amazon.awssdk.services.s3.S3AsyncClient
+import software.amazon.awssdk.services.s3.{S3AsyncClient, S3Client, S3Configuration}
 
 import java.net.URI
 
@@ -27,6 +26,13 @@ object AwsS3Clients {
         .endpointOverride(new URI(garageEndpoint))
         .credentialsProvider(credentials)
         .forcePathStyle(true)
+        .serviceConfiguration(
+          // Disable chunked encoding for Garage, as it doesn't support it
+          // https://stackoverflow.com/questions/79603645/invalid-payload-signature-with-garagehq-and-dotnet-sdk
+          S3Configuration.builder()
+            .chunkedEncodingEnabled(false)
+            .build()
+        )
         .region(region)
         .build()
 
