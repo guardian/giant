@@ -7,6 +7,7 @@ import _isObject from "lodash/isObject";
 import Chip from "./Chip";
 import InlineInput from "./InlineInput";
 import SuggestionsPanel from "./SuggestionsPanel";
+import ReactTooltip from "react-tooltip";
 
 export default class InputSupper extends React.Component {
   static propTypes = {
@@ -26,11 +27,11 @@ export default class InputSupper extends React.Component {
   };
 
   focus = () => {
-    this.currentRef.focus();
+    this.currentRef?.focus();
   };
 
   select = () => {
-    this.currentRef.select();
+    this.currentRef?.select();
   };
 
   UNSAFE_componentWillReceiveProps(nextProps) {
@@ -451,6 +452,7 @@ export default class InputSupper extends React.Component {
         <div className="input-supper">
           {this.state.elements.map((e, index) => this.renderElement(e, index))}
         </div>
+        <ReactTooltip insecure={false} />
       </div>
     );
   }

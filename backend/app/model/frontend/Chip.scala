@@ -96,7 +96,18 @@ object Chips {
           // which happens when you've inserted the chip but haven't typed into it yet
           val sanitisedValue = if(value.isEmpty) { "\"\"" } else  { value }
 
-          op + template.replace("_word_", sanitisedValue)
+          // If the value contains " OR " (multi-value chip), expand the template
+          // once per value and OR the expansions together.  For example a value
+          // like "ocr OR transcript" substituted into _exists_:(_word_) must
+          // produce (_exists_:(ocr) OR _exists_:(transcript)) rather than the
+          // invalid _exists_:(ocr OR transcript).
+          val orValues = sanitisedValue.split(" OR ").map(_.trim).filter(_.nonEmpty)
+
+          if (orValues.length > 1) {
+            op + orValues.map(v => template.replace("_word_", v)).mkString("(", " OR ", ")")
+          } else {
+            op + template.replace("_word_", sanitisedValue)
+          }
         case _ => throw new UnsupportedOperationException("Invalid json type in query array")
       }.mkString(" ")
       case _ => throw new UnsupportedOperationException("Outer json type must be an array")
@@ -116,7 +127,18 @@ object Chips {
     DropdownChip("Has Field", List(
       DropdownOption("OCR", "ocr"),
       DropdownOption("Text", "text"),
+      DropdownOption("Transcription", "transcript"),
       DropdownOption("Author", "metadata.enrichedMetadata.author"),
-    ), "_exists_:(_word_)")
+    ), "_exists_:(_word_)"),
+    DropdownChip("Language", List(
+      DropdownOption("Arabic", "arabic"),
+      DropdownOption("English", "english"),
+      DropdownOption("French", "french"),
+      DropdownOption("German", "german"),
+      DropdownOption("Persian", "persian"),
+      DropdownOption("Portuguese", "portuguese"),
+      DropdownOption("Russian", "russian"),
+      DropdownOption("Spanish", "spanish"),
+    ), "(_exists_:(text._word_) OR _exists_:(ocr._word_) OR _exists_:(transcript._word_))")
   )
 }

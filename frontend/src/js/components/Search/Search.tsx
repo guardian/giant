@@ -1,26 +1,28 @@
-import React from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import { connect } from "react-redux";
+import { AnyAction } from "redux";
+import { ThunkDispatch } from "redux-thunk";
 
-import _isEqual from "lodash/fp/isEqual";
-import SearchBox from "./SearchBox";
+import _debounce from "lodash/debounce";
+import _get from "lodash/get";
 
+import Select from "react-select";
+
+import SearchBox, { SearchBoxHandle } from "./SearchBox";
 import SearchResults from "../SearchResults/SearchResults";
 import SearchStatus from "./SearchStatus";
 import PageNavigator from "../UtilComponents/PageNavigator";
 import { Checkbox } from "../UtilComponents/Checkbox";
 import { KeyboardShortcut } from "../UtilComponents/KeyboardShortcut";
-import Select from "react-select";
-
-import _get from "lodash/get";
-import _debounce from "lodash/debounce";
-
 import { keyboardShortcuts } from "../../util/keyboardShortcuts";
 import SearchVisualizations from "./SearchVisualizations";
 import { calculateSearchTitle } from "../UtilComponents/documentTitle";
-
-import { connect } from "react-redux";
-import { bindActionCreators } from "redux";
-import { AnyAction } from "redux";
-import { ThunkDispatch } from "redux-thunk";
 
 import { GiantState } from "../../types/redux/GiantState";
 import {
@@ -58,278 +60,261 @@ interface DispatchProps {
 
 type SearchProps = StateProps & DispatchProps;
 
-interface SearchState {
-  visibleText: string;
-}
-
 interface SelectOption {
   value: string;
   label: string;
 }
 
-interface SearchBoxHandle {
-  focus(): void;
-  select(): void;
-}
+const SORT_BY_OPTIONS: SelectOption[] = [
+  { value: "relevance", label: "Sort by relevance" },
+  { value: "size-asc", label: "Sort by size (smallest first)" },
+  { value: "size-desc", label: "Sort by size (largest first)" },
+  { value: "date-created-asc", label: "Sort by date created (oldest first)" },
+  { value: "date-created-desc", label: "Sort by date created (newest first)" },
+];
 
-class Search extends React.Component<SearchProps, SearchState> {
-  searchBox: SearchBoxHandle | null = null;
+const PAGE_SIZE_OPTIONS: SelectOption[] = [
+  { value: "25", label: "25 results per page" },
+  { value: "50", label: "50 results per page" },
+  { value: "100", label: "100 results per page" },
+];
 
-  state: SearchState = {
-    visibleText: "",
-  };
+function Search(props: SearchProps) {
+  const [visibleText, setVisibleText] = useState("");
+  const searchBoxRef = useRef<SearchBoxHandle>(null);
 
-  selectSearchBox = (e: KeyboardEvent) => {
-    e.preventDefault();
-    this.searchBox?.focus();
-  };
+  // Keep a ref to current props so stable callbacks and the debounced
+  // updater read fresh values without changing identity each render.
+  const propsRef = useRef(props);
+  useEffect(() => {
+    propsRef.current = props;
+  });
 
-  clearSearch = (e: React.MouseEvent<HTMLButtonElement>) => {
-    e.preventDefault();
-
-    this.updateVisibleText("");
-    this.props.clearSearch();
-    this.props.updateSearchText("");
-    this.props.updateSearchQueryFilters({});
-    this.props.updatePage("1");
-    this.setState({ visibleText: "" });
-    this.searchBox?.select();
-  };
-
-  debouncedUpdate = _debounce((text: string) => {
-    if (text !== this.props.urlParams.q) {
-      this.props.updatePage("1");
-    }
-    this.props.updateSearchText(text);
-
-    // Use the freshly-typed text rather than this.props.urlParams.q, which
-    // is the pre-dispatch value and would lag by one Enter press.
-    this.triggerSearch({ ...this.props.urlParams, q: text });
-  }, 500);
-
-  updateVisibleText = (text: string) => {
-    this.setState({
-      visibleText: text,
-    });
-  };
-
-  triggerSearch(query: GiantState["urlParams"]) {
+  const triggerSearch = useCallback((query: GiantState["urlParams"]) => {
     if (query.q) {
-      this.props.resetResource();
-      this.props.performSearch(query);
+      propsRef.current.resetResource();
+      propsRef.current.performSearch(query);
     }
-  }
+  }, []);
 
-  updateSearchText = () => {
-    this.debouncedUpdate(this.state.visibleText);
-  };
+  const debouncedUpdate = useMemo(
+    () =>
+      _debounce((text: string) => {
+        const p = propsRef.current;
+        if (text !== p.urlParams.q) {
+          p.updatePage("1");
+        }
+        p.updateSearchText(text);
+        triggerSearch(p.urlParams);
+      }, 500),
+    [triggerSearch],
+  );
 
-  componentDidMount() {
-    this.props.getSuggestedFields();
+  useEffect(() => () => debouncedUpdate.cancel(), [debouncedUpdate]);
 
-    const search = this.props.urlParams.q || "";
-    this.setState({
-      visibleText: search,
-    });
+  const updateVisibleText = useCallback((text: string) => {
+    setVisibleText(text);
+  }, []);
 
-    const currentQuery = _get(this.props.search, "currentQuery.q");
-    // If we're mounting with a different query or without any results, trigger a search
-    if (
-      search !== currentQuery ||
-      !_get(this.props.search, "currentResults.results.length")
-    ) {
-      this.triggerSearch(this.props.urlParams);
-    }
+  const updateSearchTextHandler = useCallback(() => {
+    debouncedUpdate(visibleText);
+  }, [debouncedUpdate, visibleText]);
 
-    document.title = calculateSearchTitle(this.props.search.currentQuery);
-  }
+  const clearSearchHandler = useCallback(
+    (e: React.MouseEvent<HTMLButtonElement>) => {
+      e.preventDefault();
+      const p = propsRef.current;
+      setVisibleText("");
+      p.clearSearch();
+      p.updateSearchText("");
+      p.updateSearchQueryFilters({});
+      p.updatePage("1");
+      searchBoxRef.current?.select();
+    },
+    [],
+  );
 
-  UNSAFE_componentWillReceiveProps(props: SearchProps) {
-    const before = {
-      filters: props.urlParams.filters,
-      page: props.urlParams.page,
-      pageSize: props.urlParams.pageSize,
-      sortBy: props.urlParams.sortBy,
-    };
+  const selectSearchBox = useCallback((e: KeyboardEvent) => {
+    e.preventDefault();
+    searchBoxRef.current?.focus();
+  }, []);
 
-    const after = {
-      filters: this.props.urlParams.filters,
-      page: this.props.urlParams.page,
-      pageSize: this.props.urlParams.pageSize,
-      sortBy: this.props.urlParams.sortBy,
-    };
+  const pageSelectCallback = useCallback((page: number) => {
+    propsRef.current.updatePage(page.toString());
+  }, []);
 
-    if (!_isEqual(before, after)) {
-      this.triggerSearch(props.urlParams);
-    }
-  }
-
-  componentDidUpdate() {
-    document.title = calculateSearchTitle(this.props.search.currentQuery);
-  }
-
-  componentWillUnmount() {
-    document.title = "Giant";
-  }
-
-  pageSelectCallback = (page: number) => {
-    this.props.updatePage(page.toString());
-  };
-
-  toggleCompactSearchResults = () => {
-    this.props.updatePreference(
+  const toggleCompactSearchResults = useCallback(() => {
+    const p = propsRef.current;
+    p.updatePreference(
       "compactSearchResults",
-      !this.props.preferences.compactSearchResults,
+      !p.preferences.compactSearchResults,
     );
-  };
+  }, []);
 
-  toggleHistogram = () => {
-    this.props.updatePreference(
+  const toggleHistogram = useCallback(() => {
+    const p = propsRef.current;
+    p.updatePreference(
       "searchResultHistogram",
-      !this.props.preferences.searchResultHistogram,
+      !p.preferences.searchResultHistogram,
     );
-  };
+  }, []);
 
-  renderControls() {
-    // TODO replace with user preferences for page size
-    const pageSizeValue = this.props.urlParams.pageSize ?? "100";
+  useEffect(() => {
+    const p = propsRef.current;
+    p.getSuggestedFields();
+
+    const initialSearch = p.urlParams.q || "";
+    setVisibleText(initialSearch);
+
+    const currentQuery = _get(p.search, "currentQuery.q");
+    if (
+      initialSearch !== currentQuery ||
+      !_get(p.search, "currentResults.results.length")
+    ) {
+      triggerSearch(p.urlParams);
+    }
+
+    document.title = calculateSearchTitle(p.search.currentQuery);
+
+    return () => {
+      document.title = "Giant";
+    };
+    // Mount-only; current props are reached through propsRef.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Re-fire search when filters / page / pageSize / sortBy change. Relies on
+  // Redux's immutable-update convention so Object.is dep comparison detects
+  // changes correctly. The ref skips the first render so we don't double-fire
+  // alongside the mount effect.
+  const isFirstChangeEffect = useRef(true);
+  const { filters, page, pageSize, sortBy } = props.urlParams;
+  useEffect(() => {
+    if (isFirstChangeEffect.current) {
+      isFirstChangeEffect.current = false;
+      return;
+    }
+    triggerSearch(propsRef.current.urlParams);
+  }, [filters, page, pageSize, sortBy, triggerSearch]);
+
+  useEffect(() => {
+    document.title = calculateSearchTitle(props.search.currentQuery);
+  }, [props.search.currentQuery]);
+
+  const renderControls = () => {
     // TODO replace with user preferences for sort order
-    const sortByValue = this.props.urlParams.sortBy || "relevance";
+    const sortByValue = props.urlParams.sortBy || "relevance";
+    const currentSortByOption = SORT_BY_OPTIONS.find(
+      (o) => o.value === sortByValue,
+    );
 
-    const sortByOptions: SelectOption[] = [
-      { value: "relevance", label: "Sort by relevance" },
-      { value: "size-asc", label: "Sort by size (smallest first)" },
-      { value: "size-desc", label: "Sort by size (largest first)" },
-      {
-        value: "date-created-asc",
-        label: "Sort by date created (oldest first)",
-      },
-      {
-        value: "date-created-desc",
-        label: "Sort by date created (newest first)",
-      },
-    ];
-    const pageSizeOptions: SelectOption[] = [
-      { value: "25", label: "25 results per page" },
-      { value: "50", label: "50 results per page" },
-      { value: "100", label: "100 results per page" },
-    ];
-
-    const currentSortBy = sortByOptions.find((o) => o.value === sortByValue);
-    const currentPageSize = pageSizeOptions.find(
+    // TODO replace with user preferences for page size
+    const pageSizeValue = props.urlParams.pageSize ?? "100";
+    const currentPageSizeOption = PAGE_SIZE_OPTIONS.find(
       (o) => o.value === pageSizeValue,
     );
 
     return (
       <div className="search__controls">
         <Checkbox
-          selected={this.props.preferences.searchResultHistogram}
-          onClick={this.toggleHistogram}
+          selected={props.preferences.searchResultHistogram}
+          onClick={toggleHistogram}
         >
           Show Date Created Graph
         </Checkbox>
         <Checkbox
-          selected={this.props.preferences.compactSearchResults}
-          onClick={this.toggleCompactSearchResults}
+          selected={props.preferences.compactSearchResults}
+          onClick={toggleCompactSearchResults}
         >
           Compact
         </Checkbox>
         <Select
           className="search__control"
-          value={currentSortBy}
-          options={sortByOptions}
+          value={currentSortByOption}
+          options={SORT_BY_OPTIONS}
           onChange={(v) => {
             const option = v as SelectOption | null;
             if (!option) return;
-            this.props.updatePage("1");
-            this.props.updateSortBy(option.value);
+            propsRef.current.updatePage("1");
+            propsRef.current.updateSortBy(option.value);
           }}
           clearable={false}
         />
         <Select
           className="search__control"
-          value={currentPageSize}
-          options={pageSizeOptions}
+          value={currentPageSizeOption}
+          options={PAGE_SIZE_OPTIONS}
           onChange={(v) => {
             const option = v as SelectOption | null;
             if (!option) return;
-            this.props.updatePage("1");
-            this.props.updatePageSize(option.value);
+            propsRef.current.updatePage("1");
+            propsRef.current.updatePageSize(option.value);
           }}
           clearable={false}
         />
       </div>
     );
-  }
+  };
 
-  renderPageNav() {
-    if (this.props.search.currentResults) {
-      if (
-        this.props.search.currentResults.hits >
-        this.props.search.currentResults.pageSize
-      ) {
-        return (
-          <PageNavigator
-            pageSelectCallback={this.pageSelectCallback}
-            currentPage={this.props.search.currentResults.page}
-            pageSpan={5}
-            lastPage={Math.ceil(
-              this.props.search.currentResults.hits /
-                this.props.search.currentResults.pageSize,
-            )}
-          />
-        );
-      }
+  const renderPageNav = () => {
+    const results = props.search.currentResults;
+    if (results && results.hits > results.pageSize) {
+      return (
+        <PageNavigator
+          pageSelectCallback={pageSelectCallback}
+          currentPage={results.page}
+          pageSpan={5}
+          lastPage={Math.ceil(results.hits / results.pageSize)}
+        />
+      );
     }
     return false;
-  }
+  };
 
-  render() {
-    return (
-      <div className="app__main-content search">
-        <KeyboardShortcut
-          shortcut={keyboardShortcuts.focusSearchBox}
-          func={this.selectSearchBox}
+  return (
+    <div className="app__main-content search">
+      <KeyboardShortcut
+        shortcut={keyboardShortcuts.focusSearchBox}
+        func={selectSearchBox}
+      />
+      <SearchBox
+        ref={searchBoxRef}
+        updateVisibleText={updateVisibleText}
+        resetQuery={clearSearchHandler}
+        q={visibleText}
+        isSearchInProgress={props.search.isSearchInProgress}
+        suggestedFields={props.search.suggestedFields}
+        updateSearchText={updateSearchTextHandler}
+      />
+      <div className="search__underbar">
+        <SearchStatus
+          results={props.search.currentResults}
+          currentQuery={props.search.currentQuery}
+          searchFailed={props.search.searchFailed}
         />
-        <SearchBox
-          ref={(input: SearchBoxHandle | null) => (this.searchBox = input)}
-          updateVisibleText={this.updateVisibleText}
-          resetQuery={this.clearSearch}
-          q={this.state.visibleText}
-          isSearchInProgress={this.props.search.isSearchInProgress}
-          suggestedFields={this.props.search.suggestedFields}
-          updateSearchText={this.updateSearchText}
-        />
-        <div className="search__underbar">
-          <SearchStatus
-            results={this.props.search.currentResults}
-            currentQuery={this.props.search.currentQuery}
-            searchFailed={this.props.search.searchFailed}
-          />
 
-          <div>{this.renderControls()}</div>
-        </div>
-
-        {this.props.preferences.searchResultHistogram ? (
-          <SearchVisualizations
-            q={this.props.urlParams.q}
-            results={this.props.search.currentResults}
-            updateSearchText={this.updateSearchText}
-          />
-        ) : (
-          false
-        )}
-
-        <SearchResults
-          compact={!!this.props.preferences.compactSearchResults}
-          lastUri={this.props.lastUri}
-          isSearchInProgress={this.props.search.isSearchInProgress}
-          searchResults={this.props.search.currentResults}
-        />
-        {this.renderPageNav()}
+        <div>{renderControls()}</div>
       </div>
-    );
-  }
+
+      {props.preferences.searchResultHistogram ? (
+        <SearchVisualizations
+          q={props.urlParams.q}
+          results={props.search.currentResults}
+          updateSearchText={updateSearchTextHandler}
+        />
+      ) : (
+        false
+      )}
+
+      <SearchResults
+        compact={!!props.preferences.compactSearchResults}
+        lastUri={props.lastUri}
+        isSearchInProgress={props.search.isSearchInProgress}
+        searchResults={props.search.currentResults}
+      />
+      {renderPageNav()}
+    </div>
+  );
 }
 
 function mapStateToProps(state: GiantState): StateProps {
@@ -345,19 +330,17 @@ function mapDispatchToProps(
   dispatch: ThunkDispatch<GiantState, undefined, AnyAction>,
 ): DispatchProps {
   return {
-    getSuggestedFields: bindActionCreators(getSuggestedFields, dispatch),
-    updateSearchText: bindActionCreators(updateSearchText, dispatch),
-    updatePage: bindActionCreators(updatePage, dispatch),
-    updatePageSize: bindActionCreators(updatePageSize, dispatch),
-    updateSortBy: bindActionCreators(updateSortBy, dispatch),
-    performSearch: bindActionCreators(performSearch, dispatch),
-    clearSearch: bindActionCreators(clearSearch, dispatch),
-    updateSearchQueryFilters: bindActionCreators(
-      updateSearchQueryFilters,
-      dispatch,
-    ),
-    resetResource: bindActionCreators(resetResource, dispatch),
-    updatePreference: bindActionCreators(updatePreference, dispatch),
+    getSuggestedFields: () => dispatch(getSuggestedFields()),
+    updateSearchText: (text) => dispatch(updateSearchText(text)),
+    updatePage: (page) => dispatch(updatePage(page)),
+    updatePageSize: (size) => dispatch(updatePageSize(size)),
+    updateSortBy: (sortBy) => dispatch(updateSortBy(sortBy)),
+    performSearch: (query) => dispatch(performSearch(query)),
+    clearSearch: () => dispatch(clearSearch()),
+    updateSearchQueryFilters: (filters) =>
+      dispatch(updateSearchQueryFilters(filters)),
+    resetResource: () => dispatch(resetResource()),
+    updatePreference: (key, value) => dispatch(updatePreference(key, value)),
   };
 }
 
