@@ -154,5 +154,5 @@ case object LlmTranslationJobType extends JobType {
   val name = "llm-translation"
 }
 case object TranscriptionJobType extends JobType {
-  val name = "transcription"
+  val name = "transcribe"
 }
