@@ -21,7 +21,7 @@ import extraction.email.olm.OlmEmailExtractor
 import extraction.email.pst.PstEmailExtractor
 import extraction.ocr.{ImageOcrExtractor, OcrMyPdfExtractor, OcrMyPdfImageExtractor, TesseractPdfOcrExtractor}
 import extraction.tables.{CsvTableExtractor, ExcelTableExtractor}
-import extraction.{DocumentBodyExtractor, EDocumentTranslationExtractor, EOcrTranslationExtractor, ExternalTranscriptionExtractor, ExternalTranscriptionWorker, Extractor, MimeTypeMapper, TranscriptionExtractor, Worker}
+import extraction.{DocumentBodyExtractor, ExternalDocumentTranslationExtractor, ExternalOcrTranslationExtractor, ExternalTranscriptionExtractor, ExternalTranscriptionWorker, Extractor, MimeTypeMapper, TranscriptionExtractor, Worker}
 import ingestion.phase2.IngestStorePolling
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.neo4j.driver.{AuthTokens, GraphDatabase}
@@ -189,8 +189,8 @@ class AppComponents(context: Context, config: Config)
     val externalExtractors: List[Extractor] = if (config.worker.useExternalExtractors) {
       List(
         new ExternalTranscriptionExtractor(esResources, config.transcribe, blobStorage, transcriptionServiceStorage, sqsClient),
-        new EDocumentTranslationExtractor(manifest, esResources, config.transcribe, config.translation, transcriptionServiceStorage, sqsClient),
-        new EOcrTranslationExtractor(manifest, esResources, config.transcribe, config.translation, transcriptionServiceStorage, sqsClient)
+        new ExternalDocumentTranslationExtractor(manifest, esResources, config.transcribe, config.translation, transcriptionServiceStorage, sqsClient),
+        new ExternalOcrTranslationExtractor(manifest, esResources, config.transcribe, config.translation, transcriptionServiceStorage, sqsClient)
       )
     } else {
       List(new TranscriptionExtractor(esResources, scratchSpace, config.transcribe))

@@ -13,7 +13,7 @@ import scala.concurrent.ExecutionContext
   * Translation extractor responsible for the `ocr` field of the language data. Triggered by the OcrMyPdfExtractor when
   * it detects non-English OCR text.
   */
-class EOcrTranslationExtractor(manifest: Manifest, index: Index, transcribeConfig: TranscribeConfig, translateConfig: TranslationConfig, transcriptionServiceBucket: ObjectStorage, sqsClient: SqsClient)(implicit executionContext: ExecutionContext)
+class ExternalOcrTranslationExtractor(manifest: Manifest, index: Index, transcribeConfig: TranscribeConfig, translateConfig: TranslationConfig, transcriptionServiceBucket: ObjectStorage, sqsClient: SqsClient)(implicit executionContext: ExecutionContext)
   extends ExternalTranslationExtractor(manifest, index, transcribeConfig, translateConfig, transcriptionServiceBucket, sqsClient) {
 
 

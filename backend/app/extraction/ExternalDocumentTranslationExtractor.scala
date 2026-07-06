@@ -13,7 +13,7 @@ import scala.concurrent.ExecutionContext
   * Translation extractor responsible for the document body `text` field of the language data. Triggered by the
   * DocumentBodyExtractor when it detects non-English text.
   */
-class EDocumentTranslationExtractor(manifest: Manifest, index: Index, transcribeConfig: TranscribeConfig, translateConfig: TranslationConfig, transcriptionServiceBucket: ObjectStorage, sqsClient: SqsClient)(implicit executionContext: ExecutionContext)
+class ExternalDocumentTranslationExtractor(manifest: Manifest, index: Index, transcribeConfig: TranscribeConfig, translateConfig: TranslationConfig, transcriptionServiceBucket: ObjectStorage, sqsClient: SqsClient)(implicit executionContext: ExecutionContext)
   extends ExternalTranslationExtractor(manifest, index, transcribeConfig, translateConfig, transcriptionServiceBucket, sqsClient) {
 
   override def getTranslationTask(resource: IndexedResource): Option[TranslationTask] = {

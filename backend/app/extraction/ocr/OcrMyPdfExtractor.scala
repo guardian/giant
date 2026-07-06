@@ -1,6 +1,6 @@
 package extraction.ocr
 
-import extraction.{EOcrTranslationExtractor, ExtractionParams}
+import extraction.{ExternalOcrTranslationExtractor, ExtractionParams}
 import model.index.{Page, PageDimensions}
 import model.ingestion.{RedoOcr, SkipText}
 import model.manifest.{Blob, MimeType}
@@ -152,7 +152,7 @@ object OcrMyPdfExtractor {
       val optionalText = if (value.trim().isEmpty) None else Some(value)
       val detectedLanguageCode = detectLanguage(uri.value, value)
       if (detectedLanguageCode.exists(_ != "en")) {
-        ingestionServices.addTranslationTodo(uri, params, classOf[EOcrTranslationExtractor].getSimpleName)
+        ingestionServices.addTranslationTodo(uri, params, classOf[ExternalOcrTranslationExtractor].getSimpleName)
       }
       index.addDocumentOcr(uri, optionalText, lang, detectedLanguageCode).awaitEither(10.second)
     }
