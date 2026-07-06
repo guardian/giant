@@ -4,7 +4,7 @@ import cats.syntax.either._
 import model.index.LanguageData
 import software.amazon.awssdk.services.sqs.SqsClient
 import software.amazon.awssdk.services.sqs.model.{DeleteMessageRequest, Message, MessageSystemAttributeName, ReceiveMessageRequest, SendMessageRequest}
-import model.{Language, Languages, LlmOutputFailure, LlmOutputSuccess, TranscriptionOutput, TranscriptionOutputFailure, TranscriptionOutputSuccess, TranscriptionResult, TranslationField, Uri}
+import model.{Language, Languages, LlmOutputFailure, LlmOutputSuccess, TranscriptionMessageAttributes, TranscriptionOutput, TranscriptionOutputFailure, TranscriptionOutputSuccess, TranscriptionResult, TranslationField, Uri}
 import play.api.libs.json.{JsError, JsSuccess, Json}
 import services.index.{Index, IndexFields}
 import services.manifest.WorkerManifest
@@ -32,7 +32,7 @@ class ExternalTranscriptionWorker(manifest: WorkerManifest, sqsClient: SqsClient
         .messageSystemAttributeNames(MessageSystemAttributeName.MESSAGE_GROUP_ID, MessageSystemAttributeName.APPROXIMATE_RECEIVE_COUNT)
         // request the custom attributes that the transcription worker preserves from the original job so that we can
         // match the output back to the relevant blob/extractor
-        .messageAttributeNames("GiantBlobUri", "GiantExtractorName")
+        .messageAttributeNames(TranscriptionMessageAttributes.GIANT_BLOB_URI, TranscriptionMessageAttributes.GIANT_EXTRACTOR_NAME)
         .build())
       .messages()
 
@@ -149,8 +149,8 @@ class ExternalTranscriptionWorker(manifest: WorkerManifest, sqsClient: SqsClient
       // Receive count should always be defined, but if there is a problem with localstack it can be null, so wrap in an option
       val receiveCount = Option(attributes.get(MessageSystemAttributeName.APPROXIMATE_RECEIVE_COUNT)).map(_.toInt)
       val messageGroupId = attributes.get(MessageSystemAttributeName.MESSAGE_GROUP_ID)
-      val blobId = Option(message.messageAttributes().get("GiantBlobUri")).map(_.stringValue())
-      val extractorName = Option(message.messageAttributes().get("GiantExtractorName")).map(_.stringValue())
+      val blobId = Option(message.messageAttributes().get(TranscriptionMessageAttributes.GIANT_BLOB_URI)).map(_.stringValue())
+      val extractorName = Option(message.messageAttributes().get(TranscriptionMessageAttributes.GIANT_EXTRACTOR_NAME)).map(_.stringValue())
       TranscriptionMessageAttribute(receiveCount, messageGroupId, blobId, extractorName)
     }.toEither
   }

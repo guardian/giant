@@ -21,14 +21,14 @@ class ExternalDocumentTranslationExtractor(manifest: Manifest, index: Index, tra
       case doc: Document if doc.languageData.isDefined => Some(doc.text, doc.languageData.get)
       case _ => None
     }
-    val field = translationData.flatMap(_._2.text)
+    val maybeField = translationData.flatMap(_._2.text)
 
-    val detectedLanguage = field.flatMap(_.detectedLanguageCode)
+    val maybeDetectedLanguage = maybeField.flatMap(_.detectedLanguageCode)
     val textToTranslate = translationData.map(_._1)
-    detectedLanguage.flatMap { dlc =>
-      if (dlc != English.iso6391Code && textToTranslate.isDefined) {
+    maybeDetectedLanguage.flatMap { detectedLanguageCode =>
+      if (detectedLanguageCode != English.iso6391Code && textToTranslate.isDefined) {
         Some(TranslationTask(
-          systemPrompt = getSystemPrompt(List(dlc)),
+          systemPrompt = getSystemPrompt(List(detectedLanguageCode)),
           fields = List(TranslationField("text", textToTranslate.get))
         ))
       } else None

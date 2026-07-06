@@ -1,5 +1,6 @@
 package extraction
 
+import model.TranscriptionMessageAttributes
 import model.manifest.Blob
 import play.api.libs.json.{Json, Writes}
 import software.amazon.awssdk.services.sqs.SqsClient
@@ -39,8 +40,8 @@ abstract class ExternalExtractor extends Extractor with Logging {
         .messageGroupId(UUID.randomUUID().toString)
         // these attributes should be returned unchanged by the transcription service so we can match the response to the original extractor
         .messageAttributes(Map(
-          "GiantBlobUri" -> MessageAttributeValue.builder().dataType("String").stringValue(blobUri).build(),
-          "GiantExtractorName" -> MessageAttributeValue.builder().dataType("String").stringValue(extractorName).build()
+          TranscriptionMessageAttributes.GIANT_BLOB_URI -> MessageAttributeValue.builder().dataType("String").stringValue(blobUri).build(),
+          TranscriptionMessageAttributes.GIANT_EXTRACTOR_NAME -> MessageAttributeValue.builder().dataType("String").stringValue(extractorName).build()
         ).asJava)
         .build()
       sqsClient.sendMessage(messageRequest)

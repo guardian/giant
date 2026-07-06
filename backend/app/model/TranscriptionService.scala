@@ -156,3 +156,8 @@ case object LlmTranslationJobType extends JobType {
 case object TranscriptionJobType extends JobType {
   val name = "transcribe"
 }
+
+object TranscriptionMessageAttributes {
+  val GIANT_BLOB_URI = "GiantBlobUri"
+  val GIANT_EXTRACTOR_NAME = "GiantExtractorName"
+}
