@@ -56,8 +56,7 @@ abstract class ExternalTranslationExtractor(manifest: Manifest, index: Index, tr
 
       if (translationTask.isEmpty) {
         logger.info(s"No non-English text found to translate in blob ${blob.uri.value}")
-        manifest.markExternalAsComplete(blob.uri.value, name)
-        // TODO log errors here like we do in ExternalTranscriptionWorker - should share logic somehow
+        ExternalTranscriptionWorker.markExternalExtractorAsComplete(manifest, blob.uri.value, name)
         Left(NoTextToTranslateFailure(s"No non-English text found to translate in blob ${blob.uri.value}"))
       } else {
         val job = for {

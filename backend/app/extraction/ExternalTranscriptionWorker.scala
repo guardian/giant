@@ -12,6 +12,7 @@ import services.{ObjectStorage, TranscribeConfig}
 import utils.Logging
 import utils.attempt.{Attempt, DocumentUpdateFailure, ExternalTranscriptionOutputFailure, Failure, JsonParseFailure, UnknownFailure}
 import TranscriptionOutput.transcriptionOutputReads
+import extraction.ExternalTranscriptionWorker.markExternalExtractorAsComplete
 
 import scala.concurrent.ExecutionContext
 import scala.jdk.CollectionConverters.CollectionHasAsScala
@@ -67,14 +68,14 @@ class ExternalTranscriptionWorker(manifest: WorkerManifest, sqsClient: SqsClient
         case output: TranscriptionOutputSuccess => for {
           transcripts <- getTranscripts(output)
           _ <- addDocumentTranscription(output, transcripts)
-          _ <- markExternalExtractorAsComplete(output.id, classOf[ExternalTranscriptionExtractor].getSimpleName)
+          _ <- markExternalExtractorAsComplete(manifest, output.id, classOf[ExternalTranscriptionExtractor].getSimpleName)
         } yield {
           logger.info(s"Transcript job ${output.id} processed successfully")
         }
         case output: TranscriptionOutputFailure =>
           if (output.noAudioDetected) {
             logger.info(s"No audio detected in job ${output.id}")
-            markExternalExtractorAsComplete(output.id, classOf[ExternalTranscriptionExtractor].getSimpleName)
+            markExternalExtractorAsComplete(manifest, output.id, classOf[ExternalTranscriptionExtractor].getSimpleName)
           } else {
             Left(ExternalTranscriptionOutputFailure.apply(s"External transcription service failed to transcribe the file ${output.originalFilename}"))
           }
@@ -85,7 +86,7 @@ class ExternalTranscriptionWorker(manifest: WorkerManifest, sqsClient: SqsClient
               for {
                 languageData <- getLlmTranslationOutput(output)
                 _ <- addDocumentTranslation(output, languageData)
-                _ <- markExternalExtractorAsComplete(output.id, extractorName)
+                _ <- markExternalExtractorAsComplete(manifest, output.id, extractorName)
               } yield {
                 logger.info(s"LLM job ${output.id} for extractor ${extractorName} processed successfully")
               }
@@ -153,14 +154,6 @@ class ExternalTranscriptionWorker(manifest: WorkerManifest, sqsClient: SqsClient
       val extractorName = Option(message.messageAttributes().get(TranscriptionMessageAttributes.GIANT_EXTRACTOR_NAME)).map(_.stringValue())
       TranscriptionMessageAttribute(receiveCount, messageGroupId, blobId, extractorName)
     }.toEither
-  }
-
-  private def markExternalExtractorAsComplete(id: String, extractorName: String) = {
-    val result = manifest.markExternalAsComplete(id, extractorName)
-    result.leftMap { failure =>
-      logger.error(s"Failed to mark '${id}' processed by $extractorName as complete: ${failure.msg}")
-      failure
-    }
   }
 
   private def addDocumentTranscription(transcriptionOutput: TranscriptionOutputSuccess, transcription: TranscriptionResult) = {
@@ -263,6 +256,16 @@ class ExternalTranscriptionWorker(manifest: WorkerManifest, sqsClient: SqsClient
     }.toEither match {
       case Right(_) => ()
       case Left(error) => logger.error(s"failed to handle external transcript output failure message", error)
+    }
+  }
+}
+
+object ExternalTranscriptionWorker extends Logging {
+  def markExternalExtractorAsComplete(manifest: WorkerManifest, id: String, extractorName: String): Either[Failure, Unit] = {
+    val result = manifest.markExternalAsComplete(id, extractorName)
+    result.leftMap { failure =>
+      logger.error(s"Failed to mark '${id}' processed by $extractorName as complete: ${failure.msg}")
+      failure
     }
   }
 }
