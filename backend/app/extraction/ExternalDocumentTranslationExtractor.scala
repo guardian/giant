@@ -17,24 +17,19 @@ class ExternalDocumentTranslationExtractor(manifest: Manifest, index: Index, tra
   extends ExternalTranslationExtractor(manifest, index, transcribeConfig, translateConfig, transcriptionServiceBucket, sqsClient) {
 
   override def getTranslationTask(resource: IndexedResource): Option[TranslationTask] = {
-    val translationData = resource match {
-      case doc: Document if doc.languageData.isDefined => Some(doc.text, doc.languageData.get)
-      case _ => None
-    }
-    val maybeField = translationData.flatMap(_._2.text)
-
-    val maybeDetectedLanguage = maybeField.flatMap(_.detectedLanguageCode)
-    val textToTranslate = translationData.map(_._1)
-    maybeDetectedLanguage.flatMap { detectedLanguageCode =>
-      if (detectedLanguageCode != English.iso6391Code && textToTranslate.isDefined) {
-        Some(TranslationTask(
+    for {
+      document <- resource match {
+        case doc: Document if doc.languageData.isDefined => Some(doc)
+        case _ => None
+      }
+      detectedLanguageCode <- document.languageData.flatMap(_.text.flatMap(_.detectedLanguageCode))
+      if detectedLanguageCode != English.iso6391Code && document.text.nonEmpty
+    } yield {
+      TranslationTask(
           systemPrompt = getSystemPrompt(List(detectedLanguageCode)),
-          fields = List(TranslationField("text", textToTranslate.get))
-        ))
-      } else None
+          fields = List(TranslationField("text", document.text))
+        )
     }
-
-
-    }
+  }
 
 }

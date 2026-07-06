@@ -18,33 +18,28 @@ class ExternalOcrTranslationExtractor(manifest: Manifest, index: Index, transcri
 
 
   override def getTranslationTask(resource: IndexedResource): Option[TranslationTask] = {
-    val documentData = resource match {
-      case doc: Document if doc.languageData.isDefined && doc.ocr.exists(_.nonEmpty) =>
-        Some((doc.languageData.get, doc.ocr.get))
-      case _ => None
-    }
-
-    documentData.flatMap { case (languageData, ocrTexts) =>
-      languageData.ocr.flatMap { ocr =>
-        val nonEnglishOcrLanguages = ocr.detectedLanguageCode.filterNot(_._2 == English.iso6391Code)
-
-        val fields = nonEnglishOcrLanguages.keys.toList.flatMap { lang =>
-          ocrTexts.get(lang).map { langText =>
-            TranslationField(
-              name = s"ocr_$lang",
-              text = langText
-            )
-          }
-        }
-
-        if (fields.nonEmpty) {
-          Some(TranslationTask(
-            systemPrompt = getSystemPrompt(nonEnglishOcrLanguages.values.toList),
-            fields = fields
-          ))
-        } else None
+    for {
+      document <- resource match {
+        case doc: Document => Some(doc)
+        case _ => None
       }
+      ocrLanguageData <- document.languageData.flatMap(_.ocr)
+      nonEnglishLanguages = ocrLanguageData.detectedLanguageCode.filterNot(_._2 == English.iso6391Code)
+      documentOcr <- document.ocr
+      translationFields = nonEnglishLanguages.keys.toList.flatMap { lang =>
+        documentOcr.get(lang).map { langText =>
+          TranslationField(
+            name = s"ocr_$lang",
+            text = langText
+          )
+        }
+      }
+      if translationFields.nonEmpty
+    } yield {
+      TranslationTask(
+        systemPrompt = getSystemPrompt(nonEnglishLanguages.values.toList),
+        fields = translationFields
+      )
     }
-
   }
 }
