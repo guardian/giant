@@ -1,13 +1,14 @@
 import React, { FC, useCallback, useEffect, useMemo, useRef } from "react";
 import { useSelector } from "react-redux";
-import RotateLeft from "react-icons/lib/md/rotate-left";
-import RotateRight from "react-icons/lib/md/rotate-right";
-import ZoomInIcon from "react-icons/lib/md/zoom-in";
-import ZoomOutIcon from "react-icons/lib/md/zoom-out";
+import RotateLeft from "react-icons/lib/fa/rotate-left";
+import RotateRight from "react-icons/lib/fa/repeat";
+import ZoomInIcon from "react-icons/lib/fa/search-plus";
+import ZoomOutIcon from "react-icons/lib/fa/search-minus";
 
 import PreviewSwitcher from "./PreviewSwitcher";
 import { DocNavButton } from "./DocNavButton";
 import { FindInput } from "../PageViewer/FindInput";
+import { PageNavInput } from "../PageViewer/PageNavInput";
 import { keyboardShortcuts } from "../../util/keyboardShortcuts";
 import { KeyboardShortcut } from "../UtilComponents/KeyboardShortcut";
 
@@ -27,12 +28,18 @@ type PageViewControls = {
   zoomOut: () => void;
 };
 
+type PageNav = {
+  currentPage: number;
+  onJumpToPage: (page: number) => void;
+};
+
 type DocumentFooterProps = {
   uri: string;
   workspaceNav: WorkspaceNavigation;
   totalPages?: number;
   pageFind?: PageFindState;
   pageViewControls?: PageViewControls;
+  pageNav?: PageNav;
 };
 
 export const DocumentFooter: FC<DocumentFooterProps> = ({
@@ -41,6 +48,7 @@ export const DocumentFooter: FC<DocumentFooterProps> = ({
   totalPages,
   pageFind,
   pageViewControls,
+  pageNav,
 }) => {
   const resource = useSelector<GiantState, Resource | null>(
     (state) => state.resource,
@@ -155,6 +163,13 @@ export const DocumentFooter: FC<DocumentFooterProps> = ({
       )}
       {pageViewControls && (
         <span className="document__footer-view-controls">
+          {pageNav && totalPages !== undefined && (
+            <PageNavInput
+              currentPage={pageNav.currentPage}
+              totalPages={totalPages}
+              onJumpToPage={pageNav.onJumpToPage}
+            />
+          )}
           <button onClick={pageViewControls.zoomIn} title="Zoom in">
             <ZoomInIcon />
           </button>
