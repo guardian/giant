@@ -151,6 +151,23 @@ class Pages2(val client: ElasticClient, indexNamePrefix: String)(implicit val ex
     }
   }
 
+  // Cheap existence check: does the query match anywhere in this document's
+  // pages? A single count query — unlike findInPages + the geometry pipeline
+  // behind findInDocument/searchInDocument, this never touches S3 or computes
+  // highlight geometry. Used to decide the initial view for a document opened
+  // from search results (issues #733 / #760).
+  def hasSearchMatch(uri: Uri, query: String): Attempt[Boolean] = {
+    execute {
+      count(textIndexName).query(
+        must(buildQuery(query)).filter(
+          termQuery(PagesFields.resourceId, uri.value)
+        )
+      )
+    }.map { resp =>
+      resp.count > 0
+    }
+  }
+
   private def buildQuery(query: String) =
     queryStringQuery(query)
     .defaultOperator("and")

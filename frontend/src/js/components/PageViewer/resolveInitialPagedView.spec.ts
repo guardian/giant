@@ -22,33 +22,26 @@ describe("isTextLikeView", () => {
 
 describe("resolveInitialPagedView", () => {
   const base = {
-    totalPages: 10,
+    pageCount: 10,
     currentView: undefined as string | undefined,
     hasSearchQuery: false,
-    searchMatchesInPages: null as boolean | null,
+    searchMatchesInPages: null as boolean | null | undefined,
   };
-
-  it("waits until the page count is known", () => {
-    expect(resolveInitialPagedView({ ...base, totalPages: null })).toEqual({
-      kind: "wait",
-    });
-  });
 
   it("does nothing for non-paged documents (no Combined view exists)", () => {
     expect(
       resolveInitialPagedView({
         ...base,
-        totalPages: 0,
+        pageCount: 0,
         currentView: "text",
         hasSearchQuery: true,
+        searchMatchesInPages: true,
       }),
-    ).toEqual({ kind: "keep" });
+    ).toBeUndefined();
   });
 
   it("defaults a paged document with no view to Combined", () => {
-    expect(
-      resolveInitialPagedView({ ...base, currentView: undefined }),
-    ).toEqual({ kind: "set", view: COMBINED_VIEW });
+    expect(resolveInitialPagedView(base)).toBe(COMBINED_VIEW);
   });
 
   describe("when search has forced a text-like view", () => {
@@ -58,23 +51,27 @@ describe("resolveInitialPagedView", () => {
       hasSearchQuery: true,
     };
 
-    it("waits for the page-match probe before deciding", () => {
-      expect(
-        resolveInitialPagedView({ ...forced, searchMatchesInPages: null }),
-      ).toEqual({ kind: "wait" });
-    });
-
     it("switches to Combined when the match is reachable in the pages", () => {
       expect(
         resolveInitialPagedView({ ...forced, searchMatchesInPages: true }),
-      ).toEqual({ kind: "set", view: COMBINED_VIEW });
+      ).toBe(COMBINED_VIEW);
     });
 
     it("honours the forced view when the match is not in the pages", () => {
       // e.g. lossy Tesseract OCR, cross-field, or a future translation match
       expect(
         resolveInitialPagedView({ ...forced, searchMatchesInPages: false }),
-      ).toEqual({ kind: "keep" });
+      ).toBeUndefined();
+    });
+
+    it("honours the forced view when the answer is unknown", () => {
+      // e.g. a backend that predates the searchMatchesInPages parameter
+      expect(
+        resolveInitialPagedView({ ...forced, searchMatchesInPages: null }),
+      ).toBeUndefined();
+      expect(
+        resolveInitialPagedView({ ...forced, searchMatchesInPages: undefined }),
+      ).toBeUndefined();
     });
 
     it("applies the same logic to an ocr.* view", () => {
@@ -84,7 +81,7 @@ describe("resolveInitialPagedView", () => {
           currentView: "ocr.english",
           searchMatchesInPages: true,
         }),
-      ).toEqual({ kind: "set", view: COMBINED_VIEW });
+      ).toBe(COMBINED_VIEW);
     });
   });
 
@@ -94,26 +91,26 @@ describe("resolveInitialPagedView", () => {
         ...base,
         currentView: "text",
         hasSearchQuery: false,
-        // probe never runs, so this stays null
+        // no query is sent with the pageCount request, so this stays null
         searchMatchesInPages: null,
       }),
-    ).toEqual({ kind: "keep" });
+    ).toBeUndefined();
   });
 
-  it("honours an explicit non-text view such as transcript even during search", () => {
+  it("honours a non-text view such as transcript even when the pages match", () => {
     expect(
       resolveInitialPagedView({
         ...base,
         currentView: "transcript.english",
         hasSearchQuery: true,
-        searchMatchesInPages: false,
+        searchMatchesInPages: true,
       }),
-    ).toEqual({ kind: "keep" });
+    ).toBeUndefined();
   });
 
   it("honours an explicit combined view", () => {
     expect(
       resolveInitialPagedView({ ...base, currentView: COMBINED_VIEW }),
-    ).toEqual({ kind: "keep" });
+    ).toBeUndefined();
   });
 });

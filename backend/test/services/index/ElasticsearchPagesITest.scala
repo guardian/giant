@@ -126,5 +126,43 @@ class ElasticsearchPagesITest extends AnyFreeSpec with Matchers with BeforeAndAf
         result shouldBe None
       }
     }
+
+    "hasSearchMatch" - {
+      val uri = Uri("has-search-match-test")
+      val page = Page(page = 1, Map(English -> "brown fox jumped near hedge"), PageDimensions.A4_PORTRAIT)
+
+      "return true when the query matches the document's pages" in {
+        elasticsearchTestService.elasticPages.addPageContents(uri, Seq(page)).successValue
+
+        pages2.hasSearchMatch(uri, "fox").successValue shouldBe true
+      }
+
+      "return false when the query does not match" in {
+        elasticsearchTestService.elasticPages.addPageContents(uri, Seq(page)).successValue
+
+        pages2.hasSearchMatch(uri, "badger").successValue shouldBe false
+      }
+
+      "respect quoted phrases" in {
+        elasticsearchTestService.elasticPages.addPageContents(uri, Seq(page)).successValue
+
+        pages2.hasSearchMatch(uri, "\"brown fox\"").successValue shouldBe true
+        pages2.hasSearchMatch(uri, "\"fox brown\"").successValue shouldBe false
+      }
+
+      "not match content from other documents" in {
+        val otherUri = Uri("has-search-match-other-doc")
+        val otherPage = Page(page = 1, Map(English -> "badger slept here"), PageDimensions.A4_PORTRAIT)
+        elasticsearchTestService.elasticPages.addPageContents(uri, Seq(page)).successValue
+        elasticsearchTestService.elasticPages.addPageContents(otherUri, Seq(otherPage)).successValue
+
+        pages2.hasSearchMatch(uri, "badger").successValue shouldBe false
+        pages2.hasSearchMatch(otherUri, "badger").successValue shouldBe true
+      }
+
+      "return false for a document with no pages" in {
+        pages2.hasSearchMatch(Uri("has-search-match-no-pages"), "fox").successValue shouldBe false
+      }
+    }
   }
 }

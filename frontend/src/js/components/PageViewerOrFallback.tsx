@@ -1,4 +1,4 @@
-import React, { FC, useCallback, useEffect, useRef, useState } from "react";
+import React, { FC, useCallback, useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import authFetch from "../util/auth/authFetch";
 import { useParams } from "react-router-dom";
@@ -33,7 +33,6 @@ import { useWorkspaceNavigation } from "../util/workspaceNavigation";
 import { removeLastUnmatchedQuote } from "../util/stringUtils";
 import {
   COMBINED_VIEW,
-  isTextLikeView,
   resolveInitialPagedView,
 } from "./PageViewer/resolveInitialPagedView";
 
@@ -133,6 +132,10 @@ const PageViewerContent: FC<{
 type PageCountResponse = {
   pageCount: number;
   dimensions: PageDimensions | null;
+  // Whether the search query (if one was sent) matches in the page index —
+  // i.e. whether the Combined view can show it. null when no query was sent;
+  // absent from backends that predate the parameter.
+  searchMatchesInPages?: boolean | null;
 };
 
 const SearchStepperOverlay: FC<{
@@ -228,12 +231,66 @@ export const PageViewerOrFallback: FC<{}> = () => {
   );
   const dispatch = useDispatch();
 
+  const searchQuery = searchParams.get("q") ?? undefined;
+
   useEffect(() => {
-    authFetch(`/api/pages2/${uri}/pageCount`)
+    let cancelled = false;
+
+    // Sending the search query along with the pageCount request lets the
+    // backend also tell us whether the query matches in the page index — i.e.
+    // whether the Combined view could show it. Elasticsearch can't answer that
+    // during search itself because it has no notion of the Combined view
+    // (issues #733 / #760).
+    const params = new URLSearchParams();
+    if (searchQuery) {
+      // The backend will respect quotes and do an exact search, but if quotes
+      // are unbalanced elasticsearch will error
+      params.set("q", removeLastUnmatchedQuote(searchQuery));
+    }
+    const queryString = params.toString();
+    const suffix = queryString ? `?${queryString}` : "";
+
+    authFetch(`/api/pages2/${uri}/pageCount${suffix}`)
       .then((res) => res.json())
-      .then((obj: PageCountResponse) => setResponse({ ...obj, uri }))
-      .catch(() => setResponse({ pageCount: 0, dimensions: null, uri }));
-  }, [uri]);
+      .then((obj: PageCountResponse) => {
+        if (cancelled) {
+          return;
+        }
+
+        // Decide the initial view once per document load, right as its data
+        // arrives, so a user manually switching tabs afterwards is never
+        // overridden (see resolveInitialPagedView). The current view is read
+        // from the URL, which the middleware keeps in sync with the store.
+        const currentView =
+          new URLSearchParams(window.location.search).get("view") ?? undefined;
+        const target = resolveInitialPagedView({
+          pageCount: obj.pageCount,
+          currentView,
+          hasSearchQuery: Boolean(searchQuery),
+          searchMatchesInPages: obj.searchMatchesInPages,
+        });
+
+        // Dispatch before setResponse so the viewer never renders a frame in
+        // the view we are about to leave.
+        if (target && target !== currentView) {
+          dispatch(setResourceView(target));
+        }
+        setResponse({ ...obj, uri });
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setResponse({ pageCount: 0, dimensions: null, uri });
+        }
+      });
+
+    // Discard responses from a superseded request so an out-of-order arrival
+    // (e.g. when stepping quickly between results) can't replace the current
+    // document's data — or dispatch a view change after this document has been
+    // left.
+    return () => {
+      cancelled = true;
+    };
+  }, [uri, searchQuery, dispatch]);
 
   // This component is not remounted when the :uri route param changes, so until
   // the new document's count arrives `response` still holds the previous one's.
@@ -241,84 +298,6 @@ export const PageViewerOrFallback: FC<{}> = () => {
   // rather than wrongly imposing the Combined view on the next document.
   const pageData = response && response.uri === uri ? response : null;
   const totalPages = pageData ? pageData.pageCount : null;
-
-  const searchQuery = searchParams.get("q") ?? undefined;
-
-  // We resolve the initial view once per document load so that a user manually
-  // switching tabs afterwards is respected (see resolveInitialPagedView).
-  const decidedForUri = useRef<string | null>(null);
-  // null = the page-match probe has not resolved (or wasn't needed) yet.
-  const [searchMatchesInPages, setSearchMatchesInPages] = useState<
-    boolean | null
-  >(null);
-
-  useEffect(() => {
-    decidedForUri.current = null;
-    setSearchMatchesInPages(null);
-  }, [uri]);
-
-  // When search has forced a text-like view on a paged document, probe the page
-  // index to find out whether the query is also reachable in the Combined view.
-  // Elasticsearch can't tell us this up front because it has no notion of the
-  // Combined view (issues #733 / #760). Mirrors the request the PageViewer's
-  // Controls make once Combined is active.
-  useEffect(() => {
-    if (
-      decidedForUri.current === uri ||
-      !searchQuery ||
-      !totalPages ||
-      totalPages <= 0 ||
-      !view ||
-      !isTextLikeView(view)
-    ) {
-      return;
-    }
-
-    let cancelled = false;
-    const params = new URLSearchParams();
-    params.set("q", removeLastUnmatchedQuote(searchQuery));
-
-    authFetch(`/api/pages2/${uri}/search?${params.toString()}`)
-      .then((res) => res.json())
-      .then((results: unknown) => {
-        if (!cancelled) {
-          setSearchMatchesInPages(Array.isArray(results) && results.length > 0);
-        }
-      })
-      .catch(() => {
-        if (!cancelled) {
-          // If we can't confirm a page match, honour the search-forced view so
-          // the user still lands on a real match.
-          setSearchMatchesInPages(false);
-        }
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [uri, searchQuery, totalPages, view]);
-
-  useEffect(() => {
-    if (decidedForUri.current === uri) {
-      return;
-    }
-
-    const resolution = resolveInitialPagedView({
-      totalPages,
-      currentView: view,
-      hasSearchQuery: Boolean(searchQuery),
-      searchMatchesInPages,
-    });
-
-    if (resolution.kind === "wait") {
-      return;
-    }
-
-    decidedForUri.current = uri;
-    if (resolution.kind === "set" && resolution.view !== view) {
-      dispatch(setResourceView(resolution.view));
-    }
-  }, [uri, totalPages, view, searchQuery, searchMatchesInPages, dispatch]);
 
   if (totalPages === null) {
     return null;
