@@ -14,6 +14,8 @@ object HighlightFields {
     ocr -> "OCR Text",
     transcript -> "Transcript Text",
     vttTranscript -> "Transcript (timecodes)",
+    TranslationIndexFields.text -> "Translated Body Text",
+    TranslationIndexFields.ocr -> "Translated OCR Text",
     metadataField + "." + metadata.subject -> "Email Subject",
     metadataField + "." + metadata.fromField + "." + metadata.recipients.name -> "Email From",
     metadataField + "." + metadata.fromField + "." + metadata.recipients.address -> "Email From",
@@ -53,8 +55,9 @@ object HighlightFields {
     val ocrFieldHighlighters = languageHighlighters(IndexFields.ocr, topLevelSearchQuery)
     val transcriptFieldHighlighters = languageHighlighters(IndexFields.transcript, topLevelSearchQuery)
     val vttTranscriptFieldHighlighters = languageHighlighters(IndexFields.vttTranscript, topLevelSearchQuery)
+    val translationTextFieldHighlighters = singleLanguageHighlighter(s"${IndexFields.languageDataField}.${IndexFields.languageData.textField}.${IndexFields.languageData.translatableFieldData.translation}", topLevelSearchQuery)
 
-    textFieldHighlighters ++ ocrFieldHighlighters ++ transcriptFieldHighlighters ++ vttTranscriptFieldHighlighters
+    textFieldHighlighters ++ ocrFieldHighlighters ++ transcriptFieldHighlighters ++ vttTranscriptFieldHighlighters :+ translationTextFieldHighlighters
   }
 
   def parseHit(hit: SearchHit): Seq[Highlight] = {
@@ -110,7 +113,7 @@ object HighlightFields {
     // as multiple languages. The vast majority are processed using a single language.
 
     highlights.foldLeft(Map.empty[String, Seq[String]]) {
-      case (acc, (key, values)) if key.startsWith(IndexFields.ocr) || key.startsWith(IndexFields.transcript) || key.startsWith(IndexFields.vttTranscript) =>
+      case (acc, (key, values)) if key.startsWith(IndexFields.ocr) || key.startsWith(IndexFields.transcript) || key.startsWith(IndexFields.vttTranscript) || key.startsWith(TranslationIndexFields.ocr) =>
         acc + (key -> values)
 
       case (acc, (key, values)) =>

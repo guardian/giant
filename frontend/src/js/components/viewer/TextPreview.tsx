@@ -128,7 +128,7 @@ export function TextPreview({
   >("text");
 
   const displayedText =
-    displayLanguage === "translation" && translation ? translation : text;
+    displayLanguage === "translation" && translation ? translation.contents : text;
 
   const [highlightRenderedPositions, setHighlightRenderedPosition] =
     useState<HighlightRenderedPositions>({});

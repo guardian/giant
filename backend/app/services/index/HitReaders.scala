@@ -112,12 +112,28 @@ object HitReaders {
           val resource = readDocument(hit.id, hit.sourceAsMap)
           val highlights = getHighlights(hit)
 
+          val textTranslationIndexField = TranslationIndexFields.text
+          val ocrTranslationIndexField = TranslationIndexFields.ocr
+          val maybeOcrTranslation = resource.languageData.flatMap(_.ocr.map(_.translation))
+
           Success(
             resource.copy(
               text = highlights.flatMap(highlightedText(_, text)).getOrElse(resource.text),
               ocr = highlightedOcr(highlights).orElse(resource.ocr),
               transcript = highlightedTranscript(highlights, resource.transcript, IndexFields.transcript).orElse(resource.transcript),
-              vttTranscript = highlightedTranscript(highlights, resource.vttTranscript, IndexFields.vttTranscript).orElse(resource.vttTranscript)
+              vttTranscript = highlightedTranscript(highlights, resource.vttTranscript, IndexFields.vttTranscript).orElse(resource.vttTranscript),
+              languageData = resource.languageData.map { languageData =>
+                val highlightedOcr = for {
+                  ocrLanguageData <- languageData.ocr
+                  ocrTranslation <- maybeOcrTranslation
+                } yield {
+                  ocrLanguageData.copy(translation = highlightedTranscript(highlights, Some(ocrTranslation), ocrTranslationIndexField).getOrElse(ocrTranslation))
+                }
+
+                languageData.copy(
+                  text = languageData.text.map(text => text.copy(translation = highlights.flatMap(highlightedText(_, textTranslationIndexField)).orElse(text.translation))),
+                  ocr = highlightedOcr
+                )}
             )
           )
 
@@ -378,6 +394,7 @@ object HitReaders {
         None
     }
   }
+
 
   private def highlightedPageOcr(maybeHighlights: Option[Map[String, Seq[String]]]): Map[Language, String] = {
     val highlights = maybeHighlights.getOrElse(Map.empty)
