@@ -117,7 +117,13 @@ object HitReaders {
               text = highlights.flatMap(highlightedText(_, text)).getOrElse(resource.text),
               ocr = highlightedOcr(highlights).orElse(resource.ocr),
               transcript = highlightedTranscript(highlights, resource.transcript, IndexFields.transcript).orElse(resource.transcript),
-              vttTranscript = highlightedTranscript(highlights, resource.vttTranscript, IndexFields.vttTranscript).orElse(resource.vttTranscript)
+              vttTranscript = highlightedTranscript(highlights, resource.vttTranscript, IndexFields.vttTranscript).orElse(resource.vttTranscript),
+              translationData = resource.translationData.map { translationData =>
+                translationData.copy(
+                  text = translationData.text.map(text => text.copy(
+                    englishTranslation = highlights.flatMap(highlightedText(_, TranslationIndexFields.text)).orElse(text.englishTranslation)
+                  ))
+                )}
             )
           )
 
@@ -380,6 +386,7 @@ object HitReaders {
         None
     }
   }
+
 
   private def highlightedPageOcr(maybeHighlights: Option[Map[String, Seq[String]]]): Map[Language, String] = {
     val highlights = maybeHighlights.getOrElse(Map.empty)
