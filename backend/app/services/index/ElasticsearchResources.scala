@@ -1034,6 +1034,13 @@ object IndexFields {
   // These should be in order of importance
 }
 
+object TranslationIndexFields {
+  val text = s"${IndexFields.translationDataField}.${IndexFields.translationData.textField}.${IndexFields.translationData.translatableFieldData.englishTranslation}"
+  val emailSubject = s"${IndexFields.translationDataField}.${IndexFields.translationData.emailSubjectField}.${IndexFields.translationData.translatableFieldData.englishTranslation}"
+  val emailBody = s"${IndexFields.translationDataField}.${IndexFields.translationData.emailBodyField}.${IndexFields.translationData.translatableFieldData.englishTranslation}"
+  val ocr = s"${IndexFields.translationDataField}.${IndexFields.translationData.ocr}.${IndexFields.translationData.translatableFieldData.englishTranslation}"
+}
+
 object IndexAggNames {
   val collection = "collection"
   val ingestion = "ingestion"
