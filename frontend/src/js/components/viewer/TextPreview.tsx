@@ -71,24 +71,6 @@ export type HighlightRenderedPositions = {
   [id: string]: { top: number };
 };
 
-function getViewTranslationData(
-  languageData: LanguageData,
-  view: string,
-): LanguageDataField | undefined {
-  const [viewType, language] = view.split(".");
-  if (viewType === "text") {
-    return {
-      translation: languageData.text?.translation,
-      detectedLanguageCode: languageData.text?.detectedLanguageCode,
-    };
-  } else if (viewType === "ocr") {
-    return {
-      translation: languageData.ocr?.translation[language],
-      detectedLanguageCode: languageData.text?.detectedLanguageCode,
-    };
-  }
-}
-
 export function TextPreview({
   uri,
   currentUser,
@@ -100,7 +82,6 @@ export function TextPreview({
   preferences,
   getComments,
   setSelection,
-  languageData,
 }: Props) {
   const commentHighlightsToDisplay = preferences.showCommentHighlights
     ? getExistingCommentHighlights(comments, view)
@@ -116,19 +97,6 @@ export function TextPreview({
     unsortedHighlights,
     ({ range: { startCharacter } }) => startCharacter,
   );
-
-  const translationData =
-    languageData && getViewTranslationData(languageData, view);
-  const translation = translationData?.translation;
-  const detectedLanguageCode = translationData?.detectedLanguageCode;
-
-  // Toggle between showing the original extracted text and the english translation
-  const [displayLanguage, setDisplayLanguage] = useState<
-    "text" | "translation"
-  >("text");
-
-  const displayedText =
-    displayLanguage === "translation" && translation ? translation.contents : text;
 
   const [highlightRenderedPositions, setHighlightRenderedPosition] =
     useState<HighlightRenderedPositions>({});
@@ -183,7 +151,7 @@ export function TextPreview({
         data-selectable-text-preview
       >
         <CommentHighlighter
-          text={displayedText}
+          text={text}
           highlights={sortedHighlights}
           focusedId={focusedCommentId}
           focusComment={focusComment}
@@ -196,30 +164,6 @@ export function TextPreview({
           }}
         />
       </div>
-      {translation && (
-        <div className="document__preview__language-selector">
-          <label className="document__preview__language-label">Language:</label>
-          <Dropdown
-            selection
-            value={displayLanguage}
-            options={[
-              {
-                key: "text",
-                text: detectedLanguageCode || "Original",
-                value: "text",
-              },
-              {
-                key: "translation",
-                text: "Translation",
-                value: "translation",
-              },
-            ]}
-            onChange={(_, data) =>
-              setDisplayLanguage(data.value as "text" | "translation")
-            }
-          />
-        </div>
-      )}
       <TextPopover
         target="data-selectable-text-preview"
         allowComments={preferences.showCommentHighlights || false}

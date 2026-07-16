@@ -30,12 +30,21 @@ object LanguageData {
   implicit val highlightableOcrLanguageDataFormat: Format[HighlightableOcrLanguageData] = Json.format[HighlightableOcrLanguageData]
   implicit val highlightableLanguageDataFormat: Format[HighlightableLanguageData] = Json.format[HighlightableLanguageData]
 
-  def toHighlightableLanguageDataField(field: Option[LanguageDataField]): Option[HighlightableLanguageDataField] = {
-    field.map(f => HighlightableLanguageDataField(f.detectedLanguageCode, f.translation.map(t => HighlightableText(t, List.empty))))
+  private def toHighlightableLanguageDataField(field: Option[LanguageDataField]): Option[HighlightableLanguageDataField] = {
+    field.map(f => HighlightableLanguageDataField(
+      f.detectedLanguageCode,
+      f.translation.map(t => HighlightableText.fromString(t, page = None))
+    ))
   }
-  def toHighlightableOcrLanguageData(ocr: Option[OcrLanguageData]): Option[HighlightableOcrLanguageData] = {
-    ocr.map(o => HighlightableOcrLanguageData(o.detectedLanguageCode, o.translation.map { case (k, v) => (k, HighlightableText(v, List.empty)) }))
+
+  private def toHighlightableOcrLanguageData(ocr: Option[OcrLanguageData]): Option[HighlightableOcrLanguageData] = {
+    ocr.map(o => HighlightableOcrLanguageData(
+      o.detectedLanguageCode,
+      o.translation.map { case (k, v) => (k, HighlightableText.fromString(v, page = None)) }
+    ))
   }
+
+
   def toHighLightableLanguageData(languageData: LanguageData): HighlightableLanguageData = {
     HighlightableLanguageData(
       text = toHighlightableLanguageDataField(languageData.text),
