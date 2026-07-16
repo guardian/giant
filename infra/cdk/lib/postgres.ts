@@ -1,5 +1,4 @@
 import type { GuStackProps } from '@guardian/cdk/lib/constructs/core';
-import { GuStack } from '@guardian/cdk/lib/constructs/core';
 import { GuVpc, SubnetType } from '@guardian/cdk/lib/constructs/ec2/vpc';
 import type { App } from 'aws-cdk-lib';
 import { CfnOutput, Duration, Tags } from 'aws-cdk-lib';
@@ -17,12 +16,11 @@ import {
 	PostgresEngineVersion,
 	StorageType,
 } from 'aws-cdk-lib/aws-rds';
+import { GuStackWithGiantVPC } from './constructs/GuStackWithGiantVPC';
 
-export class Postgres extends GuStack {
+export class Postgres extends GuStackWithGiantVPC {
 	constructor(scope: App, id: string, props: GuStackProps) {
 		super(scope, id, props);
-
-		const vpc = GuVpc.fromIdParameter(this, 'GiantVPC');
 
 		const dbStorage = 20;
 
@@ -33,12 +31,12 @@ export class Postgres extends GuStack {
 			this,
 			'DatabaseSecurityGroup',
 			{
-				vpc: vpc,
+				vpc: this.vpc,
 			},
 		);
 
 		const database = new DatabaseInstance(this, 'Database', {
-			vpc: vpc,
+			vpc: this.vpc,
 			vpcSubnets: {
 				subnets: GuVpc.subnetsFromParameter(this, {
 					type: SubnetType.PRIVATE,
@@ -77,7 +75,7 @@ export class Postgres extends GuStack {
 		Tags.of(database).add('devx-backup-enabled', 'true');
 
 		const dbAccessSecurityGroup = new SecurityGroup(this, 'db-access', {
-			vpc: vpc,
+			vpc: this.vpc,
 			allowAllOutbound: false,
 		});
 		dbAccessSecurityGroup.addEgressRule(
