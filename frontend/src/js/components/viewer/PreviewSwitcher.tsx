@@ -197,7 +197,9 @@ class PreviewSwitcher extends React.Component<PreviewSwitcherProps> {
             to="text"
             navigate={this.props.setResourceView}
           />
-        ) : false}
+        ) : (
+          false
+        )}
         {this.props.resource.transcript
           ? this.renderMultiLangLinks(current, "transcript", "Transcript")
           : false}
@@ -217,7 +219,9 @@ class PreviewSwitcher extends React.Component<PreviewSwitcherProps> {
             to="preview"
             navigate={this.props.setResourceView}
           />
-        ) : false}
+        ) : (
+          false
+        )}
         {parents &&
           parents.some(
             (m) => m.uri.endsWith("csv") || m.uri.endsWith("tsv"),
@@ -268,4 +272,3 @@ function mapDispatchToProps(dispatch: GiantDispatch) {
 }
 
 export default connect(mapStateToProps, mapDispatchToProps)(PreviewSwitcher);
-
