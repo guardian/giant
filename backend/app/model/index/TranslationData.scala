@@ -34,7 +34,7 @@ object TranslationData {
   private def toHighlightableLanguageDataField(field: Option[LanguageDataField]): Option[HighlightableLanguageDataField] = {
     field.map(f => HighlightableLanguageDataField(
       f.detectedLanguageCode,
-      f.englishTranslation.map(t => HighlightableText(t, List.empty))
+      f.englishTranslation.map(t => HighlightableText.fromString(t, page = None))
     ))
   }
 
@@ -42,7 +42,7 @@ object TranslationData {
     ocr.map(o => HighlightableOcrLanguageData(
       o.ocrLanguage,
       o.detectedLanguageCode,
-      o.englishTranslation.map(t => HighlightableText(t, List.empty))
+      o.englishTranslation.map(t => HighlightableText.fromString(t, page = None))
     ))
   }
 
