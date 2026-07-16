@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
-import { Dropdown } from "semantic-ui-react";
 import TextPopover from "./TextPopover";
 import { CommentHighlighter } from "./CommentHighlighter";
 import { filterCommentsInView } from "../../util/commentUtils";
@@ -8,7 +7,6 @@ import {
   ResourceRange,
   Highlight,
   CommentData,
-  LanguageDataField,
   LanguageData,
 } from "../../types/Resource";
 import sortBy from "lodash/sortBy";
