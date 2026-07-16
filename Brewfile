@@ -1,6 +1,5 @@
 brew "tesseract"
 cask "libreoffice"
-cask "wkhtmltopdf"
 brew "ocrmypdf"
 brew "imagemagick"
 brew "qpdf"
