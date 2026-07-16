@@ -1,6 +1,5 @@
-import React from "react";
-import PropTypes from "prop-types";
-import { resourcePropType } from "../../types/Resource";
+import React, { FC } from "react";
+import { Resource } from "../../types/Resource";
 import _ from "lodash";
 
 import { hasTextContent, getDefaultView } from "../../util/resourceUtils";
@@ -11,9 +10,9 @@ import { connect } from "react-redux";
 import { bindActionCreators } from "redux";
 
 import { setResourceView } from "../../actions/urlParams/setViews";
+import { GiantDispatch } from "../../types/redux/GiantDispatch";
 
-/** @param {string[]} mimeTypes @returns {string} */
-export function previewLabelForMimeTypes(mimeTypes) {
+export function previewLabelForMimeTypes(mimeTypes: string[]): string {
   if (mimeTypes.some((m) => m.startsWith("video/"))) {
     return "Video";
   }
@@ -23,25 +22,27 @@ export function previewLabelForMimeTypes(mimeTypes) {
   return "Preview";
 }
 
-class PreviewSwitcher extends React.Component {
-  static propTypes = {
-    resource: resourcePropType,
-    view: PropTypes.string,
-    totalPages: PropTypes.number,
-    setResourceView: PropTypes.func.isRequired,
-  };
+type PreviewSwitcherProps = {
+  resource: Resource;
+  view?: string;
+  totalPages?: number;
+  setResourceView: typeof setResourceView;
+};
 
-  currentViewModeIsValid(resource) {
-    if (!this.props.view) {
+class PreviewSwitcher extends React.Component<PreviewSwitcherProps> {
+  currentViewModeIsValid(resource: Resource): boolean {
+    const { view, totalPages } = this.props;
+
+    if (!view) {
       return false;
     }
 
-    if (this.props.view === "combined" && this.props.totalPages > 0) {
+    if (view === "combined" && (totalPages ?? 0) > 0) {
       return true;
     }
 
     if (
-      this.props.view === "table" &&
+      view === "table" &&
       (!resource.parents ||
         !resource.parents.some(
           (m) => m.uri.endsWith("csv") || m.uri.endsWith("tsv"),
@@ -51,32 +52,26 @@ class PreviewSwitcher extends React.Component {
       return false;
     }
 
-    if (this.props.view === "text" && !hasTextContent(resource)) {
+    if (view === "text" && !hasTextContent(resource)) {
       return false;
     }
 
-    if (
-      this.props.view.startsWith("ocr") &&
-      !_.get(resource, this.props.view)
-    ) {
+    if (view.startsWith("ocr") && !_.get(resource, view)) {
       return false;
     }
 
-    if (
-      this.props.view === "preview" &&
-      !this.canPreview(resource.previewStatus)
-    ) {
+    if (view === "preview" && !this.canPreview(resource.previewStatus)) {
       return false;
     }
 
     return true;
   }
 
-  canPreview(previewStatus) {
+  canPreview(previewStatus?: string): boolean {
     return previewStatus !== "disabled";
   }
 
-  previewLabel() {
+  previewLabel(): string {
     return previewLabelForMimeTypes(this.props.resource?.mimeTypes ?? []);
   }
 
@@ -107,7 +102,7 @@ class PreviewSwitcher extends React.Component {
 
   showCombined = () => {
     // Combined view is only available when the document has been ingested as pages (e.g. PDF).
-    if (this.props.totalPages > 0) {
+    if ((this.props.totalPages ?? 0) > 0) {
       this.props.setResourceView("combined");
     }
   };
@@ -137,7 +132,11 @@ class PreviewSwitcher extends React.Component {
     this.props.setResourceView("table");
   };
 
-  renderMultiLangLinks(current, view, textPrefix) {
+  renderMultiLangLinks(
+    current: string,
+    view: string,
+    textPrefix?: string,
+  ): JSX.Element[] | false {
     if (_.get(this.props.resource, view)) {
       const languages = Object.keys(_.get(this.props.resource, view));
       if (languages.length > 0) {
@@ -182,7 +181,7 @@ class PreviewSwitcher extends React.Component {
           shortcut={keyboardShortcuts.showOcr}
           func={this.showOcr}
         />
-        {this.props.totalPages > 0 && (
+        {(this.props.totalPages ?? 0) > 0 && (
           <PreviewLink
             current={current}
             text="Combined"
@@ -198,9 +197,7 @@ class PreviewSwitcher extends React.Component {
             to="text"
             navigate={this.props.setResourceView}
           />
-        ) : (
-          false
-        )}
+        ) : false}
         {this.props.resource.transcript
           ? this.renderMultiLangLinks(current, "transcript", "Transcript")
           : false}
@@ -220,9 +217,7 @@ class PreviewSwitcher extends React.Component {
             to="preview"
             navigate={this.props.setResourceView}
           />
-        ) : (
-          false
-        )}
+        ) : false}
         {parents &&
           parents.some(
             (m) => m.uri.endsWith("csv") || m.uri.endsWith("tsv"),
@@ -239,37 +234,38 @@ class PreviewSwitcher extends React.Component {
   }
 }
 
-function PreviewLink({ current, text, to, navigate }) {
+type PreviewLinkProps = {
+  current: string;
+  text: string;
+  to: string;
+  navigate: (view: string) => void;
+};
+
+const PreviewLink: FC<PreviewLinkProps> = ({ current, text, to, navigate }) => {
   const active = current.toLowerCase() === to.toLowerCase();
   const clazz = `btn-link preview__link ${active ? "preview__link--active" : ""}`;
 
-  const onClick = (e) => {
+  const onClick = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
     navigate(to);
   };
 
   return (
-    <button href="#" className={clazz} onClick={onClick}>
+    <button className={clazz} onClick={onClick}>
       {text}
     </button>
   );
-}
-
-PreviewLink.propTypes = {
-  current: PropTypes.string.isRequired,
-  to: PropTypes.string.isRequired,
-  text: PropTypes.string.isRequired,
-  navigate: PropTypes.func.isRequired,
 };
 
 function mapStateToProps() {
   return {};
 }
 
-function mapDispatchToProps(dispatch) {
+function mapDispatchToProps(dispatch: GiantDispatch) {
   return {
     setResourceView: bindActionCreators(setResourceView, dispatch),
   };
 }
 
 export default connect(mapStateToProps, mapDispatchToProps)(PreviewSwitcher);
+
