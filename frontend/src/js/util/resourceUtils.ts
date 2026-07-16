@@ -102,6 +102,28 @@ export function hasTextContent(resource: Resource): boolean {
   return !!resource.text && resource.text.contents.trim() !== "";
 }
 
+export const TEXT_TRANSLATION_FIELD = "translationData.text.englishTranslation";
+export const OCR_TRANSLATION_FIELD = "translationData.ocr.englishTranslation";
+
+export function getTextTranslation(
+  resource: Resource,
+): HighlightableText | undefined {
+  const translationText = resource.translationData?.text?.englishTranslation;
+  if (!!translationText && translationText.contents.trim() !== "") {
+    return translationText;
+  }
+}
+
+// We OCR in several languages but only ever translate one of them, so there is at most one OCR translation
+export function getOcrTranslation(
+  resource: Resource,
+): HighlightableText | undefined {
+  const ocrTranslation = resource.translationData?.ocr?.englishTranslation;
+  if (!!ocrTranslation && ocrTranslation.contents.trim() !== "") {
+    return ocrTranslation;
+  }
+}
+
 export function getDefaultView(resource: Resource): string | undefined {
   if (resource.type !== "blob") {
     return undefined;
