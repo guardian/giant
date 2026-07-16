@@ -1,4 +1,4 @@
-import React, { FC } from "react";
+import React, { FC, useEffect } from "react";
 import { Resource } from "../../types/Resource";
 import _ from "lodash";
 
@@ -29,10 +29,17 @@ type PreviewSwitcherProps = {
   setResourceView: typeof setResourceView;
 };
 
-class PreviewSwitcher extends React.Component<PreviewSwitcherProps> {
-  currentViewModeIsValid(resource: Resource): boolean {
-    const { view, totalPages } = this.props;
+function canPreview(previewStatus?: string): boolean {
+  return previewStatus !== "disabled";
+}
 
+const PreviewSwitcher: FC<PreviewSwitcherProps> = ({
+  resource,
+  view,
+  totalPages,
+  setResourceView,
+}) => {
+  const currentViewModeIsValid = (): boolean => {
     if (!view) {
       return false;
     }
@@ -60,183 +67,150 @@ class PreviewSwitcher extends React.Component<PreviewSwitcherProps> {
       return false;
     }
 
-    if (view === "preview" && !this.canPreview(resource.previewStatus)) {
+    if (view === "preview" && !canPreview(resource.previewStatus)) {
       return false;
     }
 
     return true;
-  }
+  };
 
-  canPreview(previewStatus?: string): boolean {
-    return previewStatus !== "disabled";
-  }
+  const previewLabel = (): string =>
+    previewLabelForMimeTypes(resource?.mimeTypes ?? []);
 
-  previewLabel(): string {
-    return previewLabelForMimeTypes(this.props.resource?.mimeTypes ?? []);
-  }
-
-  componentDidUpdateOrMount() {
-    if (
-      this.props.resource &&
-      this.props.view &&
-      !this.currentViewModeIsValid(this.props.resource)
-    ) {
-      const fallback = getDefaultView(this.props.resource);
+  useEffect(() => {
+    if (resource && view && !currentViewModeIsValid()) {
+      const fallback = getDefaultView(resource);
       if (fallback) {
-        this.props.setResourceView(fallback);
+        setResourceView(fallback);
       }
     }
-  }
+    // Mirrors the previous componentDidMount/componentDidUpdate behaviour by
+    // re-running whenever the relevant props change.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  });
 
-  componentDidMount() {
-    this.componentDidUpdateOrMount();
-  }
-
-  componentDidUpdate() {
-    this.componentDidUpdateOrMount();
-  }
-
-  showText = () => {
-    this.props.setResourceView("text");
+  const showText = () => {
+    setResourceView("text");
   };
 
-  showCombined = () => {
+  const showCombined = () => {
     // Combined view is only available when the document has been ingested as pages (e.g. PDF).
-    if ((this.props.totalPages ?? 0) > 0) {
-      this.props.setResourceView("combined");
+    if ((totalPages ?? 0) > 0) {
+      setResourceView("combined");
     }
   };
 
-  showPreview = () => {
-    if (this.canPreview(this.props.resource?.previewStatus)) {
-      this.props.setResourceView("preview");
+  const showPreview = () => {
+    if (canPreview(resource?.previewStatus)) {
+      setResourceView("preview");
     }
   };
 
-  showOcr = () => {
-    const resource = this.props.resource;
+  const showOcr = () => {
     if (resource?.transcript) {
       const languages = Object.keys(resource.transcript);
       if (languages.length > 0) {
-        this.props.setResourceView(`transcript.${languages[0]}`);
+        setResourceView(`transcript.${languages[0]}`);
       }
     } else if (resource?.ocr) {
       const languages = Object.keys(resource.ocr);
       if (languages.length > 0) {
-        this.props.setResourceView(`ocr.${languages[0]}`);
+        setResourceView(`ocr.${languages[0]}`);
       }
     }
   };
 
-  showTable = () => {
-    this.props.setResourceView("table");
-  };
-
-  renderMultiLangLinks(
+  const renderMultiLangLinks = (
     current: string,
-    view: string,
+    langView: string,
     textPrefix?: string,
-  ): JSX.Element[] | false {
-    if (_.get(this.props.resource, view)) {
-      const languages = Object.keys(_.get(this.props.resource, view));
+  ): JSX.Element[] | false => {
+    if (_.get(resource, langView)) {
+      const languages = Object.keys(_.get(resource, langView));
       if (languages.length > 0) {
         return languages.map((l) => (
           <PreviewLink
             key={l}
             current={current}
-            to={`${view}.${l}`}
+            to={`${langView}.${l}`}
             text={`${textPrefix || ""} (${_.startCase(l)})`}
-            navigate={this.props.setResourceView}
+            navigate={setResourceView}
           />
         ));
       }
     }
     return false;
-  }
+  };
 
-  render() {
-    const current = this.props.view
-      ? this.props.view
-      : this.props.resource.transcript
-        ? "transcript"
-        : "text";
+  const current = view ? view : resource.transcript ? "transcript" : "text";
 
-    const { parents } = this.props.resource;
+  const { parents } = resource;
 
-    return (
-      <nav className="preview__links">
-        <KeyboardShortcut
-          shortcut={keyboardShortcuts.showText}
-          func={this.showText}
+  return (
+    <nav className="preview__links">
+      <KeyboardShortcut shortcut={keyboardShortcuts.showText} func={showText} />
+      <KeyboardShortcut
+        shortcut={keyboardShortcuts.showCombined}
+        func={showCombined}
+      />
+      <KeyboardShortcut
+        shortcut={keyboardShortcuts.showPreview}
+        func={showPreview}
+      />
+      <KeyboardShortcut shortcut={keyboardShortcuts.showOcr} func={showOcr} />
+      {(totalPages ?? 0) > 0 && (
+        <PreviewLink
+          current={current}
+          text="Combined"
+          to="combined"
+          navigate={setResourceView}
         />
-        <KeyboardShortcut
-          shortcut={keyboardShortcuts.showCombined}
-          func={this.showCombined}
+      )}
+      {hasTextContent(resource) && !resource.transcript ? (
+        <PreviewLink
+          current={current}
+          text="Text"
+          to="text"
+          navigate={setResourceView}
         />
-        <KeyboardShortcut
-          shortcut={keyboardShortcuts.showPreview}
-          func={this.showPreview}
+      ) : (
+        false
+      )}
+      {resource.transcript
+        ? renderMultiLangLinks(current, "transcript", "Transcript")
+        : false}
+      {resource.vttTranscript
+        ? renderMultiLangLinks(
+            current,
+            "vttTranscript",
+            "Transcript time codes",
+          )
+        : false}
+      {!resource.transcript && renderMultiLangLinks(current, "ocr", "OCR")}
+      {canPreview(resource.previewStatus) ? (
+        <PreviewLink
+          current={current}
+          text={previewLabel()}
+          to="preview"
+          navigate={setResourceView}
         />
-        <KeyboardShortcut
-          shortcut={keyboardShortcuts.showOcr}
-          func={this.showOcr}
-        />
-        {(this.props.totalPages ?? 0) > 0 && (
+      ) : (
+        false
+      )}
+      {parents &&
+        parents.some(
+          (m) => m.uri.endsWith("csv") || m.uri.endsWith("tsv"),
+        ) && (
           <PreviewLink
             current={current}
-            text="Combined"
-            to="combined"
-            navigate={this.props.setResourceView}
+            text="Table"
+            to="table"
+            navigate={setResourceView}
           />
         )}
-        {hasTextContent(this.props.resource) &&
-        !this.props.resource.transcript ? (
-          <PreviewLink
-            current={current}
-            text="Text"
-            to="text"
-            navigate={this.props.setResourceView}
-          />
-        ) : (
-          false
-        )}
-        {this.props.resource.transcript
-          ? this.renderMultiLangLinks(current, "transcript", "Transcript")
-          : false}
-        {this.props.resource.vttTranscript
-          ? this.renderMultiLangLinks(
-              current,
-              "vttTranscript",
-              "Transcript time codes",
-            )
-          : false}
-        {!this.props.resource.transcript &&
-          this.renderMultiLangLinks(current, "ocr", "OCR")}
-        {this.canPreview(this.props.resource.previewStatus) ? (
-          <PreviewLink
-            current={current}
-            text={this.previewLabel()}
-            to="preview"
-            navigate={this.props.setResourceView}
-          />
-        ) : (
-          false
-        )}
-        {parents &&
-          parents.some(
-            (m) => m.uri.endsWith("csv") || m.uri.endsWith("tsv"),
-          ) && (
-            <PreviewLink
-              current={current}
-              text="Table"
-              to="table"
-              navigate={this.props.setResourceView}
-            />
-          )}
-      </nav>
-    );
-  }
-}
+    </nav>
+  );
+};
 
 type PreviewLinkProps = {
   current: string;
