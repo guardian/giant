@@ -1,4 +1,5 @@
 brew "tesseract"
+brew "tesseract-lang"
 cask "libreoffice"
 brew "ocrmypdf"
 brew "imagemagick"
