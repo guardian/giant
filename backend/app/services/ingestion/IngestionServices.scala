@@ -2,7 +2,7 @@ package services.ingestion
 
 import java.nio.file.{Files, Path}
 import cats.syntax.either._
-import extraction.{Extractor, MimeTypeMapper}
+import extraction.{ExternalTranslationExtractor, ExtractionParams, Extractor, MimeTypeMapper}
 import model.{Language, Uri}
 import model.ingestion.{EmailContext, FileContext, WorkspaceItemContext}
 import model.manifest.{Blob, MimeType}
@@ -47,6 +47,7 @@ trait IngestionServices {
   def ingestFile(context: FileContext, blobUri: Uri, path: Path, isFastLane: Boolean = false): Either[Failure, Blob]
   def setProgressNote(blobUri: Uri, extractor: Extractor, note: String): Either[Failure, Unit]
   def detectLanguage(blobUri: String, text: String): Option[String]
+  def addTranslationTodo(blobUri: Uri, params: ExtractionParams, extractorName: String): Either[Failure, Unit]
 }
 
 object IngestionServices extends Logging {
@@ -88,6 +89,10 @@ object IngestionServices extends Logging {
         logger.info(s"Unable to detect language for text in $fieldIdentifier. Tika result: ${result.getLanguage} with confidence ${result.getRawScore}")
         None
       }
+    }
+
+    override def addTranslationTodo(blobUri: Uri, params: ExtractionParams, extractorName: String): Either[Failure, Unit] = {
+      manifest.addTranslationTodoToBlob(blobUri, params, extractorName)
     }
 
     override def ingestEmail(context: EmailContext, sourceMimeType: String): Either[Failure, Unit] = {

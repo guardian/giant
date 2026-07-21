@@ -82,11 +82,16 @@ case class OcrConfig(
   tesseract: TesseractOcrConfig
 )
 
+case class TranslationConfig(
+                            targetLanguage: String
+                            )
+
 case class TranscribeConfig(
                              whisperModelFilename: String,
                              transcriptionServiceQueueUrl: String,
                              transcriptionOutputQueueUrl: String,
-                             transcriptionOutputDeadLetterQueueUrl: String
+                             transcriptionOutputDeadLetterQueueUrl: String,
+                             llmBackend: String
 )
 
 case class RemoteIngestConfig(
@@ -214,7 +219,8 @@ case class Config(
                    ocr: OcrConfig,
                    transcribe: TranscribeConfig,
                    remoteIngest: RemoteIngestConfig,
-                   sqs: SQSConfig
+                   sqs: SQSConfig,
+                   translation: TranslationConfig
 )
 
 object Config {
@@ -233,7 +239,8 @@ object Config {
     raw.as[OcrConfig]("ocr"),
     raw.as[TranscribeConfig]("transcribe"),
     raw.as[RemoteIngestConfig]("remoteIngest"),
-    raw.as[SQSConfig]("sqs")
+    raw.as[SQSConfig]("sqs"),
+    raw.as[TranslationConfig]("translation")
   )
 
   private def parseAuth(rawAuthConfig: com.typesafe.config.Config): AuthConfig = {

@@ -3,7 +3,7 @@ package model.frontend
 import extraction.EnrichedMetadata
 import model._
 import model.annotations.Comment
-import model.index.{Document, IndexedResource}
+import model.index.{Document, IndexedResource, LanguageData}
 import org.neo4j.driver.Value
 import play.api.libs.json._
 import services.previewing.{PreviewService, PreviewStatus}
@@ -161,7 +161,8 @@ case class DocumentResource private (
                                       `type`: String = "blob",
                                       isBasic: Boolean = false,
                                       isExpandable: Boolean,
-                                      comments: List[Comment]
+                                      comments: List[Comment],
+                                      languageData: Option[LanguageData]
 ) extends Resource
 
 object DocumentResource {
@@ -183,7 +184,8 @@ object DocumentResource {
       fileSize = document.fileSize,
       mimeTypes = document.mimeTypes,
       isExpandable = basic.isExpandable,
-      comments = comments
+      comments = comments,
+      languageData = document.languageData
     )
   }
 }

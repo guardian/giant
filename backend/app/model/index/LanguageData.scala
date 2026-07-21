@@ -11,6 +11,8 @@ case class LanguageData(text: Option[LanguageDataField],
 
 object LanguageData {
   implicit val languageDataFieldFormat: Format[LanguageDataField] = Json.format[LanguageDataField]
+
   implicit val ocrLanguageDataFormat: Format[OcrLanguageData] = Json.format[OcrLanguageData]
+
   implicit val languageDataFormat: Format[LanguageData] = Json.format[LanguageData]
 }

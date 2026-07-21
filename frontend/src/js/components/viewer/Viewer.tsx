@@ -215,6 +215,7 @@ class Viewer extends React.Component<Props, State> {
         preferences={this.props.preferences}
         getComments={this.props.getComments}
         setSelection={this.props.setSelection}
+        languageData={resource.languageData}
       />
     );
   }

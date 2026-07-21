@@ -83,7 +83,7 @@ class TesseractPdfOcrExtractor(config: OcrConfig, scratch: ScratchSpace, index: 
       }
 
       pageService.addPageContents(blob.uri, pages)
-      OcrMyPdfExtractor.insertFullText(blob.uri, pages, index, ingestionServices.detectLanguage)
+      OcrMyPdfExtractor.insertFullText(blob.uri, pages, index, ingestionServices.detectLanguage, ingestionServices, params)
     } finally {
       Option(document).foreach(_.close())
       cleanup(file)

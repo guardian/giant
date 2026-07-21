@@ -88,9 +88,11 @@ class WorkerTest extends AnyFlatSpec with Matchers with EitherValues {
       override def create(key: String, path: Path, mimeType: Option[String]): Either[Failure, Unit] = ???
       override def delete(key: String): Either[Failure, Unit] = ???
       override def deleteMultiple(key: Set[String]): Either[Failure, Unit] = ???
+      override def getGzippedText(key: String): Either[Failure, String] = ???
       override def list(prefix: String): Either[Failure, List[String]] = ???
       override def getSignedUrl(key: String): Either[Failure, String] = ???
       override def getUploadSignedUrl(key: String): Either[Failure, String] = ???
+      override def putText(key: String, text: String, mimeType: Option[String]): Either[Failure, Unit] = ???
     }
 
     val testWorkerControl = new WorkerControl {
