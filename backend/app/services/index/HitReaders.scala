@@ -387,7 +387,6 @@ object HitReaders {
     }
   }
 
-
   private def highlightedPageOcr(maybeHighlights: Option[Map[String, Seq[String]]]): Map[Language, String] = {
     val highlights = maybeHighlights.getOrElse(Map.empty)
 
