@@ -9,7 +9,7 @@ import com.sksamuel.elastic4s.requests.searches.DateHistogramInterval
 import com.sksamuel.elastic4s.requests.searches.SearchResponse
 import com.sksamuel.elastic4s.requests.searches.queries.compound.BoolQuery
 import com.sksamuel.elastic4s.requests.update.UpdateByQueryRequest
-import extraction.{EnrichedMetadata}
+import extraction.EnrichedMetadata
 import model.frontend._
 import model.frontend.email.EmailMetadata
 import model.index._
@@ -23,6 +23,7 @@ import utils.attempt._
 
 import scala.concurrent.ExecutionContext
 import scala.jdk.CollectionConverters._
+import scala.util.{Failure, Success}
 
 class ElasticsearchResources(override val client: ElasticClient, indexName: String)(implicit executionContext: ExecutionContext) extends Index with Logging with ElasticsearchSyntax {
   override def setup(): Attempt[Index] = {
@@ -518,7 +519,14 @@ class ElasticsearchResources(override val client: ElasticClient, indexName: Stri
     }.map { resp =>
       val hits = resp.totalHits
       val took = resp.took
-      val results = resp.to[SearchResult].toList
+      val results = resp.hits.hits.toList.flatMap { hit =>
+        SearchResultHitReader.read(hit) match {
+          case Success(r) => Some(r)
+          case Failure(e) =>
+            logger.error(s"Failed to decode search hit ${hit.id}: ${e.getMessage}", e)
+            None
+        }
+      }
 
       SearchResults(hits, took, parameters.page, parameters.pageSize, results,
         Set(
