@@ -122,6 +122,9 @@ object HitReaders {
                 translationData.copy(
                   text = translationData.text.map(text => text.copy(
                     englishTranslation = highlights.flatMap(highlightedText(_, TranslationIndexFields.text)).orElse(text.englishTranslation)
+                  )),
+                  ocr = translationData.ocr.map(ocr => ocr.copy(
+                    englishTranslation = highlights.flatMap(highlightedText(_, TranslationIndexFields.ocr)).orElse(ocr.englishTranslation)
                   ))
                 )}
             )

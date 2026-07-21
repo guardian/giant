@@ -56,8 +56,9 @@ object HighlightFields {
     val transcriptFieldHighlighters = languageHighlighters(IndexFields.transcript, topLevelSearchQuery)
     val vttTranscriptFieldHighlighters = languageHighlighters(IndexFields.vttTranscript, topLevelSearchQuery)
     val translationTextFieldHighlighters = singleLanguageHighlighter(TranslationIndexFields.text, topLevelSearchQuery)
+    val translationOcrFieldHighlighters = singleLanguageHighlighter(TranslationIndexFields.ocr, topLevelSearchQuery)
 
-    textFieldHighlighters ++ ocrFieldHighlighters ++ transcriptFieldHighlighters ++ vttTranscriptFieldHighlighters :+ translationTextFieldHighlighters
+    textFieldHighlighters ++ ocrFieldHighlighters ++ transcriptFieldHighlighters ++ vttTranscriptFieldHighlighters :+ translationTextFieldHighlighters :+ translationOcrFieldHighlighters
   }
 
   def parseHit(hit: SearchHit): Seq[Highlight] = {
