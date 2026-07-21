@@ -1,13 +1,6 @@
 version: "3"
 services:
   neo4j:
-#    image: ${NEO4J_IMAGE_OVERRIDE:-neo4j/neo4j-arm64-experimental:3.5.30}
-#    image: neo4j:4.0.12
-#    image: neo4j:4.1.13
-#    image: neo4j:4.2.19
-#    image: neo4j:4.3.24
-#    image: neo4j:4.4.48
-#    image: neo4j:5.26.11
     image: neo4j:2026.02.2
     container_name: neo4j
     environment:
