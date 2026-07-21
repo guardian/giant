@@ -198,9 +198,7 @@ const PreviewSwitcher: FC<PreviewSwitcherProps> = ({
         false
       )}
       {parents &&
-        parents.some(
-          (m) => m.uri.endsWith("csv") || m.uri.endsWith("tsv"),
-        ) && (
+        parents.some((m) => m.uri.endsWith("csv") || m.uri.endsWith("tsv")) && (
           <PreviewLink
             current={current}
             text="Table"
