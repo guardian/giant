@@ -48,13 +48,19 @@ export function useHighlightNavigation(
 
       setQuery(q);
       setIsPending(true);
-      // TODO: handle error
       return authFetch(`/api/pages2/${uri}/${endpoint}?${params.toString()}`)
         .then((res) => res.json())
         .then((results: HighlightForSearchNavigation[]) => {
           setIsPending(false);
           setHighlights(results);
           setFocusedIndex(results.length > 0 ? 0 : null);
+        })
+        .catch(() => {
+          // e.g. the document has no page index; treat as no highlights rather
+          // than letting the rejection surface as an uncaught runtime error.
+          setIsPending(false);
+          setHighlights([]);
+          setFocusedIndex(null);
         });
     },
     [uri, endpoint],
