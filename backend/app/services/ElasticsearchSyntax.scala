@@ -11,7 +11,7 @@ import com.sksamuel.elastic4s.requests.indexes.admin.IndexExistsResponse
 import com.sksamuel.elastic4s.requests.mappings.dynamictemplate.DynamicMapping
 import com.sksamuel.elastic4s.requests.mappings.MappingDefinition
 import com.sksamuel.elastic4s.requests.update.{UpdateByQueryRequest, UpdateRequest}
-import model.Language
+import model.{English, Language}
 import org.apache.http.{ContentTooLongException, HttpHost}
 import org.elasticsearch.client.RestClient
 import org.elasticsearch.client.sniff.Sniffer
@@ -52,7 +52,7 @@ trait ElasticsearchSyntax { this: Logging =>
   def emptyLanguageDataField(name: String): ObjectField = {
     ObjectField(name, properties = Seq(
       textField(IndexFields.languageData.translatableFieldData.detectedLanguageCode),
-      textField(IndexFields.languageData.translatableFieldData.translation)
+      singleLanguageField(IndexFields.languageData.translatableFieldData.translation, English)
     ))
   }
 

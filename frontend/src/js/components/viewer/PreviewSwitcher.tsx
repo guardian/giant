@@ -1,8 +1,15 @@
 import React, { FC, useEffect } from "react";
-import { Resource } from "../../types/Resource";
+import { HighlightableText, Resource } from "../../types/Resource";
 import _ from "lodash";
 
-import { hasTextContent, getDefaultView } from "../../util/resourceUtils";
+import {
+  hasTextContent,
+  getDefaultView,
+  getTextTranslation,
+  getOcrTranslation,
+  TEXT_TRANSLATION_FIELD,
+  OCR_TRANSLATION_FIELD,
+} from "../../util/resourceUtils";
 import { keyboardShortcuts } from "../../util/keyboardShortcuts";
 import { KeyboardShortcut } from "../UtilComponents/KeyboardShortcut";
 
@@ -106,7 +113,7 @@ const PreviewSwitcher: FC<PreviewSwitcherProps> = ({
     }
   };
 
-  const showOcr = () => {
+  const showOcrOrTranscript = () => {
     if (resource?.transcript) {
       const languages = Object.keys(resource.transcript);
       if (languages.length > 0) {
@@ -123,10 +130,11 @@ const PreviewSwitcher: FC<PreviewSwitcherProps> = ({
   const renderMultiLangLinks = (
     current: string,
     langView: string,
+    multiLangObject?: { [p: string]: HighlightableText },
     textPrefix?: string,
   ): JSX.Element[] | false => {
-    if (_.get(resource, langView)) {
-      const languages = Object.keys(_.get(resource, langView));
+    if (multiLangObject) {
+      const languages = Object.keys(multiLangObject);
       if (languages.length > 0) {
         return languages.map((l) => (
           <PreviewLink
@@ -157,7 +165,10 @@ const PreviewSwitcher: FC<PreviewSwitcherProps> = ({
         shortcut={keyboardShortcuts.showPreview}
         func={showPreview}
       />
-      <KeyboardShortcut shortcut={keyboardShortcuts.showOcr} func={showOcr} />
+      <KeyboardShortcut
+        shortcut={keyboardShortcuts.showOcr}
+        func={showOcrOrTranscript}
+      />
       {(totalPages ?? 0) > 0 && (
         <PreviewLink
           current={current}
@@ -176,17 +187,39 @@ const PreviewSwitcher: FC<PreviewSwitcherProps> = ({
       ) : (
         false
       )}
+      {getTextTranslation(resource) && (
+        <PreviewLink
+          current={current}
+          text="Text Translation"
+          to={TEXT_TRANSLATION_FIELD}
+          navigate={setResourceView}
+        />
+      )}
+      {getOcrTranslation(resource) &&
+        renderMultiLangLinks(
+          current,
+          OCR_TRANSLATION_FIELD,
+          getOcrTranslation(resource),
+          "OCR Translation",
+        )}
       {resource.transcript
-        ? renderMultiLangLinks(current, "transcript", "Transcript")
+        ? renderMultiLangLinks(
+            current,
+            "transcript",
+            resource.transcript,
+            "Transcript",
+          )
         : false}
       {resource.vttTranscript
         ? renderMultiLangLinks(
             current,
             "vttTranscript",
+            resource.vttTranscript,
             "Transcript time codes",
           )
         : false}
-      {!resource.transcript && renderMultiLangLinks(current, "ocr", "OCR")}
+      {!resource.transcript &&
+        renderMultiLangLinks(current, "ocr", resource.ocr, "OCR")}
       {canPreview(resource.previewStatus) ? (
         <PreviewLink
           current={current}

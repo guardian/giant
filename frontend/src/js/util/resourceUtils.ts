@@ -81,6 +81,35 @@ export function hasTextContent(resource: Resource): boolean {
   return !!resource.text && resource.text.contents.trim() !== "";
 }
 
+export const TEXT_TRANSLATION_FIELD = "languageData.text.translation";
+export const OCR_TRANSLATION_FIELD = "languageData.ocr.translation";
+
+export function getTextTranslation(
+  resource: Resource,
+): HighlightableText | undefined {
+  const translationText = resource.languageData?.text?.translation;
+  if (!!translationText && translationText?.contents.trim() !== "") {
+    return translationText;
+  }
+}
+
+export function getOcrTranslation(resource: Resource):
+  | {
+      [p: string]: HighlightableText;
+    }
+  | undefined {
+  const ocrTranslation = resource?.languageData?.ocr?.translation;
+  if (ocrTranslation) {
+    const empty =
+      Object.values(ocrTranslation).filter(
+        (translation) => translation.contents !== "",
+      ).length === 0;
+    if (!empty) {
+      return ocrTranslation;
+    }
+  }
+}
+
 export function getDefaultView(resource: Resource): string | undefined {
   if (resource.type !== "blob") {
     return undefined;

@@ -492,7 +492,14 @@ class ElasticsearchResources(override val client: ElasticClient, indexName: Stri
             buildMetadataQuery(parameters)
           )).filter(SearchContext.buildFilters(parameters, context))
         )
-        .fetchContext(FetchSourceContext(fetchSource = true, excludes = Set(IndexFields.text, s"${IndexFields.ocr}.*")))
+        .fetchContext(FetchSourceContext(fetchSource = true, excludes = Set(
+          // exclude massive fields from source context to avoid errors when fetching large documents
+          IndexFields.text,
+          s"${IndexFields.ocr}.*",
+          TranslationIndexFields.text,
+          s"${TranslationIndexFields.ocr}.*",
+          TranslationIndexFields.emailBody
+        )))
         .from(parameters.from)
         .size(parameters.size)
         .highlighting(HighlightFields.searchHighlights(topLevelSearchQuery))
@@ -1016,11 +1023,18 @@ object IndexFields {
 
     object translatableFieldData {
       val detectedLanguageCode = "detectedLanguageCode"
-      val translation = "translation"
+      val translation = "translation2"
     }
   }
 
   // These should be in order of importance
+}
+
+object TranslationIndexFields {
+  val text = s"${IndexFields.languageDataField}.${IndexFields.languageData.textField}.${IndexFields.languageData.translatableFieldData.translation}"
+  val emailSubject = s"${IndexFields.languageDataField}.${IndexFields.languageData.emailSubjectField}.${IndexFields.languageData.translatableFieldData.translation}"
+  val emailBody = s"${IndexFields.languageDataField}.${IndexFields.languageData.emailBodyField}.${IndexFields.languageData.translatableFieldData.translation}"
+  val ocr = s"${IndexFields.languageDataField}.${IndexFields.languageData.ocr}.${IndexFields.languageData.translatableFieldData.translation}"
 }
 
 object IndexAggNames {

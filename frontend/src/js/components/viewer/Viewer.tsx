@@ -35,7 +35,13 @@ import {
 import { Auth } from "../../types/Auth";
 import { GiantDispatch } from "../../types/redux/GiantDispatch";
 import LazyTreeBrowser from "./LazyTreeBrowser";
-import { getDefaultView } from "../../util/resourceUtils";
+import {
+  getDefaultView,
+  getOcrTranslation,
+  getTextTranslation,
+  OCR_TRANSLATION_FIELD,
+  TEXT_TRANSLATION_FIELD,
+} from "../../util/resourceUtils";
 import DownloadButton from "./DownloadButton";
 import { WorkspaceNavigation } from "../../util/workspaceNavigation";
 
@@ -215,7 +221,6 @@ class Viewer extends React.Component<Props, State> {
         preferences={this.props.preferences}
         getComments={this.props.getComments}
         setSelection={this.props.setSelection}
-        languageData={resource.languageData}
       />
     );
   }
@@ -268,6 +273,30 @@ class Viewer extends React.Component<Props, State> {
           resource,
           _.get(this.props.resource, view),
           view,
+        );
+      } else {
+        // Only matters if a user has manually changed the view in the URL params or is visiting a link with them in
+        return this.renderNoPreview();
+      }
+    } else if (view.startsWith(OCR_TRANSLATION_FIELD)) {
+      const ocrTranslation = getOcrTranslation(resource);
+      if (ocrTranslation) {
+        return this.renderTextPreview(
+          resource,
+          _.get(this.props.resource, view),
+          view,
+        );
+      } else {
+        // Only matters if a user has manually changed the view in the URL params or is visiting a link with them in
+        return this.renderNoPreview();
+      }
+    } else if (view.startsWith(TEXT_TRANSLATION_FIELD)) {
+      const translation = getTextTranslation(resource);
+      if (translation) {
+        return this.renderTextPreview(
+          resource,
+          translation,
+          TEXT_TRANSLATION_FIELD,
         );
       } else {
         // Only matters if a user has manually changed the view in the URL params or is visiting a link with them in
