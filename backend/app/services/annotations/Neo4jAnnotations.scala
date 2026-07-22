@@ -257,6 +257,219 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
     }
   }
 
+  // === Lazy-loading read primitives (issue #744) ===
+  // These additive endpoints let the client fetch a workspace one level at a time. They share the
+  // childrenWithStatusClause query fragment below and the buildLazyParentNode helper, which turns a
+  // parent's child rows into entries via the existing WorkspaceEntry.fromNeo4jValue.
+
+  // Bind `workspace` if and only if the current user may read it: they follow or own it, or it is
+  // public. The same access rule as the eager workspace queries above, shared by all three lazy
+  // queries so it can't drift between them.
+  private val matchAuthorisedWorkspace: String =
+    """MATCH (workspace: Workspace { id: $id })
+      |WHERE (:User { username: $currentUser })-[:FOLLOWING|OWNS]->(workspace) OR workspace.isPublic""".stripMargin
+
+  // The OPTIONAL MATCHes + RETURN that buildLazyParentNode reads, to assemble a parent folder and its
+  // direct children with inline processing status. Shared verbatim by getWorkspaceChildren and
+  // getWorkspaceAncestors so their row shape can't drift — buildLazyParentNode consumes both. Expects
+  // `workspace` and `parent` to be bound by the clauses prepended to it.
+  private val childrenWithStatusClause: String =
+    """MATCH (parent)<-[:CREATED]-(parentCreator :User)
+      |OPTIONAL MATCH (parent)-[:PARENT]->(parentParent :WorkspaceNode)
+      |OPTIONAL MATCH (parent)-[:FROM]->(parentRemoteIngest :RemoteIngest)
+      |OPTIONAL MATCH (workspace)<-[:PART_OF]-(child :WorkspaceNode)-[:PARENT]->(parent)
+      |OPTIONAL MATCH (child)<-[:CREATED]-(childCreator :User)
+      |OPTIONAL MATCH (child)-[:FROM]->(childRemoteIngest :RemoteIngest)
+      |OPTIONAL MATCH (:Resource { uri: child.uri })<-[todo:TODO|PROCESSING_EXTERNALLY]-(:Extractor)
+      |RETURN parent, parentCreator, parentParent.id AS parentParentId,
+      |       parentRemoteIngest.url AS parentCapturedFromURL,
+      |       child, childCreator, childRemoteIngest.url AS childCapturedFromURL,
+      |       count(todo) AS numberOfTodos,
+      |       collect(todo)[0].note AS note,
+      |       EXISTS { (:Resource { uri: child.uri })<-[:EXTRACTION_FAILURE]-(:Extractor) } AS hasFailures""".stripMargin
+
+  override def getWorkspaceChildren(currentUser: String, workspaceId: String, maybeNodeId: Option[String]): Attempt[TreeEntry[WorkspaceEntry]] = attemptTransaction { tx =>
+    // Select the parent by id (an index seek on the WorkspaceNode.id uniqueness constraint) for a
+    // known node, or as the parentless root otherwise. These are kept as separate predicates rather
+    // than one `parent.id = $nodeId OR NOT (parent)-[:PARENT]->()`: that OR stops the planner using
+    // the id index, so it expands every PART_OF node and filters — making even a single-folder fetch
+    // O(total). Split out, the by-id case is an index seek.
+    //
+    // Finding the root still scans (a NOT-EXISTS predicate can't use an index), so the first-paint
+    // root load is O(total). Deferred for now — the POC measured ~2s on a 101k-item workspace,
+    // acceptable versus the eager path it replaces — but a rootNodeId marker on the Workspace node
+    // would make this an index seek too (see #744).
+    // The type filter rejects file nodes: only folders have children, and without it a file id
+    // would come back disguised as an empty folder (buildLazyParentNode builds folder-shaped data).
+    val parentSelection = maybeNodeId match {
+      case Some(_) =>
+        "MATCH (workspace)<-[:PART_OF]-(parent :WorkspaceNode) WHERE parent.id = $nodeId AND parent.type = 'folder'"
+      case None =>
+        "MATCH (workspace)<-[:PART_OF]-(parent :WorkspaceNode) WHERE NOT (parent)-[:PARENT]->(:WorkspaceNode)"
+    }
+
+    val query = List(
+      matchAuthorisedWorkspace,
+      parentSelection,
+      childrenWithStatusClause
+    ).mkString("\n")
+
+    tx.run(
+      query,
+      parameters(
+        "currentUser", currentUser,
+        "id", workspaceId,
+        "nodeId", maybeNodeId.orNull
+      )
+    ).flatMap { summary =>
+      summary.list().asScala.toList match {
+        case Nil =>
+          Attempt.Left(NotFoundFailure(s"Folder ${maybeNodeId.getOrElse("<root>")} not found in workspace $workspaceId"))
+        case rows =>
+          Attempt.Right(buildLazyParentNode(rows))
+      }
+    }
+  }
+
+  override def getWorkspaceAncestors(currentUser: String, workspaceId: String, nodeId: String): Attempt[List[TreeEntry[WorkspaceEntry]]] = attemptTransaction { tx =>
+    // Step 1: confirm the node is visible to this user and get the ordered ancestor ids (root first,
+    // excluding the node itself). Walking up the single PARENT chain is O(depth), no fan-out.
+    tx.run(
+      List(
+        matchAuthorisedWorkspace,
+        """MATCH (target: WorkspaceNode { id: $nodeId })-[:PART_OF]->(workspace)
+          |MATCH path = (target)-[:PARENT*0..]->(root: WorkspaceNode)
+          |WHERE NOT (root)-[:PARENT]->(:WorkspaceNode)
+          |RETURN [n IN reverse(nodes(path))[0..-1] | n.id] AS ancestorIds""".stripMargin
+      ).mkString("\n"),
+      parameters(
+        "currentUser", currentUser,
+        "id", workspaceId,
+        "nodeId", nodeId
+      )
+    ).flatMap { summary =>
+      summary.list().asScala.headOption match {
+        case None =>
+          Attempt.Left(NotFoundFailure(s"Node $nodeId not found in workspace $workspaceId"))
+
+        case Some(row) =>
+          val ancestorIds = row.get("ancestorIds").asList[String]((v: Value) => v.asString()).asScala.toList
+
+          if (ancestorIds.isEmpty) {
+            // The node is the workspace root — it has no ancestors, and is already loaded.
+            Attempt.Right(List.empty[TreeEntry[WorkspaceEntry]])
+          } else {
+            // Step 2: fetch the direct children (with inline status) of every ancestor in one query.
+            // Access is already authorised by step 1 within this transaction, so no re-check needed.
+            val childrenQuery = List(
+              """MATCH (workspace: Workspace { id: $id })
+                |MATCH (workspace)<-[:PART_OF]-(parent :WorkspaceNode)
+                |WHERE parent.id IN $parentIds""".stripMargin,
+              childrenWithStatusClause
+            ).mkString("\n")
+            tx.run(
+              childrenQuery,
+              parameters(
+                "id", workspaceId,
+                "parentIds", ancestorIds.toArray
+              )
+            ).map { childrenSummary =>
+              val rowsByParentId = childrenSummary.list().asScala.toList.groupBy(_.get("parent").get("id").asString())
+              // Return one populated TreeNode per ancestor, preserving the root-first order.
+              ancestorIds.flatMap(id => rowsByParentId.get(id).map(buildLazyParentNode))
+            }
+          }
+      }
+    }
+  }
+
+  override def getWorkspaceAggregate(currentUser: String, workspaceId: String): Attempt[WorkspaceAggregate] = attemptTransaction { tx =>
+    tx.run(
+      List(
+        matchAuthorisedWorkspace,
+        """OPTIONAL MATCH (workspace)<-[:PART_OF]-(node :WorkspaceNode)
+          |WITH workspace, node,
+          |     node.type AS nodeType,
+          |     EXISTS { (:Resource { uri: node.uri })<-[:EXTRACTION_FAILURE]-(:Extractor) } AS hasFailures,
+          |     count { (:Resource { uri: node.uri })<-[:TODO|PROCESSING_EXTERNALLY]-(:Extractor) } AS numberOfTodos
+          |RETURN workspace.id AS workspaceId,
+          |       count(CASE WHEN nodeType = 'file' THEN node END) AS fileCount,
+          |       count(CASE WHEN nodeType = 'folder' THEN node END) AS folderCount,
+          |       sum(CASE WHEN nodeType = 'file' AND hasFailures THEN 1 ELSE 0 END) AS failedCount,
+          |       sum(CASE WHEN nodeType = 'file' AND NOT hasFailures THEN numberOfTodos ELSE 0 END) AS processingTaskCount""".stripMargin
+      ).mkString("\n"),
+      parameters(
+        "currentUser", currentUser,
+        "id", workspaceId
+      )
+    ).flatMap { summary =>
+      summary.list().asScala.headOption match {
+        case None =>
+          Attempt.Left(NotFoundFailure(s"Workspace $workspaceId does not exist"))
+
+        case Some(row) =>
+          // The query counts the root folder among the folders; the eager tree's rollup
+          // (descendantsNodeCount) excludes it, so subtract it here to keep the two in parity.
+          val folderCountExcludingRoot = math.max(row.get("folderCount").asLong() - 1L, 0L)
+          Attempt.Right(WorkspaceAggregate(
+            fileCount = row.get("fileCount").asLong(),
+            folderCount = folderCountExcludingRoot,
+            processingTaskCount = row.get("processingTaskCount").asLong(),
+            failedCount = row.get("failedCount").asLong()
+          ))
+      }
+    }
+  }
+
+  // Assemble a parent folder (a lazy TreeNode) and its direct children from a group of query rows
+  // that share the same parent. The parent's own data comes from the first row; children come from
+  // every row with a non-null child. Roll-up counts stay 0 — the client computes them where a
+  // subtree is fully loaded and shows "counts pending" otherwise (issue #744).
+  private def buildLazyParentNode(rows: List[Record]): TreeNode[WorkspaceEntry] = {
+    val firstRow = rows.head
+    val parentValue = firstRow.get("parent")
+    val parentId = parentValue.get("id").asString()
+    val parentCreator = DBUser.fromNeo4jValue(firstRow.get("parentCreator")).toPartial
+    val maybeParentParentId = firstRow.get("parentParentId").optionally(_.asString())
+
+    // A child with no creator is dropped, matching the eager query which couples node and creator.
+    // WorkspaceEntry.fromNeo4jValue produces exactly the flat entry lazy loading needs: a child
+    // folder becomes a TreeNode with empty children (a placeholder the client fetches on expand, so
+    // it still behaves structurally like a folder — drop target, context menu, stable sort), and a
+    // child file becomes a leaf carrying its processing status inline.
+    val children: List[TreeEntry[WorkspaceEntry]] =
+      rows.filter(r => !r.get("child").isNull && !r.get("childCreator").isNull).map { r =>
+        WorkspaceEntry.fromNeo4jValue(
+          r.get("child"),
+          DBUser.fromNeo4jValue(r.get("childCreator")).toPartial,
+          Some(parentId),
+          r.get("childCapturedFromURL").optionally(_.asString()),
+          r.get("numberOfTodos").asInt(),
+          r.get("note").optionally(_.asString()),
+          r.get("hasFailures").asBoolean()
+        )
+      }
+
+    TreeNode[WorkspaceEntry](
+      id = parentId,
+      name = parentValue.get("name").asString(),
+      data = WorkspaceNode(
+        addedBy = parentCreator,
+        addedOn = parentValue.get("addedOn").optionally(_.asLong()),
+        maybeParentId = maybeParentParentId,
+        // Populated for parity with the eager query: the client merge adopts the parent's fresh
+        // data, so leaving this out would wipe a captured folder's URL when it is refreshed.
+        maybeCapturedFromURL = firstRow.get("parentCapturedFromURL").optionally(_.asString()),
+        descendantsLeafCount = 0,
+        descendantsNodeCount = 0,
+        descendantsProcessingTaskCount = 0,
+        descendantsProcessingLeafCount = 0,
+        descendantsFailedCount = 0
+      ),
+      children = children
+    )
+  }
+
   override def insertWorkspace(username: String, id: String, name: String, isPublic: Boolean, tagColor: String): Attempt[Unit] = attemptTransaction { tx =>
     tx.run(
       """
