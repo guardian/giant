@@ -1023,7 +1023,7 @@ object IndexFields {
 
     object translatableFieldData {
       val detectedLanguageCode = "detectedLanguageCode"
-      val translation = "translation2"
+      val translation = "translation"
     }
   }
 
