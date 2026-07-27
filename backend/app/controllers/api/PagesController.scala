@@ -19,17 +19,32 @@ import utils.controller.{AuthApiController, AuthControllerComponents}
 class PagesController(val controllerComponents: AuthControllerComponents, manifest: Manifest,
     index: Index, pagesService: Pages2, annotations: Annotations, previewStorage: ObjectStorage) extends AuthApiController {
 
-  def getPageCount(uri: Uri) = ApiAction.attempt { req =>
+  def getPageCount(uri: Uri, q: Option[String]) = ApiAction.attempt { req =>
     val countAttempt = pagesService.getPageCount(uri)
     val dimensionsAttempt = pagesService.getFirstPageDimensions(uri)
       .recoverWith { case _ => Attempt.Right(None) }
+    // Answers "would the Combined view show a match for this search?" alongside
+    // the count, so the frontend can choose the initial view for a document
+    // opened from search results in a single round trip (issues #733 / #760).
+    // A failure here (e.g. a query elasticsearch can't parse) must not stop the
+    // document opening: it reports as "no match", which keeps the search-forced
+    // flat view.
+    val searchMatchAttempt = Attempt.sequenceOption(
+      q.filter(_.trim.nonEmpty).map { query =>
+        Attempt.catchNonFatalBlasé(Chips.parseQueryString(query).query)
+          .flatMap(parsed => pagesService.hasSearchMatch(uri, parsed))
+          .recoverWith { case _ => Attempt.Right(false) }
+      }
+    )
     for {
       count <- countAttempt
       dimensions <- dimensionsAttempt
+      searchMatchesInPages <- searchMatchAttempt
     } yield {
       Ok(Json.obj(
         "pageCount" -> count,
-        "dimensions" -> dimensions
+        "dimensions" -> dimensions,
+        "searchMatchesInPages" -> searchMatchesInPages
       ))
     }
   }

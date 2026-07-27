@@ -30,8 +30,11 @@ import { keyboardShortcuts } from "../util/keyboardShortcuts";
 import { KeyboardShortcut } from "./UtilComponents/KeyboardShortcut";
 import history from "../util/history";
 import { useWorkspaceNavigation } from "../util/workspaceNavigation";
-
-const COMBINED_VIEW = "combined";
+import { removeLastUnmatchedQuote } from "../util/stringUtils";
+import {
+  COMBINED_VIEW,
+  resolveInitialPagedView,
+} from "./PageViewer/resolveInitialPagedView";
 
 function isCombinedOrUnset(view: string | undefined): boolean {
   return !view || view === COMBINED_VIEW;
@@ -136,6 +139,10 @@ const PageViewerContent: FC<{
 type PageCountResponse = {
   pageCount: number;
   dimensions: PageDimensions | null;
+  // Whether the search query (if one was sent) matches in the page index —
+  // i.e. whether the Combined view can show it. null when no query was sent;
+  // absent from backends that predate the parameter.
+  searchMatchesInPages?: boolean | null;
 };
 
 const SearchStepperOverlay: FC<{
@@ -243,7 +250,9 @@ export const PageViewerOrFallback: FC<{}> = () => {
     }
   }, [highlightStepper.currentHighlight, highlightStepper.totalHighlights]);
 
-  const [response, setResponse] = useState<PageCountResponse | null>(null);
+  const [response, setResponse] = useState<
+    (PageCountResponse & { uri: string }) | null
+  >(null);
   const view = useSelector<GiantState, string | undefined>(
     (state) => state.urlParams.view,
   );
@@ -252,25 +261,77 @@ export const PageViewerOrFallback: FC<{}> = () => {
   );
   const dispatch = useDispatch();
 
-  useEffect(() => {
-    authFetch(`/api/pages2/${uri}/pageCount`)
-      .then((res) => res.json())
-      .then((obj: PageCountResponse) => setResponse(obj))
-      .catch(() => setResponse({ pageCount: 0, dimensions: null }));
-  }, [uri]);
+  const searchQuery = searchParams.get("q") ?? undefined;
 
-  const totalPages = response?.pageCount ?? null;
-
-  // Default to "combined" when we have pages and no view is set.
   useEffect(() => {
-    if (totalPages && totalPages > 0 && !view) {
-      dispatch(setResourceView(COMBINED_VIEW));
+    let cancelled = false;
+
+    // Sending the search query along with the pageCount request lets the
+    // backend also tell us whether the query matches in the page index — i.e.
+    // whether the Combined view could show it. Elasticsearch can't answer that
+    // during search itself because it has no notion of the Combined view
+    // (issues #733 / #760).
+    const params = new URLSearchParams();
+    if (searchQuery) {
+      // The backend will respect quotes and do an exact search, but if quotes
+      // are unbalanced elasticsearch will error
+      params.set("q", removeLastUnmatchedQuote(searchQuery));
     }
-  }, [totalPages, view, dispatch]);
+    const queryString = params.toString();
+    const suffix = queryString ? `?${queryString}` : "";
 
-  if (response === null) {
+    authFetch(`/api/pages2/${uri}/pageCount${suffix}`)
+      .then((res) => res.json())
+      .then((obj: PageCountResponse) => {
+        if (cancelled) {
+          return;
+        }
+
+        // Decide the initial view once per document load, right as its data
+        // arrives, so a user manually switching tabs afterwards is never
+        // overridden (see resolveInitialPagedView). The current view is read
+        // from the URL, which the middleware keeps in sync with the store.
+        const currentView =
+          new URLSearchParams(window.location.search).get("view") ?? undefined;
+        const target = resolveInitialPagedView({
+          pageCount: obj.pageCount,
+          currentView,
+          hasSearchQuery: Boolean(searchQuery),
+          searchMatchesInPages: obj.searchMatchesInPages,
+        });
+
+        // Dispatch before setResponse so the viewer never renders a frame in
+        // the view we are about to leave.
+        if (target && target !== currentView) {
+          dispatch(setResourceView(target));
+        }
+        setResponse({ ...obj, uri });
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setResponse({ pageCount: 0, dimensions: null, uri });
+        }
+      });
+
+    // Discard responses from a superseded request so an out-of-order arrival
+    // (e.g. when stepping quickly between results) can't replace the current
+    // document's data — or dispatch a view change after this document has been
+    // left.
+    return () => {
+      cancelled = true;
+    };
+  }, [uri, searchQuery, dispatch]);
+
+  // This component is not remounted when the :uri route param changes, so until
+  // the new document's count arrives `response` still holds the previous one's.
+  // Tagging it with its uri lets us treat a stale count as "not yet known"
+  // rather than wrongly imposing the Combined view on the next document.
+  const pageData = response && response.uri === uri ? response : null;
+  const totalPages = pageData ? pageData.pageCount : null;
+
+  if (totalPages === null) {
     return null;
-  } else if (response.pageCount === 0) {
+  } else if (totalPages === 0) {
     return (
       <div className="document__viewer-fallback">
         <SearchStepperOverlay highlightStepper={highlightStepper} />
@@ -287,8 +348,8 @@ export const PageViewerOrFallback: FC<{}> = () => {
       <PageViewerContent
         key={uri}
         uri={uri}
-        totalPages={response.pageCount}
-        firstPageDimensions={response.dimensions ?? undefined}
+        totalPages={totalPages}
+        firstPageDimensions={pageData?.dimensions ?? undefined}
         view={view}
         findQuery={pageFind.findQuery}
         findHighlightsState={pageFind.highlightsState}
@@ -317,7 +378,7 @@ export const PageViewerOrFallback: FC<{}> = () => {
           <DocumentFooter
             uri={uri}
             workspaceNav={workspaceNav}
-            totalPages={response.pageCount}
+            totalPages={totalPages}
             pageFind={isCombinedOrUnset(view) ? pageFind : undefined}
             pageViewControls={
               isCombinedOrUnset(view) ? pageViewControls : undefined
