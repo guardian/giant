@@ -18,6 +18,8 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: 'true' # FIXME we must setup an SSH key pair to be able to load the contents of the investigations-platform submodule
 
       # TODO: configure caching
       # See https://github.com/actions/setup-java
