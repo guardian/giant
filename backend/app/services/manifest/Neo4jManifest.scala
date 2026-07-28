@@ -1214,26 +1214,44 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
     })
   }
 
-  override def getBlobUrisForPathPrefix(pathPrefix: String, size: Int): Either[Failure, List[(String, Boolean)]] = transaction { tx =>
-    val result = tx.run(
+  override def getBlobUrisForPathPrefix(pathPrefix: String, size: Int): Either[Failure, (List[(String, Boolean)], Long)] = transaction { tx =>
+    // Match on a path-segment boundary, not a raw string prefix: 'docs/2024' must not
+    // match 'docs/2024-old/…'. That means either the exact file at the prefix, or
+    // anything below it as a directory.
+    val exact = pathPrefix.stripSuffix("/")
+    val withSlash = exact + "/"
+
+    val params = parameters(
+      "exact", exact,
+      "withSlash", withSlash,
+      "size", Int.box(size)
+    )
+
+    val blobs = tx.run(
       """
         |MATCH (b:Blob:Resource)-[:PARENT]->(f:File:Resource)
-        |WHERE f.uri STARTS WITH $pathPrefix
+        |WHERE f.uri = $exact OR f.uri STARTS WITH $withSlash
         |WITH DISTINCT b
         |OPTIONAL MATCH (b)-[:PARENT]->(otherFile:File:Resource)
-        |  WHERE NOT otherFile.uri STARTS WITH $pathPrefix
+        |  WHERE NOT (otherFile.uri = $exact OR otherFile.uri STARTS WITH $withSlash)
         |RETURN b.uri AS blobUri, count(otherFile) > 0 AS hasPathConflict
         |LIMIT $size
       """.stripMargin,
-      parameters(
-        "pathPrefix", pathPrefix,
-        "size", Int.box(size)
-      )
-    )
-
-    Right(result.list().asScala.toList.map { record =>
+      params
+    ).list().asScala.toList.map { record =>
       (record.get("blobUri").asString(), record.get("hasPathConflict").asBoolean())
-    })
+    }
+
+    val total = tx.run(
+      """
+        |MATCH (b:Blob:Resource)-[:PARENT]->(f:File:Resource)
+        |WHERE f.uri = $exact OR f.uri STARTS WITH $withSlash
+        |RETURN count(DISTINCT b) AS total
+      """.stripMargin,
+      params
+    ).single().get("total").asLong()
+
+    Right((blobs, total))
   }
 
   override def getWorkCounts(): Either[Failure, WorkCounts] = transaction { tx =>

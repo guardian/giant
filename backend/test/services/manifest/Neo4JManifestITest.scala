@@ -476,6 +476,71 @@ class Neo4JManifestITest extends AnyFreeSpec
 
     }
 
+    "Blobs by path prefix" - {
+      def blobAt(fileUri: String, blobUri: String, ingestion: String): Manifest.InsertBlob = {
+        val uri = Uri(fileUri)
+        Manifest.InsertBlob(
+          IngestionFile(uri, Uri(uri.value.split("/").dropRight(1).mkString("/")), 1024L, None, None, None, true),
+          Uri(blobUri),
+          parentBlobs = List.empty,
+          MimeType("application/test"),
+          ingestion,
+          List(English.key),
+          extractors = List.empty,
+          workspace = None,
+          isFastLane = false
+        )
+      }
+
+      "matches on path-segment boundaries and reports conflicts and totals" in {
+        val ingestion = "prefix_test/test"
+        manifest.insertCollection("prefix_test", "prefix_test", "test").eitherValue.isRight should be(true)
+        manifest.insertIngestion(Uri("prefix_test"), Uri(ingestion), "test", None, List(English), fixed = false, default = false).eitherValue.isRight should be(true)
+
+        val insertions = List(
+          // insertBlob MATCHes the parent node, so directories must be inserted first
+          Manifest.InsertDirectory(Uri(ingestion), Uri(s"$ingestion/docs")),
+          Manifest.InsertDirectory(Uri(s"$ingestion/docs"), Uri(s"$ingestion/docs/sub")),
+          // Boundary trap: shares the string prefix 'docs' but is a different directory
+          Manifest.InsertDirectory(Uri(ingestion), Uri(s"$ingestion/docs-old")),
+          Manifest.InsertDirectory(Uri(ingestion), Uri(s"$ingestion/elsewhere")),
+
+          blobAt(s"$ingestion/docs/a.txt", "prefix-blob-a", ingestion),
+          blobAt(s"$ingestion/docs/sub/b.txt", "prefix-blob-b", ingestion),
+          blobAt(s"$ingestion/docs-old/c.txt", "prefix-blob-c", ingestion),
+          // The same blob also exists at a path outside the target prefix
+          blobAt(s"$ingestion/elsewhere/a-copy.txt", "prefix-blob-a", ingestion)
+        )
+        manifest.insert(insertions, Uri(ingestion)).isRight should be(true)
+
+        val (blobs, total) = manifest.getBlobUrisForPathPrefix(s"$ingestion/docs", size = 10).toOption.get
+
+        blobs.map(_._1).toSet shouldBe Set("prefix-blob-a", "prefix-blob-b")
+        total shouldBe 2
+
+        // blob-a exists outside the prefix too, blob-b does not
+        blobs.toMap.apply("prefix-blob-a") shouldBe true
+        blobs.toMap.apply("prefix-blob-b") shouldBe false
+
+        // A trailing slash on the prefix behaves the same
+        val (withSlash, slashTotal) = manifest.getBlobUrisForPathPrefix(s"$ingestion/docs/", size = 10).toOption.get
+        withSlash.map(_._1).toSet shouldBe Set("prefix-blob-a", "prefix-blob-b")
+        slashTotal shouldBe 2
+      }
+
+      "matches an exact file path" in {
+        val (blobs, total) = manifest.getBlobUrisForPathPrefix("prefix_test/test/docs/a.txt", size = 10).toOption.get
+        blobs.map(_._1) shouldBe List("prefix-blob-a")
+        total shouldBe 1
+      }
+
+      "caps the page at the requested size but reports the full total" in {
+        val (blobs, total) = manifest.getBlobUrisForPathPrefix("prefix_test/test/docs", size = 1).toOption.get
+        blobs should have size 1
+        total shouldBe 2
+      }
+    }
+
     "Upload" - {
       "Cannot upload to a collection the user did not create" in {
         val collectionUri = Uri("not_mine")

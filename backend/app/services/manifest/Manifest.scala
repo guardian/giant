@@ -100,7 +100,13 @@ trait Manifest extends WorkerManifest {
 
   def getBlobsForFiles(fileUris: List[String]): Either[Failure, Map[String, Blob]]
 
-  def getBlobUrisForPathPrefix(pathPrefix: String, size: Int): Either[Failure, List[(String, Boolean)]]
+  /**
+   * Blobs whose file path is exactly `pathPrefix` or sits below it as a directory
+   * (path-segment boundary matching, so 'a/b' does not match 'a/bc'). Returns up to
+   * `size` (blobUri, hasPathConflict) pairs plus the total number of matching blobs;
+   * hasPathConflict is true when the blob also exists at a path outside the prefix.
+   */
+  def getBlobUrisForPathPrefix(pathPrefix: String, size: Int): Either[Failure, (List[(String, Boolean)], Long)]
 
   def getEmailThread(uri: String): Attempt[List[EmailNeighbours]]
 

@@ -63,14 +63,17 @@ class Blobs(override val controllerComponents: AuthControllerComponents, manifes
       val batchSize = size.getOrElse(200)
 
       for {
-        blobResults <- Attempt.fromEither(manifest.getBlobUrisForPathPrefix(fullPrefix, batchSize))
+        page <- Attempt.fromEither(manifest.getBlobUrisForPathPrefix(fullPrefix, batchSize))
+        blobResults = page._1
+        total = page._2
         blobUris = blobResults.map(_._1)
         pathConflicts = blobResults.collect { case (uri, true) => uri }
         blobs <- index.getBlobsByIds(blobUris)
       } yield {
         Ok(Json.obj(
           "blobs" -> blobs,
-          "pathConflicts" -> pathConflicts
+          "pathConflicts" -> pathConflicts,
+          "total" -> total
         ))
       }
     }
