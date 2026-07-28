@@ -6,8 +6,8 @@ import utils.attempt.{Attempt, IllegalStateFailure}
 import _root_.model.index.IndexedBlob
 import com.gu.pfi.cli.model.{ConflictBehaviour, Delete, Skip, Stop}
 
+import scala.collection.mutable
 import scala.concurrent.ExecutionContext
-import utils.attempt.AttemptAwait._
 
 class DeleteBlobs(
   collection: String,
@@ -19,39 +19,62 @@ class DeleteBlobs(
 
   private val ingestionUri = s"$collection/$ingestion"
   private var deletedCount = 0
-  private var skippedCount = 0
+  // Blobs we have decided not to delete (conflictBehaviour=skip). The index still returns
+  // them on every page, so we must remember them both to fetch past them and to avoid
+  // re-processing them forever.
+  private val skippedBlobUris = mutable.Set.empty[String]
 
-  def run(): Attempt[Unit] = Attempt.catchNonFatalBlasé {
+  private val batchSize = 200
+  private val maxFetchSize = 10000
+
+  def run(): Attempt[Unit] = {
     logger.info(ConsoleColors.info(s"Deleting blobs matching prefix '$pathPrefix' in $ingestionUri..."))
 
-    deleteBlobsInBatches()
+    deleteBlobsInBatches().map { _ =>
+      if (skippedBlobUris.nonEmpty) {
+        logger.warn(ConsoleColors.warning(
+          s"⚠ ${skippedBlobUris.size} blob(s) were skipped due to conflicts"
+        ))
+        logger.warn(ConsoleColors.warning(
+          "  Consider re-running with --conflictBehaviour delete, or cleaning up conflicting ingestions first"
+        ))
+      }
 
-    if (skippedCount > 0) {
-      logger.warn(ConsoleColors.warning(
-        s"⚠ $skippedCount blob(s) were skipped due to conflicts"
-      ))
-      logger.warn(ConsoleColors.warning(
-        "  Consider re-running with --conflictBehaviour delete, or cleaning up conflicting ingestions first"
-      ))
+      logger.info(ConsoleColors.success(s"✓ Deletion complete: $deletedCount blobs deleted, ${skippedBlobUris.size} skipped"))
     }
-
-    logger.info(ConsoleColors.success(s"✓ Deletion complete: $deletedCount blobs deleted, $skippedCount skipped"))
   }
 
-  private def deleteBlobsInBatches(): Unit = {
-    val result = ingestionService.getBlobsByPrefix(collection, ingestion, pathPrefix, size = 200).await()
+  private def deleteBlobsInBatches(): Attempt[Unit] = {
+    // Fetch enough to see past the blobs we have already skipped: a fixed page size
+    // would refetch the same skipped blobs forever once only those remain.
+    val fetchSize = math.min(batchSize + skippedBlobUris.size, maxFetchSize)
 
-    if (result.blobs.nonEmpty) {
-      result.blobs.foreach { blob =>
-        deleteBlob(blob, hasPathConflict = result.pathConflicts.contains(blob.uri)).await()
+    ingestionService.getBlobsByPrefix(collection, ingestion, pathPrefix, size = fetchSize).flatMap { result =>
+      result.blobs.filterNot(blob => skippedBlobUris.contains(blob.uri)) match {
+        case Nil if result.blobs.size >= maxFetchSize =>
+          Attempt.Left(IllegalStateFailure(
+            s"${skippedBlobUris.size} skipped blob(s) is too many to page past. " +
+              "Re-run with --conflictBehaviour delete, or clean up the conflicting ingestions first"
+          ))
+
+        case Nil =>
+          Attempt.Right(())
+
+        case blobs =>
+          deleteBatchOfBlobs(blobs.take(batchSize), result.pathConflicts).flatMap { _ =>
+            logger.info(ConsoleColors.dim(s"  $deletedCount deleted, ${skippedBlobUris.size} skipped so far..."))
+            deleteBlobsInBatches()
+          }
       }
-
-      if (deletedCount % 1000 < 200) {
-        logger.info(ConsoleColors.dim(s"  $deletedCount deleted, $skippedCount skipped so far..."))
-      }
-
-      deleteBlobsInBatches()
     }
+  }
+
+  private def deleteBatchOfBlobs(blobs: List[IndexedBlob], pathConflicts: Set[String]): Attempt[Unit] = blobs match {
+    case Nil =>
+      Attempt.Right(())
+
+    case blob :: rest =>
+      deleteBlob(blob, hasPathConflict = pathConflicts.contains(blob.uri)).flatMap(_ => deleteBatchOfBlobs(rest, pathConflicts))
   }
 
   private def deleteBlob(b: IndexedBlob, hasPathConflict: Boolean): Attempt[Unit] = {
@@ -74,7 +97,7 @@ class DeleteBlobs(
                 "Re-run with --conflictBehaviour skip to leave conflicting files, or --conflictBehaviour delete to force deletion"
             ))
           case Skip =>
-            skippedCount += 1
+            skippedBlobUris += b.uri
             if (logger.isDebugEnabled) {
               logger.warn(s"${b.uri}: $reason. Skipping.")
             }

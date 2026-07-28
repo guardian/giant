@@ -96,7 +96,9 @@ class CliHttpClient(client: OkHttpClient, credsStore: CliCredentialsStore, baseU
         case 401 if retriesLeft > 0 =>
           requestToken().flatMap(makeRequest).flatMap(handleResponse(_, retriesLeft = 0))
 
-        case code if code >= 500 && retriesLeft > 0 =>
+        // Only GETs are retried automatically: a POST or DELETE that hit a 5xx may
+        // still have taken effect server-side, and replaying it is not safe
+        case code if code >= 500 && retriesLeft > 0 && method == "GET" =>
           val attempt = maxRetries - retriesLeft + 1
           logger.warn(s"Got $code from $method $path, retrying ($attempt/$maxRetries) after ${retryBackoffMs}ms...")
           response.close()

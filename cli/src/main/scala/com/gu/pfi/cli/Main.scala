@@ -361,18 +361,18 @@ object Main extends App with Logging {
           val collection = parts(0)
           val ingestion = parts(1)
 
-          // Preview: count matching blobs
+          // Preview: how many files the prefix actually matches, out of the whole ingestion
           val preview = services.ingestion.getBlobsByPrefix(collection, ingestion, pathPrefix, size = 1).await()
           val totalInIngestion = services.ingestion.countBlobs(collection, ingestion).await()
 
-          logger.info(s"\n   Ingestion $uri has $totalInIngestion file(s) total")
-          if (preview.pathConflicts.nonEmpty) {
-            logger.info(ConsoleColors.warning(s"   ⚠ Some matching files also exist at other paths in this ingestion"))
-          }
+          logger.info(s"\n   Prefix '$pathPrefix' matches ${preview.total} of $totalInIngestion file(s) in $uri")
           logger.info("")
 
-          if (!options.deleteBlobsCmd.force() && !UserPrompt.confirm(
-            s"Delete blobs matching prefix '$pathPrefix' in $uri?"
+          if (preview.total == 0) {
+            logger.info(ConsoleColors.dim("Nothing matches — no files will be deleted"))
+            Attempt.Right(())
+          } else if (!options.deleteBlobsCmd.force() && !UserPrompt.confirm(
+            s"Delete ${preview.total} file(s) matching prefix '$pathPrefix' in $uri?"
           )) {
             logger.info(ConsoleColors.dim("Cancelled"))
             Attempt.Right(())
@@ -395,13 +395,17 @@ object Main extends App with Logging {
               Attempt.Right(())
 
             case Some(collection) =>
+              // CliIngestion.uri is the full <collection>/<ingestion> string; the blob and
+              // deletion APIs want the bare ingestion name
+              def ingestionName(fullUri: String): String = fullUri.stripPrefix(s"$collectionName/")
+
               // Show preview — same as show-collection
               logger.info(ConsoleColors.bold(s"\n📁 ${collection.uri}"))
               if (collection.ingestions.isEmpty) {
                 logger.info(ConsoleColors.dim("   (no ingestions)"))
               } else {
                 val countAttempts = collection.ingestions.map { ingestion =>
-                  services.ingestion.countBlobs(collectionName, ingestion.uri).map(count => (ingestion, count))
+                  services.ingestion.countBlobs(collectionName, ingestionName(ingestion.uri)).map(count => (ingestion, count))
                 }
                 val ingestionsWithCounts = Attempt.sequence(countAttempts).await()
                 val totalFiles = ingestionsWithCounts.map(_._2).sum
@@ -419,7 +423,7 @@ object Main extends App with Logging {
                 logger.info(ConsoleColors.dim("Cancelled"))
                 Attempt.Right(())
               } else {
-                val ingestionPairs = collection.ingestions.map(i => (collectionName, i.uri))
+                val ingestionPairs = collection.ingestions.map(i => (collectionName, ingestionName(i.uri)))
                 if (ingestionPairs.nonEmpty) {
                   val command = new DeleteIngestions(ingestionPairs, services.ingestion, options.deleteCollectionCmd.conflictBehaviour)
                   command.run().flatMap { _ =>

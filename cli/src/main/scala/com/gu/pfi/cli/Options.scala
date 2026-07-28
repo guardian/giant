@@ -216,9 +216,9 @@ class Options(args: Seq[String]) extends ScallopConf(args) {
       name = "conflictBehaviour",
       descr =
         """What to do when a file also belongs to another ingestion:
-          |  skip   - leave the file alone (default)
-          |  delete - remove the file from all ingestions
-          |  stop   - abort the operation""".stripMargin,
+          |  stop   - abort the operation (default)
+          |  skip   - leave the file alone
+          |  delete - remove the file from all ingestions""".stripMargin,
       noshort = true)
     def conflictBehaviour: Option[ConflictBehaviour] = conflictBehaviourOpt.toOption.map {
       case Skip.name => Skip
@@ -240,9 +240,9 @@ class Options(args: Seq[String]) extends ScallopConf(args) {
       name = "conflictBehaviour",
       descr =
         """What to do when a file also belongs to another ingestion/collection:
-          |  skip   - leave the file alone (default)
-          |  delete - remove the file from all ingestions
-          |  stop   - abort the operation""".stripMargin,
+          |  stop   - abort the operation (default)
+          |  skip   - leave the file alone
+          |  delete - remove the file from all ingestions""".stripMargin,
       noshort = true)
     def conflictBehaviour: Option[ConflictBehaviour] = conflictBehaviourOpt.toOption.map {
       case Skip.name => Skip

@@ -105,7 +105,7 @@ class CliIngestionService(http: CliHttpClient)(implicit ec: ExecutionContext) ex
     }
   }
 
-  case class PrefixBlobResult(blobs: List[IndexedBlob], pathConflicts: Set[String])
+  case class PrefixBlobResult(blobs: List[IndexedBlob], pathConflicts: Set[String], total: Long)
 
   def getBlobsByPrefix(collection: String, ingestion: String, pathPrefix: String, size: Int): Attempt[PrefixBlobResult] = {
     val params = List(
@@ -118,7 +118,8 @@ class CliIngestionService(http: CliHttpClient)(implicit ec: ExecutionContext) ex
     http.get(s"/api/blobs/by-prefix?${params.mkString("&")}").map { r =>
       PrefixBlobResult(
         blobs = (r \ "blobs").as[List[IndexedBlob]],
-        pathConflicts = (r \ "pathConflicts").as[Set[String]]
+        pathConflicts = (r \ "pathConflicts").as[Set[String]],
+        total = (r \ "total").as[Long]
       )
     }
   }
