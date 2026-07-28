@@ -188,7 +188,7 @@ object Main extends App with Logging {
 
           // Pre-flight scan
           logger.info(ConsoleColors.dim("Scanning source directory..."))
-          val scanResult = PreFlightCheck.scan(sourcePath)
+          val scanResult = PreFlightCheck.scan(sourcePath, includeJunk = ingestArgs.includeJunk())
           logger.info(PreFlightCheck.formatSummary(sourcePath, ingestArgs.ingestionUri(), scanResult))
 
           if (scanResult.fileCount == 0) {
@@ -203,7 +203,7 @@ object Main extends App with Logging {
 
             val ingestionS3Client = new DefaultIngestionS3Client(options.ingestCmd, credentials)
 
-            val command = new RunIngestion(services.ingestion, ingestionS3Client, services.veracrypt)
+            val command = new RunIngestion(services.ingestion, ingestionS3Client, services.veracrypt, includeJunk = ingestArgs.includeJunk())
             command.run(Uri(ingestArgs.ingestionUri()), source, options.ingestCmd.languages)
           }
         }

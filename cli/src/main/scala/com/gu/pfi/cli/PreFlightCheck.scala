@@ -8,31 +8,36 @@ import scala.jdk.StreamConverters._
  */
 object PreFlightCheck {
 
-  case class ScanResult(fileCount: Long, totalBytes: Long, dirCount: Long)
+  case class ScanResult(fileCount: Long, totalBytes: Long, dirCount: Long, junkCount: Long)
 
-  def scan(root: Path): ScanResult = {
-    var fileCount = 0L
-    var totalBytes = 0L
-    var dirCount = 0L
-
+  def scan(root: Path, includeJunk: Boolean = false): ScanResult = {
     val stream = Files.walk(root)
     try {
-      stream.toScala(LazyList).foreach { path =>
-        if (Files.isRegularFile(path) && !FileFilters.isJunkFile(path)) {
-          fileCount += 1
-          totalBytes += Files.size(path)
+      stream.toScala(LazyList).foldLeft(ScanResult(0, 0, 0, 0)) { (acc, path) =>
+        if (Files.isRegularFile(path)) {
+          if (!includeJunk && FileFilters.isJunkFile(path)) {
+            acc.copy(junkCount = acc.junkCount + 1)
+          } else {
+            acc.copy(fileCount = acc.fileCount + 1, totalBytes = acc.totalBytes + Files.size(path))
+          }
         } else if (Files.isDirectory(path) && path != root) {
-          dirCount += 1
+          acc.copy(dirCount = acc.dirCount + 1)
+        } else {
+          acc
         }
       }
     } finally {
       stream.close()
     }
-
-    ScanResult(fileCount, totalBytes, dirCount)
   }
 
   def formatSummary(source: Path, ingestionUri: String, result: ScanResult): String = {
+    val junkLine =
+      if (result.junkCount > 0)
+        List(s"  Excluded:    ${result.junkCount} OS junk file(s) (.DS_Store etc) — use --include-junk to upload them")
+      else
+        Nil
+
     val lines = List(
       "",
       ConsoleColors.bold("Ingestion summary"),
@@ -40,9 +45,9 @@ object PreFlightCheck {
       s"  Destination: $ingestionUri",
       s"  Files:       ${result.fileCount}",
       s"  Directories: ${result.dirCount}",
-      s"  Total size:  ${formatBytes(result.totalBytes)}",
-      ""
-    )
+      s"  Total size:  ${formatBytes(result.totalBytes)}"
+    ) ++ junkLine ++ List("")
+
     lines.mkString("\n")
   }
 

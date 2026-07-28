@@ -80,6 +80,9 @@ class IngestCommandOptions extends Subcommand("ingest") with CommonOptions with 
 
     val dryRun = opt[Boolean]("dry-run", noshort = true, default = Some(false),
       descr = "Scan and show what would be uploaded without actually uploading anything")
+
+    val includeJunk = opt[Boolean]("include-junk", noshort = true, default = Some(false),
+      descr = "Also upload OS junk files (.DS_Store, Thumbs.db etc), which are excluded by default")
 }
 
 class Options(args: Seq[String]) extends ScallopConf(args) {

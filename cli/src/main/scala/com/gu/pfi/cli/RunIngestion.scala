@@ -10,7 +10,7 @@ import utils.attempt._
 
 import scala.concurrent.ExecutionContext
 
-class RunIngestion(ingestions: CliIngestionService, ingestionS3Client: IngestionS3Client, veracrypt: CliVeracrypt) {
+class RunIngestion(ingestions: CliIngestionService, ingestionS3Client: IngestionS3Client, veracrypt: CliVeracrypt, includeJunk: Boolean = false) {
   private val batchSize = 100
   private val inMemoryThreshold = 5242880
 
@@ -45,7 +45,7 @@ class RunIngestion(ingestions: CliIngestionService, ingestionS3Client: Ingestion
   }
 
   private def runPipeline(root: Path, ingestionUri: Uri, languages: List[Language]): Attempt[Unit] = {
-    val pipeline = new CliIngestionPipeline(ingestions, ingestionS3Client, batchSize, inMemoryThreshold, ingestionContext, defaultContext)
+    val pipeline = new CliIngestionPipeline(ingestions, ingestionS3Client, batchSize, inMemoryThreshold, ingestionContext, defaultContext, includeJunk)
     val result = pipeline.crawlFromFile(root, ingestionUri, languages)
 
     Attempt.fromFutureBlasé(result)

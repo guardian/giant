@@ -17,7 +17,8 @@ import scala.concurrent.{Await, ExecutionContext, Future}
 
 class CliIngestionPipeline(ingestionService: CliIngestionService, s3Client: IngestionS3Client,
                            batchSize: Int, inMemoryThreshold: Long,
-                           ingestionContext: ExecutionContext, nonBlockingContext: ExecutionContext) extends Logging {
+                           ingestionContext: ExecutionContext, nonBlockingContext: ExecutionContext,
+                           includeJunk: Boolean = false) extends Logging {
 
   def crawlFromFile(rootPath: Path, rootUri: Uri, languages: List[Language]): Future[Unit] = {
     crawlIterator(filesIterator(rootPath, rootUri, languages), rootUri, languages, Some(rootPath))
@@ -107,7 +108,7 @@ class CliIngestionPipeline(ingestionService: CliIngestionService, s3Client: Inge
       }
     }
 
-    val finalAttempt = files.filter(_.isRegularFile).filterNot(f => FileFilters.isJunkFile(f.path)).map { file =>
+    val finalAttempt = files.filter(_.isRegularFile).filterNot(f => !includeJunk && FileFilters.isJunkFile(f.path)).map { file =>
       file -> processFile(file, languages)
     }.grouped(batchSize).foldLeft(Attempt.Right(0 -> 0)) { (accAttempt, fileToAttemptedResults) =>
       val (files, attemptedResults) = fileToAttemptedResults.unzip
