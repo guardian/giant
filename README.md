@@ -26,12 +26,14 @@ Giant has the following pre-requisites for local development:
 - [SBT](https://www.scala-sbt.org/)
 - [NVM](https://github.com/creationix/nvm)
 - [Docker](https://www.docker.com/)
+- [garage](https://garagehq.deuxfleurs.fr) (for S3 compatibility)
+
 
 Giant uses three databases, run locally in Docker through [docker-compose.yaml](./docker-compose.yml):
 
 - [neo4j](https://neo4j.com/)
 - [Elasticsearch](https://www.elastic.co/elasticsearch/)
-- [garage](https://garagehq.deuxfleurs.fr) (for S3 compatibility)
+- [PostgresSQL](https://www.postgresql.org/)
 
 There are two optional dependencies:
 
