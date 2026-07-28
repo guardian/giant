@@ -1292,7 +1292,7 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
       |OPTIONAL MATCH (w: WorkspaceNode { uri: $uri})
       |OPTIONAL MATCH (b: Blob:Resource { uri: $uri})-[:PARENT]->(f: File)
       |OPTIONAL MATCH (descendant :Resource)
-      |  WHERE descendant.uri STARTS WITH $uri
+      |  WHERE descendant.uri STARTS WITH $uri + '/'
       |DETACH DELETE b, f, w, descendant
       """.stripMargin,
     // Always consider the deletion a success.
@@ -1310,9 +1310,12 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
   // at which point the URL pattern starts again.
   def deleteResourceAndDescendants(uri: Uri): Attempt[Unit] = attemptTransaction { tx =>
     tx.run(
+      // Match the resource itself or descendants below it on a path-segment boundary.
+      // A raw string prefix would also match siblings whose names share the spelling:
+      // deleting ingestion 'coll/batch' must not take 'coll/batch2' with it.
       """
         |MATCH (r: Resource)
-        |WHERE r.uri STARTS WITH $uri
+        |WHERE r.uri = $uri OR r.uri STARTS WITH $uri + '/'
         |DETACH DELETE r
       """.stripMargin,
       parameters(
