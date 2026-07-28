@@ -46,8 +46,6 @@ class RunIngestion(ingestions: CliIngestionService, ingestionS3Client: Ingestion
 
   private def runPipeline(root: Path, ingestionUri: Uri, languages: List[Language], checkpoint: IngestionCheckpoint, totalExpected: Long): Attempt[(Int, Int)] = {
     val pipeline = new CliIngestionPipeline(ingestions, ingestionS3Client, batchSize, inMemoryThreshold, ingestionContext, defaultContext, includeJunk)
-    val result = pipeline.crawlFromFile(root, ingestionUri, languages, checkpoint, totalExpected)
-
-    Attempt.fromFutureBlasé(result)
+    pipeline.crawlFromFile(root, ingestionUri, languages, checkpoint, totalExpected)
   }
 }

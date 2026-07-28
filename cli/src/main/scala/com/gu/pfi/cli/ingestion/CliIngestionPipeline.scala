@@ -7,7 +7,7 @@ import com.google.common.io.ByteStreams
 import com.gu.pfi.cli.{ConsoleColors, FileFilters, IngestionCheckpoint, ProgressTracker}
 import com.gu.pfi.cli.service.{CliIngestionService, IngestionS3Client}
 import model._
-import model.ingestion.{IngestionFile, Key, OnDiskFileContext, dataKey}
+import model.ingestion.{IngestionFile, Key, OnDiskFileContext}
 import utils.{Logging, attempt}
 import utils.attempt.Attempt
 import utils.attempt.AttemptAwait._
@@ -20,15 +20,18 @@ class CliIngestionPipeline(ingestionService: CliIngestionService, s3Client: Inge
                            ingestionContext: ExecutionContext, nonBlockingContext: ExecutionContext,
                            includeJunk: Boolean = false) extends Logging {
 
-  def crawlFromFile(rootPath: Path, rootUri: Uri, languages: List[Language], checkpoint: IngestionCheckpoint, totalExpected: Long = 0): Future[(Int, Int)] = {
+  def crawlFromFile(rootPath: Path, rootUri: Uri, languages: List[Language], checkpoint: IngestionCheckpoint, totalExpected: Long = 0): Attempt[(Int, Int)] = {
     crawlIterator(filesIterator(rootPath, rootUri, languages), rootUri, languages, checkpoint, totalExpected, Some(rootPath))
   }
 
-  def crawlIterator(files: Iterator[OnDiskFileContext], rootUri: Uri, languages: List[Language], checkpoint: IngestionCheckpoint, totalExpected: Long = 0, rootPath: Option[Path] = None): Future[(Int, Int)] = {
+  def crawlIterator(files: Iterator[OnDiskFileContext], rootUri: Uri, languages: List[Language], checkpoint: IngestionCheckpoint, totalExpected: Long = 0, rootPath: Option[Path] = None): Attempt[(Int, Int)] = {
     ingest(files, rootUri, inMemoryThreshold, languages, checkpoint, totalExpected, rootPath)
   }
 
-  private def ingest(files: Iterator[OnDiskFileContext], rootUri: Uri, inMemorySize: Long, languages: List[Language], checkpoint: IngestionCheckpoint, totalExpected: Long = 0, rootPath: Option[Path] = None): Future[(Int, Int)] = {
+  private def mtimeMillis(file: OnDiskFileContext): Long =
+    file.file.lastModifiedTime.map(_.toMillis).getOrElse(0L)
+
+  private def ingest(files: Iterator[OnDiskFileContext], rootUri: Uri, inMemorySize: Long, languages: List[Language], checkpoint: IngestionCheckpoint, totalExpected: Long = 0, rootPath: Option[Path] = None): Attempt[(Int, Int)] = {
     implicit val ec: ExecutionContext = nonBlockingContext // this is the default context for when we are not doing IO
     
     val progressTracker = rootPath match {
@@ -106,7 +109,7 @@ class CliIngestionPipeline(ingestionService: CliIngestionService, s3Client: Inge
     }
 
     val finalAttempt = files.filter(_.isRegularFile).filterNot(f => !includeJunk && FileFilters.isJunkFile(f.path)).filterNot { file =>
-      checkpoint.isAlreadyUploaded(file.path.toString)
+      checkpoint.isAlreadyUploaded(file.path.toString, file.size, mtimeMillis(file))
     }.map { file =>
       file -> processFile(file, languages)
     }.grouped(batchSize).foldLeft(Attempt.Right(0 -> 0)) { (accAttempt, fileToAttemptedResults) =>
@@ -118,8 +121,8 @@ class CliIngestionPipeline(ingestionService: CliIngestionService, s3Client: Inge
           val successfulFiles: Seq[(OnDiskFileContext, Key)] = results.collect{ case (_, Right(value)) => value }
           val totalBytes = successfulFiles.map { case (fileContext, _) => fileContext.size }.sum
 
-          successfulFiles.foreach { case (fileContext, key) =>
-            checkpoint.recordSuccess(fileContext.path.toString, ingestion.dataKey(key))
+          successfulFiles.foreach { case (fileContext, _) =>
+            checkpoint.recordSuccess(fileContext.path.toString, fileContext.size, mtimeMillis(fileContext))
           }
 
           val failures: Seq[(OnDiskFileContext, attempt.Failure)] = results.collect{ case (file, Left(failure)) => file -> failure }
@@ -142,14 +145,17 @@ class CliIngestionPipeline(ingestionService: CliIngestionService, s3Client: Inge
       } yield (acc._1 + batchSize._1) -> (acc._2 + batchSize._2)
     }
 
-    finalAttempt.fold(
-      failure => {
-        progressTracker.fail(failure.msg)
-        (0, 0)
-      },
+    // A fatal (whole-pipeline) failure must stay a failure: collapsing it to a result
+    // tuple would make the caller believe the run succeeded with nothing to do — and
+    // delete the checkpoint that a resume depends on.
+    finalAttempt.transform(
       { case (successes, failures) =>
         progressTracker.complete()
-        (successes, failures)
+        Attempt.Right((successes, failures))
+      },
+      failure => {
+        progressTracker.fail(failure.msg)
+        Attempt.Left[(Int, Int)](failure)
       }
     )(nonBlockingContext)
   }

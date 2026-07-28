@@ -211,16 +211,19 @@ object Main extends App with Logging {
 
             val ingestionS3Client = new DefaultIngestionS3Client(options.ingestCmd, credentials)
 
+            // The checkpoint can reference paths outside the current scan (e.g. after files
+            // were removed from the source), so clamp rather than go negative
+            val totalExpected = math.max(0L, scanResult.fileCount - previouslyUploaded.size)
+
             if (previouslyUploaded.nonEmpty) {
               logger.info(ConsoleColors.info(
-                s"Resuming: ${previouslyUploaded.size} files already uploaded, ${scanResult.fileCount - previouslyUploaded.size} remaining"
+                s"Resuming: ${previouslyUploaded.size} files already uploaded, $totalExpected remaining"
               ))
             }
 
             checkpoint.start()
 
             val command = new RunIngestion(services.ingestion, ingestionS3Client, services.veracrypt, includeJunk = ingestArgs.includeJunk())
-            val totalExpected = scanResult.fileCount - previouslyUploaded.size
             command.run(Uri(ingestArgs.ingestionUri()), source, options.ingestCmd.languages, checkpoint, totalExpected).map { case (successes, failures) =>
               if (failures > 0 && checkpointEnabled) {
                 checkpoint.close()
