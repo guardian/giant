@@ -1,13 +1,13 @@
 package com.gu.pfi.cli
 
 import java.nio.file.{Files, Path, Paths}
-import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.atomic.{AtomicInteger, AtomicLong}
 import java.util.concurrent.{Executors, TimeUnit}
 
 import com.gu.pfi.cli.service.{BlobS3Client, CliServices}
 import play.api.libs.json.{JsArray, JsValue}
 import utils.Logging
-import utils.attempt.Attempt
+import utils.attempt.{Attempt, IllegalStateFailure}
 
 import scala.concurrent.ExecutionContext
 
@@ -97,22 +97,34 @@ class DownloadWorkspace(workspaceId: String, outDir: Path, services: CliServices
                         concurrency: Int, dryRun: Boolean)(implicit ec: ExecutionContext) extends Logging {
 
   def run(): Attempt[Unit] = {
-    services.http.get(s"/api/workspaces/$workspaceId/nodes").map { tree =>
+    services.http.get(s"/api/workspaces/$workspaceId/nodes").flatMap { tree =>
       val items = DownloadWorkspace.deduplicate(DownloadWorkspace.flatten(tree, fallbackName = s"workspace-$workspaceId"))
 
       if (items.isEmpty) {
         logger.info(ConsoleColors.warning("No downloadable files found in this workspace"))
+        Attempt.Right(())
       } else if (dryRun) {
         logger.info(ConsoleColors.info(s"Dry run — ${items.size} file(s) would be written under $outDir"))
         items.take(20).foreach(i => logger.info(ConsoleColors.dim(s"  ${i.relativePath}")))
         if (items.size > 20) logger.info(ConsoleColors.dim(s"  … and ${items.size - 20} more"))
+        Attempt.Right(())
       } else {
-        download(items)
+        val failedCount = download(items)
+        if (failedCount > 0) {
+          // A partial export must not look like a complete one: fail the command
+          // so scripts (and people) can tell the difference
+          Attempt.Left(IllegalStateFailure(
+            s"$failedCount of ${items.size} file(s) failed to download — see warnings above; re-run to retry"
+          ))
+        } else {
+          Attempt.Right(())
+        }
       }
     }
   }
 
-  private def download(items: List[WorkspaceDownloadItem]): Unit = {
+  /** Returns the number of failed downloads. */
+  private def download(items: List[WorkspaceDownloadItem]): Int = {
     val progress = new ProgressTracker("Download workspace", items.size, Some(outDir))
     progress.start()
 
@@ -120,6 +132,7 @@ class DownloadWorkspace(workspaceId: String, outDir: Path, services: CliServices
     val succeeded = new AtomicInteger(0)
     val failed = new AtomicInteger(0)
     val sinceUpdate = new AtomicInteger(0)
+    val bytesSinceUpdate = new AtomicLong(0)
 
     try {
       items.foreach { item =>
@@ -130,8 +143,11 @@ class DownloadWorkspace(workspaceId: String, outDir: Path, services: CliServices
               Option(dest.getParent).foreach(Files.createDirectories(_))
               val bytes = s3.downloadTo(item.blobUri, dest)
               succeeded.incrementAndGet()
+              bytesSinceUpdate.addAndGet(bytes)
               // Throttle progress output to roughly one line per 100 files
-              if (sinceUpdate.incrementAndGet() % 100 == 0) progress.updateBatch(100, 0, bytes)
+              if (sinceUpdate.incrementAndGet() % 100 == 0) {
+                progress.updateBatch(100, 0, bytesSinceUpdate.getAndSet(0))
+              }
             } catch {
               case e: Exception =>
                 failed.incrementAndGet()
@@ -147,8 +163,9 @@ class DownloadWorkspace(workspaceId: String, outDir: Path, services: CliServices
       if (!pool.isShutdown) pool.shutdownNow()
     }
 
-    progress.updateBatch(0, failed.get(), 0)
+    progress.updateBatch(succeeded.get() % 100, failed.get(), bytesSinceUpdate.getAndSet(0))
     logger.info(ConsoleColors.dim(s"Wrote ${succeeded.get()} file(s) to $outDir"))
     progress.complete()
+    failed.get()
   }
 }
