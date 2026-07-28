@@ -1,0 +1,6 @@
+[submodule "external/investigations-platform"]
+	path = external/investigations-platform
+	url = git@github.com:guardian/investigations-platform.git
+[submodule "external/transcription-service"]
+	path = external/transcription-service
+	url = git@github.com:guardian/transcription-service.git
