@@ -102,6 +102,55 @@ class Neo4JManifestITest extends AnyFreeSpec
       ingestion.uri shouldBe "test-collection/test-ingestion"
     }
 
+    "Deletion respects path-segment boundaries" - {
+      def fileBlob(fileUri: String, blobUri: String, ingestion: String): Manifest.InsertBlob = {
+        val uri = Uri(fileUri)
+        Manifest.InsertBlob(
+          IngestionFile(uri, Uri(uri.value.split("/").dropRight(1).mkString("/")), 1024L, None, None, None, true),
+          Uri(blobUri),
+          parentBlobs = List.empty,
+          MimeType("application/test"),
+          ingestion,
+          List(English.key),
+          extractors = List.empty,
+          workspace = None,
+          isFastLane = false
+        )
+      }
+
+      "deleting an ingestion does not delete a sibling sharing its name prefix" in {
+        manifest.insertCollection("boundary_test", "boundary_test", "test").eitherValue.isRight shouldBe true
+        insertIngestion(Uri("boundary_test"), Some(Uri("boundary_test/batch"))).eitherValue.isRight shouldBe true
+        insertIngestion(Uri("boundary_test"), Some(Uri("boundary_test/batch2"))).eitherValue.isRight shouldBe true
+
+        manifest.insert(List(fileBlob("boundary_test/batch/a.txt", "boundary-blob-a", "boundary_test/batch")), Uri("boundary_test/batch")).isRight shouldBe true
+        manifest.insert(List(fileBlob("boundary_test/batch2/b.txt", "boundary-blob-b", "boundary_test/batch2")), Uri("boundary_test/batch2")).isRight shouldBe true
+
+        manifest.deleteResourceAndDescendants(Uri("boundary_test/batch")).eitherValue.isRight shouldBe true
+
+        // The deleted ingestion and its file are gone
+        manifest.getIngestion(Uri("boundary_test/batch")).eitherValue.isLeft shouldBe true
+        manifest.getBlobsForFiles(List("boundary_test/batch/a.txt")).toOption.get shouldBe empty
+
+        // The sibling whose name shares the prefix is untouched
+        manifest.getIngestion(Uri("boundary_test/batch2")).eitherValue.isRight shouldBe true
+        manifest.getBlobsForFiles(List("boundary_test/batch2/b.txt")).toOption.get.keySet shouldBe Set("boundary_test/batch2/b.txt")
+      }
+
+      "deleting a collection does not delete a sibling sharing its name prefix" in {
+        manifest.insertCollection("boundco", "boundco", "test").eitherValue.isRight shouldBe true
+        manifest.insertCollection("boundco2", "boundco2", "test").eitherValue.isRight shouldBe true
+        insertIngestion(Uri("boundco"), Some(Uri("boundco/in"))).eitherValue.isRight shouldBe true
+        insertIngestion(Uri("boundco2"), Some(Uri("boundco2/in"))).eitherValue.isRight shouldBe true
+
+        manifest.deleteResourceAndDescendants(Uri("boundco")).eitherValue.isRight shouldBe true
+
+        manifest.getCollection(Uri("boundco")).eitherValue.isLeft shouldBe true
+        manifest.getCollection(Uri("boundco2")).eitherValue.isRight shouldBe true
+        manifest.getIngestion(Uri("boundco2/in")).eitherValue.isRight shouldBe true
+      }
+    }
+
     "Emails" - {
       val person1 = model.Recipient(Some("Bob"), "bob@example.com")
       val person2 = model.Recipient(Some("Alice"), "alice@example.com")
