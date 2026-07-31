@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
   push:
     paths:
-      - "../../infra/**"
+      - "infra/**"
       - ".github/workflows/infra*"
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
