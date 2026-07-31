@@ -35,18 +35,14 @@ class ViewerSidebar extends React.Component {
   };
 
   UNSAFE_componentWillReceiveProps(props) {
-    if (
-      !this.props.isLoadingResource &&
-      props.match.params.uri !== this.props.match.params.uri
-    ) {
+    if (props.match.params.uri !== this.props.match.params.uri) {
       this.props.getResource(props.match.params.uri, props.urlParams.q);
     }
   }
 
   UNSAFE_componentWillMount() {
-    // <Viewer> may have fetched the resource first, so avoid duplicate requests which race each other.
     // Ultimately we'd like the resource fetch to be triggered from a common parent of this and <Viewer>
-    if (!this.props.isLoadingResource && !this.props.resource) {
+    if (!this.props.resource) {
       this.props.getResource(
         this.props.match.params.uri,
         this.props.urlParams.q,
