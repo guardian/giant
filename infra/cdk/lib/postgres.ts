@@ -1,14 +1,7 @@
-import type { GuStackProps } from '@guardian/cdk/lib/constructs/core';
-import { GuVpc, SubnetType } from '@guardian/cdk/lib/constructs/ec2/vpc';
-import type { App } from 'aws-cdk-lib';
-import { CfnOutput, Duration, Tags } from 'aws-cdk-lib';
-import {
-	InstanceClass,
-	InstanceSize,
-	InstanceType,
-	Port,
-	SecurityGroup,
-} from 'aws-cdk-lib/aws-ec2';
+import type {GuStackProps} from '@guardian/cdk/lib/constructs/core';
+import {GuVpc, SubnetType} from '@guardian/cdk/lib/constructs/ec2/vpc';
+import {CfnOutput, Duration, Tags} from 'aws-cdk-lib';
+import {InstanceClass, InstanceSize, InstanceType, Port, SecurityGroup,} from 'aws-cdk-lib/aws-ec2';
 import {
 	Credentials,
 	DatabaseInstance,
@@ -16,10 +9,11 @@ import {
 	PostgresEngineVersion,
 	StorageType,
 } from 'aws-cdk-lib/aws-rds';
-import { GuStackWithGiantVPC } from './constructs/GuStackWithGiantVPC';
+import type {GuAppWithExposedRiffRaff} from "./constructs/GuAppWithExposedRiffRaff";
+import {GuStackWithGiantVPC} from './constructs/GuStackWithGiantVPC';
 
 export class Postgres extends GuStackWithGiantVPC {
-	constructor(scope: App, id: string, props: GuStackProps) {
+	constructor(scope: GuAppWithExposedRiffRaff, id: string, props: GuStackProps) {
 		super(scope, id, props);
 
 		const dbStorage = 20;
