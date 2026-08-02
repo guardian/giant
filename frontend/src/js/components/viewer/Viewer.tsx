@@ -35,7 +35,7 @@ import {
 import { Auth } from "../../types/Auth";
 import { GiantDispatch } from "../../types/redux/GiantDispatch";
 import LazyTreeBrowser from "./LazyTreeBrowser";
-import { getDefaultView } from "../../util/resourceUtils";
+import { getDefaultView, isResourceForUri } from "../../util/resourceUtils";
 import DownloadButton from "./DownloadButton";
 import { WorkspaceNavigation } from "../../util/workspaceNavigation";
 
@@ -102,7 +102,13 @@ class Viewer extends React.Component<Props, State> {
 
     // <ViewerSidebar> may have fetched the resource first, so avoid duplicate requests which race each other.
     // Ultimately we'd like the resource fetch to be triggered from a common parent of this and <ViewerSidebar>
-    if (!this.props.isLoadingResource && !this.props.resource) {
+    // The store can also hold a resource left over from a previously viewed
+    // document (#799), which must not suppress the fetch — so check the
+    // resource is actually the one for this route, not merely present.
+    if (
+      !this.props.isLoadingResource &&
+      !isResourceForUri(this.props.resource, this.props.match.params.uri)
+    ) {
       this.props.getResource(
         this.props.match.params.uri,
         this.props.urlParams.q,
@@ -337,7 +343,12 @@ class Viewer extends React.Component<Props, State> {
   }
 
   render() {
-    if (!this.props.resource) {
+    // Render nothing rather than a leftover resource from a previously
+    // viewed document while the right one is being fetched (#799)
+    if (
+      !this.props.resource ||
+      !isResourceForUri(this.props.resource, this.props.match.params.uri)
+    ) {
       return false;
     }
 

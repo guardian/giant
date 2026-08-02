@@ -1,5 +1,9 @@
 import { Resource, HighlightableText } from "../types/Resource";
-import { getDefaultView, hasTextContent } from "./resourceUtils";
+import {
+  getDefaultView,
+  hasTextContent,
+  isResourceForUri,
+} from "./resourceUtils";
 
 function makeHighlightableText(contents: string): HighlightableText {
   return { contents, highlights: [] };
@@ -132,5 +136,37 @@ describe("getDefaultView", () => {
       text: undefined,
     });
     expect(getDefaultView(resource)).toBeUndefined();
+  });
+});
+
+describe("isResourceForUri", () => {
+  test("returns false when there is no resource", () => {
+    expect(isResourceForUri(null, "test/doc.pdf")).toBe(false);
+  });
+
+  test("returns true when the resource uri matches the route uri exactly", () => {
+    const resource = makeResource({ uri: "test/doc.pdf" });
+    expect(isResourceForUri(resource, "test/doc.pdf")).toBe(true);
+  });
+
+  test("returns false when the resource belongs to a different document", () => {
+    const resource = makeResource({ uri: "test/other-doc.pdf" });
+    expect(isResourceForUri(resource, "test/doc.pdf")).toBe(false);
+  });
+
+  test("matches an encoded resource uri against a decoded route uri", () => {
+    const resource = makeResource({ uri: "test/a%20doc.pdf" });
+    expect(isResourceForUri(resource, "test/a doc.pdf")).toBe(true);
+  });
+
+  test("matches a decoded resource uri against an encoded route uri", () => {
+    const resource = makeResource({ uri: "test/a doc.pdf" });
+    expect(isResourceForUri(resource, "test/a%20doc.pdf")).toBe(true);
+  });
+
+  test("copes with a uri that is not valid percent-encoding", () => {
+    const resource = makeResource({ uri: "test/100%.pdf" });
+    expect(isResourceForUri(resource, "test/100%.pdf")).toBe(true);
+    expect(isResourceForUri(resource, "test/other.pdf")).toBe(false);
   });
 });

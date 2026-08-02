@@ -35,6 +35,7 @@ import {
   COMBINED_VIEW,
   resolveInitialPagedView,
 } from "./PageViewer/resolveInitialPagedView";
+import { isResourceForUri } from "../util/resourceUtils";
 
 function isCombinedOrUnset(view: string | undefined): boolean {
   return !view || view === COMBINED_VIEW;
@@ -78,9 +79,12 @@ const PageViewerContent: FC<{
   onVisiblePageChange,
 }) => {
   const dispatch = useDispatch();
-  const resource = useSelector<GiantState, Resource | null>(
+  const storeResource = useSelector<GiantState, Resource | null>(
     (state) => state.resource,
   );
+  // The store can hold a resource left over from a previously viewed
+  // document while this one is being fetched — don't render it (#799)
+  const resource = isResourceForUri(storeResource, uri) ? storeResource : null;
   const auth = useSelector((state: GiantState) => state.auth);
   const preferences = useSelector((state: GiantState) => state.app.preferences);
 
@@ -256,9 +260,13 @@ export const PageViewerOrFallback: FC<{}> = () => {
   const view = useSelector<GiantState, string | undefined>(
     (state) => state.urlParams.view,
   );
-  const resource = useSelector<GiantState, Resource | null>(
+  const storeResource = useSelector<GiantState, Resource | null>(
     (state) => state.resource,
   );
+  // The store can hold a resource left over from a previously viewed document
+  // while this one is being fetched. Treat it as absent so the footer (and
+  // its download button) can never act on the wrong document (#799).
+  const resource = isResourceForUri(storeResource, uri) ? storeResource : null;
   const dispatch = useDispatch();
 
   const searchQuery = searchParams.get("q") ?? undefined;

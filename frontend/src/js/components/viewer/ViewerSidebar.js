@@ -15,6 +15,7 @@ import PreviousIcon from "react-icons/lib/md/navigate-before";
 import { getResource } from "../../actions/resources/getResource";
 import { permissionsPropType } from "../../types/User";
 import { getMyPermissions } from "../../actions/users/getMyPermissions";
+import { isResourceForUri } from "../../util/resourceUtils";
 
 class ViewerSidebar extends React.Component {
   static propTypes = {
@@ -35,10 +36,10 @@ class ViewerSidebar extends React.Component {
   };
 
   UNSAFE_componentWillReceiveProps(props) {
-    if (
-      !this.props.isLoadingResource &&
-      props.match.params.uri !== this.props.match.params.uri
-    ) {
+    // Not guarded by isLoadingResource: if the user moves on while a fetch is
+    // still in flight we must fetch the new document regardless, else the
+    // in-flight response would be displayed for the wrong route.
+    if (props.match.params.uri !== this.props.match.params.uri) {
       this.props.getResource(props.match.params.uri, props.urlParams.q);
     }
   }
@@ -46,7 +47,13 @@ class ViewerSidebar extends React.Component {
   UNSAFE_componentWillMount() {
     // <Viewer> may have fetched the resource first, so avoid duplicate requests which race each other.
     // Ultimately we'd like the resource fetch to be triggered from a common parent of this and <Viewer>
-    if (!this.props.isLoadingResource && !this.props.resource) {
+    // The store can also hold a resource left over from a previously viewed
+    // document (#799), which must not suppress the fetch — so check the
+    // resource is actually the one for this route, not merely present.
+    if (
+      !this.props.isLoadingResource &&
+      !isResourceForUri(this.props.resource, this.props.match.params.uri)
+    ) {
       this.props.getResource(
         this.props.match.params.uri,
         this.props.urlParams.q,
@@ -56,7 +63,16 @@ class ViewerSidebar extends React.Component {
   }
 
   render() {
-    if (this.props.resource) {
+    // Render nothing rather than a leftover resource from a previously
+    // viewed document while the right one is being fetched (#799)
+    const resource = isResourceForUri(
+      this.props.resource,
+      this.props.match.params.uri,
+    )
+      ? this.props.resource
+      : null;
+
+    if (resource) {
       return (
         <div
           className={`sidebar ${this.state.collapsed ? "sidebar--collapsed" : ""} viewer__sidebar`}
@@ -71,9 +87,9 @@ class ViewerSidebar extends React.Component {
               {this.state.collapsed ? <NextIcon /> : <PreviousIcon />}
             </button>
           </div>
-          {this.props.resource.type === "blob" ? (
+          {resource.type === "blob" ? (
             <DocumentMetadata
-              resource={this.props.resource}
+              resource={resource}
               config={this.props.config}
               myPermissions={this.props.myPermissions}
               currentView={this.props.urlParams && this.props.urlParams.view}
@@ -81,7 +97,7 @@ class ViewerSidebar extends React.Component {
             />
           ) : (
             <EmailMetadata
-              resource={this.props.resource}
+              resource={resource}
               config={this.props.config}
               isAdmin={this.props.myPermissions.includes(
                 "CanPerformAdminOperations",
