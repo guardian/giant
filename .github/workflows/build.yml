@@ -17,9 +17,19 @@ jobs:
       id-token: write
       contents: read
     steps:
-      - uses: actions/checkout@v4
+      - name: Generate 'investigations-cross-repo-auth' Token
+        id: investigations-cross-repo-auth
+        uses: actions/create-github-app-token@v3
         with:
-          submodules: 'true' # FIXME we must setup an SSH key pair to be able to load the contents of the investigations-platform submodule
+          client-id: ${{ vars.INVESTIGATIONS_CROSS_REPO_AUTH_APP_CLIENT_ID }}
+          private-key: ${{ secrets.INVESTIGATIONS_CROSS_REPO_AUTH_APP_PRIVATE_KEY }}
+          repositories: guardian/investigations-platform
+
+      - name: Checkout repository & submodules
+        uses: actions/checkout@v4
+        with:
+          token: '${{ steps.investigations-cross-repo-auth.outputs.token }}'
+          submodules: recursive
 
       # TODO: configure caching
       # See https://github.com/actions/setup-java
