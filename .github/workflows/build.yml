@@ -122,3 +122,16 @@ jobs:
               - infra/cdk/cdk.out/main/pfi-giant/pfi-giant-investigations-rex.template.json
           configPath: infra/cdk/cdk.out/main/pfi-giant/riff-raff.yaml
           commentingEnabled: 'false'
+
+      - name: riff-raff upload for postgres
+        uses: guardian/actions-riff-raff@v4
+        with:
+          buildNumberOffset: 107
+          roleArn: ${{ secrets.GU_RIFF_RAFF_ROLE_ARN }}
+          githubToken: ${{ secrets.GITHUB_TOKEN }}
+          projectName: pfi-giant::postgres
+          configPath: infra/cdk/cdk.out/postgres/riff-raff.yaml
+          contentDirectories: |
+            cdk.out:
+              - infra/cdk/cdk.out/postgres/pfi-giant-postgres-CODE.template.json
+              - infra/cdk/cdk.out/postgres/pfi-giant-postgres-PROD.template.json
