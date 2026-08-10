@@ -1426,16 +1426,8 @@ exports[`Giant's stacks should match the snapshots 3`] = `
         ],
         "Tags": [
           {
-            "Key": "App",
-            "Value": "pfi",
-          },
-          {
-            "Key": "gu:cdk:version",
-            "Value": "TEST",
-          },
-          {
-            "Key": "gu:repo",
-            "Value": "guardian/giant",
+            "Key": "gu:riff-raff:project",
+            "Value": "investigations::pfi-playground",
           },
           {
             "Key": "Stack",
@@ -1471,16 +1463,8 @@ exports[`Giant's stacks should match the snapshots 3`] = `
         ],
         "Tags": [
           {
-            "Key": "App",
-            "Value": "pfi",
-          },
-          {
-            "Key": "gu:cdk:version",
-            "Value": "TEST",
-          },
-          {
-            "Key": "gu:repo",
-            "Value": "guardian/giant",
+            "Key": "gu:riff-raff:project",
+            "Value": "investigations::pfi-playground",
           },
           {
             "Key": "Stack",
@@ -1548,16 +1532,8 @@ exports[`Giant's stacks should match the snapshots 3`] = `
         "Statistic": "Sum",
         "Tags": [
           {
-            "Key": "App",
-            "Value": "pfi",
-          },
-          {
-            "Key": "gu:cdk:version",
-            "Value": "TEST",
-          },
-          {
-            "Key": "gu:repo",
-            "Value": "guardian/giant",
+            "Key": "gu:riff-raff:project",
+            "Value": "investigations::pfi-playground",
           },
           {
             "Key": "Stack",
@@ -1621,14 +1597,9 @@ exports[`Giant's stacks should match the snapshots 3`] = `
             "Value": "pfi",
           },
           {
-            "Key": "gu:cdk:version",
+            "Key": "gu:riff-raff:project",
             "PropagateAtLaunch": true,
-            "Value": "TEST",
-          },
-          {
-            "Key": "gu:repo",
-            "PropagateAtLaunch": true,
-            "Value": "guardian/giant",
+            "Value": "investigations::pfi-playground",
           },
           {
             "Key": "Stack",
@@ -1840,16 +1811,8 @@ chmod u=rwx setup-pfi-instance.sh
         ],
         "Tags": [
           {
-            "Key": "App",
-            "Value": "pfi",
-          },
-          {
-            "Key": "gu:cdk:version",
-            "Value": "TEST",
-          },
-          {
-            "Key": "gu:repo",
-            "Value": "guardian/giant",
+            "Key": "gu:riff-raff:project",
+            "Value": "investigations::pfi-playground",
           },
           {
             "Key": "Stack",
@@ -1892,16 +1855,8 @@ chmod u=rwx setup-pfi-instance.sh
         ],
         "Tags": [
           {
-            "Key": "App",
-            "Value": "pfi",
-          },
-          {
-            "Key": "gu:cdk:version",
-            "Value": "TEST",
-          },
-          {
-            "Key": "gu:repo",
-            "Value": "guardian/giant",
+            "Key": "gu:riff-raff:project",
+            "Value": "investigations::pfi-playground",
           },
           {
             "Key": "Stack",
@@ -1976,16 +1931,8 @@ chmod u=rwx setup-pfi-instance.sh
         "Statistic": "Sum",
         "Tags": [
           {
-            "Key": "App",
-            "Value": "pfi",
-          },
-          {
-            "Key": "gu:cdk:version",
-            "Value": "TEST",
-          },
-          {
-            "Key": "gu:repo",
-            "Value": "guardian/giant",
+            "Key": "gu:riff-raff:project",
+            "Value": "investigations::pfi-playground",
           },
           {
             "Key": "Stack",
@@ -2009,16 +1956,8 @@ chmod u=rwx setup-pfi-instance.sh
         },
         "Tags": [
           {
-            "Key": "App",
-            "Value": "pfi",
-          },
-          {
-            "Key": "gu:cdk:version",
-            "Value": "TEST",
-          },
-          {
-            "Key": "gu:repo",
-            "Value": "guardian/giant",
+            "Key": "gu:riff-raff:project",
+            "Value": "investigations::pfi-playground",
           },
           {
             "Key": "Stack",
@@ -2050,16 +1989,8 @@ chmod u=rwx setup-pfi-instance.sh
         },
         "Tags": [
           {
-            "Key": "App",
-            "Value": "pfi",
-          },
-          {
-            "Key": "gu:cdk:version",
-            "Value": "TEST",
-          },
-          {
-            "Key": "gu:repo",
-            "Value": "guardian/giant",
+            "Key": "gu:riff-raff:project",
+            "Value": "investigations::pfi-playground",
           },
           {
             "Key": "Stack",
@@ -2118,16 +2049,8 @@ chmod u=rwx setup-pfi-instance.sh
         ],
         "Tags": [
           {
-            "Key": "App",
-            "Value": "pfi",
-          },
-          {
-            "Key": "gu:cdk:version",
-            "Value": "TEST",
-          },
-          {
-            "Key": "gu:repo",
-            "Value": "guardian/giant",
+            "Key": "gu:riff-raff:project",
+            "Value": "investigations::pfi-playground",
           },
           {
             "Key": "Stack",
@@ -2229,17 +2152,12 @@ chmod u=rwx setup-pfi-instance.sh
           {
             "Key": "App",
             "PropagateAtLaunch": true,
-            "Value": "pfi",
+            "Value": "pfi-spot-worker",
           },
           {
-            "Key": "gu:cdk:version",
+            "Key": "gu:riff-raff:project",
             "PropagateAtLaunch": true,
-            "Value": "TEST",
-          },
-          {
-            "Key": "gu:repo",
-            "PropagateAtLaunch": true,
-            "Value": "guardian/giant",
+            "Value": "investigations::pfi-playground",
           },
           {
             "Key": "Stack",
@@ -2307,16 +2225,8 @@ chmod u=rwx setup-pfi-instance.sh
         "Statistic": "Sum",
         "Tags": [
           {
-            "Key": "App",
-            "Value": "pfi",
-          },
-          {
-            "Key": "gu:cdk:version",
-            "Value": "TEST",
-          },
-          {
-            "Key": "gu:repo",
-            "Value": "guardian/giant",
+            "Key": "gu:riff-raff:project",
+            "Value": "investigations::pfi-playground",
           },
           {
             "Key": "Stack",
@@ -2342,16 +2252,8 @@ chmod u=rwx setup-pfi-instance.sh
         },
         "Tags": [
           {
-            "Key": "App",
-            "Value": "pfi",
-          },
-          {
-            "Key": "gu:cdk:version",
-            "Value": "TEST",
-          },
-          {
-            "Key": "gu:repo",
-            "Value": "guardian/giant",
+            "Key": "gu:riff-raff:project",
+            "Value": "investigations::pfi-playground",
           },
           {
             "Key": "Stack",
@@ -2385,16 +2287,8 @@ chmod u=rwx setup-pfi-instance.sh
         },
         "Tags": [
           {
-            "Key": "App",
-            "Value": "pfi",
-          },
-          {
-            "Key": "gu:cdk:version",
-            "Value": "TEST",
-          },
-          {
-            "Key": "gu:repo",
-            "Value": "guardian/giant",
+            "Key": "gu:riff-raff:project",
+            "Value": "investigations::pfi-playground",
           },
           {
             "Key": "Stack",
@@ -2453,17 +2347,12 @@ chmod u=rwx setup-pfi-instance.sh
           {
             "Key": "App",
             "PropagateAtLaunch": true,
-            "Value": "pfi",
+            "Value": "pfi-worker",
           },
           {
-            "Key": "gu:cdk:version",
+            "Key": "gu:riff-raff:project",
             "PropagateAtLaunch": true,
-            "Value": "TEST",
-          },
-          {
-            "Key": "gu:repo",
-            "PropagateAtLaunch": true,
-            "Value": "guardian/giant",
+            "Value": "investigations::pfi-playground",
           },
           {
             "Key": "Stack",
@@ -2536,16 +2425,8 @@ chmod u=rwx setup-pfi-instance.sh
         "Statistic": "Sum",
         "Tags": [
           {
-            "Key": "App",
-            "Value": "pfi",
-          },
-          {
-            "Key": "gu:cdk:version",
-            "Value": "TEST",
-          },
-          {
-            "Key": "gu:repo",
-            "Value": "guardian/giant",
+            "Key": "gu:riff-raff:project",
+            "Value": "investigations::pfi-playground",
           },
           {
             "Key": "Stack",
@@ -2748,16 +2629,8 @@ chmod u=rwx setup-pfi-instance.sh
         ],
         "Tags": [
           {
-            "Key": "App",
-            "Value": "pfi",
-          },
-          {
-            "Key": "gu:cdk:version",
-            "Value": "TEST",
-          },
-          {
-            "Key": "gu:repo",
-            "Value": "guardian/giant",
+            "Key": "gu:riff-raff:project",
+            "Value": "investigations::pfi-playground",
           },
           {
             "Key": "Stack",
@@ -2800,16 +2673,8 @@ chmod u=rwx setup-pfi-instance.sh
         ],
         "Tags": [
           {
-            "Key": "App",
-            "Value": "pfi",
-          },
-          {
-            "Key": "gu:cdk:version",
-            "Value": "TEST",
-          },
-          {
-            "Key": "gu:repo",
-            "Value": "guardian/giant",
+            "Key": "gu:riff-raff:project",
+            "Value": "investigations::pfi-playground",
           },
           {
             "Key": "Stack",
@@ -3170,16 +3035,8 @@ exports[`Giant's stacks should match the snapshots 4`] = `
         ],
         "Tags": [
           {
-            "Key": "App",
-            "Value": "pfi",
-          },
-          {
-            "Key": "gu:cdk:version",
-            "Value": "TEST",
-          },
-          {
-            "Key": "gu:repo",
-            "Value": "guardian/giant",
+            "Key": "gu:riff-raff:project",
+            "Value": "investigations::pfi-giant",
           },
           {
             "Key": "Stack",
@@ -3215,16 +3072,8 @@ exports[`Giant's stacks should match the snapshots 4`] = `
         ],
         "Tags": [
           {
-            "Key": "App",
-            "Value": "pfi",
-          },
-          {
-            "Key": "gu:cdk:version",
-            "Value": "TEST",
-          },
-          {
-            "Key": "gu:repo",
-            "Value": "guardian/giant",
+            "Key": "gu:riff-raff:project",
+            "Value": "investigations::pfi-giant",
           },
           {
             "Key": "Stack",
@@ -3292,16 +3141,8 @@ exports[`Giant's stacks should match the snapshots 4`] = `
         "Statistic": "Sum",
         "Tags": [
           {
-            "Key": "App",
-            "Value": "pfi",
-          },
-          {
-            "Key": "gu:cdk:version",
-            "Value": "TEST",
-          },
-          {
-            "Key": "gu:repo",
-            "Value": "guardian/giant",
+            "Key": "gu:riff-raff:project",
+            "Value": "investigations::pfi-giant",
           },
           {
             "Key": "Stack",
@@ -3365,14 +3206,9 @@ exports[`Giant's stacks should match the snapshots 4`] = `
             "Value": "pfi",
           },
           {
-            "Key": "gu:cdk:version",
+            "Key": "gu:riff-raff:project",
             "PropagateAtLaunch": true,
-            "Value": "TEST",
-          },
-          {
-            "Key": "gu:repo",
-            "PropagateAtLaunch": true,
-            "Value": "guardian/giant",
+            "Value": "investigations::pfi-giant",
           },
           {
             "Key": "Stack",
@@ -3584,16 +3420,8 @@ chmod u=rwx setup-pfi-instance.sh
         ],
         "Tags": [
           {
-            "Key": "App",
-            "Value": "pfi",
-          },
-          {
-            "Key": "gu:cdk:version",
-            "Value": "TEST",
-          },
-          {
-            "Key": "gu:repo",
-            "Value": "guardian/giant",
+            "Key": "gu:riff-raff:project",
+            "Value": "investigations::pfi-giant",
           },
           {
             "Key": "Stack",
@@ -3636,16 +3464,8 @@ chmod u=rwx setup-pfi-instance.sh
         ],
         "Tags": [
           {
-            "Key": "App",
-            "Value": "pfi",
-          },
-          {
-            "Key": "gu:cdk:version",
-            "Value": "TEST",
-          },
-          {
-            "Key": "gu:repo",
-            "Value": "guardian/giant",
+            "Key": "gu:riff-raff:project",
+            "Value": "investigations::pfi-giant",
           },
           {
             "Key": "Stack",
@@ -3720,16 +3540,8 @@ chmod u=rwx setup-pfi-instance.sh
         "Statistic": "Sum",
         "Tags": [
           {
-            "Key": "App",
-            "Value": "pfi",
-          },
-          {
-            "Key": "gu:cdk:version",
-            "Value": "TEST",
-          },
-          {
-            "Key": "gu:repo",
-            "Value": "guardian/giant",
+            "Key": "gu:riff-raff:project",
+            "Value": "investigations::pfi-giant",
           },
           {
             "Key": "Stack",
@@ -3753,16 +3565,8 @@ chmod u=rwx setup-pfi-instance.sh
         },
         "Tags": [
           {
-            "Key": "App",
-            "Value": "pfi",
-          },
-          {
-            "Key": "gu:cdk:version",
-            "Value": "TEST",
-          },
-          {
-            "Key": "gu:repo",
-            "Value": "guardian/giant",
+            "Key": "gu:riff-raff:project",
+            "Value": "investigations::pfi-giant",
           },
           {
             "Key": "Stack",
@@ -3794,16 +3598,8 @@ chmod u=rwx setup-pfi-instance.sh
         },
         "Tags": [
           {
-            "Key": "App",
-            "Value": "pfi",
-          },
-          {
-            "Key": "gu:cdk:version",
-            "Value": "TEST",
-          },
-          {
-            "Key": "gu:repo",
-            "Value": "guardian/giant",
+            "Key": "gu:riff-raff:project",
+            "Value": "investigations::pfi-giant",
           },
           {
             "Key": "Stack",
@@ -3862,16 +3658,8 @@ chmod u=rwx setup-pfi-instance.sh
         ],
         "Tags": [
           {
-            "Key": "App",
-            "Value": "pfi",
-          },
-          {
-            "Key": "gu:cdk:version",
-            "Value": "TEST",
-          },
-          {
-            "Key": "gu:repo",
-            "Value": "guardian/giant",
+            "Key": "gu:riff-raff:project",
+            "Value": "investigations::pfi-giant",
           },
           {
             "Key": "Stack",
@@ -3973,17 +3761,12 @@ chmod u=rwx setup-pfi-instance.sh
           {
             "Key": "App",
             "PropagateAtLaunch": true,
-            "Value": "pfi",
+            "Value": "pfi-spot-worker",
           },
           {
-            "Key": "gu:cdk:version",
+            "Key": "gu:riff-raff:project",
             "PropagateAtLaunch": true,
-            "Value": "TEST",
-          },
-          {
-            "Key": "gu:repo",
-            "PropagateAtLaunch": true,
-            "Value": "guardian/giant",
+            "Value": "investigations::pfi-giant",
           },
           {
             "Key": "Stack",
@@ -4051,16 +3834,8 @@ chmod u=rwx setup-pfi-instance.sh
         "Statistic": "Sum",
         "Tags": [
           {
-            "Key": "App",
-            "Value": "pfi",
-          },
-          {
-            "Key": "gu:cdk:version",
-            "Value": "TEST",
-          },
-          {
-            "Key": "gu:repo",
-            "Value": "guardian/giant",
+            "Key": "gu:riff-raff:project",
+            "Value": "investigations::pfi-giant",
           },
           {
             "Key": "Stack",
@@ -4086,16 +3861,8 @@ chmod u=rwx setup-pfi-instance.sh
         },
         "Tags": [
           {
-            "Key": "App",
-            "Value": "pfi",
-          },
-          {
-            "Key": "gu:cdk:version",
-            "Value": "TEST",
-          },
-          {
-            "Key": "gu:repo",
-            "Value": "guardian/giant",
+            "Key": "gu:riff-raff:project",
+            "Value": "investigations::pfi-giant",
           },
           {
             "Key": "Stack",
@@ -4129,16 +3896,8 @@ chmod u=rwx setup-pfi-instance.sh
         },
         "Tags": [
           {
-            "Key": "App",
-            "Value": "pfi",
-          },
-          {
-            "Key": "gu:cdk:version",
-            "Value": "TEST",
-          },
-          {
-            "Key": "gu:repo",
-            "Value": "guardian/giant",
+            "Key": "gu:riff-raff:project",
+            "Value": "investigations::pfi-giant",
           },
           {
             "Key": "Stack",
@@ -4197,17 +3956,12 @@ chmod u=rwx setup-pfi-instance.sh
           {
             "Key": "App",
             "PropagateAtLaunch": true,
-            "Value": "pfi",
+            "Value": "pfi-worker",
           },
           {
-            "Key": "gu:cdk:version",
+            "Key": "gu:riff-raff:project",
             "PropagateAtLaunch": true,
-            "Value": "TEST",
-          },
-          {
-            "Key": "gu:repo",
-            "PropagateAtLaunch": true,
-            "Value": "guardian/giant",
+            "Value": "investigations::pfi-giant",
           },
           {
             "Key": "Stack",
@@ -4280,16 +4034,8 @@ chmod u=rwx setup-pfi-instance.sh
         "Statistic": "Sum",
         "Tags": [
           {
-            "Key": "App",
-            "Value": "pfi",
-          },
-          {
-            "Key": "gu:cdk:version",
-            "Value": "TEST",
-          },
-          {
-            "Key": "gu:repo",
-            "Value": "guardian/giant",
+            "Key": "gu:riff-raff:project",
+            "Value": "investigations::pfi-giant",
           },
           {
             "Key": "Stack",
@@ -4492,16 +4238,8 @@ chmod u=rwx setup-pfi-instance.sh
         ],
         "Tags": [
           {
-            "Key": "App",
-            "Value": "pfi",
-          },
-          {
-            "Key": "gu:cdk:version",
-            "Value": "TEST",
-          },
-          {
-            "Key": "gu:repo",
-            "Value": "guardian/giant",
+            "Key": "gu:riff-raff:project",
+            "Value": "investigations::pfi-giant",
           },
           {
             "Key": "Stack",
@@ -4544,16 +4282,8 @@ chmod u=rwx setup-pfi-instance.sh
         ],
         "Tags": [
           {
-            "Key": "App",
-            "Value": "pfi",
-          },
-          {
-            "Key": "gu:cdk:version",
-            "Value": "TEST",
-          },
-          {
-            "Key": "gu:repo",
-            "Value": "guardian/giant",
+            "Key": "gu:riff-raff:project",
+            "Value": "investigations::pfi-giant",
           },
           {
             "Key": "Stack",
