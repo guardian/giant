@@ -49,7 +49,7 @@ class IndexTestHelpers(elasticsearchTestService: ElasticsearchTestService)(impli
       } else {
         val (lang, text) :: rest = entries
 
-        elasticsearchTestService.elasticResources.addDocumentOcr(documentUri, Some(text), lang, Some(lang.iso6391Code)).flatMap { _ =>
+        elasticsearchTestService.elasticResources.addDocumentOcr(documentUri, Some(text), lang).flatMap { _ =>
           if (rest.isEmpty) {
             Attempt.Right(())
           } else {

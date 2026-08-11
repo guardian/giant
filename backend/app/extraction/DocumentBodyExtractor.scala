@@ -51,7 +51,7 @@ class DocumentBodyExtractor(tika: Tika, index: Index, ingestionServices: Ingesti
     if(passesSafetyCheck(mimeType, blob.size)) {
       tika.parse(stream, mimeType).flatMap { case (metadata, body) =>
         val rawMetadata = metadata.names().map(name => name -> metadata.getValues(name).toSeq).toMap
-        val documentBodyDetectedLanguage = ingestionServices.detectLanguage(blob.uri.value, body.trim())
+        val documentBodyDetectedLanguage = ingestionServices.detectLanguage(blob.uri.value, body.trim()).flatMap(_.certainLanguage)
         // if we managed to detect the language and it's not english then add a translation extractor TODO
         if (documentBodyDetectedLanguage.exists(_ != "en")) {
           ingestionServices.addTranslationTodo(blob.uri, params, classOf[ExternalDocumentTranslationExtractor].getSimpleName)

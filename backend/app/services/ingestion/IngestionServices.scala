@@ -3,7 +3,7 @@ package services.ingestion
 import java.nio.file.{Files, Path}
 import cats.syntax.either._
 import extraction.{ExternalTranslationExtractor, ExtractionParams, Extractor, MimeTypeMapper}
-import model.{Language, Uri}
+import model.{English, Language, Uri}
 import model.ingestion.{EmailContext, FileContext, WorkspaceItemContext}
 import model.manifest.{Blob, MimeType}
 import org.apache.tika.language.detect.LanguageDetector
@@ -38,6 +38,19 @@ private case class UriParentPair(child: Uri, parent: Uri) extends UriParent
 private case class UriJustParent(parent: Uri) extends UriParent
 
 /**
+  * The result of running language detection over a piece of text.
+  *
+  * @param detectedLanguage the iso639-1 code of the most likely language
+  * @param certain whether the detector is reasonably certain of the result. We only store codes where we are certain
+  *                to try and maintain index quality, but the uncertain results are still useful for comparing
+  *                candidate texts against each other (e.g. picking the best OCR language)
+  * @param score the raw confidence score from the detector
+  */
+case class LanguageDetect(detectedLanguage: String, certain: Boolean, score: Double) {
+  def certainLanguage: Option[String] = if (certain) Some(detectedLanguage) else None
+}
+
+/**
   * Lots of ingestion processes are useful in several places - outside of just the standard ingestion pipeline
   */
 trait IngestionServices {
@@ -46,11 +59,15 @@ trait IngestionServices {
   def ingestEmail(context: EmailContext, sourceMimeType: String): Either[Failure, Unit]
   def ingestFile(context: FileContext, blobUri: Uri, path: Path, isFastLane: Boolean = false): Either[Failure, Blob]
   def setProgressNote(blobUri: Uri, extractor: Extractor, note: String): Either[Failure, Unit]
-  def detectLanguage(blobUri: String, text: String): Option[String]
+  def detectLanguage(blobUri: String, text: String): Option[LanguageDetect]
   def addTranslationTodo(blobUri: Uri, params: ExtractionParams, extractorName: String): Either[Failure, Unit]
 }
 
 object IngestionServices extends Logging {
+
+  def isNotEnglish(languageCode: String): Boolean = {
+    languageCode.toLowerCase != English.iso6391Code
+  }
 
   private def cleanTextForLanguageDetection(text: String): String = {
     text
@@ -71,23 +88,25 @@ object IngestionServices extends Logging {
     override def recordIngestionEvent(event: IngestionEvent) = postgresClient.insertEvent(event)
 
     /***
-      * Uses tika to return the iso639-1 language code for the given text. We only store codes where tikka has a high
-      * confidence in the result to try and maintain index quality
-      * See https://en.wikipedia.org/wiki/List_of_ISO_639_language_codes for a list of codes
+      * Uses tika to detect the iso639-1 language code for the given text, along with how confident it is in that
+      * result. Callers that store the language should only use the result when it is `certain`, to try and maintain
+      * index quality. See https://en.wikipedia.org/wiki/List_of_ISO_639_language_codes for a list of codes
       * @param text
       * @return
       */
-    def detectLanguage(fieldIdentifier: String, text: String): Option[String] = {
+    def detectLanguage(fieldIdentifier: String, text: String): Option[LanguageDetect] = {
       // clean a large block of text in case the file starts with lots of junk
       val textToClean = text.take(50000)
       val cleanedText = cleanTextForLanguageDetection(textToClean)
       // Drop to just 10,000 characters to limit performance impact of language detection
       val result = languageDetector.get().detect(cleanedText.take(10000))
-      if (result.isReasonablyCertain) {
-        Some(result.getLanguage)
-      } else {
-        logger.info(s"Unable to detect language for text in $fieldIdentifier. Tika result: ${result.getLanguage} with confidence ${result.getRawScore}")
-        None
+
+      Option(result.getLanguage).filter(_.nonEmpty).map { language =>
+        val detected = LanguageDetect(language, result.isReasonablyCertain, result.getRawScore.toDouble)
+        if (!detected.certain) {
+          logger.info(s"Unable to confidently detect language for text in $fieldIdentifier. Tika result: $language with confidence ${detected.score}")
+        }
+        detected
       }
     }
 
@@ -107,8 +126,8 @@ object IngestionServices extends Logging {
 
       val insertions = intermediateResources :+ Manifest.InsertEmail(context.email, context.parents.head)
 
-      val subjectDetectedLanguage = detectLanguage(s"${context.email.uri.value} email subject", context.email.subject)
-      val bodyDetectedLanguage = detectLanguage(s"${context.email.uri.value} email body", context.email.body)
+      val subjectDetectedLanguage = detectLanguage(s"${context.email.uri.value} email subject", context.email.subject).flatMap(_.certainLanguage)
+      val bodyDetectedLanguage = detectLanguage(s"${context.email.uri.value} email body", context.email.body).flatMap(_.certainLanguage)
 
       manifest.insert(insertions, rootUri).flatMap( _ =>
         // TODO once we get attempt everywhere we can remove the await

@@ -67,16 +67,14 @@ export type LanguageDataField = {
   translation?: string;
 };
 
+// We OCR in several languages but only ever translate one of them, identified by ocrLanguage
 export type OcrLanguageData = {
-  detectedLanguageCode: {
-    [lang: string]: string;
-  };
-  translation: {
-    [lang: string]: string;
-  };
+  ocrLanguage: string;
+  detectedLanguageCode: string;
+  translation?: string;
 };
 
-export type LanguageData = {
+export type TranslationData = {
   text?: LanguageDataField;
   emailSubject?: LanguageDataField;
   emailBody?: LanguageDataField;
@@ -105,7 +103,7 @@ export type Resource = BasicResource & {
   vttTranscript?: {
     [lang: string]: HighlightableText;
   };
-  languageData?: LanguageData;
+  translationData?: TranslationData;
 };
 
 export const resourcePropType = PropTypes.shape({

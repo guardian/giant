@@ -5,3 +5,10 @@ frontend files to be in typescript. When editing existing javascript files they 
 
 We prefer a functional style of programming in both scala and typescript but prioritise readability over functional purity, 
 and simplicity over sophistication.
+
+
+When making changes. step back and think really hard:
+
+    What is the goal of this change?
+    How can we make this simpler and dumber while still achieving our goals?
+    How can we achieve our goals using a shorter diff that makes it easier to review and introduces less risk?

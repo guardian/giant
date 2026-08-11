@@ -83,14 +83,15 @@ class ElasticsearchResources(override val client: ElasticClient, indexName: Stri
           emptyMultiLanguageField(IndexFields.metadata.html),
           intField(IndexFields.metadata.attachmentCount)
         )),
-        ObjectField(IndexFields.languageDataField, properties = Seq(
-          emptyLanguageDataField(IndexFields.languageData.textField),
-          emptyLanguageDataField(IndexFields.languageData.emailBodyField),
-          emptyLanguageDataField(IndexFields.languageData.emailSubjectField),
-          // at the moment OCR can be an arbitrary number of languages, so this is a bit more complicated
-          ObjectField(IndexFields.languageData.ocr, properties = Seq(
-            emptyMultiLanguageField(IndexFields.languageData.translatableFieldData.translation),
-            emptyMultiLanguageField(IndexFields.languageData.translatableFieldData.detectedLanguageCode),
+        ObjectField(IndexFields.translationDataField, properties = Seq(
+          emptyLanguageDataField(IndexFields.translationData.textField),
+          emptyLanguageDataField(IndexFields.translationData.emailBodyField),
+          emptyLanguageDataField(IndexFields.translationData.emailSubjectField),
+          // we OCR in several languages but only ever translate one of them, recorded in ocrLanguage
+          ObjectField(IndexFields.translationData.ocr, properties = Seq(
+            textField(IndexFields.translationData.translatableFieldData.ocrLanguage),
+            singleLanguageField(IndexFields.translationData.translatableFieldData.translation, English),
+            textField(IndexFields.translationData.translatableFieldData.detectedLanguageCode),
           )),
         ))
     )).flatMap { _ =>
@@ -107,12 +108,6 @@ class ElasticsearchResources(override val client: ElasticClient, indexName: Stri
         multiLanguageField(IndexFields.ocr, language),
         multiLanguageField(IndexFields.transcript, language),
         multiLanguageField(IndexFields.vttTranscript, language),
-        ObjectField(IndexFields.languageDataField, properties = Seq(
-          ObjectField(IndexFields.languageData.ocr, properties = Seq(
-            multiLanguageField(IndexFields.languageData.translatableFieldData.detectedLanguageCode, language),
-            multiLanguageField(IndexFields.languageData.translatableFieldData.translation, language),
-          ))
-        )),
         ObjectField(IndexFields.metadataField, properties = Seq(
           multiLanguageField(IndexFields.metadata.fileUris, language),
           ObjectField(IndexFields.metadata.fromField, properties = Seq(
@@ -239,12 +234,12 @@ class ElasticsearchResources(override val client: ElasticClient, indexName: Stri
   override def getTextDetectedLanguage(uri:Uri): Attempt[String] = {
     execute {
       get(indexName, uri.value)
-        .fetchSourceInclude(s"${IndexFields.languageDataField}.${IndexFields.languageData.textField}.${IndexFields.languageData.translatableFieldData.detectedLanguageCode}")
+        .fetchSourceInclude(s"${IndexFields.translationDataField}.${IndexFields.translationData.textField}.${IndexFields.translationData.translatableFieldData.detectedLanguageCode}")
     }.flatMap { resp =>
       if(resp.exists) {
-        val maybeLanguageCode = resp.source.optField[FieldMap](IndexFields.languageDataField)
-          .flatMap(_.optField[FieldMap](IndexFields.languageData.textField))
-          .flatMap(_.optField[String](IndexFields.languageData.translatableFieldData.detectedLanguageCode))
+        val maybeLanguageCode = resp.source.optField[FieldMap](IndexFields.translationDataField)
+          .flatMap(_.optField[FieldMap](IndexFields.translationData.textField))
+          .flatMap(_.optField[String](IndexFields.translationData.translatableFieldData.detectedLanguageCode))
 
         maybeLanguageCode.toAttempt(Attempt.Left(NotFoundFailure(s"Detected language code not found for resource: ${uri.value}")))
       } else {
@@ -268,10 +263,10 @@ class ElasticsearchResources(override val client: ElasticClient, indexName: Stri
     }.getOrElse(Map.empty)
 
     val updatedLanguageData = documentBodyDetectedLanguage.map { code =>
-      IndexFields.languageDataField -> Map(
-        IndexFields.languageData.textField -> Map(
-          IndexFields.languageData.translatableFieldData.detectedLanguageCode -> code,
-          IndexFields.languageData.translatableFieldData.translation -> None
+      IndexFields.translationDataField -> Map(
+        IndexFields.translationData.textField -> Map(
+          IndexFields.translationData.translatableFieldData.detectedLanguageCode -> code,
+          IndexFields.translationData.translatableFieldData.translation -> None
         )
       )
     }
@@ -291,21 +286,32 @@ class ElasticsearchResources(override val client: ElasticClient, indexName: Stri
     }
   }
 
-  override def addDocumentOcr(uri: Uri, ocr: Option[String], language: Language, detectedLanguageCode: Option[String]): Attempt[Unit] = {
-    logger.info(s"Adding OCR to ${uri.value} in index")
+  override def addDocumentOcrTranslationData(uri: Uri, language:Language, detectedLanguageCode: String): Attempt[Unit] = {
+    logger.info(s"Adding OCR language data for ${uri.value} in index")
 
-    val updatedLanguageData = detectedLanguageCode.map { code =>
-      IndexFields.languageDataField -> Map(
-        IndexFields.languageData.ocr -> Map(
-          IndexFields.languageData.translatableFieldData.detectedLanguageCode -> Map(language.key -> code),
-          IndexFields.languageData.translatableFieldData.translation -> Map(language.key -> None)
+    val fieldMap = Map(
+      IndexFields.translationDataField -> Map(
+        IndexFields.translationData.ocr -> Map(
+          IndexFields.translationData.translatableFieldData.detectedLanguageCode -> detectedLanguageCode,
+          IndexFields.translationData.translatableFieldData.translation -> None,
+          IndexFields.translationData.translatableFieldData.ocrLanguage -> language.key
         )
       )
+    )
+
+    executeUpdate {
+      updateById(indexName, uri.value).doc(
+        fieldMap
+      )
     }
+  }
+
+  override def addDocumentOcr(uri: Uri, ocr: Option[String], language: Language): Attempt[Unit] = {
+    logger.info(s"Adding OCR to ${uri.value} in index")
 
     val fieldMap = Map(
       IndexFields.ocrExtracted -> true,
-    ) ++ updatedLanguageData ++ ocr.map(ocrText =>
+    ) ++ ocr.map(ocrText =>
       IndexFields.ocr -> Map(
         language.key -> ocrText
       )
@@ -323,28 +329,17 @@ class ElasticsearchResources(override val client: ElasticClient, indexName: Stri
     }
   }
 
-  // fieldName is either text, emailSubject, emailBody or ocr_lang where lang is english/french etc
+  // fieldName is one of text, emailSubject, emailBody or ocr
   override def addTranslationToLanguageData(uri: Uri, fieldName: String, translation: String): Attempt[Unit] = {
     logger.info(s"Adding translation to language data field '$fieldName' for ${uri.value} in index")
 
-    val languageDataMap: Map[String, Any] = if (fieldName.startsWith("ocr_")) {
-      val langKey = fieldName.stripPrefix("ocr_")
-      Map(
-        IndexFields.languageData.ocr -> Map(
-          IndexFields.languageData.translatableFieldData.translation -> Map(langKey -> translation)
-        )
-      )
-    } else {
-      Map(
-        fieldName -> Map(
-          IndexFields.languageData.translatableFieldData.translation -> translation
-        )
-      )
-    }
-
     executeUpdate {
       updateById(indexName, uri.value).doc(
-        IndexFields.languageDataField -> languageDataMap
+        IndexFields.translationDataField -> Map(
+          fieldName -> Map(
+            IndexFields.translationData.translatableFieldData.translation -> translation
+          )
+        )
       )
     }
   }
@@ -388,19 +383,19 @@ class ElasticsearchResources(override val client: ElasticClient, indexName: Stri
     }
 
     val bodyDetectedLanguageField = bodyDetectedLanguage.map { code =>
-        IndexFields.languageData.emailBodyField -> Map(
-          IndexFields.languageData.translatableFieldData.detectedLanguageCode -> code,
-          IndexFields.languageData.translatableFieldData.translation -> None
+        IndexFields.translationData.emailBodyField -> Map(
+          IndexFields.translationData.translatableFieldData.detectedLanguageCode -> code,
+          IndexFields.translationData.translatableFieldData.translation -> None
         )
     }
     val subjectDetectedLanguageField = subjectDetectedLanguage.map { code =>
-      IndexFields.languageData.emailSubjectField -> Map(
-        IndexFields.languageData.translatableFieldData.detectedLanguageCode -> code,
-        IndexFields.languageData.translatableFieldData.translation -> None
+      IndexFields.translationData.emailSubjectField -> Map(
+        IndexFields.translationData.translatableFieldData.detectedLanguageCode -> code,
+        IndexFields.translationData.translatableFieldData.translation -> None
       )
     }
     val updatedLanguageData = Map(
-        IndexFields.languageDataField -> (Map() ++ bodyDetectedLanguageField ++ subjectDetectedLanguageField)
+        IndexFields.translationDataField -> (Map() ++ bodyDetectedLanguageField ++ subjectDetectedLanguageField)
     )
 
     val defaultFields = Map(
@@ -1007,8 +1002,8 @@ object IndexFields {
     val attachmentCount = "attachmentCount"
   }
   // languageData object to support translation for various fields - detected language and translated text
-  val languageDataField = "languageData"
-  object languageData {
+  val translationDataField = "translationData"
+  object translationData {
     val textField = "text"
     val emailSubjectField = "emailSubject"
     val emailBodyField = "emailBody"
@@ -1016,6 +1011,7 @@ object IndexFields {
 
     object translatableFieldData {
       val detectedLanguageCode = "detectedLanguageCode"
+      val ocrLanguage = "ocrLanguage"
       val translation = "translation"
     }
   }

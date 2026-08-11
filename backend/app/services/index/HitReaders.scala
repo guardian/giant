@@ -229,7 +229,7 @@ object HitReaders {
       attachmentCount = metadataMap.optField[Int](metadata.attachmentCount).getOrElse(0),
       metadata        = readMetadata(fields),
       flag            = fields.optField[String](flags),
-      languageData    = readLanguageData(fields)
+      translationData    = readLanguageData(fields)
     )
   }
 
@@ -249,7 +249,7 @@ object HitReaders {
       fileUris  = readFileUris(metadataMap).toSet,
       fileSize  = metadataMap.optLongField(metadata.fileSize).getOrElse(0L),
       metadata = readMetadata(fields),
-      languageData = readLanguageData(fields)
+      translationData = readLanguageData(fields)
     )
   }
 
@@ -274,30 +274,32 @@ object HitReaders {
     }
   }
 
-  private def readLanguageData(fields: FieldMap): Option[LanguageData] = {
-    fields.optField[FieldMap](languageDataField).map { ld =>
+  private def readLanguageData(fields: FieldMap): Option[TranslationData] = {
+    fields.optField[FieldMap](translationDataField).map { ld =>
       def readField(name: String): Option[LanguageDataField] = {
         ld.optField[FieldMap](name).map { f =>
           LanguageDataField(
-            detectedLanguageCode = f.optField[String](languageData.translatableFieldData.detectedLanguageCode),
-            translation = f.optField[String](languageData.translatableFieldData.translation)
+            detectedLanguageCode = f.optField[String](translationData.translatableFieldData.detectedLanguageCode),
+            translation = f.optField[String](translationData.translatableFieldData.translation)
           )
         }
       }
 
-      val ocrData = ld.optField[FieldMap](languageData.ocr).map { o =>
-        OcrLanguageData(
-          detectedLanguageCode = o.optField[FieldMap](languageData.translatableFieldData.detectedLanguageCode)
-            .map(_.view.mapValues(_.asInstanceOf[String]).toMap).getOrElse(Map.empty),
-          translation = o.optField[FieldMap](languageData.translatableFieldData.translation)
-            .map(_.view.mapValues(_.asInstanceOf[String]).toMap).getOrElse(Map.empty)
+      val ocrData = ld.optField[FieldMap](translationData.ocr).flatMap { o =>
+        for {
+          ocrLanguage <- o.optField[String](translationData.translatableFieldData.ocrLanguage)
+          detectedLanguageCode <- o.optField[String](translationData.translatableFieldData.detectedLanguageCode)
+        } yield OcrLanguageData(
+          ocrLanguage = ocrLanguage,
+          detectedLanguageCode = detectedLanguageCode,
+          translation = o.optField[String](translationData.translatableFieldData.translation)
         )
       }
 
-      LanguageData(
-        text = readField(languageData.textField),
-        emailSubject = readField(languageData.emailSubjectField),
-        emailBody = readField(languageData.emailBodyField),
+      TranslationData(
+        text = readField(translationData.textField),
+        emailSubject = readField(translationData.emailSubjectField),
+        emailBody = readField(translationData.emailBodyField),
         ocr = ocrData
       )
     }

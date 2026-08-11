@@ -1,19 +1,59 @@
 package extraction.ocr
 
-import extraction.{ExtractionParams, FileExtractor}
-import model.Languages
+import extraction.{ExternalOcrTranslationExtractor, ExtractionParams, FileExtractor}
+import model.{Language, Languages, Uri}
 import model.manifest.Blob
 import org.apache.tika.language.detect.LanguageDetector
 import services.ScratchSpace
 import services.index.Index
+import services.ingestion.{IngestionServices, LanguageDetect}
+import services.ingestion.IngestionServices.isNotEnglish
+import utils.Logging
 import utils.Ocr.{OcrMyPdfTimeout, OcrSubprocessInterruptedException}
 import utils.OcrStderrLogger
+import utils.attempt.AttemptAwait._
 import utils.attempt.{Failure, OcrTimeout, SubprocessInterruptedFailure}
 
 import java.io.File
 import scala.concurrent.duration.DurationInt
 import scala.concurrent.{Await, ExecutionContext}
 import scala.util.control.NonFatal
+
+object BaseOcrExtractor extends Logging {
+  /**
+   * We OCR once per ingestion language, so a Russian document is also OCR'd in English, producing garbage. The
+   * detector agreeing with the language we OCR'd in is a good signal that that run produced sensible text, so we
+   * only consider those runs and pick the one the detector was most confident about.
+   */
+  private def bestOcrLanguage(textByLanguage: Map[Language, String], detectLanguage: (String, String) => Option[LanguageDetect]): Option[Language] = {
+    val matchingLanguages = textByLanguage.toList.flatMap { case (lang, text) =>
+      detectLanguage(s"${lang.key} ocr", text)
+        .filter(_.detectedLanguage == lang.iso6391Code)
+        .map(detected => lang -> detected.score)
+    }
+
+    matchingLanguages.maxByOption { case (_, score) => score }.map { case (lang, _) => lang }
+  }
+
+  /**
+   * Attempts to pick the best OCR language and, if non english, add a translation extractor TODO
+   */
+  def handleOcrTranslation(uri: Uri, textByLanguage: Map[Language, String], index: Index,
+                           ingestionServices: IngestionServices, params: ExtractionParams)(implicit ec: ExecutionContext): Unit = {
+
+    val bestLanguage = bestOcrLanguage(textByLanguage, ingestionServices.detectLanguage)
+    // if we get a decent match, save it in the translation data even if it's english
+    bestLanguage.foreach { lang =>
+      index.addDocumentOcrTranslationData(uri, lang, lang.iso6391Code).awaitEither(10.second)
+    }
+    // if the best language is not english, add translation extractor TODO
+    bestLanguage.filter(lang => isNotEnglish(lang.iso6391Code))
+      .foreach { lang =>
+        logger.info(s"Selected ${lang.key} OCR of ${uri.value} for translation")
+        ingestionServices.addTranslationTodo(uri, params, classOf[ExternalOcrTranslationExtractor].getSimpleName)
+      }
+  }
+}
 
 abstract class BaseOcrExtractor(scratchSpace: ScratchSpace, index:Index)  (implicit ec: ExecutionContext)  extends FileExtractor(scratchSpace) {
   def extractOcr(blob: Blob, file: File, params: ExtractionParams, stdErrLogger: OcrStderrLogger): Unit

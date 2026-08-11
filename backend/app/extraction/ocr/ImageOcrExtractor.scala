@@ -1,5 +1,6 @@
 package extraction.ocr
 
+import extraction.ocr.BaseOcrExtractor.handleOcrTranslation
 import extraction.ExtractionParams
 import model.manifest.{Blob, MimeType}
 import services.index.Index
@@ -37,12 +38,13 @@ class ImageOcrExtractor(config: OcrConfig, scratch: ScratchSpace, index: Index, 
   }
 
   override def extractOcr(blob: Blob, file: File, params: ExtractionParams, stdErrLogger: OcrStderrLogger): Unit = {
-    params.languages.foreach { lang =>
+    val textByLanguage = params.languages.map { lang =>
       val text = Ocr.invokeTesseractDirectly(lang.ocr, file.getAbsolutePath, config.tesseract, stdErrLogger)
       val optionalText = if (text.trim().isEmpty) None else Some(text)
-      val detectedLanguageCode = ingestionServices.detectLanguage(blob.uri.value, text)
-      index.addDocumentOcr(blob.uri, optionalText, lang, detectedLanguageCode).awaitEither(10.second)
-    }
+      index.addDocumentOcr(blob.uri, optionalText, lang).awaitEither(10.second)
+      lang -> text
+    }.toMap
+
+    handleOcrTranslation(blob.uri, textByLanguage, index, ingestionServices, params)
   }
 }
-

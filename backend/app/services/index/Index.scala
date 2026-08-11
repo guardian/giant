@@ -1,9 +1,9 @@
 package services.index
 
-import extraction.{EnrichedMetadata}
+import extraction.EnrichedMetadata
 import model.frontend.SearchResults
 import model.frontend.email.EmailMetadata
-import model.index.{IndexedBlob, IndexedResource, LanguageData, SearchParameters}
+import model.index.{IndexedBlob, IndexedResource, TranslationData, SearchParameters}
 import model.ingestion.WorkspaceItemContext
 import model.{Email, Language, TranscriptionResult, Uri}
 import utils.attempt.Attempt
@@ -15,9 +15,11 @@ trait Index {
 
   def addDocumentDetails(uri: Uri, text: Option[String], metadata: Map[String, Seq[String]], enrichedMetadata: EnrichedMetadata, languages: List[Language], documentBodyDetectedLanguage: Option[String]): Attempt[Unit]
 
-  def addDocumentOcr(uri: Uri, ocr: Option[String], language: Language, detectedLanguageCode: Option[String]): Attempt[Unit]
+  def addDocumentOcr(uri: Uri, ocr: Option[String], language: Language): Attempt[Unit]
 
   def addDocumentTranscription(uri: Uri, transcription: TranscriptionResult): Attempt[Unit]
+
+  def addDocumentOcrTranslationData(uri: Uri, language:Language, detectedLanguageCode: String): Attempt[Unit]
 
   def getTextDetectedLanguage(uri: Uri): Attempt[String]
 
