@@ -58,11 +58,7 @@ abstract class BaseOcrExtractor(scratchSpace: ScratchSpace, index:Index)  (impli
 
 object BaseOcrExtractor extends Logging {
 
-  private val LANGUAGE_DETECTION_CHUNKS = 3
-
-  case class BestLanguageResult(score: Double, chunkCount: Int, language: Language, matchesOcrLanguage: Boolean)
-
-  case class ChunkedDetectionResult(languageCode: String, chunkCount:Int)
+  private case class BestLanguageResult(score: Double, chunkCount: Int, language: Language, matchesOcrLanguage: Boolean)
 
   /**
    * We OCR once per ingestion language, so a Russian document is also OCR'd in English, producing garbage. Here we use
@@ -70,7 +66,6 @@ object BaseOcrExtractor extends Logging {
    * chunks did that language get selected in.
    */
   private[ocr] def bestOcrLanguage(textByLanguage: Map[Language, String], languageDetector: LanguageDetector): Option[Language] = {
-    println(s"BEST, length ${textByLanguage.size}")
     val matchingLanguages = textByLanguage.toList.flatMap { case (lang, text) =>
       detectLanguageChunked(languageDetector, s"${lang.key} ocr", text)
         .map(detected => BestLanguageResult(detected.score, detected.chunkCount.getOrElse(0), lang, detected.detectedLanguage == lang.iso6391Code))

@@ -2,7 +2,6 @@ package services.ingestion
 
 import java.nio.file.{Files, Path}
 import cats.syntax.either._
-import extraction.ocr.BaseOcrExtractor.ChunkedDetectionResult
 import extraction.{ExternalTranslationExtractor, ExtractionParams, Extractor, MimeTypeMapper}
 import model.{English, Language, Uri}
 import model.ingestion.{EmailContext, FileContext, WorkspaceItemContext}
