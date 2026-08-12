@@ -2,6 +2,7 @@ package services.ingestion
 
 import java.nio.file.{Files, Path}
 import cats.syntax.either._
+import extraction.ocr.BaseOcrExtractor.ChunkedDetectionResult
 import extraction.{ExternalTranslationExtractor, ExtractionParams, Extractor, MimeTypeMapper}
 import model.{English, Language, Uri}
 import model.ingestion.{EmailContext, FileContext, WorkspaceItemContext}
@@ -46,7 +47,7 @@ private case class UriJustParent(parent: Uri) extends UriParent
   *                candidate texts against each other (e.g. picking the best OCR language)
   * @param score the raw confidence score from the detector
   */
-case class LanguageDetect(detectedLanguage: String, certain: Boolean, score: Double) {
+case class LanguageDetect(detectedLanguage: String, certain: Boolean, score: Double, chunkCount: Option[Int]) {
   def certainLanguage: Option[String] = if (certain) Some(detectedLanguage) else None
 }
 
@@ -55,11 +56,13 @@ case class LanguageDetect(detectedLanguage: String, certain: Boolean, score: Dou
   */
 trait IngestionServices {
 
+  def languageDetector: ThreadLocal[LanguageDetector]
   def recordIngestionEvent(event: IngestionEvent): Unit
   def ingestEmail(context: EmailContext, sourceMimeType: String): Either[Failure, Unit]
   def ingestFile(context: FileContext, blobUri: Uri, path: Path, isFastLane: Boolean = false): Either[Failure, Blob]
   def setProgressNote(blobUri: Uri, extractor: Extractor, note: String): Either[Failure, Unit]
   def detectLanguage(blobUri: String, text: String): Option[LanguageDetect]
+  def detectLanguageChunked(blobUri: String, text: String): Option[LanguageDetect]
   def addTranslationTodo(blobUri: Uri, params: ExtractionParams, extractorName: String): Either[Failure, Unit]
 }
 
@@ -67,6 +70,43 @@ object IngestionServices extends Logging {
 
   def isNotEnglish(languageCode: String): Boolean = {
     languageCode.toLowerCase != English.iso6391Code
+  }
+
+  /***
+    * Uses tika to detect the iso639-1 language code for the given text, along with how confident it is in that
+    * result. Callers that store the language should only use the result when it is `certain`, to try and maintain
+    * index quality. See https://en.wikipedia.org/wiki/List_of_ISO_639_language_codes for a list of codes
+    */
+  def detectLanguage(languageDetector: LanguageDetector, fieldIdentifier: String, text: String): Option[LanguageDetect] = {
+    // clean a large block of text in case the file starts with lots of junk
+    val textToClean = text.take(50000)
+    val cleanedText = cleanTextForLanguageDetection(textToClean)
+    // Drop to just 10,000 characters to limit performance impact of language detection
+    val result = languageDetector.detect(cleanedText.take(10000))
+
+    Option(result.getLanguage).filter(_.nonEmpty).map { language =>
+      val scoreThreeDecimalPlaces = BigDecimal(result.getRawScore.toDouble).setScale(3, BigDecimal.RoundingMode.FLOOR).toDouble
+      val detected = LanguageDetect(language, result.isReasonablyCertain, scoreThreeDecimalPlaces, None)
+      if (!detected.certain) {
+        logger.info(s"Unable to confidently detect language for text in $fieldIdentifier. Tika result: $language with confidence ${detected.score}")
+      }
+      detected
+    }
+  }
+  val LANGUAGE_DETECTION_CHUNKS = 3
+
+  /**
+   * More expensive language detection function that splits the text into chunks and runs language detection on each chunk,
+   * returning the most common language detected. This can be useful for dealing with documents of mostly garbled OCR
+   * with occasional snippets of valid text - these will have a lower chunkCount and so we can distinguish them from
+   * a correctly OCRd document
+   */
+  def detectLanguageChunked(languageDetector: LanguageDetector, fieldIdentifier: String, text: String): Option[LanguageDetect] = {
+    val chunkSize = Math.max(1, text.length / LANGUAGE_DETECTION_CHUNKS)
+    val chunks = (0 until LANGUAGE_DETECTION_CHUNKS).map(i => text.slice(i * chunkSize, Math.min((i + 1) * chunkSize, text.length)))
+    val detectedLanguages = chunks.flatMap(chunk => detectLanguage(languageDetector, "chunk", chunk)).filter(_.certain)
+    val chunkResults = detectedLanguages.map(dl => dl.copy(chunkCount = Some(detectedLanguages.count(_.detectedLanguage == dl.detectedLanguage)))).sortBy(_.chunkCount).reverse
+    chunkResults.headOption
   }
 
   private def cleanTextForLanguageDetection(text: String): String = {
@@ -84,31 +124,18 @@ object IngestionServices extends Logging {
       .trim
   }
 
-  def apply(manifest: Manifest, index: Index, objectStorage: ObjectStorage, typeDetector: TypeDetector, mimeTypeMapper: MimeTypeMapper, postgresClient: PostgresClient, languageDetector: ThreadLocal[LanguageDetector])(implicit ec: ExecutionContext): IngestionServices = new IngestionServices {
+  def apply(manifest: Manifest, index: Index, objectStorage: ObjectStorage, typeDetector: TypeDetector, mimeTypeMapper: MimeTypeMapper, postgresClient: PostgresClient, languageDetectorToUse: ThreadLocal[LanguageDetector])(implicit ec: ExecutionContext): IngestionServices = new IngestionServices {
     override def recordIngestionEvent(event: IngestionEvent) = postgresClient.insertEvent(event)
 
+    override val languageDetector: ThreadLocal[LanguageDetector] = languageDetectorToUse
     /***
-      * Uses tika to detect the iso639-1 language code for the given text, along with how confident it is in that
-      * result. Callers that store the language should only use the result when it is `certain`, to try and maintain
-      * index quality. See https://en.wikipedia.org/wiki/List_of_ISO_639_language_codes for a list of codes
-      * @param text
-      * @return
+      * Uses tika to detect the iso639-1 language code for the given text, see [[IngestionServices.detectLanguage]]
       */
-    def detectLanguage(fieldIdentifier: String, text: String): Option[LanguageDetect] = {
-      // clean a large block of text in case the file starts with lots of junk
-      val textToClean = text.take(50000)
-      val cleanedText = cleanTextForLanguageDetection(textToClean)
-      // Drop to just 10,000 characters to limit performance impact of language detection
-      val result = languageDetector.get().detect(cleanedText.take(10000))
+    def detectLanguage(fieldIdentifier: String, text: String): Option[LanguageDetect] =
+      IngestionServices.detectLanguage(languageDetector.get(), fieldIdentifier, text)
 
-      Option(result.getLanguage).filter(_.nonEmpty).map { language =>
-        val detected = LanguageDetect(language, result.isReasonablyCertain, result.getRawScore.toDouble)
-        if (!detected.certain) {
-          logger.info(s"Unable to confidently detect language for text in $fieldIdentifier. Tika result: $language with confidence ${detected.score}")
-        }
-        detected
-      }
-    }
+    def detectLanguageChunked(fieldIdentifier: String, text: String): Option[LanguageDetect] =
+      IngestionServices.detectLanguageChunked(languageDetector.get(), fieldIdentifier, text)
 
     override def addTranslationTodo(blobUri: Uri, params: ExtractionParams, extractorName: String): Either[Failure, Unit] = {
       manifest.addTranslationTodoToBlob(blobUri, params, extractorName)
