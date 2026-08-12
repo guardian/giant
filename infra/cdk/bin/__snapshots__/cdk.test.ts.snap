@@ -57,7 +57,7 @@ exports[`Giant's stacks should match the snapshots 1`] = `
       "Type": "AWS::SSM::Parameter::Value<List<AWS::EC2::Subnet::Id>>",
     },
     "VpcId": {
-      "Default": "/account/vpc/primary/id",
+      "Default": "/account/vpc/giant/id",
       "Description": "Virtual Private Cloud to run EC2 instances within. Should NOT be the account default VPC.",
       "Type": "AWS::SSM::Parameter::Value<AWS::EC2::VPC::Id>",
     },
@@ -249,9 +249,7 @@ exports[`Giant's stacks should match the snapshots 1`] = `
             "Value": "CODE",
           },
         ],
-        "VpcId": {
-          "Ref": "VpcId",
-        },
+        "VpcId": "VpcId",
       },
       "Type": "AWS::EC2::SecurityGroup",
     },
@@ -336,9 +334,7 @@ exports[`Giant's stacks should match the snapshots 1`] = `
             "Value": "CODE",
           },
         ],
-        "VpcId": {
-          "Ref": "VpcId",
-        },
+        "VpcId": "VpcId",
       },
       "Type": "AWS::EC2::SecurityGroup",
     },
@@ -455,7 +451,7 @@ exports[`Giant's stacks should match the snapshots 2`] = `
       "Type": "AWS::SSM::Parameter::Value<List<AWS::EC2::Subnet::Id>>",
     },
     "VpcId": {
-      "Default": "/account/vpc/primary/id",
+      "Default": "/account/vpc/giant/id",
       "Description": "Virtual Private Cloud to run EC2 instances within. Should NOT be the account default VPC.",
       "Type": "AWS::SSM::Parameter::Value<AWS::EC2::VPC::Id>",
     },
@@ -647,9 +643,7 @@ exports[`Giant's stacks should match the snapshots 2`] = `
             "Value": "PROD",
           },
         ],
-        "VpcId": {
-          "Ref": "VpcId",
-        },
+        "VpcId": "VpcId",
       },
       "Type": "AWS::EC2::SecurityGroup",
     },
@@ -734,9 +728,7 @@ exports[`Giant's stacks should match the snapshots 2`] = `
             "Value": "PROD",
           },
         ],
-        "VpcId": {
-          "Ref": "VpcId",
-        },
+        "VpcId": "VpcId",
       },
       "Type": "AWS::EC2::SecurityGroup",
     },
