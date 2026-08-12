@@ -2,8 +2,8 @@ package model.index
 
 import play.api.libs.json._
 
-case class LanguageDataField(detectedLanguageCode: Option[String], translation: Option[String])
-case class OcrLanguageData(ocrLanguage: String, detectedLanguageCode: String, translation: Option[String])
+case class LanguageDataField(detectedLanguageCode: Option[String], englishTranslation: Option[String])
+case class OcrLanguageData(ocrLanguage: String, detectedLanguageCode: String, englishTranslation: Option[String])
 case class TranslationData(text: Option[LanguageDataField],
                            emailSubject: Option[LanguageDataField],
                            emailBody: Option[LanguageDataField],

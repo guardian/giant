@@ -64,14 +64,14 @@ export type HighlightableText = {
 
 export type LanguageDataField = {
   detectedLanguageCode?: string;
-  translation?: string;
+  englishTranslation?: string;
 };
 
 // We OCR in several languages but only ever translate one of them, identified by ocrLanguage
 export type OcrLanguageData = {
   ocrLanguage: string;
   detectedLanguageCode: string;
-  translation?: string;
+  englishTranslation?: string;
 };
 
 export type TranslationData = {

@@ -280,7 +280,7 @@ object HitReaders {
         ld.optField[FieldMap](name).map { f =>
           LanguageDataField(
             detectedLanguageCode = f.optField[String](translationData.translatableFieldData.detectedLanguageCode),
-            translation = f.optField[String](translationData.translatableFieldData.translation)
+            englishTranslation = f.optField[String](translationData.translatableFieldData.englishTranslation)
           )
         }
       }
@@ -292,7 +292,7 @@ object HitReaders {
         } yield OcrLanguageData(
           ocrLanguage = ocrLanguage,
           detectedLanguageCode = detectedLanguageCode,
-          translation = o.optField[String](translationData.translatableFieldData.translation)
+          englishTranslation = o.optField[String](translationData.translatableFieldData.englishTranslation)
         )
       }
 

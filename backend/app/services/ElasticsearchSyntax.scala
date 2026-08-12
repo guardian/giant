@@ -52,7 +52,7 @@ trait ElasticsearchSyntax { this: Logging =>
   def emptyLanguageDataField(name: String): ObjectField = {
     ObjectField(name, properties = Seq(
       textField(IndexFields.translationData.translatableFieldData.detectedLanguageCode),
-      singleLanguageField(IndexFields.translationData.translatableFieldData.translation, English)
+      singleLanguageField(IndexFields.translationData.translatableFieldData.englishTranslation, English)
     ))
   }
 

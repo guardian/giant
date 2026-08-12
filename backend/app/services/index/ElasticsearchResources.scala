@@ -90,7 +90,7 @@ class ElasticsearchResources(override val client: ElasticClient, indexName: Stri
           // we OCR in several languages but only ever translate one of them, recorded in ocrLanguage
           ObjectField(IndexFields.translationData.ocr, properties = Seq(
             textField(IndexFields.translationData.translatableFieldData.ocrLanguage),
-            singleLanguageField(IndexFields.translationData.translatableFieldData.translation, English),
+            singleLanguageField(IndexFields.translationData.translatableFieldData.englishTranslation, English),
             textField(IndexFields.translationData.translatableFieldData.detectedLanguageCode),
           )),
         ))
@@ -266,7 +266,7 @@ class ElasticsearchResources(override val client: ElasticClient, indexName: Stri
       IndexFields.translationDataField -> Map(
         IndexFields.translationData.textField -> Map(
           IndexFields.translationData.translatableFieldData.detectedLanguageCode -> code,
-          IndexFields.translationData.translatableFieldData.translation -> None
+          IndexFields.translationData.translatableFieldData.englishTranslation -> None
         )
       )
     }
@@ -293,7 +293,7 @@ class ElasticsearchResources(override val client: ElasticClient, indexName: Stri
       IndexFields.translationDataField -> Map(
         IndexFields.translationData.ocr -> Map(
           IndexFields.translationData.translatableFieldData.detectedLanguageCode -> detectedLanguageCode,
-          IndexFields.translationData.translatableFieldData.translation -> None,
+          IndexFields.translationData.translatableFieldData.englishTranslation -> None,
           IndexFields.translationData.translatableFieldData.ocrLanguage -> language.key
         )
       )
@@ -337,7 +337,7 @@ class ElasticsearchResources(override val client: ElasticClient, indexName: Stri
       updateById(indexName, uri.value).doc(
         IndexFields.translationDataField -> Map(
           fieldName -> Map(
-            IndexFields.translationData.translatableFieldData.translation -> translation
+            IndexFields.translationData.translatableFieldData.englishTranslation -> translation
           )
         )
       )
@@ -385,13 +385,13 @@ class ElasticsearchResources(override val client: ElasticClient, indexName: Stri
     val bodyDetectedLanguageField = bodyDetectedLanguage.map { code =>
         IndexFields.translationData.emailBodyField -> Map(
           IndexFields.translationData.translatableFieldData.detectedLanguageCode -> code,
-          IndexFields.translationData.translatableFieldData.translation -> None
+          IndexFields.translationData.translatableFieldData.englishTranslation -> None
         )
     }
     val subjectDetectedLanguageField = subjectDetectedLanguage.map { code =>
       IndexFields.translationData.emailSubjectField -> Map(
         IndexFields.translationData.translatableFieldData.detectedLanguageCode -> code,
-        IndexFields.translationData.translatableFieldData.translation -> None
+        IndexFields.translationData.translatableFieldData.englishTranslation -> None
       )
     }
     val updatedLanguageData = Map(
@@ -1012,7 +1012,7 @@ object IndexFields {
     object translatableFieldData {
       val detectedLanguageCode = "detectedLanguageCode"
       val ocrLanguage = "ocrLanguage"
-      val translation = "translation"
+      val englishTranslation = "englishTranslation"
     }
   }
 

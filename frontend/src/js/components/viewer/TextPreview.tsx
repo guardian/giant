@@ -78,7 +78,7 @@ function getViewTranslationData(
   const [viewType, language] = view.split(".");
   if (viewType === "text") {
     return {
-      translation: translationData.text?.translation,
+      englishTranslation: translationData.text?.englishTranslation,
       detectedLanguageCode: translationData.text?.detectedLanguageCode,
     };
   } else if (viewType === "ocr") {
@@ -88,7 +88,7 @@ function getViewTranslationData(
     }
 
     return {
-      translation: translationData.ocr.translation,
+      englishTranslation: translationData.ocr.englishTranslation,
       detectedLanguageCode: translationData.ocr.detectedLanguageCode,
     };
   }
@@ -124,7 +124,7 @@ export function TextPreview({
 
   const viewTranslation =
     translationData && getViewTranslationData(translationData, view);
-  const translation = viewTranslation?.translation;
+  const translation = viewTranslation?.englishTranslation;
   const detectedLanguageCode = viewTranslation?.detectedLanguageCode;
 
   // Toggle between showing the original extracted text and the english translation
