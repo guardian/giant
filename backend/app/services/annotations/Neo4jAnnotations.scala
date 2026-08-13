@@ -331,6 +331,10 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
     }
   }
 
+  // we split this into two steps - first just getting the ids of ancestors and checking access, then the second query to get the children of those ancestors.
+  // this improves performance (avoiding a mega cartesian product of path rows x children rows x todo rows)
+  // it also means the second query doesn't have to worry about auth, and we can short circuit early if there are
+  // no ids found
   override def getWorkspaceAncestors(currentUser: String, workspaceId: String, nodeId: String): Attempt[List[TreeEntry[WorkspaceEntry]]] = attemptTransaction { tx =>
     // Step 1: confirm the node is visible to this user and get the ordered ancestor ids (root first,
     // excluding the node itself). Walking up the single PARENT chain is O(depth), no fan-out.
