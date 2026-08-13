@@ -77,6 +77,27 @@ export function getCurrentResource(prefix: string): string {
   return window.location.pathname.split("/").slice(2).join("/");
 }
 
+function safeDecode(uri: string): string {
+  try {
+    return decodeURIComponent(uri);
+  } catch (e) {
+    // Not a valid encoding (e.g. a raw % in a filename) — compare as-is
+    return uri;
+  }
+}
+
+// The uri field of a resource holds the encoded form (see getCurrentResource
+// above) whereas a route param may reach us encoded or decoded depending on
+// how the link was built, so normalise both sides before comparing. Used to
+// detect when the resource in the store belongs to a previously viewed
+// document rather than the one the route points at (#799).
+export function isResourceForUri(
+  resource: { uri: string } | null,
+  routeUri: string,
+): boolean {
+  return resource !== null && safeDecode(resource.uri) === safeDecode(routeUri);
+}
+
 export function hasTextContent(resource: Resource): boolean {
   return !!resource.text && resource.text.contents.trim() !== "";
 }
