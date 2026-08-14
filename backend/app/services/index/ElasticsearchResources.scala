@@ -617,9 +617,10 @@ class ElasticsearchResources(override val client: ElasticClient, indexName: Stri
     )
   }
 
-  // Counts whitespace-separated words across the text (or, where present, OCR) of every language for
-  // every document matched by the query. Shared by the workspace- and folder-scoped word counts so they
-  // always use the same counting method (only the set of matched documents differs).
+  // Counts whitespace-separated words in every language of a single field per document, picked in
+  // precedence order: OCR where present, otherwise extracted text, otherwise the transcript (so
+  // audio/video documents are counted too). Shared by the workspace- and folder-scoped word counts so
+  // they always use the same counting method (only the set of matched documents differs).
   private val wordCountAggregation =
     scriptedMetricAggregation("workspaceWordCount")
       .initScript(Script("state.total = 0L").lang("painless"))
