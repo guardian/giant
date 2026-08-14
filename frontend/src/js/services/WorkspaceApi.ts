@@ -65,6 +65,17 @@ export function getWorkspaceTotalWordCount(id: string): Promise<number> {
   );
 }
 
+export function getWordCountForBlobs(
+  id: string,
+  blobUris: string[],
+): Promise<number> {
+  return authFetch(`/api/workspaces/${id}/wordCount`, {
+    method: "POST",
+    headers: new Headers({ "Content-Type": "application/json" }),
+    body: JSON.stringify(blobUris),
+  }).then((res) => res.json());
+}
+
 export function getWorkspaceText(
   id: string,
   blobUris: string[],

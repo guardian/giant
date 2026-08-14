@@ -51,6 +51,8 @@ trait Index {
 
   def getTotalWordCountForWorkspace(workspaceId: String): Attempt[Long]
 
+  def getWordCountForBlobs(workspaceId: String, blobUris: List[String]): Attempt[Long]
+
   def getTextForBlobs(workspaceId: String, blobUris: List[String]): Attempt[Map[String, Map[String, String]]]
 
   def addTranslationToLanguageData(uri: Uri, fieldName: String, translation: String): Attempt[Unit]
