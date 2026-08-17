@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 
 echo "Installing contents of Brewfile..."
-brew bundle
+#brew bundle
+sudo apt update
+sudo apt install tesseract tesseract-lang libreoffice ocrmypdf imagemagick qpdf ffmpeg xpdf
 
 echo "Installing frontend dependencies..."
 pushd frontend
