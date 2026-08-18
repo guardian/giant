@@ -22,7 +22,13 @@
     3000,
     9001,
     9200,
-    8432
+    8432,
+    9091,
+    3900,
+    3903,
+    9092,
+    7474,
+    7687
   ],
   "image" : "mcr.microsoft.com/devcontainers/base:ubuntu26.04",
   "remoteUser" : "vscode",
