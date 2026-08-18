@@ -53,7 +53,7 @@ class DocumentBodyExtractor(tika: Tika, index: Index, ingestionServices: Ingesti
         val rawMetadata = metadata.names().map(name => name -> metadata.getValues(name).toSeq).toMap
         val documentBodyDetectedLanguage = ingestionServices.detectLanguage(blob.uri.value, body.trim()).flatMap(_.certainLanguage)
         // if we managed to detect the language and it's not english then add a translation extractor TODO
-        if (documentBodyDetectedLanguage.exists(_ != "en")) {
+        if (documentBodyDetectedLanguage.exists(_ != "en") && body.trim().length > IngestionServices.TRANSLATION_MINIMUM_LENGTH) {
           ingestionServices.addTranslationTodo(blob.uri, params, classOf[ExternalDocumentTranslationExtractor].getSimpleName)
         }
         val enrichedMetadata = MetadataEnrichment.enrich(rawMetadata)

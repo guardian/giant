@@ -89,7 +89,7 @@ object BaseOcrExtractor extends Logging {
       index.addDocumentOcrTranslationData(uri, lang, lang.iso6391Code).awaitEither(10.second)
     }
     // if the best language is not english, add translation extractor TODO
-    bestLanguage.filter(lang => isNotEnglish(lang.iso6391Code))
+    bestLanguage.filter(lang => isNotEnglish(lang.iso6391Code) && textByLanguage.get(lang).exists(_.length > IngestionServices.TRANSLATION_MINIMUM_LENGTH))
       .foreach { lang =>
         logger.info(s"Selected ${lang.key} OCR of ${uri.value} for translation")
         ingestionServices.addTranslationTodo(uri, params, classOf[ExternalOcrTranslationExtractor].getSimpleName)
