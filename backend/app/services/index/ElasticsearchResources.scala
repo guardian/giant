@@ -265,8 +265,7 @@ class ElasticsearchResources(override val client: ElasticClient, indexName: Stri
     val updatedLanguageData = documentBodyDetectedLanguage.map { code =>
       IndexFields.translationDataField -> Map(
         IndexFields.translationData.textField -> Map(
-          IndexFields.translationData.translatableFieldData.detectedLanguageCode -> code,
-          IndexFields.translationData.translatableFieldData.englishTranslation -> None
+          IndexFields.translationData.translatableFieldData.detectedLanguageCode -> code
         )
       )
     }
@@ -293,7 +292,6 @@ class ElasticsearchResources(override val client: ElasticClient, indexName: Stri
       IndexFields.translationDataField -> Map(
         IndexFields.translationData.ocr -> Map(
           IndexFields.translationData.translatableFieldData.detectedLanguageCode -> detectedLanguageCode,
-          IndexFields.translationData.translatableFieldData.englishTranslation -> None,
           IndexFields.translationData.translatableFieldData.ocrLanguage -> language.key
         )
       )
