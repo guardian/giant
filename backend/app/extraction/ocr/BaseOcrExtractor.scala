@@ -116,7 +116,7 @@ object BaseOcrExtractor extends Logging {
     }
     // if the *detected* language is not english, add translation extractor TODO. Note this deliberately uses the
     // detected code so we still translate documents in languages we don't OCR in.
-    bestLanguage.filter(best => isNotEnglish(best.detectedLanguageCode))
+    bestLanguage.filter(best => isNotEnglish(best.detectedLanguageCode) && textByLanguage.get(best.ocrLanguage).exists(_.length > IngestionServices.TRANSLATION_MINIMUM_LENGTH))
       .foreach { best =>
         logger.info(s"Selected ${best.ocrLanguage.key} OCR of ${uri.value} (detected '${best.detectedLanguageCode}') for translation")
         ingestionServices.addTranslationTodo(uri, params, classOf[ExternalOcrTranslationExtractor].getSimpleName)
