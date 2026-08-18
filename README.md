@@ -27,7 +27,6 @@ Giant has the following pre-requisites for local development:
 - [Mise](https://mise.jdx.dev/installing-mise.html) or your choice of nodejs/java/sbt version manager
 - [Docker](https://www.docker.com/)
 
-
 Giant uses three databases, run locally in Docker through [docker-compose.yaml](./docker-compose.yml). For local running it also uses
 garage as an object storage:
 
