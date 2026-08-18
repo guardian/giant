@@ -68,7 +68,7 @@ trait IngestionServices {
 object IngestionServices extends Logging {
 
   def isNotEnglish(languageCode: String): Boolean = {
-    languageCode.toLowerCase != English.iso6391Code
+    languageCode.toLowerCase != English.iso6391Code.toLowerCase()
   }
 
   /***
