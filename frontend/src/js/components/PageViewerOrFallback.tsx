@@ -134,7 +134,7 @@ const PageViewerContent: FC<{
         preferences={preferences}
         getComments={(u: string) => dispatch(getComments(u))}
         setSelection={(s?: Selection) => dispatch(setSelection(s))}
-        languageData={resource.languageData}
+        translationData={resource.translationData}
       />
     );
   }

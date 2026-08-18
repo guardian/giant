@@ -164,7 +164,7 @@ class Neo4JManifestITest extends AnyFreeSpec
           None, None, subject,
           s"Hi ${to.flatMap(_.displayName).mkString(", ")}! Love from ${from.displayName.getOrElse("?")}",
           replies, refs, None, 0, Map.empty, None,
-          languageData = None
+          translationData = None
         )
 
       val emails: Seq[Manifest.InsertEmail] = Seq(

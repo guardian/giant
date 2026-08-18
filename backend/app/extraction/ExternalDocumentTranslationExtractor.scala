@@ -1,7 +1,7 @@
 package extraction
 
 import model.{English, TranslationField, TranslationTask}
-import model.index.{Document, IndexedResource, LanguageData}
+import model.index.{Document, IndexedResource, TranslationData}
 import services.index.Index
 import services.manifest.Manifest
 import services.{ObjectStorage, TranscribeConfig, TranslationConfig}
@@ -19,10 +19,10 @@ class ExternalDocumentTranslationExtractor(manifest: Manifest, index: Index, tra
   override def getTranslationTask(resource: IndexedResource): Option[TranslationTask] = {
     for {
       document <- resource match {
-        case doc: Document if doc.languageData.isDefined => Some(doc)
+        case doc: Document if doc.translationData.isDefined => Some(doc)
         case _ => None
       }
-      detectedLanguageCode <- document.languageData.flatMap(_.text.flatMap(_.detectedLanguageCode))
+      detectedLanguageCode <- document.translationData.flatMap(_.text.flatMap(_.detectedLanguageCode))
       if detectedLanguageCode != English.iso6391Code && document.text.nonEmpty
     } yield {
       TranslationTask(

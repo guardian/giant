@@ -115,7 +115,7 @@ function GiantEuiSearchResults({
           }}
           getComments={() => false}
           setSelection={() => false}
-          languageData={resource?.languageData}
+          translationData={resource?.translationData}
         />
       );
     }

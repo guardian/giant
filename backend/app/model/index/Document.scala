@@ -17,7 +17,7 @@ case class Document(uri: Uri,
                     enrichedMetadata: Option[EnrichedMetadata],
                     flag: Option[String],
                     fileSize: Long,
-                    languageData: Option[LanguageData]) extends IndexedResource
+                    translationData: Option[TranslationData]) extends IndexedResource
 
 object Document {
   implicit val documentFormat: Format[Document] = Json.format[Document]

@@ -1,5 +1,6 @@
 package extraction.ocr
 
+import extraction.ocr.BaseOcrExtractor.handleOcrTranslation
 import extraction.ExtractionParams
 import model.ingestion.RedoOcr
 import model.manifest.{Blob, MimeType}
@@ -65,12 +66,14 @@ class OcrMyPdfImageExtractor(config: OcrConfig, scratch: ScratchSpace, index: In
 
     try {
       val fileToOCR = if (shouldRemoveAlpha) removeAlphaChannel(file, tmpDir, stdErrLogger).getOrElse(file) else file
-      params.languages.foreach { lang =>
+      val textByLanguage = params.languages.map { lang =>
         val text = invokeOcrMyPdf(blob.uri, lang, fileToOCR, config, stdErrLogger, tmpDir)
         val optionalText = if (text.trim().isEmpty) None else Some(text)
-        val detectedLanguage = ingestionServices.detectLanguage(blob.uri.value, text.trim())
-        index.addDocumentOcr(blob.uri, optionalText, lang, detectedLanguage).awaitEither(10.second)
-      }
+        index.addDocumentOcr(blob.uri, optionalText, lang).awaitEither(10.second)
+        lang -> text
+      }.toMap
+
+      handleOcrTranslation(blob.uri, textByLanguage, index, ingestionServices, params)
     } finally {
       FileUtils.deleteDirectory(tmpDir.toFile)
     }

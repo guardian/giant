@@ -9,7 +9,7 @@ import {
   Highlight,
   CommentData,
   LanguageDataField,
-  LanguageData,
+  TranslationData,
 } from "../../types/Resource";
 import sortBy from "lodash/sortBy";
 import { CommentPanel } from "./CommentPanel/CommentPanel";
@@ -64,7 +64,7 @@ type Props = {
   };
   getComments: (uri: string) => void;
   setSelection: (selection?: Selection) => void;
-  languageData?: LanguageData;
+  translationData?: TranslationData;
 };
 
 export type HighlightRenderedPositions = {
@@ -72,19 +72,24 @@ export type HighlightRenderedPositions = {
 };
 
 function getViewTranslationData(
-  languageData: LanguageData,
+  translationData: TranslationData,
   view: string,
 ): LanguageDataField | undefined {
   const [viewType, language] = view.split(".");
   if (viewType === "text") {
     return {
-      translation: languageData.text?.translation,
-      detectedLanguageCode: languageData.text?.detectedLanguageCode,
+      englishTranslation: translationData.text?.englishTranslation,
+      detectedLanguageCode: translationData.text?.detectedLanguageCode,
     };
   } else if (viewType === "ocr") {
+    // only the OCR run we chose to translate has a translation, so ignore the other OCR views
+    if (translationData.ocr?.ocrLanguage !== language) {
+      return undefined;
+    }
+
     return {
-      translation: languageData.ocr?.translation[language],
-      detectedLanguageCode: languageData.text?.detectedLanguageCode,
+      englishTranslation: translationData.ocr.englishTranslation,
+      detectedLanguageCode: translationData.ocr.detectedLanguageCode,
     };
   }
 }
@@ -100,7 +105,7 @@ export function TextPreview({
   preferences,
   getComments,
   setSelection,
-  languageData,
+  translationData,
 }: Props) {
   const commentHighlightsToDisplay = preferences.showCommentHighlights
     ? getExistingCommentHighlights(comments, view)
@@ -117,10 +122,10 @@ export function TextPreview({
     ({ range: { startCharacter } }) => startCharacter,
   );
 
-  const translationData =
-    languageData && getViewTranslationData(languageData, view);
-  const translation = translationData?.translation;
-  const detectedLanguageCode = translationData?.detectedLanguageCode;
+  const viewTranslation =
+    translationData && getViewTranslationData(translationData, view);
+  const translation = viewTranslation?.englishTranslation;
+  const detectedLanguageCode = viewTranslation?.detectedLanguageCode;
 
   // Toggle between showing the original extracted text and the english translation
   const [displayLanguage, setDisplayLanguage] = useState<

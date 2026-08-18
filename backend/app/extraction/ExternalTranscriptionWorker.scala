@@ -1,10 +1,10 @@
 package extraction
 
 import cats.syntax.either._
-import model.index.LanguageData
+import model.index.TranslationData
 import software.amazon.awssdk.services.sqs.SqsClient
 import software.amazon.awssdk.services.sqs.model.{DeleteMessageRequest, Message, MessageSystemAttributeName, ReceiveMessageRequest, SendMessageRequest}
-import model.{Language, Languages, LlmOutputFailure, LlmOutputSuccess, TranscriptionMessageAttributes, TranscriptionOutput, TranscriptionOutputFailure, TranscriptionOutputSuccess, TranscriptionResult, TranslationField, Uri}
+import model.{Language, LlmOutputFailure, LlmOutputSuccess, TranscriptionMessageAttributes, TranscriptionOutput, TranscriptionOutputFailure, TranscriptionOutputSuccess, TranscriptionResult, TranslationField, Uri}
 import play.api.libs.json.{JsError, JsSuccess, Json}
 import services.index.{Index, IndexFields}
 import services.manifest.WorkerManifest
@@ -173,11 +173,14 @@ class ExternalTranscriptionWorker(manifest: WorkerManifest, sqsClient: SqsClient
 
   // we shouldn't trust arbitrary field names we read from SQS
   private def discardInvalidFields(fields: List[TranslationField]): List[TranslationField] = {
-    val validFields = List(IndexFields.languageData.textField, IndexFields.languageData.emailBodyField, IndexFields.languageData.emailSubjectField)
-    val validOcrFields = Languages.all.map( lang => s"${IndexFields.languageData.ocr}_${lang.key}").toList
-    fields.filter { field =>
-      validFields.contains(field.name) || validOcrFields.contains(field.name)
-    }
+    val validFields = List(
+      IndexFields.translationData.textField,
+      IndexFields.translationData.emailBodyField,
+      IndexFields.translationData.emailSubjectField,
+      IndexFields.translationData.ocr
+    )
+
+    fields.filter(field => validFields.contains(field.name))
   }
 
   private def addDocumentTranslation(output: LlmOutputSuccess, fields: List[TranslationField]): Either[Failure, Unit] = {

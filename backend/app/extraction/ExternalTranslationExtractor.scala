@@ -1,6 +1,6 @@
 package extraction
 
-import model.index.{Document, IndexedResource, LanguageData}
+import model.index.{Document, IndexedResource, TranslationData}
 import model.{Bedrock, CombinedOutputUrl, LlmJob, LlmJobType, LlmPrompt, LlmTranslationJobType, Local, TranslationTask}
 import model.manifest.Blob
 import org.joda.time.DateTime
