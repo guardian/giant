@@ -57,7 +57,8 @@ abstract class ExternalTranslationExtractor(manifest: Manifest, index: Index, tr
       if (translationTask.isEmpty) {
         logger.info(s"No non-English text found to translate in blob ${blob.uri.value}")
         ExternalTranscriptionWorker.markExternalExtractorAsComplete(manifest, blob.uri.value, name)
-        Left(NoTextToTranslateFailure(s"No non-English text found to translate in blob ${blob.uri.value}"))
+        // no work to do isn't really a failure so just return a Right here
+        Right()
       } else {
         val job = for {
           languageDataJson <- translationTask.map(task => Right(Json.stringify(Json.toJson(task)))).getOrElse(Left(NoTextToTranslateFailure(s"No non-English text found to translate in blob ${blob.uri.value}")))
