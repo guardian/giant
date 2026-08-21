@@ -54,11 +54,18 @@ class OcrMyPdfExtractor(scratch: ScratchSpace, index: Index, pageService: Pages,
 
     try {
       pdDocuments = params.languages.map { lang =>
-        val pdfBoxDocument = PDDocument.load(file)
-        val pages = Using(pdfBoxDocument)(_.getNumberOfPages).toOption
+        // A single pdfbox parse of the original file, used both for the page count and to spot pages with
+        // pathologically large content streams
+        val inspection = Using(PDDocument.load(file)) { doc =>
+          (doc.getNumberOfPages, Ocr.hasLargeVectorContent(file, doc))
+        }
+        inspection.failed.foreach(e => logger.warn(s"Failed to inspect ${blob.uri} with pdfbox", e))
+
+        val pages = inspection.map(_._1).toOption
+        val largeVectors = inspection.map(_._2).getOrElse(false)
+
         val biggerThanA1 = Ocr.hasPagesBiggerThanA1(file.toPath, stdErrLogger)
-        val pathologicalVectors = Ocr.hasLargeVectorContent(file, pdfBoxDocument)
-        val preProcessPdf = Ocr.preProcessPdf(file.toPath, tmpDir, stdErrLogger, biggerThanA1, pathologicalVectors)
+        val preProcessPdf = Ocr.preProcessPdf(file.toPath, tmpDir, stdErrLogger, biggerThanA1, largeVectors)
         val pdfPath = Ocr.invokeOcrMyPdf(lang.ocr, preProcessPdf.getOrElse(file.toPath), None, stdErrLogger, tmpDir, pages, ocrMyPdfFlag)
         val pdfDoc = PDDocument.load(pdfPath.toFile)
 

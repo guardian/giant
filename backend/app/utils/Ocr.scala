@@ -16,7 +16,7 @@ import scala.concurrent.{Await, Future, TimeoutException, blocking, duration}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.jdk.CollectionConverters._
 import scala.sys.process._
-import scala.util.Using
+import scala.util.{Try, Using}
 
 
 
@@ -140,9 +140,10 @@ object Ocr extends Logging {
   // to run tesseract over it anyway.
   private val MAX_PAGE_CONTENT_STREAM_BYTES = 50L * 1024 * 1024 //50mb
 
+  // The caller owns pdfboxDocument and is responsible for closing it
   def hasLargeVectorContent(file: File, pdfboxDocument: PDDocument): Boolean = {
-    val result = Using(pdfboxDocument) { doc =>
-      doc.getPages.asScala.zipWithIndex.exists { case (page, index) =>
+    val result = Try {
+      pdfboxDocument.getPages.asScala.zipWithIndex.exists { case (page, index) =>
         val tooBig = contentStreamExceeds(page, MAX_PAGE_CONTENT_STREAM_BYTES)
         if (tooBig) {
           logger.info(s"Page ${index + 1} of ${file.getName} has a content stream larger than " +
