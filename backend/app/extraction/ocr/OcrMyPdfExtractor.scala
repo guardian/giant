@@ -21,7 +21,7 @@ import java.io.File
 import java.nio.file.{Files, Path}
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
-import scala.util.{Try, Using}
+import scala.util.{Failure, Success, Try, Using}
 
 class OcrMyPdfExtractor(scratch: ScratchSpace, index: Index, pageService: Pages, previewStorage: ObjectStorage,
   ingestionServices: IngestionServices)(implicit ec: ExecutionContext) extends BaseOcrExtractor(scratch, index) with Logging {
@@ -54,13 +54,22 @@ class OcrMyPdfExtractor(scratch: ScratchSpace, index: Index, pageService: Pages,
 
     try {
       pdDocuments = params.languages.map { lang =>
-        val pages = Using(PDDocument.load(file))(_.getNumberOfPages).toOption
-        val biggerThanA1 = Ocr.hasPagesBiggerThanA1(file.toPath, stdErrLogger)
-        val preProcessPdf = Ocr.preProcessPdf(file.toPath, tmpDir, stdErrLogger, biggerThanA1)
-        val pdfPath = Ocr.invokeOcrMyPdf(lang.ocr, preProcessPdf.getOrElse(file.toPath), None, stdErrLogger, tmpDir, pages, ocrMyPdfFlag)
-        val pdfDoc = PDDocument.load(pdfPath.toFile)
 
-        lang -> (pdfPath, pdfDoc)
+        val (numPages, largeVectors) = Using(PDDocument.load(file)) { doc =>
+          (doc.getNumberOfPages, Ocr.hasLargeVectorContent(file, doc))
+        } match {
+          case Success((numPages, largeVectors)) =>(Some(numPages), largeVectors)
+          case Failure(exception) =>
+            logger.warn(s"Failed to inspect ${blob.uri} with pdfbox", exception)
+            (None, false)
+        }
+
+        val biggerThanA1 = Ocr.hasPagesBiggerThanA1(file.toPath, stdErrLogger)
+        val preProcessPdf = Ocr.preProcessPdf(file.toPath, tmpDir, stdErrLogger, biggerThanA1, largeVectors)
+        val outputPdfPath = Ocr.invokeOcrMyPdf(lang.ocr, preProcessPdf.getOrElse(file.toPath), None, stdErrLogger, tmpDir, numPages, ocrMyPdfFlag)
+        val outputPdfDoc = PDDocument.load(outputPdfPath.toFile)
+
+        lang -> (outputPdfPath, outputPdfDoc)
       }.toMap
 
       // All docs have the same number of pages with the same dimensions, just different text from the OCR run per language

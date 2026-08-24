@@ -4,15 +4,19 @@ import model.ingestion
 import model.ingestion.{OcrMyPdfFlag, RedoOcr, SkipText}
 
 import java.nio.file.{Files, Path}
+import org.apache.pdfbox.pdmodel.{PDDocument, PDPage}
 import services.TesseractOcrConfig
 import utils.attempt.Failure
 
+import java.io.File
 import java.util.concurrent.TimeUnit
 import scala.annotation.tailrec
 import scala.collection.mutable
 import scala.concurrent.{Await, Future, TimeoutException, blocking, duration}
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.jdk.CollectionConverters._
 import scala.sys.process._
+import scala.util.{Try, Using}
 
 
 
@@ -88,17 +92,25 @@ object Ocr extends Logging {
   // Also, optionally downsize large pages to a1 - this is important as we use the --redo-ocr setting with ocrmypdf
   // which will cause it to rasterise the whole page at 300dpi - if the page is too big then we will end up with a massive
   // rasterised image that will use too much memory/cpu to process.
-  def preProcessPdf(inputFilePath: Path, tmpDir: Path, stderr: OcrStderrLogger, fitToA1: Boolean): Option[Path] = {
+  // Finally, optionally flatten the pdf to a raster image - see hasPathologicalVectorContent for why.
+  def preProcessPdf(inputFilePath: Path, tmpDir: Path, stderr: OcrStderrLogger, fitToA1: Boolean, rasterise: Boolean): Option[Path] = {
     val tempDownSampledFile = tmpDir.resolve(s"${inputFilePath.getFileName}.downsampled.pdf")
+    val stdout = mutable.Buffer.empty[String]
 
     val cmd = new StringBuilder("gs ")
-    cmd.append("-sDEVICE=pdfwrite ")
-    cmd.append("-dDownsampleColorImages=true ")
-    cmd.append("-dDownsampleGrayImages=true ")
-    cmd.append("-dDownsampleMonoImages=true ")
-    cmd.append("-dColorImageResolution=300 ")
-    cmd.append("-dGrayImageResolution=300 ")
-    cmd.append("-dMonoImageResolution=300 ")
+    if (rasterise) {
+      // Renders every page to a 300dpi image, discarding the vector content entirely
+      cmd.append("-sDEVICE=pdfimage24 ")
+      cmd.append("-r300 ")
+    } else {
+      cmd.append("-sDEVICE=pdfwrite ")
+      cmd.append("-dDownsampleColorImages=true ")
+      cmd.append("-dDownsampleGrayImages=true ")
+      cmd.append("-dDownsampleMonoImages=true ")
+      cmd.append("-dColorImageResolution=300 ")
+      cmd.append("-dGrayImageResolution=300 ")
+      cmd.append("-dMonoImageResolution=300 ")
+    }
     if (fitToA1) {
       cmd.append("-dPDFFitPage ")
       cmd.append("-sPAPERSIZE=a1 ")
@@ -114,6 +126,56 @@ object Ocr extends Logging {
       case _ =>
         logger.warn(s"Failed to down sample the file ${inputFilePath.getFileName}. exit code ${exitCode} .")
         None
+    }
+  }
+
+  // ocrmypdf's --redo-ocr strips any pre-existing invisible text from a page, which it does by parsing the
+  // whole page content stream into memory (as a list of python objects, one per operator). A page containing a
+  // large vector graphic can have a content stream of hundreds of MB - we've seen a single A3 page with 18.7
+  // million lineto operators in a ~300MB content stream, which caused ocrmypdf to consume 7.5GB of memory and
+  // OOM the worker.
+  //
+  // Ghostscript itself copes with these pages fine, so we spot them up front and flatten the pdf to a raster
+  // image before handing it to ocrmypdf. There is no loss of OCR quality because ocrmypdf rasterises the page
+  // to run tesseract over it anyway.
+  private val MAX_PAGE_CONTENT_STREAM_BYTES = 50L * 1024 * 1024 //50mb
+
+  // The caller owns pdfboxDocument and is responsible for closing it
+  def hasLargeVectorContent(file: File, pdfboxDocument: PDDocument): Boolean = {
+    val result = Try {
+      pdfboxDocument.getPages.asScala.zipWithIndex.exists { case (page, index) =>
+        val tooBig = contentStreamExceeds(page, MAX_PAGE_CONTENT_STREAM_BYTES)
+        if (tooBig) {
+          logger.info(s"Page ${index + 1} of ${file.getName} has a content stream larger than " +
+            s"$MAX_PAGE_CONTENT_STREAM_BYTES bytes - the pdf will be flattened to a raster image before OCR")
+        }
+        tooBig
+      }
+    }
+
+    result.failed.foreach { e =>
+      logger.warn(s"Failed to check the content stream size of ${file.getName}", e)
+    }
+
+    result.getOrElse(false)
+  }
+
+  // Streams through the (decompressed) content stream counting bytes, stopping as soon as we exceed the limit
+  // so that we never hold a pathologically large content stream in memory ourselves.
+  private def contentStreamExceeds(page: PDPage, limit: Long): Boolean = {
+    Option(page.getContents).exists { contents =>
+      Using(contents) { in =>
+        val buffer = new Array[Byte](64 * 1024)
+        var total = 0L
+        var read = in.read(buffer)
+
+        while (read != -1 && total <= limit) {
+          total += read
+          read = in.read(buffer)
+        }
+
+        total > limit
+      }.getOrElse(false)
     }
   }
 
