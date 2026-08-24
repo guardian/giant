@@ -21,7 +21,7 @@ import java.io.File
 import java.nio.file.{Files, Path}
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
-import scala.util.{Try, Using}
+import scala.util.{Failure, Success, Try, Using}
 
 class OcrMyPdfExtractor(scratch: ScratchSpace, index: Index, pageService: Pages, previewStorage: ObjectStorage,
   ingestionServices: IngestionServices)(implicit ec: ExecutionContext) extends BaseOcrExtractor(scratch, index) with Logging {
@@ -55,17 +55,18 @@ class OcrMyPdfExtractor(scratch: ScratchSpace, index: Index, pageService: Pages,
     try {
       pdDocuments = params.languages.map { lang =>
 
-        val docInspection: Try[(Int, Boolean)] = Using(PDDocument.load(file)) { doc =>
+        val (numPages, largeVectors) = Using(PDDocument.load(file)) { doc =>
           (doc.getNumberOfPages, Ocr.hasLargeVectorContent(file, doc))
+        } match {
+          case Success((numPages, largeVectors)) =>(Some(numPages), largeVectors)
+          case Failure(exception) =>
+            logger.warn(s"Failed to inspect ${blob.uri} with pdfbox", exception)
+            (None, false)
         }
-        docInspection.failed.foreach(e => logger.warn(s"Failed to inspect ${blob.uri} with pdfbox", e))
-
-        val pages = docInspection.map(_._1).toOption
-        val largeVectors = docInspection.map(_._2).getOrElse(false)
 
         val biggerThanA1 = Ocr.hasPagesBiggerThanA1(file.toPath, stdErrLogger)
         val preProcessPdf = Ocr.preProcessPdf(file.toPath, tmpDir, stdErrLogger, biggerThanA1, largeVectors)
-        val outputPdfPath = Ocr.invokeOcrMyPdf(lang.ocr, preProcessPdf.getOrElse(file.toPath), None, stdErrLogger, tmpDir, pages, ocrMyPdfFlag)
+        val outputPdfPath = Ocr.invokeOcrMyPdf(lang.ocr, preProcessPdf.getOrElse(file.toPath), None, stdErrLogger, tmpDir, numPages, ocrMyPdfFlag)
         val outputPdfDoc = PDDocument.load(outputPdfPath.toFile)
 
         lang -> (outputPdfPath, outputPdfDoc)
