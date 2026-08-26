@@ -5,10 +5,10 @@ import _ from "lodash";
 import {
   hasTextContent,
   getDefaultView,
-  getTextTranslation,
-  getOcrTranslation,
   TEXT_TRANSLATION_FIELD,
   OCR_TRANSLATION_FIELD,
+  getTranslation,
+  translationNotEmpty,
 } from "../../util/resourceUtils";
 import { keyboardShortcuts } from "../../util/keyboardShortcuts";
 import { KeyboardShortcut } from "../UtilComponents/KeyboardShortcut";
@@ -154,6 +154,13 @@ const PreviewSwitcher: FC<PreviewSwitcherProps> = ({
 
   const { parents } = resource;
 
+  const textTranslation = getTranslation(resource, "text");
+  const textLabelSuffix = textTranslation?.detectedLanguageCode
+    ? ` (${textTranslation.detectedLanguageCode})`
+    : "";
+
+  const ocrTranslation = getTranslation(resource, "ocr");
+
   return (
     <nav className="preview__links">
       <KeyboardShortcut shortcut={keyboardShortcuts.showText} func={showText} />
@@ -180,14 +187,14 @@ const PreviewSwitcher: FC<PreviewSwitcherProps> = ({
       {hasTextContent(resource) && !resource.transcript ? (
         <PreviewLink
           current={current}
-          text="Text"
+          text={`Text${textLabelSuffix}`}
           to="text"
           navigate={setResourceView}
         />
       ) : (
         false
       )}
-      {getTextTranslation(resource) && (
+      {translationNotEmpty(textTranslation) && (
         <PreviewLink
           current={current}
           text="Text Translation"
@@ -195,10 +202,10 @@ const PreviewSwitcher: FC<PreviewSwitcherProps> = ({
           navigate={setResourceView}
         />
       )}
-      {getOcrTranslation(resource) && (
+      {translationNotEmpty(ocrTranslation) && (
         <PreviewLink
           current={current}
-          text="OCR Translation"
+          text={`OCR Translation (from ${ocrTranslation?.detectedLanguageCode})`}
           to={OCR_TRANSLATION_FIELD}
           navigate={setResourceView}
         />

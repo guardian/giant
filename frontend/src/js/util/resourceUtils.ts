@@ -2,6 +2,7 @@ import {
   BasicResource,
   BasicResourceWithSingleBlobChild,
   HighlightableText,
+  LanguageDataField,
   Resource,
 } from "../types/Resource";
 import { HighlightsState } from "../types/redux/GiantState";
@@ -105,23 +106,20 @@ export function hasTextContent(resource: Resource): boolean {
 export const TEXT_TRANSLATION_FIELD = "translationData.text.englishTranslation";
 export const OCR_TRANSLATION_FIELD = "translationData.ocr.englishTranslation";
 
-export function getTextTranslation(
+export function getTranslation(
   resource: Resource,
-): HighlightableText | undefined {
-  const translationText = resource.translationData?.text?.englishTranslation;
-  if (!!translationText && translationText.contents.trim() !== "") {
-    return translationText;
-  }
+  field: "ocr" | "text",
+): LanguageDataField | undefined {
+  return field === "ocr"
+    ? resource.translationData?.ocr
+    : resource.translationData?.text;
 }
 
-// We OCR in several languages but only ever translate one of them, so there is at most one OCR translation
-export function getOcrTranslation(
-  resource: Resource,
-): HighlightableText | undefined {
-  const ocrTranslation = resource.translationData?.ocr?.englishTranslation;
-  if (!!ocrTranslation && ocrTranslation.contents.trim() !== "") {
-    return ocrTranslation;
-  }
+export function translationNotEmpty(resource?: LanguageDataField): boolean {
+  return (
+    !!resource?.englishTranslation &&
+    resource.englishTranslation.contents.trim() !== ""
+  );
 }
 
 export function getDefaultView(resource: Resource): string | undefined {
