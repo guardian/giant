@@ -18,6 +18,8 @@ import { bindActionCreators } from "redux";
 
 import { setResourceView } from "../../actions/urlParams/setViews";
 import { GiantDispatch } from "../../types/redux/GiantDispatch";
+import { fetchSupportedLanguages } from "../../services/CollectionsApi";
+import { Language } from "../../types/Collection";
 
 export function previewLabelForMimeTypes(mimeTypes: string[]): string {
   if (mimeTypes.some((m) => m.startsWith("video/"))) {
@@ -83,6 +85,12 @@ const PreviewSwitcher: FC<PreviewSwitcherProps> = ({
 
   const previewLabel = (): string =>
     previewLabelForMimeTypes(resource?.mimeTypes ?? []);
+
+  const [languages, setLanguages] = React.useState<Language[]>([]);
+
+  useEffect(() => {
+    fetchSupportedLanguages().then(setLanguages);
+  }, []);
 
   useEffect(() => {
     if (resource && view && !currentViewModeIsValid()) {
@@ -154,9 +162,19 @@ const PreviewSwitcher: FC<PreviewSwitcherProps> = ({
 
   const { parents } = resource;
 
+  const languageCodeLookup = (code?: string): string => {
+    if (code) {
+      const language = languages.find(
+        (language: Language) => language.iso6391Code === code,
+      );
+      return language ? _.startCase(language.key) : code;
+    }
+    return code || "";
+  };
+
   const textTranslation = getTranslation(resource, "text");
   const textLabelSuffix = textTranslation?.detectedLanguageCode
-    ? ` (${textTranslation.detectedLanguageCode})`
+    ? ` (${languageCodeLookup(textTranslation.detectedLanguageCode)})`
     : "";
 
   const ocrTranslation = getTranslation(resource, "ocr");
@@ -197,16 +215,8 @@ const PreviewSwitcher: FC<PreviewSwitcherProps> = ({
       {translationNotEmpty(textTranslation) && (
         <PreviewLink
           current={current}
-          text="Text Translation"
+          text={`Text (translation)`}
           to={TEXT_TRANSLATION_FIELD}
-          navigate={setResourceView}
-        />
-      )}
-      {translationNotEmpty(ocrTranslation) && (
-        <PreviewLink
-          current={current}
-          text={`OCR Translation (from ${ocrTranslation?.detectedLanguageCode})`}
-          to={OCR_TRANSLATION_FIELD}
           navigate={setResourceView}
         />
       )}
@@ -228,6 +238,14 @@ const PreviewSwitcher: FC<PreviewSwitcherProps> = ({
         : false}
       {!resource.transcript &&
         renderMultiLangLinks(current, "ocr", resource.ocr, "OCR")}
+      {translationNotEmpty(ocrTranslation) && (
+        <PreviewLink
+          current={current}
+          text={`OCR (translation from ${languageCodeLookup(ocrTranslation?.detectedLanguageCode)})`}
+          to={OCR_TRANSLATION_FIELD}
+          navigate={setResourceView}
+        />
+      )}
       {canPreview(resource.previewStatus) ? (
         <PreviewLink
           current={current}

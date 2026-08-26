@@ -29,7 +29,15 @@ sealed trait Language {
 }
 
 object Language {
-  implicit def writes: Writes[Language] = (l: Language) => JsString(l.key)
+  implicit def defaultWrites: Writes[Language] = (l: Language) => JsString(l.key)
+
+  // Language isn't a case class so we have to do this custom writes
+  def languageWrites: Writes[Language] = (l: Language) => JsObject(Seq(
+    "key" -> JsString(l.key),
+    "ocr" -> JsString(l.ocr),
+    "iso6391Code" -> JsString(l.iso6391Code),
+    "analyzer" -> JsString(l.analyzer)
+  ))
 
   implicit  def reads: Reads[Language] = (v: JsValue) => Reads.StringReads.reads(v).flatMap(k =>
     Languages.getByKey(k) match {
