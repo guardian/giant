@@ -1,13 +1,8 @@
-import React from "react";
+import React, { forwardRef, useImperativeHandle, useRef } from "react";
 
 import { ProgressAnimation } from "../UtilComponents/ProgressAnimation";
 import InputSupper from "../UtilComponents/InputSupper";
 import { SuggestedField } from "../../types/SuggestedFields";
-
-interface InputSupperHandle {
-  focus(): void;
-  select(): void;
-}
 
 export interface SearchBoxProps {
   q: string;
@@ -18,49 +13,59 @@ export interface SearchBoxProps {
   updateSearchText: () => void;
 }
 
-export default class SearchBox extends React.Component<SearchBoxProps> {
-  searchInput: InputSupperHandle | null = null;
+export interface SearchBoxHandle {
+  focus: () => void;
+  select: () => void;
+}
 
-  focus = () => {
-    this.searchInput?.focus();
-  };
+interface InputSupperHandle {
+  focus: () => void;
+  select: () => void;
+}
 
-  select = () => {
-    this.searchInput?.select();
-  };
+const SearchBox = forwardRef<SearchBoxHandle, SearchBoxProps>(
+  function SearchBox(props, ref) {
+    const inputSupperRef = useRef<InputSupperHandle | null>(null);
 
-  render() {
-    const spinner = this.props.isSearchInProgress ? (
-      <ProgressAnimation />
-    ) : (
-      false
+    useImperativeHandle(
+      ref,
+      () => ({
+        focus: () => inputSupperRef.current?.focus(),
+        select: () => inputSupperRef.current?.select(),
+      }),
+      [],
     );
+
+    const spinner = props.isSearchInProgress ? <ProgressAnimation /> : false;
+
     return (
       <div>
         <div className="search-box">
           <InputSupper
-            ref={(s: InputSupperHandle | null) => (this.searchInput = s)}
+            ref={(s: InputSupperHandle | null) => {
+              inputSupperRef.current = s;
+            }}
             className="search-box__input"
-            value={this.props.q}
-            chips={this.props.suggestedFields}
-            onChange={this.props.updateVisibleText}
-            updateSearchText={this.props.updateSearchText}
+            value={props.q}
+            chips={props.suggestedFields}
+            onChange={props.updateVisibleText}
+            updateSearchText={props.updateSearchText}
           />
           <div className="search__actions">{spinner}</div>
           <div className={"search__buttons"}>
             <button
               className="btn"
               title="Search"
-              onClick={this.props.updateSearchText}
-              disabled={this.props.isSearchInProgress}
+              onClick={props.updateSearchText}
+              disabled={props.isSearchInProgress}
             >
               Search
             </button>
             <button
               className="btn"
               title="Clear search query and filters"
-              onClick={this.props.resetQuery}
-              disabled={this.props.isSearchInProgress}
+              onClick={props.resetQuery}
+              disabled={props.isSearchInProgress}
             >
               Clear
             </button>
@@ -68,5 +73,7 @@ export default class SearchBox extends React.Component<SearchBoxProps> {
         </div>
       </div>
     );
-  }
-}
+  },
+);
+
+export default SearchBox;

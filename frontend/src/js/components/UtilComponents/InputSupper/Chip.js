@@ -6,6 +6,10 @@ import AutosizeInput from "react-input-autosize";
 import _ from "lodash";
 import { parseDate } from "../../../util/parseDate";
 
+// Truncation settings for chip display values
+const MAX_VALUE_LENGTH = 75;
+const TRUNCATED_LENGTH = 72;
+
 export default class Chip extends React.Component {
   static propTypes = {
     index: PropTypes.number.isRequired,
@@ -99,7 +103,15 @@ export default class Chip extends React.Component {
     this.currentControl = element;
   };
 
+  getDisplayValue = () => {
+    if (this.props.value.length > MAX_VALUE_LENGTH) {
+      return `${this.props.value.substring(0, TRUNCATED_LENGTH)}...`;
+    }
+    return this.props.value;
+  };
+
   renderControl = () => {
+    const displayValue = this.getDisplayValue();
     switch (this.props.type) {
       case "text":
         return (
@@ -115,7 +127,7 @@ export default class Chip extends React.Component {
         return (
           <WorkspaceFolderChip
             ref={this.refHandler}
-            value={this.props.value}
+            value={displayValue}
             onChange={this.onChange}
             onKeyDown={this.onKeyDownDropdown}
             onFocus={this.onFocus}
@@ -125,7 +137,7 @@ export default class Chip extends React.Component {
         return (
           <DateChip
             ref={this.refHandler}
-            value={this.props.value}
+            value={displayValue}
             onChange={this.onChange}
             onKeyDown={this.onKeyDownText}
             dateMode="from_start"
@@ -135,7 +147,7 @@ export default class Chip extends React.Component {
         return (
           <DateChip
             ref={this.refHandler}
-            value={this.props.value}
+            value={displayValue}
             onChange={this.onChange}
             onKeyDown={this.onKeyDownText}
             dateMode="from_end"
@@ -145,7 +157,7 @@ export default class Chip extends React.Component {
         return (
           <DropDownChip
             ref={this.refHandler}
-            value={this.props.value}
+            value={displayValue}
             options={this.props.options}
             onKeyDown={this.onKeyDownDropdown}
             onChange={this.onChange}
@@ -163,6 +175,9 @@ export default class Chip extends React.Component {
   };
 
   render() {
+    const isTruncated = this.props.value.length > MAX_VALUE_LENGTH;
+    const tooltipText = isTruncated ? this.props.value : undefined;
+
     return (
       <span
         className={`input-supper__chip ${this.props.stagedForDeletion ? "input-supper__chip--delete-glow" : ""}`}
@@ -176,7 +191,11 @@ export default class Chip extends React.Component {
           </div>
         </button>
 
-        <span className="input-supper__chip-body">
+        <span
+          className="input-supper__chip-body"
+          data-tip={tooltipText}
+          data-effect={tooltipText ? "solid" : undefined}
+        >
           <span className="input-supper__chip-name">{this.props.name}</span>
           {this.renderControl()}
         </span>
