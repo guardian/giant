@@ -165,7 +165,7 @@ const PreviewSwitcher: FC<PreviewSwitcherProps> = ({
   const languageCodeLookup = (code?: string): string => {
     if (code) {
       const language = languages.find(
-        (language: Language) => language.iso6391Code === code,
+        (language) => language.iso6391Code === code,
       );
       return language ? _.startCase(language.key) : code;
     }

@@ -2,7 +2,7 @@ import authFetch from "../util/auth/authFetch";
 import authUploadWithProgress, {
   ProgressHandler,
 } from "../util/auth/authUploadWithProgress";
-import { Collection, Language } from "../types/Collection";
+import { Collection, Language, LanguageSchema } from "../types/Collection";
 import { WorkspaceUploadMetadata } from "../components/Uploads/UploadFiles";
 import { z } from "zod";
 
@@ -28,7 +28,7 @@ export function fetchCollection(uri: string): Promise<Collection | undefined> {
   });
 }
 
-const LanguageArray = z.array(Language);
+const LanguageArray = z.array(LanguageSchema);
 
 // The supported languages are hardcoded on the backend so we only need to fetch them once.
 let supportedLanguages: Language[] | undefined = undefined;
