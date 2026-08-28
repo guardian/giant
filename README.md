@@ -96,8 +96,8 @@ customised it at all:
 Next, open up .devcontainer/user/devcontainer.json in either VS Code or IntelliJ (Note: dev container support in IntelliJ
 improve significantly in summer 2026, so make sure you have the latest version.)
 
-Your IDE might have some shortcut but the long way round is to right click on the user config file, go to 'dev containers'
-and then either 'Create dev container and mount sources' or 'Create dev container and clone sources'. 
+In IntelliJ, right click on the user config file, go to 'dev containers'and then either 'Create dev container and mount sources'
+or 'Create dev container and clone sources'. In VScode, do shift+cmd+p and then 'reopen in dev container.
 
 In general, the best practice is to 'create dev container and clone sources' so that the dev container is isolated from 
 your machine as much as possible. However, in instances where you are jumping back and forth a lot between your local
@@ -107,7 +107,10 @@ having to go via github.
 A new IDE window will eventually open. You'll then need to setup giant within the dev container (should be a one off).
 You can either use the IDE terminal for this or, get the name of the container from your Docker desktop or your IDE and run:
 
-`docker exec -it container_name zsh` to open a shell inside the container. The giant project will be at `/IdeaProjects/giant`.
+`docker exec -it -u vscode container_name bash -l` 
+
+to open a shell inside the container. The giant project will be at `/IdeaProjects/giant`. Note that the user is always called
+vscode even if you are using IntelliJ to run the container.
 
 Once you have a terminal in the dev container, mise install should have already happened so you can run setup.sh straight
 away:
