@@ -8,7 +8,7 @@ AVAILABLE_MEMORY=$(docker stats --no-stream --format "{{.MemUsage}}" | awk 'NR==
 # and we leave some headroom for neo4j and garage.
 if [[ $AVAILABLE_MEMORY -lt 5 ]]; then
     echo "For elasticsearch to run within a Docker container, you must give Docker \
-    at least 6GB of memory from the Preferences menu."
+    at least 6GB of memory from the Preferences menu. If running in a dev container, you'll need 16GB per dev container 😱"
     exit 1
 fi
 
