@@ -1,0 +1,53 @@
+# Devenv project configuration
+# Edit this file to configure your project's devcontainer
+# and then run `devenv generate` to create the devcontainer.json files
+
+name: "giant"
+
+# Modules: Built-in functionality
+# - mise: Install and configure mise for dev tools management (https://mise.jdx.dev/)
+# - docker-in-docker: Enable running Docker containers within the devcontainer
+# - scala: Add IDE plugins and jar caching for Scala development
+# - node: Add IDE plugins for Node.js development
+# - github-copilot: Sets up GitHub Copilot for IDE and CLI use (requires the mise module)
+# To disable, comment out or remove items from this list
+modules:
+  - mise
+  - docker-in-docker
+  - scala
+  - node
+  - github-copilot
+
+forwardPorts:
+ - 3000  # frontend
+ - 9001 # play app
+# docker compose mappings
+# NOTE: if docker-compose is changed then these ports will need to be updated to match
+ - 9200 # elasticsearch
+ - 8432 # postgres
+ - 9091 # garage-ui
+ - 3900 # garage
+ - 3903 # garage admin
+ - 9092 # cerebro
+ - 7474 # neo4j ui
+ - 7687 # neo4j bolt
+
+# Optional: Mount directories from host to container
+# mounts:
+#   - "source=${localEnv:HOME}/.gu/example,target=/home/vscode/.gu/example,readonly,type=bind,consistency=cached"
+
+# Optional: IDE plugins - shared project plugins like language support
+# plugins:
+#   vscode: []
+#   intellij: []
+
+# Optional: Commands to run after container creation
+# Each command has a 'cmd' field and a 'workingDirectory' field
+# e.g.
+#postCreateCommand:
+# - cmd: "./scripts/setup.sh"
+#   workingDirectory: ""
+
+# postStartCommand:
+#   - cmd: "echo 'Container started successfully'"
+#     workingDirectory: "."

@@ -1,3 +1,4 @@
+# NOTE: if you change port numbers here, please also update the devenv.yaml and re-generate the devcontainer.json files
 version: "3"
 services:
   neo4j:

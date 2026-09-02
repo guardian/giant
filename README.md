@@ -19,32 +19,24 @@ the OCCRP and [Datashare](https://github.com/icij/datashare) from the ICIJ.
 - [Getting started as a normal user](./docs/01-user-quickstart.md)
 - [Getting started as an administrator](./docs/02-admin-quickstart.md)
 
-## (Developers) Getting started
+## (Developers) Getting started - running on your local machine
 
 Giant has the following pre-requisites for local development:
 
 - [SBT](https://www.scala-sbt.org/)
-- [NVM](https://github.com/creationix/nvm)
+- [Mise](https://mise.jdx.dev/installing-mise.html) or your choice of nodejs/java/sbt version manager
 - [Docker](https://www.docker.com/)
-- [garage](https://garagehq.deuxfleurs.fr) (for S3 compatibility)
 
-
-Giant uses three databases, run locally in Docker through [docker-compose.yaml](./docker-compose.yml):
+Giant uses three databases, run locally in Docker through [docker-compose.yaml](./docker-compose.yml). For local running it also uses
+garage as an object storage:
 
 - [neo4j](https://neo4j.com/)
 - [Elasticsearch](https://www.elastic.co/elasticsearch/)
 - [PostgresSQL](https://www.postgresql.org/)
+- [Garage](https://garagehq.deuxfleurs.fr/)
 
-There are two optional dependencies:
-
-- [Tesseract](https://github.com/tesseract-ocr/tesseract)
-  - To extract text from images (OCR).
-  - `brew install tesseract`
-- [Libre Office](https://www.libreoffice.org/)
-  - To convert and preview Microsoft Office documents in the UI
-- [wkhtmltopdf](https://wkhtmltopdf.org/)
-  - To preview html files (such as emails)
-  - `brew install wkhtmltopdf`
+There are various optional dependencies needed to support extraction of different file types - you can see what these 
+are in the Brewfile or setup.sh script
 
 Elasticsearch requires Docker to have at least 4GB of memory from the preferences menu otherwise
 it will exit with no log output and error 137.
@@ -54,22 +46,16 @@ it will exit with no log output and error 137.
 - Janus credentials are not required to run Giant locally.
 - The [Giant Runbook](https://docs.google.com/document/d/12gInBe7e79vathKXdv6DSJ3QmtDL-zAH5R0_Lwn6bJQ)
 
-Select the correct version of node:
+Install nodejs, scala, jvm - here we use mise:
 
 ```
-nvm use
+mise install
 ```
 
 Then run the setup script:
 
 ```
 ./scripts/setup.sh
-```
-
-Seed the configuration:
-
-```
-./scripts/cluster-setup.sh
 ```
 
 Run the Scala backend:
@@ -92,6 +78,49 @@ The frontend script will wait for the backend to start before launching Giant at
 `http://localhost:3000`.
 
 Once Giant has started, follow the [admin quickstart guide](./docs/02-admin-quickstart.md).
+
+## (Developers) Getting started - running in a dev container
+We have started using [dev containers](https://containers.dev/) to isolate dev environments from the host machine.
+
+Giant makes use of https://github.com/guardian/devenv to simplify the dev container configuration - this will be installed
+by `mise` if you have that, otherwise you'll need to install it manually. There's some documentation on using dev containers
+in the [.devcontainer README file](./.devcontainer/README.md), in the guardian/devenv repo and here https://containers.dev/.
+
+To use the checked in devcontainer version to run giant, open Giant up in your ide of ch
+
+To run giant inside a dev container, first it's worth generating your local devenv configuration, in case you have
+customised it at all:
+
+`devenv generate`
+
+Next, open up .devcontainer/user/devcontainer.json in either VS Code or IntelliJ (Note: dev container support in IntelliJ
+improve significantly in summer 2026, so make sure you have the latest version.)
+
+In IntelliJ, right click on the user config file, go to 'dev containers'and then either 'Create dev container and mount sources'
+or 'Create dev container and clone sources'. In VScode, do shift+cmd+p and then 'reopen in dev container.
+
+In general, the best practice is to 'create dev container and clone sources' so that the dev container is isolated from 
+your machine as much as possible. However, in instances where you are jumping back and forth a lot between your local
+machine and the dev container, you may prefer to mount sources instead, so changes are synced instantly rather than
+having to go via github.
+
+A new IDE window will eventually open. You'll then need to setup giant within the dev container (should be a one off).
+You can either use the IDE terminal for this or, get the name of the container from your Docker desktop or your IDE and run:
+
+`docker exec -it -u vscode container_name bash -l` 
+
+to open a shell inside the container. The giant project will be at `/IdeaProjects/giant`. Note that the user is always called
+vscode even if you are using IntelliJ to run the container.
+
+Once you have a terminal in the dev container, mise install should have already happened so you can run setup.sh straight
+away:
+
+`./scripts/setup.sh`
+
+and then use the start-backend/frontend scripts as described above. Note that in devenv.yaml we can add port forwarding
+for the bits of giant we need to access on the local machine. If you change these port numbers you'll need run
+`devenv generate` and then restart your container - best way to do this is to close the devcontainer IDE window and then 
+reopen it using the local machine IDE.
 
 ### dev-nginx proxy
 

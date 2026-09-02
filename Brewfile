@@ -1,3 +1,4 @@
+# NOTE: any changes made here need to also be made to the apt step in setup.sh for linux/devcontainers
 brew "tesseract"
 brew "tesseract-lang"
 cask "libreoffice"
