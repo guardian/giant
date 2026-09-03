@@ -9,6 +9,7 @@ export default defineConfig({
     sourcemap: false,
   },
   server: {
+    port: 3000,
     proxy: {
       "/api": "http://localhost:9001",
       "/setup": "http://localhost:9001",
