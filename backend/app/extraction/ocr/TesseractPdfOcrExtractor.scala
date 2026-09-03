@@ -3,6 +3,7 @@ package extraction.ocr
 import extraction.ExtractionParams
 import model.index.{Page, PageDimensions}
 import model.manifest.{Blob, MimeType}
+import org.apache.pdfbox.Loader
 import org.apache.pdfbox.pdmodel.PDDocument
 import org.apache.pdfbox.rendering.{ImageType, PDFRenderer}
 import org.apache.pdfbox.tools.imageio.ImageIOUtil
@@ -44,7 +45,7 @@ class TesseractPdfOcrExtractor(config: OcrConfig, scratch: ScratchSpace, index: 
     var document: PDDocument = null
 
     try {
-      document = PDDocument.load(file)
+      document = Loader.loadPDF(file)
       val renderer = new PDFRenderer(document)
 
       val totalPages = document.getNumberOfPages
