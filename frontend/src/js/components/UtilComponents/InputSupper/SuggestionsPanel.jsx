@@ -24,7 +24,7 @@ export default class SuggestionsPanel extends React.Component {
   };
 
   render() {
-    if (this.props.filteredSuggestions === []) {
+    if (this.props.filteredSuggestions.length === 0) {
       return false;
     }
 
