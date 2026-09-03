@@ -559,7 +559,7 @@ export const VideoVerifier = () => {
                     (🅽) NOT&nbsp;SURE?
                   </EuiButton>
                   <EuiButton
-                    color="ghost"
+                    color="text"
                     onClick={() => storeVerificationResult("No faces")}
                     textProps={{ style: { whiteSpace: "normal" } }}
                   >
