@@ -27,11 +27,11 @@ function configureStore(history) {
     ),
   );
 
-  // eslint-disable-next-line no-redeclare
-  /* globals module:false */
-  if (module.hot) {
-    module.hot.accept("../reducers", () => {
-      store.replaceReducer(createRootReducer(history));
+  if (import.meta.hot) {
+    import.meta.hot.accept("../reducers", (newModule) => {
+      if (newModule) {
+        store.replaceReducer(newModule.default(history));
+      }
     });
   }
 
