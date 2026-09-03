@@ -38,9 +38,9 @@ const columnsConfig: ColumnsConfig<null> = {
 };
 
 const handlers = {
-  onSelectLeaf: jest.fn(),
-  onExpandNode: jest.fn(),
-  onCollapseNode: jest.fn(),
+  onSelectLeaf: vi.fn(),
+  onExpandNode: vi.fn(),
+  onCollapseNode: vi.fn(),
 };
 
 // Mirrors the Workspaces container: it owns expanded/focused/selected state, so
@@ -118,7 +118,7 @@ describe("workspace tree keyboard navigation", () => {
   beforeEach(() => {
     container = document.createElement("div");
     document.body.appendChild(container);
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   afterEach(() => {
