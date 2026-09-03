@@ -1,4 +1,4 @@
-import { defineConfig } from "vite";
+import { defineConfig } from "vitest/config";
 import react from "@vitejs/plugin-react";
 
 export default defineConfig({
@@ -16,5 +16,9 @@ export default defineConfig({
       "/setup": "http://localhost:9001",
       "/third-party": "http://localhost:9001",
     },
+  },
+  test: {
+    environment: "jsdom",
+    globals: true,
   },
 });

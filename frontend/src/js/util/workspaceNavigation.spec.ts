@@ -197,7 +197,7 @@ describe("computeWorkspaceNavigation", () => {
       "uri-b",
       navId,
       1,
-      jest.fn(),
+      vi.fn(),
     );
     expect(nav.goToPrevious).toBeDefined();
     expect(nav.goToNext).toBeDefined();
@@ -211,7 +211,7 @@ describe("computeWorkspaceNavigation", () => {
       "uri-a",
       navId,
       0,
-      jest.fn(),
+      vi.fn(),
     );
     expect(nav.goToPrevious).toBeUndefined();
     expect(nav.goToNext).toBeDefined();
@@ -225,7 +225,7 @@ describe("computeWorkspaceNavigation", () => {
       "uri-c",
       navId,
       2,
-      jest.fn(),
+      vi.fn(),
     );
     expect(nav.goToPrevious).toBeDefined();
     expect(nav.goToNext).toBeUndefined();
@@ -239,7 +239,7 @@ describe("computeWorkspaceNavigation", () => {
       "uri-unknown",
       navId,
       null,
-      jest.fn(),
+      vi.fn(),
     );
     expect(nav.goToPrevious).toBeUndefined();
     expect(nav.goToNext).toBeUndefined();
@@ -253,7 +253,7 @@ describe("computeWorkspaceNavigation", () => {
       "uri-a",
       navId,
       0,
-      jest.fn(),
+      vi.fn(),
     );
     expect(nav.goToPrevious).toBeUndefined();
     expect(nav.goToNext).toBeUndefined();
@@ -262,7 +262,7 @@ describe("computeWorkspaceNavigation", () => {
   });
 
   test("goToNext navigates with navId and navIndex", () => {
-    const navigate = jest.fn();
+    const navigate = vi.fn();
     const nav = computeWorkspaceNavigation(
       leafUris,
       "uri-a",
@@ -277,7 +277,7 @@ describe("computeWorkspaceNavigation", () => {
   });
 
   test("goToPrevious navigates with navId and navIndex", () => {
-    const navigate = jest.fn();
+    const navigate = vi.fn();
     const nav = computeWorkspaceNavigation(
       leafUris,
       "uri-c",
@@ -297,7 +297,7 @@ describe("computeWorkspaceNavigation", () => {
       "uri-b",
       navId,
       null,
-      jest.fn(),
+      vi.fn(),
     );
     expect(nav.goToPrevious).toBeDefined();
     expect(nav.goToNext).toBeDefined();
@@ -305,7 +305,7 @@ describe("computeWorkspaceNavigation", () => {
 
   test("uses navIndex to distinguish duplicate URIs", () => {
     const dupes = ["uri-a", "uri-dup", "uri-dup", "uri-b"];
-    const navigate = jest.fn();
+    const navigate = vi.fn();
     // At index 2 (the second "uri-dup")
     const nav = computeWorkspaceNavigation(
       dupes,
@@ -324,7 +324,7 @@ describe("computeWorkspaceNavigation", () => {
 
   test("navigates past duplicates from first occurrence", () => {
     const dupes = ["uri-a", "uri-dup", "uri-dup", "uri-b"];
-    const navigate = jest.fn();
+    const navigate = vi.fn();
     const nav = computeWorkspaceNavigation(
       dupes,
       "uri-dup",
