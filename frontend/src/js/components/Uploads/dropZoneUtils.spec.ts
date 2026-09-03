@@ -4,14 +4,15 @@ import {
   INTERNAL_DRAG_MIME_TYPE,
 } from "./dropZoneUtils";
 import * as FileApiHelpers from "./FileApiHelpers";
+import type { MockedFunction } from "vitest";
 
 // Mock the FileApiHelpers module
-jest.mock("./FileApiHelpers");
-const mockedReadFileEntry = FileApiHelpers.readFileEntry as jest.MockedFunction<
+vi.mock("./FileApiHelpers");
+const mockedReadFileEntry = FileApiHelpers.readFileEntry as MockedFunction<
   typeof FileApiHelpers.readFileEntry
 >;
 const mockedReadDirectoryEntry =
-  FileApiHelpers.readDirectoryEntry as jest.MockedFunction<
+  FileApiHelpers.readDirectoryEntry as MockedFunction<
     typeof FileApiHelpers.readDirectoryEntry
   >;
 
@@ -68,7 +69,7 @@ function makeDragEvent(
 }
 
 beforeEach(() => {
-  jest.resetAllMocks();
+  vi.resetAllMocks();
 });
 
 describe("readFilesFromDragEvent", () => {

@@ -1,0 +1,61 @@
+module.exports = {
+  root: true,
+  env: {
+    browser: true,
+    es2021: true,
+    node: true,
+  },
+  parserOptions: {
+    ecmaVersion: "latest",
+    ecmaFeatures: { jsx: true },
+    sourceType: "module",
+  },
+  globals: {
+    afterEach: "readonly",
+    beforeEach: "readonly",
+    describe: "readonly",
+    expect: "readonly",
+    it: "readonly",
+    test: "readonly",
+    vi: "readonly",
+  },
+  plugins: ["react", "react-hooks"],
+  extends: [
+    "eslint:recommended",
+    "plugin:react/recommended",
+    "plugin:react-hooks/recommended",
+  ],
+  overrides: [
+    {
+      files: ["**/*.ts", "**/*.tsx"],
+      parser: "@typescript-eslint/parser",
+      plugins: ["@typescript-eslint"],
+      extends: ["plugin:@typescript-eslint/recommended"],
+      rules: {
+        "@typescript-eslint/ban-ts-comment": "off",
+        "@typescript-eslint/no-explicit-any": "off",
+        "@typescript-eslint/no-empty-object-type": "off",
+        "@typescript-eslint/no-non-null-assertion": "off",
+        "@typescript-eslint/no-unused-expressions": "off",
+        "@typescript-eslint/no-unused-vars": "warn",
+        "@typescript-eslint/no-wrapper-object-types": "off",
+        "prefer-const": "warn",
+      },
+    },
+  ],
+  rules: {
+    "no-unused-vars": "warn",
+    "no-case-declarations": "warn",
+    "no-inner-declarations": "off",
+    "no-loss-of-precision": "warn",
+    "prefer-const": "warn",
+    "react/display-name": "warn",
+    "react/jsx-key": "warn",
+    "react/no-unescaped-entities": "off",
+    "react/prop-types": "off",
+    "react/react-in-jsx-scope": "off",
+  },
+  settings: {
+    react: { version: "detect" },
+  },
+};
