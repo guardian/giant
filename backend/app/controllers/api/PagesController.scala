@@ -4,7 +4,8 @@ import commands.{GetPagePreview, GetResource, ResourceFetchMode}
 import model.frontend.{Chips, HighlightableText, TextHighlight}
 import model.index.{FrontendPage, HighlightForSearchNavigation, PageHighlight}
 import model.{Language, Languages, Uri}
-import org.apache.pdfbox.pdmodel.PDDocument
+import org.apache.pdfbox.Loader
+import org.apache.pdfbox.io.RandomAccessReadBuffer
 import play.api.libs.json.Json
 import play.api.mvc.{ResponseHeader, Result}
 import services.ObjectStorage
@@ -93,7 +94,7 @@ class PagesController(val controllerComponents: AuthControllerComponents, manife
     Attempt.sequence(previewPaths.map { case (lang, path) =>
       previewStorage.get(path).toAttempt.map { pdfData =>
         try {
-          val pdf = PDDocument.load(pdfData)
+          val pdf = Loader.loadPDF(new RandomAccessReadBuffer(pdfData))
 
           try {
             val highlightSpans = highlights.getOrElse(lang, Nil)
