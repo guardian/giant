@@ -7,6 +7,7 @@ import model.ingestion.{RedoOcr, SkipText}
 import model.manifest.{Blob, MimeType}
 import model.{Language, Uri}
 import org.apache.commons.io.FileUtils
+import org.apache.pdfbox.Loader
 import org.apache.pdfbox.pdmodel.{PDDocument, PDPage}
 import org.apache.pdfbox.text.PDFTextStripper
 import org.joda.time.DateTime
@@ -55,7 +56,7 @@ class OcrMyPdfExtractor(scratch: ScratchSpace, index: Index, pageService: Pages,
     try {
       pdDocuments = params.languages.map { lang =>
 
-        val (numPages, largeVectors) = Using(PDDocument.load(file)) { doc =>
+        val (numPages, largeVectors) = Using(Loader.loadPDF(file)) { doc =>
           (doc.getNumberOfPages, Ocr.hasLargeVectorContent(file, doc))
         } match {
           case Success((numPages, largeVectors)) =>(Some(numPages), largeVectors)
@@ -67,7 +68,7 @@ class OcrMyPdfExtractor(scratch: ScratchSpace, index: Index, pageService: Pages,
         val biggerThanA1 = Ocr.hasPagesBiggerThanA1(file.toPath, stdErrLogger)
         val preProcessPdf = Ocr.preProcessPdf(file.toPath, tmpDir, stdErrLogger, biggerThanA1, largeVectors)
         val outputPdfPath = Ocr.invokeOcrMyPdf(lang.ocr, preProcessPdf.getOrElse(file.toPath), None, stdErrLogger, tmpDir, numPages, ocrMyPdfFlag)
-        val outputPdfDoc = PDDocument.load(outputPdfPath.toFile)
+        val outputPdfDoc = Loader.loadPDF(outputPdfPath.toFile)
 
         lang -> (outputPdfPath, outputPdfDoc)
       }.toMap

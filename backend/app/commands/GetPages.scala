@@ -3,7 +3,8 @@ package commands
 import model.frontend.HighlightableText
 import model.{Language, Uri}
 import model.index.{FrontendPage, FrontendPageResult, Page, PageHighlight, PageResult}
-import org.apache.pdfbox.pdmodel.PDDocument
+import org.apache.pdfbox.Loader
+import org.apache.pdfbox.io.RandomAccessReadBuffer
 import services.ObjectStorage
 import services.index.Pages
 import services.previewing.PreviewService
@@ -52,7 +53,7 @@ class GetPages(uri: Uri, top: Double, bottom: Double, query: Option[String], use
   private def addSearchHighlightsToPageResponse(pageNumber: Int, pageData: InputStream, pageText: String): Attempt[List[PageHighlight]] = Attempt.catchNonFatalBlasé {
 
     try {
-      val pagePDF = PDDocument.load(pageData)
+      val pagePDF = Loader.loadPDF(new RandomAccessReadBuffer(pageData))
       try {
         val highlightableText = HighlightableText.fromString(pageText, Some(pageNumber), isFind = false)
         PDFUtil.getSearchResultHighlights(highlightableText, pagePDF, pageNumber)
