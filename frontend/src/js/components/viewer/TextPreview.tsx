@@ -1,16 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
-import { Dropdown } from "semantic-ui-react";
 import TextPopover from "./TextPopover";
 import { CommentHighlighter } from "./CommentHighlighter";
 import { filterCommentsInView } from "../../util/commentUtils";
-import {
-  ResourceRange,
-  Highlight,
-  CommentData,
-  LanguageDataField,
-  TranslationData,
-} from "../../types/Resource";
+import { ResourceRange, Highlight, CommentData } from "../../types/Resource";
 import sortBy from "lodash/sortBy";
 import { CommentPanel } from "./CommentPanel/CommentPanel";
 import { PartialUser } from "../../types/User";
@@ -64,35 +57,11 @@ type Props = {
   };
   getComments: (uri: string) => void;
   setSelection: (selection?: Selection) => void;
-  translationData?: TranslationData;
 };
 
 export type HighlightRenderedPositions = {
   [id: string]: { top: number };
 };
-
-function getViewTranslationData(
-  translationData: TranslationData,
-  view: string,
-): LanguageDataField | undefined {
-  const [viewType, language] = view.split(".");
-  if (viewType === "text") {
-    return {
-      englishTranslation: translationData.text?.englishTranslation,
-      detectedLanguageCode: translationData.text?.detectedLanguageCode,
-    };
-  } else if (viewType === "ocr") {
-    // only the OCR run we chose to translate has a translation, so ignore the other OCR views
-    if (translationData.ocr?.ocrLanguage !== language) {
-      return undefined;
-    }
-
-    return {
-      englishTranslation: translationData.ocr.englishTranslation,
-      detectedLanguageCode: translationData.ocr.detectedLanguageCode,
-    };
-  }
-}
 
 export function TextPreview({
   uri,
@@ -105,7 +74,6 @@ export function TextPreview({
   preferences,
   getComments,
   setSelection,
-  translationData,
 }: Props) {
   const commentHighlightsToDisplay = preferences.showCommentHighlights
     ? getExistingCommentHighlights(comments, view)
@@ -121,19 +89,6 @@ export function TextPreview({
     unsortedHighlights,
     ({ range: { startCharacter } }) => startCharacter,
   );
-
-  const viewTranslation =
-    translationData && getViewTranslationData(translationData, view);
-  const translation = viewTranslation?.englishTranslation;
-  const detectedLanguageCode = viewTranslation?.detectedLanguageCode;
-
-  // Toggle between showing the original extracted text and the english translation
-  const [displayLanguage, setDisplayLanguage] = useState<
-    "text" | "translation"
-  >("text");
-
-  const displayedText =
-    displayLanguage === "translation" && translation ? translation : text;
 
   const [highlightRenderedPositions, setHighlightRenderedPosition] =
     useState<HighlightRenderedPositions>({});
@@ -188,7 +143,7 @@ export function TextPreview({
         data-selectable-text-preview
       >
         <CommentHighlighter
-          text={displayedText}
+          text={text}
           highlights={sortedHighlights}
           focusedId={focusedCommentId}
           focusComment={focusComment}
@@ -201,30 +156,6 @@ export function TextPreview({
           }}
         />
       </div>
-      {translation && (
-        <div className="document__preview__language-selector">
-          <label className="document__preview__language-label">Language:</label>
-          <Dropdown
-            selection
-            value={displayLanguage}
-            options={[
-              {
-                key: "text",
-                text: detectedLanguageCode || "Original",
-                value: "text",
-              },
-              {
-                key: "translation",
-                text: "Translation",
-                value: "translation",
-              },
-            ]}
-            onChange={(_, data) =>
-              setDisplayLanguage(data.value as "text" | "translation")
-            }
-          />
-        </div>
-      )}
       <TextPopover
         target="data-selectable-text-preview"
         allowComments={preferences.showCommentHighlights || false}

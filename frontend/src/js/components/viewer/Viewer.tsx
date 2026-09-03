@@ -35,7 +35,14 @@ import {
 import { Auth } from "../../types/Auth";
 import { GiantDispatch } from "../../types/redux/GiantDispatch";
 import LazyTreeBrowser from "./LazyTreeBrowser";
-import { getDefaultView, isResourceForUri } from "../../util/resourceUtils";
+import {
+  getDefaultView,
+  getTranslation,
+  isResourceForUri,
+  OCR_TRANSLATION_FIELD,
+  TEXT_TRANSLATION_FIELD,
+  translationNotEmpty,
+} from "../../util/resourceUtils";
 import DownloadButton from "./DownloadButton";
 import { WorkspaceNavigation } from "../../util/workspaceNavigation";
 
@@ -221,7 +228,6 @@ class Viewer extends React.Component<Props, State> {
         preferences={this.props.preferences}
         getComments={this.props.getComments}
         setSelection={this.props.setSelection}
-        translationData={resource.translationData}
       />
     );
   }
@@ -274,6 +280,33 @@ class Viewer extends React.Component<Props, State> {
           resource,
           _.get(this.props.resource, view),
           view,
+        );
+      } else {
+        // Only matters if a user has manually changed the view in the URL params or is visiting a link with them in
+        return this.renderNoPreview();
+      }
+    } else if (view.startsWith(OCR_TRANSLATION_FIELD)) {
+      const ocrTranslation = getTranslation(resource, "ocr");
+      if (
+        translationNotEmpty(ocrTranslation) &&
+        ocrTranslation?.englishTranslation
+      ) {
+        return this.renderTextPreview(
+          resource,
+          ocrTranslation?.englishTranslation,
+          OCR_TRANSLATION_FIELD,
+        );
+      } else {
+        // Only matters if a user has manually changed the view in the URL params or is visiting a link with them in
+        return this.renderNoPreview();
+      }
+    } else if (view.startsWith(TEXT_TRANSLATION_FIELD)) {
+      const translation = getTranslation(resource, "text");
+      if (translationNotEmpty(translation) && translation?.englishTranslation) {
+        return this.renderTextPreview(
+          resource,
+          translation.englishTranslation,
+          TEXT_TRANSLATION_FIELD,
         );
       } else {
         // Only matters if a user has manually changed the view in the URL params or is visiting a link with them in

@@ -2,6 +2,7 @@ import {
   BasicResource,
   BasicResourceWithSingleBlobChild,
   HighlightableText,
+  LanguageDataField,
   Resource,
 } from "../types/Resource";
 import { HighlightsState } from "../types/redux/GiantState";
@@ -100,6 +101,25 @@ export function isResourceForUri(
 
 export function hasTextContent(resource: Resource): boolean {
   return !!resource.text && resource.text.contents.trim() !== "";
+}
+
+export const TEXT_TRANSLATION_FIELD = "translationData.text.englishTranslation";
+export const OCR_TRANSLATION_FIELD = "translationData.ocr.englishTranslation";
+
+export function getTranslation(
+  resource: Resource,
+  field: "ocr" | "text",
+): LanguageDataField | undefined {
+  return field === "ocr"
+    ? resource.translationData?.ocr
+    : resource.translationData?.text;
+}
+
+export function translationNotEmpty(resource?: LanguageDataField): boolean {
+  return (
+    !!resource?.englishTranslation &&
+    resource.englishTranslation.contents.trim() !== ""
+  );
 }
 
 export function getDefaultView(resource: Resource): string | undefined {
