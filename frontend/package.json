@@ -11,6 +11,7 @@
     "connected-react-router": "^6.8.0",
     "d3": "^v7.9.0",
     "date-fns": "^2.27.0",
+    "filesize": "^8.0.7",
     "history": "^4.10.1",
     "human-date": "^1.4.0",
     "jwt-decode": "^2.2.0",
