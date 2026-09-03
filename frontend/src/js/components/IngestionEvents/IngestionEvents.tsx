@@ -17,7 +17,6 @@ import {
   EuiCodeBlock,
   Criteria,
 } from "@elastic/eui";
-import "@elastic/eui/dist/eui_theme_light.css";
 import hdate from "human-date";
 import { WorkspaceMetadata } from "../../types/Workspaces";
 import moment from "moment";

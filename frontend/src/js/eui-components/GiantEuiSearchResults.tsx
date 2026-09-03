@@ -11,7 +11,7 @@ import {
   EuiEmptyPrompt,
   EuiListGroup,
   EuiListGroupItem,
-  EuiLoadingContent,
+  EuiSkeletonText,
 } from "@elastic/eui";
 import { Workspace } from "../types/Workspaces";
 import { headerHeight } from "./displayConstants";
@@ -95,7 +95,7 @@ function GiantEuiSearchResults({
       return (
         <div style={loadingStyles}>
           {" "}
-          <EuiLoadingContent lines={10} />
+          <EuiSkeletonText lines={10} />
         </div>
       );
     }

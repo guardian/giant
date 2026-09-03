@@ -2,7 +2,6 @@ import React, { useEffect, useState } from "react";
 import { GiantState } from "../../types/redux/GiantState";
 import { GiantDispatch } from "../../types/redux/GiantDispatch";
 import { connect } from "react-redux";
-import "@elastic/eui/dist/eui_theme_light.css";
 import { WorkspaceMetadata } from "../../types/Workspaces";
 import { bindActionCreators } from "redux";
 import { getCollections } from "../../actions/collections/getCollections";
