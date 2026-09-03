@@ -27,14 +27,6 @@ function configureStore(history) {
     ),
   );
 
-  // eslint-disable-next-line no-redeclare
-  /* globals module:false */
-  if (module.hot) {
-    module.hot.accept("../reducers", () => {
-      store.replaceReducer(createRootReducer(history));
-    });
-  }
-
   return store;
 }
 
