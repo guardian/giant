@@ -27,14 +27,6 @@ function configureStore(history) {
     ),
   );
 
-  if (import.meta.hot) {
-    import.meta.hot.accept("../reducers", (newModule) => {
-      if (newModule) {
-        store.replaceReducer(newModule.default(history));
-      }
-    });
-  }
-
   return store;
 }
 
