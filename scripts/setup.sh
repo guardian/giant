@@ -5,7 +5,7 @@ if [[ "$OSTYPE" == "darwin"* ]]; then
   brew bundle
 else
   sudo apt update
-  sudo apt install -y libreoffice ocrmypdf imagemagick qpdf ffmpeg xpdf tesseract-ocr-all
+  sudo apt install -y libreoffice ocrmypdf imagemagick libheif-plugin-aomdec libheif-plugin-libde265 qpdf ffmpeg xpdf tesseract-ocr-all
 fi
 
 echo "Installing frontend dependencies..."
