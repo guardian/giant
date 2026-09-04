@@ -129,5 +129,30 @@ class TranscriptionWorkerInterfaceTest extends AnyFunSuite with Matchers {
 
     written.as[JsObject].keys should not contain "duration"
   }
+
+  // ExternalTranscriptionWorker.getTranscripts reads this payload out of S3, so pin its shape down.
+  test("parses the combined transcript output, including optional translations") {
+    val json = Json.obj(
+      "transcripts" -> Json.obj("srt" -> "1\n00:00", "text" -> "bonjour", "json" -> "{}"),
+      "transcriptTranslations" -> Json.obj("srt" -> "1\n00:00", "text" -> "hello", "json" -> "{}"),
+      "metadata" -> Json.obj("detectedLanguageCode" -> "fr", "loadTimeMs" -> 12, "totalTimeMs" -> 34)
+    )
+
+    val result = json.as[TranscriptionResult]
+    result.metadata.detectedLanguageCode shouldBe OutputLanguageCode.Fr
+    result.transcriptTranslations.map(_.text) shouldBe Some("hello")
+  }
+
+  test("parses the combined transcript output without translations or timings") {
+    val json = Json.obj(
+      "transcripts" -> Json.obj("srt" -> "", "text" -> "hello", "json" -> "{}"),
+      "metadata" -> Json.obj("detectedLanguageCode" -> "UNKNOWN")
+    )
+
+    val result = json.as[TranscriptionResult]
+    result.transcriptTranslations shouldBe None
+    result.metadata.detectedLanguageCode shouldBe OutputLanguageCode.Unknown
+  }
 }
+
 
