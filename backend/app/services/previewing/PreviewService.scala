@@ -9,6 +9,7 @@ import model.index.{Document, IndexedResource}
 import model.{Email, Language, ObjectData, ObjectMetadata, Uri}
 import services.index.Index
 import services.{ObjectStorage, PreviewConfig}
+import utils.MimeDetails
 import utils.attempt.{Attempt, NotFoundFailure, PreviewNotSupportedFailure, UnsupportedOperationFailure}
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -139,7 +140,7 @@ object PreviewStatus extends PlayEnum[PreviewStatus] {
 
 object PreviewService {
   // TODO MRB: this assumes that all clients support the same mime types
-  private val passthrough = Set("application/pdf", "image/jpeg", "image/gif", "image/png")
+  private val passthrough = Set("application/pdf") ++ MimeDetails.imageMimeTypes
 
   def previewStatus(mimeTypes: Set[String]): PreviewStatus = {
     val isVideo = mimeTypes.exists(_.startsWith("video/"))

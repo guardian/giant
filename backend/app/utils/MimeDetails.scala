@@ -187,4 +187,6 @@ object MimeDetails {
     "video/x-ms-wmv" -> MimeDetails("Microsoft WMV", category = "video"),
     "video/x-msvideo" -> MimeDetails("Microsoft AVI", category = "video")
   )
+
+  val imageMimeTypes = displayMap.collect { case (mimeType, MimeDetails(_, "image", _)) => mimeType }.toSet
 }

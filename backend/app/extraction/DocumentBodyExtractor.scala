@@ -6,7 +6,7 @@ import org.apache.tika.language.detect.LanguageDetector
 import services.Tika
 import services.index.Index
 import services.ingestion.IngestionServices
-import utils.Logging
+import utils.{Logging, MimeDetails}
 import utils.attempt.AttemptAwait._
 import utils.attempt.{Failure, UnsupportedOperationFailure}
 
@@ -23,17 +23,12 @@ class DocumentBodyExtractor(tika: Tika, index: Index, ingestionServices: Ingesti
     "application/vnd.ms-powerpoint",
     "application/x-tika-msoffice",
     "application/xml",
-    "image/bmp",
-    "image/gif",
-    "image/jpeg",
-    "image/png",
-    "image/tiff",
     "text/html",
     "text/plain",
     "text/vcard",
     "text/x-vcard",
     "text/xhtml"
-  ) ++ tika.documentTypes
+  ) ++ MimeDetails.imageMimeTypes ++ tika.documentTypes
 
   def canProcessMimeType = mimeTypes.contains
 

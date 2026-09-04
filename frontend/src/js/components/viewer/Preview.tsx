@@ -71,9 +71,16 @@ export function Preview({ resource }: PreviewProps): React.ReactElement {
       getPreviewType(fingerprint)
         .then((mimeType: string | null) => {
           switch (mimeType) {
-            case "image/jpeg":
+            case "image/bmp":
             case "image/gif":
+            case "image/heic":
+            case "image/heif":
+            case "image/jpeg":
+            case "image/jp2":
             case "image/png":
+            case "image/svg+xml":
+            case "image/tiff":
+            case "image/webp":
               return getPreviewImage(fingerprint).then((doc: any) => {
                 if (fingerprint === resource.uri) {
                   setDoc(doc);
