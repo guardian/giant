@@ -18,7 +18,7 @@ import org.apache.tika.parser.ocr.TesseractOCRParser
 import org.apache.tika.parser.odf.OpenDocumentParser
 import org.apache.tika.parser.{AutoDetectParser, CompositeParser, ParseContext, Parser}
 import org.apache.tika.sax.BodyContentHandler
-import utils.Logging
+import utils.{Logging, MimeDetails}
 import utils.attempt.{Failure, UnknownFailure}
 
 import scala.util.Try
