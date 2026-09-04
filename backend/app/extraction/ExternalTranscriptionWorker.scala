@@ -1,17 +1,26 @@
 package extraction
 
 import cats.syntax.either._
-import model.index.TranslationData
 import software.amazon.awssdk.services.sqs.SqsClient
 import software.amazon.awssdk.services.sqs.model.{DeleteMessageRequest, Message, MessageSystemAttributeName, ReceiveMessageRequest, SendMessageRequest}
-import model.{Language, LlmOutputFailure, LlmOutputSuccess, TranscriptionMessageAttributes, TranscriptionOutput, TranscriptionOutputFailure, TranscriptionOutputSuccess, TranscriptionResult, TranslationField, Uri}
+import com.gu.transcriptionservice.workerinterface.{
+  LLMOutputFailure,
+  LLMOutputSuccess,
+  MediaDownloadFailure,
+  TranscriptionOutput,
+  TranscriptionOutputFailure,
+  TranscriptionOutputSuccess,
+  TranslationField,
+  Transcripts => WireTranscripts,
+  TranscriptionResult => WireTranscriptionResult
+}
+import model.{English, Languages, TranscriptionMessageAttributes, TranscriptionMetadata, TranscriptionResult, Transcripts, Uri}
 import play.api.libs.json.{JsError, JsSuccess, Json}
 import services.index.{Index, IndexFields}
 import services.manifest.WorkerManifest
 import services.{ObjectStorage, TranscribeConfig}
 import utils.Logging
-import utils.attempt.{Attempt, DocumentUpdateFailure, ExternalTranscriptionOutputFailure, Failure, JsonParseFailure, UnknownFailure}
-import TranscriptionOutput.transcriptionOutputReads
+import utils.attempt.{DocumentUpdateFailure, ExternalTranscriptionOutputFailure, Failure, JsonParseFailure, UnknownFailure}
 import extraction.ExternalTranscriptionWorker.markExternalExtractorAsComplete
 
 import scala.concurrent.ExecutionContext
@@ -79,7 +88,7 @@ class ExternalTranscriptionWorker(manifest: WorkerManifest, sqsClient: SqsClient
           } else {
             Left(ExternalTranscriptionOutputFailure.apply(s"External transcription service failed to transcribe the file ${output.originalFilename}"))
           }
-        case output: LlmOutputSuccess =>
+        case output: LLMOutputSuccess =>
           logger.info(s"Processing LLM job ${output.id} with output key ${output.outputKey} and extractor name ${messageAttributes.extractorName.getOrElse("unknown")}")
           messageAttributes.extractorName match {
             case Some(extractorName) =>
@@ -93,8 +102,13 @@ class ExternalTranscriptionWorker(manifest: WorkerManifest, sqsClient: SqsClient
             case None =>
               Left(ExternalTranscriptionOutputFailure.apply(s"LLM output message for ${output.id} is missing the GiantExtractorName message attribute, cannot determine which extractor to mark as complete"))
           }
-        case output: LlmOutputFailure =>
+        case output: LLMOutputFailure =>
           Left(ExternalTranscriptionOutputFailure.apply(s"External transcription service failed to translate the file ${output.id}"))
+        case output: MediaDownloadFailure =>
+          Left(ExternalTranscriptionOutputFailure.apply(
+            s"External transcription service failed to download the media for ${output.id} " +
+              s"from ${output.url}: ${output.failureReason.value}"
+          ))
       }
     }
 
@@ -116,7 +130,7 @@ class ExternalTranscriptionWorker(manifest: WorkerManifest, sqsClient: SqsClient
 
 
 
-  private def getLlmTranslationOutput(llmOutput: LlmOutputSuccess): Either[Failure, List[TranslationField]] = {
+  private def getLlmTranslationOutput(llmOutput: LLMOutputSuccess): Either[Failure, List[TranslationField]] = {
     val llmOutputText = blobStorage.getGzippedText(llmOutput.outputKey)
 
     llmOutputText.flatMap { output =>
@@ -136,12 +150,28 @@ class ExternalTranscriptionWorker(manifest: WorkerManifest, sqsClient: SqsClient
     val transcriptOutput = blobStorage.getGzippedText(transcriptionOutput.combinedOutputKey)
 
     transcriptOutput.flatMap { output =>
-      val parsedTranscripts = Json.fromJson[TranscriptionResult](Json.parse(output))
+      val parsedTranscripts = Json.fromJson[WireTranscriptionResult](Json.parse(output))
 
-      parsedTranscripts.asEither.leftMap { errors =>
-        JsonParseFailure(errors)
-      }
+      parsedTranscripts.asEither.bimap(
+        errors => JsonParseFailure(errors),
+        toDomainTranscriptionResult
+      )
     }
+  }
+
+  /** The transcription service's wire format uses its own language code enum; Giant's domain model
+    * uses the richer `Language`, so convert at the boundary.
+    */
+  private def toDomainTranscriptionResult(result: WireTranscriptionResult): TranscriptionResult = {
+    def transcripts(wire: WireTranscripts): Transcripts = Transcripts(wire.srt, wire.text, wire.json)
+
+    TranscriptionResult(
+      transcripts = transcripts(result.transcripts),
+      transcriptTranslations = result.transcriptTranslations.map(transcripts),
+      metadata = TranscriptionMetadata(
+        Languages.getByIso6391Code(result.metadata.detectedLanguageCode.value).getOrElse(English)
+      )
+    )
   }
 
   private def getMessageAttribute(message: Message) = {
@@ -161,7 +191,7 @@ class ExternalTranscriptionWorker(manifest: WorkerManifest, sqsClient: SqsClient
       index.addDocumentTranscription(Uri(transcriptionOutput.id), transcription)
         .recoverWith {
           case _ =>
-            val msg = s"Failed to write transcript result to elasticsearch. Transcript language: ${transcriptionOutput.languageCode}"
+            val msg = s"Failed to write transcript result to elasticsearch. Transcript language: ${transcriptionOutput.languageCode.value}"
             // throw the error - will be caught by catchNonFatal
             throw new Error(msg)
         }
@@ -183,7 +213,7 @@ class ExternalTranscriptionWorker(manifest: WorkerManifest, sqsClient: SqsClient
     fields.filter(field => validFields.contains(field.name))
   }
 
-  private def addDocumentTranslation(output: LlmOutputSuccess, fields: List[TranslationField]): Either[Failure, Unit] = {
+  private def addDocumentTranslation(output: LLMOutputSuccess, fields: List[TranslationField]): Either[Failure, Unit] = {
     logger.info(s"Adding translation field for ${output.id} with fields ${fields.map(_.name).mkString(", ")}")
     val result = discardInvalidFields(fields).map{ field =>
       Either.catchNonFatal {

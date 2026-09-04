@@ -1,7 +1,13 @@
 package extraction
 
 import model.index.{Document, IndexedResource, TranslationData}
-import model.{Bedrock, CombinedOutputUrl, LlmJob, LlmJobType, LlmPrompt, LlmTranslationJobType, Local, TranslationTask}
+import com.gu.transcriptionservice.workerinterface.{
+  CombinedOutputUrl,
+  LLMTranslationJob,
+  LlmBackend,
+  TranscriptDestinationService,
+  TranslationTask
+}
 import model.manifest.Blob
 import org.joda.time.DateTime
 import play.api.libs.json.Json
@@ -9,7 +15,7 @@ import services.{ObjectStorage, TranscribeConfig, TranslationConfig}
 import services.index.Index
 import services.manifest.Manifest
 import software.amazon.awssdk.services.sqs.SqsClient
-import utils.attempt.{Failure, NoTextToTranslateFailure}
+import utils.attempt.{Failure, IllegalStateFailure, NoTextToTranslateFailure}
 
 import scala.concurrent.duration.DurationInt
 import scala.concurrent.{Await, ExecutionContext}
@@ -61,19 +67,29 @@ abstract class ExternalTranslationExtractor(manifest: Manifest, index: Index, tr
       } else {
         val job = for {
           languageDataJson <- translationTask.map(task => Right(Json.stringify(Json.toJson(task)))).getOrElse(Left(NoTextToTranslateFailure(s"No non-English text found to translate in blob ${blob.uri.value}")))
+          backend <- LlmBackend
+            .fromString(transcribeConfig.llmBackend)
+            .toRight(
+              IllegalStateFailure(
+                s"Configured LLM backend '${transcribeConfig.llmBackend}' is not one of " +
+                  LlmBackend.All.map(_.value).mkString(", ")
+              )
+            )
           _ <- transcriptionServiceBucket.putText(textToTranslateKey, languageDataJson, Some("text/plain"))
           downloadSignedUrl <- transcriptionServiceBucket.getSignedUrl(textToTranslateKey)
           outputUrl <- transcriptionServiceBucket.getUploadSignedUrl(outputKey)
         } yield {
-          LlmJob(
+          LLMTranslationJob(
             id = blob.uri.value,
             originalFilename = blob.uri.value,
             inputSignedUrl = downloadSignedUrl,
             sentTimestamp = DateTime.now().toString,
             userEmail = "giant",
-            transcriptDestinationService = "Giant",
+            transcriptDestinationService = TranscriptDestinationService.Giant,
             combinedOutputUrl = CombinedOutputUrl(url = outputUrl, key = outputKey),
-            ingestion = params.ingestion, backend = transcribeConfig.llmBackend, jobType = LlmTranslationJobType.name)
+            ingestion = Some(params.ingestion),
+            backend = backend
+          )
         }
         job
       }
