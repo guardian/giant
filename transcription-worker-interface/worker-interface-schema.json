@@ -1,0 +1,921 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "OutputLanguageCode": {
+      "$ref": "#/$defs/OutputLanguageCode"
+    },
+    "Transcripts": {
+      "$ref": "#/$defs/Transcripts"
+    },
+    "TranscriptionMetadata": {
+      "$ref": "#/$defs/TranscriptionMetadata"
+    },
+    "TranscriptionEngine": {
+      "$ref": "#/$defs/TranscriptionEngine"
+    },
+    "LlmBackend": {
+      "$ref": "#/$defs/LlmBackend"
+    },
+    "InputLanguageCode": {
+      "$ref": "#/$defs/InputLanguageCode"
+    },
+    "JobType": {
+      "$ref": "#/$defs/JobType"
+    },
+    "Job": {
+      "$ref": "#/$defs/Job"
+    },
+    "TranscriptionJob": {
+      "$ref": "#/$defs/TranscriptionJob"
+    },
+    "LLMJob": {
+      "$ref": "#/$defs/LLMJob"
+    },
+    "LLMTranslationJob": {
+      "$ref": "#/$defs/LLMTranslationJob"
+    },
+    "WorkerJob": {
+      "$ref": "#/$defs/WorkerJob"
+    },
+    "LlmPrompt": {
+      "$ref": "#/$defs/LlmPrompt"
+    },
+    "TranslationField": {
+      "$ref": "#/$defs/TranslationField"
+    },
+    "TranslationTask": {
+      "$ref": "#/$defs/TranslationTask"
+    },
+    "OutputBase": {
+      "$ref": "#/$defs/OutputBase"
+    },
+    "TranscriptionOutputSuccess": {
+      "$ref": "#/$defs/TranscriptionOutputSuccess"
+    },
+    "TranscriptionOutputFailure": {
+      "$ref": "#/$defs/TranscriptionOutputFailure"
+    },
+    "LLMOutputSuccess": {
+      "$ref": "#/$defs/LLMOutputSuccess"
+    },
+    "LLMOutputFailure": {
+      "$ref": "#/$defs/LLMOutputFailure"
+    },
+    "TranscriptionResult": {
+      "$ref": "#/$defs/TranscriptionResult"
+    },
+    "TranscriptionOutput": {
+      "$ref": "#/$defs/TranscriptionOutput"
+    },
+    "MediaDownloadFailure": {
+      "$ref": "#/$defs/MediaDownloadFailure"
+    }
+  },
+  "required": [
+    "OutputLanguageCode",
+    "Transcripts",
+    "TranscriptionMetadata",
+    "TranscriptionEngine",
+    "LlmBackend",
+    "InputLanguageCode",
+    "JobType",
+    "Job",
+    "TranscriptionJob",
+    "LLMJob",
+    "LLMTranslationJob",
+    "WorkerJob",
+    "LlmPrompt",
+    "TranslationField",
+    "TranslationTask",
+    "OutputBase",
+    "TranscriptionOutputSuccess",
+    "TranscriptionOutputFailure",
+    "LLMOutputSuccess",
+    "LLMOutputFailure",
+    "TranscriptionResult",
+    "TranscriptionOutput",
+    "MediaDownloadFailure"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "OutputLanguageCode": {
+      "type": "string",
+      "enum": [
+        "UNKNOWN",
+        "en",
+        "zh",
+        "de",
+        "es",
+        "ru",
+        "ko",
+        "fr",
+        "ja",
+        "pt",
+        "tr",
+        "pl",
+        "ca",
+        "nl",
+        "ar",
+        "sv",
+        "it",
+        "id",
+        "hi",
+        "fi",
+        "vi",
+        "he",
+        "uk",
+        "el",
+        "ms",
+        "cs",
+        "ro",
+        "da",
+        "hu",
+        "ta",
+        "no",
+        "th",
+        "ur",
+        "hr",
+        "bg",
+        "lt",
+        "la",
+        "mi",
+        "ml",
+        "cy",
+        "sk",
+        "te",
+        "fa",
+        "lv",
+        "bn",
+        "sr",
+        "az",
+        "sl",
+        "kn",
+        "et",
+        "mk",
+        "br",
+        "eu",
+        "is",
+        "hy",
+        "ne",
+        "mn",
+        "bs",
+        "kk",
+        "sq",
+        "sw",
+        "gl",
+        "mr",
+        "pa",
+        "si",
+        "km",
+        "sn",
+        "yo",
+        "so",
+        "af",
+        "oc",
+        "ka",
+        "be",
+        "tg",
+        "sd",
+        "gu",
+        "am",
+        "yi",
+        "lo",
+        "uz",
+        "fo",
+        "ht",
+        "ps",
+        "tk",
+        "nn",
+        "mt",
+        "sa",
+        "lb",
+        "my",
+        "bo",
+        "tl",
+        "mg",
+        "as",
+        "tt",
+        "haw",
+        "ln",
+        "ha",
+        "ba",
+        "jw",
+        "su",
+        "yue"
+      ]
+    },
+    "Transcripts": {
+      "type": "object",
+      "properties": {
+        "srt": {
+          "type": "string"
+        },
+        "text": {
+          "type": "string"
+        },
+        "json": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "srt",
+        "text",
+        "json"
+      ],
+      "additionalProperties": false
+    },
+    "TranscriptionMetadata": {
+      "type": "object",
+      "properties": {
+        "detectedLanguageCode": {
+          "$ref": "#/$defs/OutputLanguageCode"
+        },
+        "loadTimeMs": {
+          "type": "number"
+        },
+        "totalTimeMs": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "detectedLanguageCode"
+      ],
+      "additionalProperties": false
+    },
+    "TranscriptionEngine": {
+      "type": "string",
+      "enum": [
+        "whisperx"
+      ]
+    },
+    "LlmBackend": {
+      "type": "string",
+      "enum": [
+        "LOCAL",
+        "BEDROCK"
+      ]
+    },
+    "InputLanguageCode": {
+      "type": "string",
+      "enum": [
+        "auto",
+        "en",
+        "zh",
+        "de",
+        "es",
+        "ru",
+        "ko",
+        "fr",
+        "ja",
+        "pt",
+        "tr",
+        "pl",
+        "ca",
+        "nl",
+        "ar",
+        "sv",
+        "it",
+        "id",
+        "hi",
+        "fi",
+        "vi",
+        "he",
+        "uk",
+        "el",
+        "ms",
+        "cs",
+        "ro",
+        "da",
+        "hu",
+        "ta",
+        "no",
+        "th",
+        "ur",
+        "hr",
+        "bg",
+        "lt",
+        "la",
+        "mi",
+        "ml",
+        "cy",
+        "sk",
+        "te",
+        "fa",
+        "lv",
+        "bn",
+        "sr",
+        "az",
+        "sl",
+        "kn",
+        "et",
+        "mk",
+        "br",
+        "eu",
+        "is",
+        "hy",
+        "ne",
+        "mn",
+        "bs",
+        "kk",
+        "sq",
+        "sw",
+        "gl",
+        "mr",
+        "pa",
+        "si",
+        "km",
+        "sn",
+        "yo",
+        "so",
+        "af",
+        "oc",
+        "ka",
+        "be",
+        "tg",
+        "sd",
+        "gu",
+        "am",
+        "yi",
+        "lo",
+        "uz",
+        "fo",
+        "ht",
+        "ps",
+        "tk",
+        "nn",
+        "mt",
+        "sa",
+        "lb",
+        "my",
+        "bo",
+        "tl",
+        "mg",
+        "as",
+        "tt",
+        "haw",
+        "ln",
+        "ha",
+        "ba",
+        "jw",
+        "su",
+        "yue"
+      ]
+    },
+    "JobType": {
+      "type": "string",
+      "enum": [
+        "transcribe",
+        "llm",
+        "llm-translation"
+      ]
+    },
+    "Job": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "originalFilename": {
+          "type": "string"
+        },
+        "inputSignedUrl": {
+          "type": "string"
+        },
+        "sentTimestamp": {
+          "type": "string"
+        },
+        "userEmail": {
+          "type": "string"
+        },
+        "transcriptDestinationService": {
+          "type": "string",
+          "enum": [
+            "TranscriptionService",
+            "Giant"
+          ]
+        },
+        "combinedOutputUrl": {
+          "type": "object",
+          "properties": {
+            "url": {
+              "type": "string"
+            },
+            "key": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "url",
+            "key"
+          ],
+          "additionalProperties": false
+        },
+        "jobType": {
+          "$ref": "#/$defs/JobType"
+        },
+        "ingestion": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "originalFilename",
+        "inputSignedUrl",
+        "sentTimestamp",
+        "userEmail",
+        "transcriptDestinationService",
+        "combinedOutputUrl",
+        "jobType"
+      ],
+      "additionalProperties": false
+    },
+    "TranscriptionJob": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "originalFilename": {
+          "type": "string"
+        },
+        "inputSignedUrl": {
+          "type": "string"
+        },
+        "sentTimestamp": {
+          "type": "string"
+        },
+        "userEmail": {
+          "type": "string"
+        },
+        "transcriptDestinationService": {
+          "type": "string",
+          "enum": [
+            "TranscriptionService",
+            "Giant"
+          ]
+        },
+        "combinedOutputUrl": {
+          "type": "object",
+          "properties": {
+            "url": {
+              "type": "string"
+            },
+            "key": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "url",
+            "key"
+          ],
+          "additionalProperties": false
+        },
+        "jobType": {
+          "type": "string",
+          "const": "transcribe"
+        },
+        "ingestion": {
+          "type": "string"
+        },
+        "languageCode": {
+          "$ref": "#/$defs/InputLanguageCode"
+        },
+        "translate": {
+          "type": "boolean"
+        },
+        "diarize": {
+          "type": "boolean"
+        },
+        "engine": {
+          "$ref": "#/$defs/TranscriptionEngine"
+        }
+      },
+      "required": [
+        "id",
+        "originalFilename",
+        "inputSignedUrl",
+        "sentTimestamp",
+        "userEmail",
+        "transcriptDestinationService",
+        "combinedOutputUrl",
+        "jobType",
+        "languageCode",
+        "translate",
+        "diarize",
+        "engine"
+      ],
+      "additionalProperties": false
+    },
+    "LLMJob": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "originalFilename": {
+          "type": "string"
+        },
+        "inputSignedUrl": {
+          "type": "string"
+        },
+        "sentTimestamp": {
+          "type": "string"
+        },
+        "userEmail": {
+          "type": "string"
+        },
+        "transcriptDestinationService": {
+          "type": "string",
+          "enum": [
+            "TranscriptionService",
+            "Giant"
+          ]
+        },
+        "combinedOutputUrl": {
+          "type": "object",
+          "properties": {
+            "url": {
+              "type": "string"
+            },
+            "key": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "url",
+            "key"
+          ],
+          "additionalProperties": false
+        },
+        "jobType": {
+          "type": "string",
+          "const": "llm"
+        },
+        "ingestion": {
+          "type": "string"
+        },
+        "backend": {
+          "$ref": "#/$defs/LlmBackend"
+        }
+      },
+      "required": [
+        "id",
+        "originalFilename",
+        "inputSignedUrl",
+        "sentTimestamp",
+        "userEmail",
+        "transcriptDestinationService",
+        "combinedOutputUrl",
+        "jobType",
+        "backend"
+      ],
+      "additionalProperties": false
+    },
+    "LLMTranslationJob": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "originalFilename": {
+          "type": "string"
+        },
+        "inputSignedUrl": {
+          "type": "string"
+        },
+        "sentTimestamp": {
+          "type": "string"
+        },
+        "userEmail": {
+          "type": "string"
+        },
+        "transcriptDestinationService": {
+          "type": "string",
+          "enum": [
+            "TranscriptionService",
+            "Giant"
+          ]
+        },
+        "combinedOutputUrl": {
+          "type": "object",
+          "properties": {
+            "url": {
+              "type": "string"
+            },
+            "key": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "url",
+            "key"
+          ],
+          "additionalProperties": false
+        },
+        "jobType": {
+          "type": "string",
+          "const": "llm-translation"
+        },
+        "ingestion": {
+          "type": "string"
+        },
+        "backend": {
+          "$ref": "#/$defs/LlmBackend"
+        }
+      },
+      "required": [
+        "id",
+        "originalFilename",
+        "inputSignedUrl",
+        "sentTimestamp",
+        "userEmail",
+        "transcriptDestinationService",
+        "combinedOutputUrl",
+        "jobType",
+        "backend"
+      ],
+      "additionalProperties": false
+    },
+    "WorkerJob": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/LLMJob"
+        },
+        {
+          "$ref": "#/$defs/TranscriptionJob"
+        },
+        {
+          "$ref": "#/$defs/LLMTranslationJob"
+        }
+      ]
+    },
+    "LlmPrompt": {
+      "type": "object",
+      "properties": {
+        "system": {
+          "type": "string"
+        },
+        "user": {
+          "type": "string"
+        },
+        "assistant": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "user"
+      ],
+      "additionalProperties": false
+    },
+    "TranslationField": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "text": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "text"
+      ],
+      "additionalProperties": false
+    },
+    "TranslationTask": {
+      "type": "object",
+      "properties": {
+        "systemPrompt": {
+          "type": "string"
+        },
+        "fields": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/TranslationField"
+          }
+        }
+      },
+      "required": [
+        "systemPrompt",
+        "fields"
+      ],
+      "additionalProperties": false
+    },
+    "OutputBase": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "userEmail": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "userEmail",
+        "status"
+      ],
+      "additionalProperties": false
+    },
+    "TranscriptionOutputSuccess": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "userEmail": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string",
+          "const": "SUCCESS"
+        },
+        "originalFilename": {
+          "type": "string"
+        },
+        "languageCode": {
+          "$ref": "#/$defs/OutputLanguageCode"
+        },
+        "combinedOutputKey": {
+          "type": "string"
+        },
+        "duration": {
+          "type": "number"
+        },
+        "maybeEnqueuedAtEpochMillis": {
+          "type": "number"
+        },
+        "includesTranslation": {
+          "type": "boolean"
+        },
+        "translationRequested": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "id",
+        "userEmail",
+        "status",
+        "originalFilename",
+        "languageCode",
+        "combinedOutputKey",
+        "includesTranslation",
+        "translationRequested"
+      ],
+      "additionalProperties": false
+    },
+    "TranscriptionOutputFailure": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "userEmail": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string",
+          "const": "TRANSCRIPTION_FAILURE"
+        },
+        "originalFilename": {
+          "type": "string"
+        },
+        "noAudioDetected": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "id",
+        "userEmail",
+        "status",
+        "originalFilename",
+        "noAudioDetected"
+      ],
+      "additionalProperties": false
+    },
+    "LLMOutputSuccess": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "userEmail": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string",
+          "const": "LLM_SUCCESS"
+        },
+        "outputKey": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "userEmail",
+        "status",
+        "outputKey"
+      ],
+      "additionalProperties": false
+    },
+    "LLMOutputFailure": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "userEmail": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string",
+          "const": "LLM_FAILURE"
+        }
+      },
+      "required": [
+        "id",
+        "userEmail",
+        "status"
+      ],
+      "additionalProperties": false
+    },
+    "TranscriptionResult": {
+      "type": "object",
+      "properties": {
+        "transcripts": {
+          "$ref": "#/$defs/Transcripts"
+        },
+        "transcriptTranslations": {
+          "$ref": "#/$defs/Transcripts"
+        },
+        "metadata": {
+          "$ref": "#/$defs/TranscriptionMetadata"
+        }
+      },
+      "required": [
+        "transcripts",
+        "metadata"
+      ],
+      "additionalProperties": false
+    },
+    "TranscriptionOutput": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/TranscriptionOutputSuccess"
+        },
+        {
+          "$ref": "#/$defs/TranscriptionOutputFailure"
+        },
+        {
+          "$ref": "#/$defs/MediaDownloadFailure"
+        },
+        {
+          "$ref": "#/$defs/LLMOutputSuccess"
+        },
+        {
+          "$ref": "#/$defs/LLMOutputFailure"
+        }
+      ]
+    },
+    "MediaDownloadFailure": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "userEmail": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string",
+          "const": "MEDIA_DOWNLOAD_FAILURE"
+        },
+        "failureReason": {
+          "type": "string",
+          "enum": [
+            "FAILURE",
+            "INVALID_URL",
+            "BOT_BLOCKED"
+          ]
+        },
+        "url": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "userEmail",
+        "status",
+        "failureReason",
+        "url"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

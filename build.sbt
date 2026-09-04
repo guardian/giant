@@ -8,6 +8,8 @@ import com.gu.riffraff.artifact.BuildInfo
 import play.sbt.PlayImport.PlayKeys._
 import sbt.Package.FixedTimestamp
 
+import java.nio.charset.StandardCharsets
+
 // needed to correctly set Last-Modified headers, fixing asset caching
 // See https://github.com/guardian/grid/pull/3600/commits/01c904e4c47c5a4443c48354b92ada3e17533895
 ThisBuild / packageOptions += FixedTimestamp(Package.keepTimestamps)
@@ -29,6 +31,10 @@ val scalatestVersion = "3.2.17"
 // pinned a version below the minimum (1.40) enforced by Engine 29+, so testcontainers could
 // not start (HTTP 400 from the daemon).
 val testcontainersScalaVersion = "0.44.1"
+val playJsonVersion = "3.0.1"
+
+val transcriptionWorkerInterfacePackage =
+  "com.gu.transcriptionservice.workerinterface"
 
 val port = 9001
 
@@ -66,11 +72,21 @@ lazy val runAllTests = taskKey[Unit](
   "Running all tests or integration tests"
 )
 
+lazy val generateTranscriptionWorkerInterface = taskKey[Unit](
+  "Generate the Scala case classes in the transcription-worker-interface project from the transcription worker interface JSON schema"
+)
+
+lazy val checkTranscriptionWorkerInterface = taskKey[Unit](
+  "Fail if the checked-in transcription worker interface Scala has drifted from the JSON schema"
+)
+
 lazy val root = (project in file("."))
-  .aggregate(common, backend, cli)
+  .aggregate(transcriptionWorkerInterface, common, backend, cli)
   .settings(
     runAllTests := Def
       .sequential(
+        transcriptionWorkerInterface / checkTranscriptionWorkerInterface,
+        transcriptionWorkerInterface / Test / test,
         common / Test / test,
         cli / Test / test,
         backend / Test / test,
@@ -79,7 +95,55 @@ lazy val root = (project in file("."))
       .value,
   )
 
+// Scala model of the messages exchanged with the external transcription service. The case classes are
+// generated from worker-interface-schema.json by running `sbt generateTranscriptionWorkerInterface`
+// (a manual step, whenever the schema changes) and are checked in under src/main/scala.
+lazy val transcriptionWorkerInterface =
+  (project in file("transcription-worker-interface"))
+    .settings(
+      name := "transcription-service-worker-interface",
+      scalacOptions := compilerFlags,
+      libraryDependencies ++= Seq(
+        "org.playframework" %% "play-json" % playJsonVersion,
+        "org.scalatest" %% "scalatest" % scalatestVersion % Test
+      ),
+      generateTranscriptionWorkerInterface := {
+        val log = streams.value.log
+        val schema = baseDirectory.value / "worker-interface-schema.json"
+        val outputDirectory =
+          (Compile / sourceDirectory).value / "scala" / transcriptionWorkerInterfacePackage.split('.').mkString("/")
+        val outputFile = outputDirectory / "TranscriptionWorkerInterface.scala"
+
+        val generated =
+          TranscriptionWorkerInterfaceGenerator.generate(schema, transcriptionWorkerInterfacePackage)
+
+        IO.delete(outputDirectory)
+        IO.createDirectory(outputDirectory)
+        IO.write(outputFile, generated, StandardCharsets.UTF_8)
+
+        log.info(s"Generated $outputFile from $schema")
+      },
+      checkTranscriptionWorkerInterface := {
+        val schema = baseDirectory.value / "worker-interface-schema.json"
+        val outputFile =
+          (Compile / sourceDirectory).value / "scala" /
+            transcriptionWorkerInterfacePackage.split('.').mkString("/") / "TranscriptionWorkerInterface.scala"
+
+        val expected =
+          TranscriptionWorkerInterfaceGenerator.generate(schema, transcriptionWorkerInterfacePackage)
+        val actual = if (outputFile.exists) IO.read(outputFile, StandardCharsets.UTF_8) else ""
+
+        if (expected != actual) {
+          sys.error(
+            s"$outputFile is out of date with respect to $schema. " +
+              "Run `sbt generateTranscriptionWorkerInterface` and commit the result."
+          )
+        }
+      }
+    )
+
 lazy val common = (project in file("common"))
+  .dependsOn(transcriptionWorkerInterface)
   .settings(
     name := "common",
     scalacOptions := compilerFlags,
