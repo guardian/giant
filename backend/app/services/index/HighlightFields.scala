@@ -14,6 +14,8 @@ object HighlightFields {
     ocr -> "OCR Text",
     transcript -> "Transcript Text",
     vttTranscript -> "Transcript (timecodes)",
+    TranslationIndexFields.text -> "Translated Body Text",
+    TranslationIndexFields.ocr -> "Translated OCR Text",
     metadataField + "." + metadata.subject -> "Email Subject",
     metadataField + "." + metadata.fromField + "." + metadata.recipients.name -> "Email From",
     metadataField + "." + metadata.fromField + "." + metadata.recipients.address -> "Email From",
@@ -53,8 +55,10 @@ object HighlightFields {
     val ocrFieldHighlighters = languageHighlighters(IndexFields.ocr, topLevelSearchQuery)
     val transcriptFieldHighlighters = languageHighlighters(IndexFields.transcript, topLevelSearchQuery)
     val vttTranscriptFieldHighlighters = languageHighlighters(IndexFields.vttTranscript, topLevelSearchQuery)
+    val translationTextFieldHighlighters = singleLanguageHighlighter(TranslationIndexFields.text, topLevelSearchQuery)
+    val translationOcrFieldHighlighters = singleLanguageHighlighter(TranslationIndexFields.ocr, topLevelSearchQuery)
 
-    textFieldHighlighters ++ ocrFieldHighlighters ++ transcriptFieldHighlighters ++ vttTranscriptFieldHighlighters
+    textFieldHighlighters ++ ocrFieldHighlighters ++ transcriptFieldHighlighters ++ vttTranscriptFieldHighlighters :+ translationTextFieldHighlighters :+ translationOcrFieldHighlighters
   }
 
   def parseHit(hit: SearchHit): Seq[Highlight] = {

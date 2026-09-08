@@ -1,7 +1,7 @@
 package model.frontend
 
 import play.api.libs.json._
-import services.index.WorkspaceSearchContextParams
+import services.index.{TranslationIndexFields, WorkspaceSearchContextParams}
 
 case class DropdownOption(label: String, value: String)
 
@@ -106,6 +106,7 @@ object Chips {
 
   val all: List[Chip] = List(
     TextChip("Body Text", "(text:(_word_) OR metadata.html:(_word_))"),
+    TextChip("Translated Body Text", s"(${TranslationIndexFields.text}:(_word_))"),
     TextChip("File Path", "metadata.fileUris.\\*:(_word_)"),
     TextChip("Mime Type", "metadata.mimeTypes:(_word_)"),
     TextChip("Email From", "(metadata.from.name.\\*:(_word_) OR metadata.from.address:(_word_))"),

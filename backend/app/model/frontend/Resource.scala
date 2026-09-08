@@ -3,10 +3,11 @@ package model.frontend
 import extraction.EnrichedMetadata
 import model._
 import model.annotations.Comment
-import model.index.{Document, IndexedResource, TranslationData}
+import model.index.{Document, HighlightableTranslationData, IndexedResource, TranslationData}
 import org.neo4j.driver.Value
 import play.api.libs.json._
 import services.previewing.{PreviewService, PreviewStatus}
+import model.index.TranslationData._
 
 import scala.jdk.CollectionConverters._
 
@@ -162,7 +163,7 @@ case class DocumentResource private (
                                       isBasic: Boolean = false,
                                       isExpandable: Boolean,
                                       comments: List[Comment],
-                                      translationData: Option[TranslationData]
+                                      translationData: Option[HighlightableTranslationData]
 ) extends Resource
 
 object DocumentResource {
@@ -185,7 +186,7 @@ object DocumentResource {
       mimeTypes = document.mimeTypes,
       isExpandable = basic.isExpandable,
       comments = comments,
-      translationData = document.translationData
+      translationData = document.translationData.map(TranslationData.toHighlightableTranslationData)
     )
   }
 }

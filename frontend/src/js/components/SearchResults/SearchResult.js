@@ -72,7 +72,9 @@ export class SearchResult extends React.Component {
       (fieldWithMostHighlights === "text" ||
         fieldWithMostHighlights.startsWith("ocr") ||
         fieldWithMostHighlights.startsWith("transcript") ||
-        fieldWithMostHighlights.startsWith("vttTranscript"))
+        fieldWithMostHighlights.startsWith("vttTranscript") ||
+        fieldWithMostHighlights.startsWith("translationData.text") ||
+        fieldWithMostHighlights.startsWith("translationData.ocr"))
     ) {
       linkParams = { view: fieldWithMostHighlights };
     }

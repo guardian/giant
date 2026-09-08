@@ -1,15 +1,19 @@
 import PropTypes from "prop-types";
+import { z } from "zod";
 
-export type Language = {
-  key: string;
-  ocr: string;
-  analyzer: string;
-};
+export const LanguageSchema = z.object({
+  key: z.string(),
+  ocr: z.string(),
+  iso6391Code: z.string(),
+  analyzer: z.string(),
+});
+export type Language = z.infer<typeof LanguageSchema>;
 
 export const language = PropTypes.shape({
   key: PropTypes.string.isRequired,
   ocr: PropTypes.string.isRequired,
   analyzer: PropTypes.string.isRequired,
+  iso6391Code: PropTypes.string.isRequired,
 });
 
 export type Ingestion = {

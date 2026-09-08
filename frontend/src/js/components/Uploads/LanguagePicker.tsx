@@ -1,9 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Dropdown } from "semantic-ui-react";
-import {
-  fetchSupportedLanguages,
-  LanguageOption,
-} from "../../services/CollectionsApi";
+import { fetchSupportedLanguages } from "../../services/CollectionsApi";
+import { Language } from "../../types/Collection";
 
 type Props = {
   value: string;
@@ -11,11 +9,21 @@ type Props = {
   disabled?: boolean;
 };
 
+export type LanguageOption = { key: string; value: string; text: string };
+const languagesToLanguageOptions = (languages: Language[]): LanguageOption[] =>
+  languages.map((lang) => ({
+    key: lang.key,
+    value: lang.key,
+    text: lang.key.charAt(0).toUpperCase() + lang.key.slice(1),
+  }));
+
 export default function LanguagePicker({ value, onChange, disabled }: Props) {
   const [options, setOptions] = useState<LanguageOption[]>([]);
 
   useEffect(() => {
-    fetchSupportedLanguages().then(setOptions);
+    fetchSupportedLanguages().then((languages) =>
+      setOptions(languagesToLanguageOptions(languages)),
+    );
   }, []);
 
   return (
