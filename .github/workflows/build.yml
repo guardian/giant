@@ -16,6 +16,7 @@ jobs:
       # required by aws-actions/configure-aws-credentials
       id-token: write
       contents: read
+      pull-requests: write
     steps:
       - name: Generate 'investigations-cross-repo-auth' Token
         id: investigations-cross-repo-auth
@@ -69,7 +70,22 @@ jobs:
           mv cli/target/pfi-cli_0.1.0-SNAPSHOT_all.deb pfi-cli/pfi-cli.deb
           mv cli/target/universal/pfi-cli-0.1.0-SNAPSHOT.tgz pfi-public-downloads/pfi-cli.tar.gz
 
-      - name: Upload for playground
+      - uses: actions/setup-node@v3
+        with:
+          node-version-file: './infra/cdk/.nvmrc'
+          cache: npm
+          cache-dependency-path: ./infra/cdk/package-lock.json
+
+      - name: cdk synth
+        working-directory: ./infra/cdk
+        run: |
+          npm ci
+          npm run lint
+          npm run test
+          npm run format -- --check
+          npm run synth
+
+      - name: riff-raff upload for playground
         uses: guardian/actions-riff-raff@v4
         with:
           projectName: investigations::pfi-playground
@@ -83,13 +99,12 @@ jobs:
               - pfi-cli/pfi-cli.deb
             pfi-public-downloads:
               - pfi-public-downloads/pfi-cli.tar.gz
-          configPath: riff-raff.yaml
+            cdk.out/main/pfi-playground:
+              - infra/cdk/cdk.out/main/pfi-playground/pfi-playground-investigations-rex.template.json
+          configPath: infra/cdk/cdk.out/main/pfi-playground/riff-raff.yaml
           commentingEnabled: 'false'
 
-      - name: Edit riff-raff file prior to re-upload
-        run: sed -i -e "s/pfi-playground/pfi-giant/g" riff-raff.yaml
-
-      - name: Upload for giant
+      - name: riff-raff upload for (PROD) giant
         uses: guardian/actions-riff-raff@v4
         with:
           projectName: investigations::pfi-giant
@@ -103,8 +118,20 @@ jobs:
               - pfi-cli/pfi-cli.deb
             pfi-public-downloads:
               - pfi-public-downloads/pfi-cli.tar.gz
-          configPath: riff-raff.yaml
+            cdk.out/main/pfi-giant:
+              - infra/cdk/cdk.out/main/pfi-giant/pfi-giant-investigations-rex.template.json
+          configPath: infra/cdk/cdk.out/main/pfi-giant/riff-raff.yaml
           commentingEnabled: 'false'
 
-      - name: Reset checkout just in case
-        run: sed -i -e "s/pfi-giant/pfi-playground/g" riff-raff.yaml
+      - name: riff-raff upload for postgres
+        uses: guardian/actions-riff-raff@v4
+        with:
+          buildNumberOffset: 107
+          roleArn: ${{ secrets.GU_RIFF_RAFF_ROLE_ARN }}
+          githubToken: ${{ secrets.GITHUB_TOKEN }}
+          projectName: pfi-giant::postgres
+          configPath: infra/cdk/cdk.out/postgres/riff-raff.yaml
+          contentDirectories: |
+            cdk.out:
+              - infra/cdk/cdk.out/postgres/pfi-giant-postgres-CODE.template.json
+              - infra/cdk/cdk.out/postgres/pfi-giant-postgres-PROD.template.json
