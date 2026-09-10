@@ -11,6 +11,11 @@ object AwsCredentials {
       .build()
   }
 
+  def localstackCredentialsV2: AwsCredentialsProvider = {
+    // you can use any arbitrary value for localstack credentials
+    StaticCredentialsProvider.create(AwsBasicCredentials.create("localstack", "localstack"))
+  }
+
   private def awsCredentialsV2(profile: Option[String]): List[AwsCredentialsProvider] = {
     List(
       ProfileCredentialsProvider.create(profile.getOrElse("investigations")),

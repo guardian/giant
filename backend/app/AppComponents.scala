@@ -84,15 +84,17 @@ class AppComponents(context: Context, config: Config)
 
     val s3Client = new S3Client(config.s3)(s3ExecutionContext)
 
+    val awsCredentialsProvider = AwsCredentials.credentialsV2()
+
     val sqsClient = if (config.sqs.endpoint.isDefined)
-      SqsClient.builder().endpointOverride(URI.create(config.sqs.endpoint.get)).region(config.sqs.regionV2).build()
+      SqsClient.builder().endpointOverride(URI.create(config.sqs.endpoint.get)).region(config.sqs.regionV2).credentialsProvider(AwsCredentials.localstackCredentialsV2).build()
     else
-      SqsClient.builder().region(config.sqs.regionV2).build()
+      SqsClient.builder().region(config.sqs.regionV2).credentialsProvider(awsCredentialsProvider).build()
 
     val snsClient = if (config.sqs.endpoint.isDefined)
-      SnsClient.builder().endpointOverride(URI.create(config.sqs.endpoint.get)).region(config.sqs.regionV2).build()
+      SnsClient.builder().endpointOverride(URI.create(config.sqs.endpoint.get)).region(config.sqs.regionV2).credentialsProvider(AwsCredentials.localstackCredentialsV2).build()
     else
-      SnsClient.builder().region(config.sqs.regionV2).build()
+      SnsClient.builder().region(config.sqs.regionV2).credentialsProvider(awsCredentialsProvider).build()
 
     val s3Presigner = if (config.s3.endpoint.isDefined)
       S3Presigner.builder().endpointOverride(URI.create(config.s3.endpoint.get)).region(config.s3.regionV2).credentialsProvider(s3Client.credentials).build()
