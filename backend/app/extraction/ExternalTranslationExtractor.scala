@@ -51,7 +51,7 @@ abstract class ExternalTranslationExtractor(manifest: Manifest, index: Index, tr
     // we block here as extractor jobs are synchronous
     val elasticDocument = Await.result(index.getResource(blob.uri, None).underlying, 5.seconds)
 
-    val llmJob = elasticDocument.flatMap { resource =>
+    val llmJob: Either[Failure, LlmJob] = elasticDocument.flatMap { resource =>
       val translationTask = getTranslationTask(resource)
 
       if (translationTask.isEmpty) {
