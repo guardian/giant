@@ -74,7 +74,7 @@ class OcrMyPdfExtractor(scratch: ScratchSpace, index: Index, pageService: Pages,
 
       // All docs have the same number of pages with the same dimensions, just different text from the OCR run per language
       val (_, (_, firstDoc)) = pdDocuments.headOption.getOrElse {
-        throw new IllegalStateException(s"No OCR output produced for ${blob.uri.value}")
+        throw new IllegalStateException(s"No OCR output produced for ${blob.uri.value}. This may be because the languages list was empty. Languages: ${params.languages.map(_.key).mkString(", ")}")
       }
       val numberOfPages = firstDoc.getNumberOfPages
 
