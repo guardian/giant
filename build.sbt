@@ -71,6 +71,11 @@ lazy val runAllTests = taskKey[Unit](
   "Running all tests or integration tests"
 )
 
+lazy val fetchSchema = inputKey[Unit](
+  "Fetch the transcription worker interface JSON schema from the transcription service repository. " +
+    "Optionally takes the branch (or tag/commit) to fetch from, defaulting to main, e.g. `fetchSchema my-branch`"
+)
+
 lazy val generateTranscriptionWorkerInterface = taskKey[Unit](
   "Generate the Scala case classes in the transcription-worker-interface project from the transcription worker interface JSON schema"
 )
@@ -106,6 +111,13 @@ lazy val transcriptionWorkerInterface =
         "org.playframework" %% "play-json" % playJsonVersion,
         "org.scalatest" %% "scalatest" % scalatestVersion % Test
       ),
+      fetchSchema := {
+        TranscriptionSchemaFetcher.fetch(
+          args = Def.spaceDelimited("<branch>").parsed,
+          schemaFile = baseDirectory.value / "worker-interface-schema.json",
+          log = streams.value.log
+        )
+      },
       generateTranscriptionWorkerInterface := {
         val log = streams.value.log
         val schema = baseDirectory.value / "worker-interface-schema.json"
