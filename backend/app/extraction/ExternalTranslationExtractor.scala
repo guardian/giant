@@ -51,14 +51,14 @@ abstract class ExternalTranslationExtractor(manifest: Manifest, index: Index, tr
     // we block here as extractor jobs are synchronous
     val elasticDocument = Await.result(index.getResource(blob.uri, None).underlying, 5.seconds)
 
-    val llmJob: Either[Failure, LlmJob] = elasticDocument.flatMap { resource =>
+    val llmJob: Either[Failure, Option[LlmJob]] = elasticDocument.flatMap { resource =>
       val translationTask = getTranslationTask(resource)
 
       if (translationTask.isEmpty) {
         logger.info(s"No non-English text found to translate in blob ${blob.uri.value}")
         ExternalTranscriptionWorker.markExternalExtractorAsComplete(manifest, blob.uri.value, name)
         // no work to do isn't really a failure so just return a Right here
-        Right()
+        Right(None)
       } else {
         val job = for {
           languageDataJson <- translationTask.map(task => Right(Json.stringify(Json.toJson(task)))).getOrElse(Left(NoTextToTranslateFailure(s"No non-English text found to translate in blob ${blob.uri.value}")))
@@ -76,12 +76,13 @@ abstract class ExternalTranslationExtractor(manifest: Manifest, index: Index, tr
             combinedOutputUrl = CombinedOutputUrl(url = outputUrl, key = outputKey),
             ingestion = params.ingestion, backend = transcribeConfig.llmBackend, jobType = LlmTranslationJobType.name)
         }
-        job
+        job.map(Some(_))
       }
     }
 
-    llmJob.flatMap { job =>
-      sendToQueue(sqsClient, transcribeConfig.transcriptionServiceQueueUrl, job, blob.uri.value, name)
+    llmJob.flatMap {
+      case Some(job) => sendToQueue(sqsClient, transcribeConfig.transcriptionServiceQueueUrl, job, blob.uri.value, name)
+      case None => Right(())
     }
   }
 }
