@@ -1,20 +1,19 @@
-jest.mock("../../services/WorkspaceApi");
-jest.mock("./getWorkspace");
-
+import type { MockedFunction } from "vitest";
 import { moveItems } from "./moveItem";
 import { moveItem as moveItemApi } from "../../services/WorkspaceApi";
 
-const mockedMoveItemApi = moveItemApi as jest.MockedFunction<
-  typeof moveItemApi
->;
+vi.mock("../../services/WorkspaceApi");
+vi.mock("./getWorkspace");
+
+const mockedMoveItemApi = moveItemApi as MockedFunction<typeof moveItemApi>;
 
 function runThunk(thunk: ReturnType<typeof moveItems>) {
-  const dispatch = jest.fn((action) => {
+  const dispatch = vi.fn((action) => {
     if (typeof action === "function") {
       return action();
     }
   });
-  return thunk(dispatch, jest.fn() as any, null);
+  return thunk(dispatch, vi.fn() as any, null);
 }
 
 beforeEach(() => {
@@ -23,7 +22,7 @@ beforeEach(() => {
 
 describe("moveItems", () => {
   test("calls onEachSettled for every item", async () => {
-    const onEachSettled = jest.fn();
+    const onEachSettled = vi.fn();
     const thunk = moveItems(
       "ws1",
       ["a", "b", "c"],
@@ -39,7 +38,7 @@ describe("moveItems", () => {
   });
 
   test("calls onEachSettled even when an item matches newParentId", async () => {
-    const onEachSettled = jest.fn();
+    const onEachSettled = vi.fn();
     // "folder1" is both in itemIds and is the newParentId
     const thunk = moveItems(
       "ws1",
