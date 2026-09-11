@@ -33,7 +33,12 @@ jobs:
           npm ci
           npx playwright install --with-deps chromium
       - name: Run isolated E2E suite
-        run: ./scripts/test-e2e.sh
+        # PDF extraction uses OCRmyPDF, Ghostscript, qpdf and pdfinfo.
+        # English is the only OCR language needed by the fixture.
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ocrmypdf ghostscript qpdf poppler-utils tesseract-ocr-eng
+          ./scripts/test-e2e.sh
       - name: Upload test report and service logs
         if: always()
         uses: actions/upload-artifact@v4
