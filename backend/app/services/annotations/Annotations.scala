@@ -17,6 +17,26 @@ trait Annotations {
   def getWorkspaceMetadata(currentUser: String, id: String): Attempt[WorkspaceMetadata]
   def getWorkspaceContents(currentUser: String, id: String, remoteIngestsToMixin: List[RemoteIngest] = List.empty): Attempt[TreeEntry[WorkspaceEntry]]
   def getBlobUrisInWorkspaceFolder(currentUser: String, workspaceId: String, folderId: String): Attempt[List[String]]
+
+  // Lazy-loading read primitives (issue #744). These let the client fetch a workspace one level at
+  // a time instead of dragging the whole tree on every open. Additive: nothing consumes them yet.
+
+  // A single node plus its direct children only. Child folders come back as lazy TreeNodes with
+  // empty children (the client fetches those on expand); child files carry their processing status
+  // inline (a per-file lookup scoped to this folder, so it stays cheap). maybeNodeId = None returns
+  // the workspace root node and its top-level children (the initial depth-1 load).
+  def getWorkspaceChildren(currentUser: String, workspaceId: String, maybeNodeId: Option[String]): Attempt[TreeEntry[WorkspaceEntry]]
+
+  // The path from the workspace root down to (but excluding) the given node, root first, with each
+  // ancestor populated with its direct children — everything needed to materialise a deep-linked
+  // node in the partial tree in a single round-trip. Empty when the node is the root.
+  def getWorkspaceAncestors(currentUser: String, workspaceId: String, nodeId: String): Attempt[List[TreeEntry[WorkspaceEntry]]]
+
+  // Workspace-wide totals from one aggregate query (see WorkspaceAggregate): the summary header and
+  // the polling "is anything processing?" decision, neither of which the client can derive from a
+  // partially-loaded tree.
+  def getWorkspaceAggregate(currentUser: String, workspaceId: String): Attempt[WorkspaceAggregate]
+
   def insertWorkspace(username: String, id: String, name: String, isPublic: Boolean, tagColor: String): Attempt[Unit]
   def updateWorkspaceName(currentUser: String, id: String, name: String): Attempt[Unit]
   def updateWorkspaceOwner(currentUser: String, id: String, owner: String): Attempt[Unit]
