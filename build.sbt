@@ -19,7 +19,6 @@ val compilerFlags = Seq(
   "-Xfatal-warnings"
 )
 
-val awsVersion = "1.12.797"
 val awsSdkVersion2 = "2.54.16"
 val log4jVersion = "2.20.0"
 val slf4jVersion = "2.0.7"
@@ -89,7 +88,6 @@ lazy val common = (project in file("common"))
       "org.playframework" %% "play-json-joda" % "3.0.1",
       "software.amazon.awssdk" % "s3" % awsSdkVersion2,
       "software.amazon.awssdk" % "s3-transfer-manager" % awsSdkVersion2,
-      "com.amazonaws" % "aws-java-sdk-s3" % awsVersion,
       "org.scalatest" %% "scalatest" % scalatestVersion,
       "software.amazon.awssdk" % "auth" % awsSdkVersion2,
       "software.amazon.awssdk" % "s3" % awsSdkVersion2,
@@ -196,7 +194,6 @@ lazy val backend = (project in file("backend"))
     },
     Universal / javaOptions ++= Seq(
       "-Dpidfile.path=/dev/null",
-      "-Dcom.amazonaws.sdk.enableDefaultMetrics=cloudwatchRegion=eu-west-1",
       "-J-XX:MaxRAMPercentage=50",
       "-J-XX:InitialRAMPercentage=50",
       "-J-XX:+UseG1GC",
