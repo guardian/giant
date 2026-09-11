@@ -152,9 +152,6 @@ lazy val backend = (project in file("backend"))
       "com.sun.mail" % "javax.mail" % "1.6.2",
       "com.gu" %% "pan-domain-auth-verification" % "21.0.0",
 
-      // Keep the Scala module compatible with Jackson databind from pan-domain-auth.
-      "com.fasterxml.jackson.module" % "jackson-module-scala_2.13" % "2.21.4",
-
       // Libraries whose use are potentially contentious
 
       // These dependencies allow PDF box to read images (which is critical for PdfOcrExtractor)
