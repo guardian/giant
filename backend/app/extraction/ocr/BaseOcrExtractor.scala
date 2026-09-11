@@ -20,7 +20,7 @@ import scala.concurrent.{Await, ExecutionContext}
 import scala.util.control.NonFatal
 
 
-abstract class BaseOcrExtractor(scratchSpace: ScratchSpace, index:Index)  (implicit ec: ExecutionContext)  extends FileExtractor(scratchSpace) {
+abstract class BaseOcrExtractor(scratchSpace: ScratchSpace, index:Index)  (implicit ec: ExecutionContext)  extends FileExtractor(scratchSpace) with Logging {
   def extractOcr(blob: Blob, file: File, params: ExtractionParams, stdErrLogger: OcrStderrLogger): Unit
   def buildStdErrLogger(blob: Blob): OcrStderrLogger
 
@@ -28,12 +28,21 @@ abstract class BaseOcrExtractor(scratchSpace: ScratchSpace, index:Index)  (impli
     // extractors are synchronous so we have to await here
     val detectedLanguageCode = Await.result(index.getTextDetectedLanguage(blob.uri).asFuture, 3.seconds).toOption
 
-    if (params.languages.isEmpty && detectedLanguageCode.isDefined) {
-      throw new IllegalStateException(s"${this.name} requires a language")
+    // if we have detected a *supported* language code, use that, otherwise OCR in every language set for the ingestion.
+    // see Languages.scala for a list of supported languages
+    val detectedLanguage = detectedLanguageCode.flatMap { code =>
+      val lang = Languages.getByIso6391Code(code)
+      if (lang.isEmpty) {
+        logger.info(s"${this.name}: detected language '$code' for ${blob.uri.value} is not supported, falling back to ingestion languages")
+      }
+      lang
     }
 
-    // if we have detected a supported language code, use that, otherwise OCR in every language set for the ingestion
-    val ocrLanguages = detectedLanguageCode.map(code => Languages.getByIso6391Code(code).toList).getOrElse(params.languages)
+    val ocrLanguages = detectedLanguage.map(List(_)).getOrElse(params.languages)
+
+    if (ocrLanguages.isEmpty) {
+      throw new IllegalStateException(s"${this.name} requires at least one language (blob ${blob.uri.value}, ingestion ${params.ingestion}, detected language ${detectedLanguageCode.getOrElse("none")})")
+    }
 
     val updatedParams = params.copy(languages = ocrLanguages)
 
