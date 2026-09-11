@@ -162,8 +162,8 @@ sbt 'int:testOnly controllers.api.WorkspacesITest'
 
 ### End-to-end tests
 
-Run `./scripts/test-e2e.sh` to test genesis account creation against disposable
-databases and a separate Giant instance. See [the E2E setup guide](frontend/e2e/README.md)
+Run `./scripts/test-e2e.sh` to test genesis account creation and workspace PDF
+uploads against disposable databases and a separate Giant instance. See [the E2E setup guide](frontend/e2e/README.md)
 for prerequisites, ports and debugging. The GitHub Actions E2E workflow runs the
 same script.
 

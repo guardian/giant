@@ -2,6 +2,15 @@
 
 From the repository root, with Docker Compose, Java, sbt and Node installed:
 
+Install the PDF extraction tools first. On Ubuntu/Debian:
+
+```sh
+sudo apt-get update
+sudo apt-get install -y ocrmypdf ghostscript qpdf poppler-utils tesseract-ocr-eng
+```
+
+On macOS, the project's `Brewfile` includes the extraction tools.
+
 ```sh
 npm ci --prefix frontend
 cd frontend
@@ -17,8 +26,12 @@ Elasticsearch and Garage containers, creates storage buckets, runs PostgreSQL
 migrations, starts the backend and Vite, then runs Playwright. GitHub Actions runs
 the same script. No AWS credentials or pre-existing Giant account are needed.
 
-The single test creates the genesis user through the UI, skips optional 2FA,
-then logs in from a fresh browser context and checks administrator access.
+The genesis project creates the initial user through the UI, skips optional 2FA,
+then logs in from a fresh browser context and checks administrator access. The
+Chromium project depends on genesis and tests creating a workspace, uploading
+`toast_sandwich_en_wiki.pdf` through its upload dialog, and waiting up to three
+minutes for the file's processing icon to become a document icon. An error icon
+fails the test. The fixture uses the real document text and OCR extractors.
 Retries are disabled because genesis requires an empty user store. Rerun the
 script to get a fresh instance; running Playwright alone does not reset anything.
 
@@ -32,6 +45,12 @@ Logs are saved in `frontend/e2e-artifacts/`, the HTML report in
 `frontend/playwright-report/`, and failure traces/screenshots in
 `frontend/test-results/`. CI uploads these even when a run fails.
 
-Background workers are disabled for this genesis-only suite. Before adding
-upload/extraction coverage, enable the required workers in `backend/conf/e2e.conf`
-and install the extraction tools exercised by the fixtures in CI.
+To run just the upload scenario (including its genesis dependency):
+
+```sh
+./scripts/test-e2e.sh workspace-upload.spec.ts
+```
+
+Local extraction workers are enabled in `backend/conf/e2e.conf`; external
+extractors are disabled. The PDF fixture comes from Wikipedia's English
+"Toast sandwich" article: https://en.wikipedia.org/wiki/Toast_sandwich.
