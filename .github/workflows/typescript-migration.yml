@@ -1,6 +1,10 @@
 name: Daily TypeScript migration
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/typescript-migration.yml'
   schedule:
     - cron: '23 7 * * *'
   workflow_dispatch:

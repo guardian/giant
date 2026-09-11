@@ -1,6 +1,7 @@
 # Daily TypeScript migrations
 
-The workflow runs daily at 07:23 UTC and can also be started from Actions → Daily
+The workflow runs daily at 07:23 UTC, when its workflow file changes on `main`,
+and can also be started from Actions → Daily
 TypeScript migration → Run workflow. It always starts from the default branch.
 It targets roughly five related frontend JavaScript files, adds relevant types and
 Zod schemas, and opens a PR only after build/typecheck, lint, tests, and formatting
