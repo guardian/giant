@@ -2,7 +2,7 @@ name := "giant"
 description := "Tool for journalists to search, analyse and categorise unstructured data, often during an investigation"
 version := "0.1.0"
 
-ThisBuild / scalaVersion := "2.13.11"
+ThisBuild / scalaVersion := "2.13.18"
 
 import com.gu.riffraff.artifact.BuildInfo
 import play.sbt.PlayImport.PlayKeys._
@@ -19,8 +19,8 @@ val compilerFlags = Seq(
   "-Xfatal-warnings"
 )
 
-val awsVersion = "1.12.643"
-val awsSdkVersion2 = "2.39.0"
+val awsVersion = "1.12.797"
+val awsSdkVersion2 = "2.54.16"
 val log4jVersion = "2.20.0"
 val slf4jVersion = "2.0.7"
 // To match what the main app gets from scalatestplus-play transitively
@@ -125,7 +125,7 @@ lazy val backend = (project in file("backend"))
       "com.sksamuel.elastic4s" %% "elastic4s-client-esjava" % "8.11.4",
       "org.elasticsearch.client" % "elasticsearch-rest-client-sniffer" % "8.6.2",
       "org.apache.pekko" %% "pekko-cluster-typed" % "1.0.3", // Needs to match pekko version in Play
-      "org.neo4j.driver" % "neo4j-java-driver" % "6.0.3",
+      "org.neo4j.driver" % "neo4j-java-driver" % "6.2.1",
       "com.pff" % "java-libpst" % "0.9.3",
       // Tika 3 loads custom-mimetypes.xml from the classpath root (backend/conf).
       "org.apache.tika" % "tika-parsers-standard-package" % "3.2.3",
@@ -152,12 +152,10 @@ lazy val backend = (project in file("backend"))
       // see https://github.com/guardian/giant/pull/131
       "org.eclipse.angus" % "angus-mail" % "2.0.2",
       "com.sun.mail" % "javax.mail" % "1.6.2",
-      "com.gu" %% "pan-domain-auth-verification" % "15.0.0",
+      "com.gu" %% "pan-domain-auth-verification" % "21.0.0",
 
-      // this is needed to override the 2.11.4 version of jackson-module used in various play libraries (including jwt-play)
-      // as 2.11.4 is only compatible with versions of jackson databind up to 2.12.0 - and we're using 2.12.7 (Phil thinks
-      // because of the version of tikka-parsers we're using)
-      "com.fasterxml.jackson.module" % "jackson-module-scala_2.13" % "2.15.4",
+      // Keep the Scala module compatible with Jackson databind from pan-domain-auth.
+      "com.fasterxml.jackson.module" % "jackson-module-scala_2.13" % "2.21.4",
 
       // Libraries whose use are potentially contentious
 
@@ -224,7 +222,7 @@ lazy val cli = (project in file("cli"))
       "org.slf4j" % "jcl-over-slf4j" % slf4jVersion,
       "com.google.guava" % "guava" % "28.2-jre",
       "org.scalatest" %% "scalatest" % scalatestVersion,
-      "software.amazon.awssdk.crt" % "aws-crt" % "0.44.0"
+      "software.amazon.awssdk.crt" % "aws-crt" % "0.48.4"
     ),
     run / fork := true,
     run / connectInput := true,
