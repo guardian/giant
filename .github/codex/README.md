@@ -6,7 +6,7 @@ TypeScript migration → Run workflow. It always starts from the default branch.
 It targets roughly five related frontend JavaScript files, adds relevant types and
 Zod schemas, and opens a PR only after build/typecheck, lint, tests, and formatting
 pass. The same checks run before generation so existing failures do not prompt
-unrelated repairs. Changes are restricted to `frontend/src`.
+unrelated repairs. Changes are restricted to `frontend/src` and the migration plan.
 
 ## Setup
 
@@ -37,7 +37,14 @@ If branch protection requires other checks, run the existing manually dispatchab
 CI/format workflows against the migration branch before merging. Apply the appropriate
 CORE4 label during review, as required by the repository's label policy.
 
-Tune batch selection and JSON validation instructions in
+The ordered backlog in [typescript-migration-plan.md](typescript-migration-plan.md)
+covers the remaining JavaScript files, starting with shared utilities, then API
+contracts and Redux slices, their UI consumers, and finally store wiring and startup.
+Large steps can span several PRs. Each migration PR removes its completed file
+entries (and empty steps) from the plan; merging the PR advances the backlog.
+The bot can update this plan but cannot edit its standing instructions or workflow.
+
+Tune standing migration and JSON validation instructions in
 `typescript-migration.md`. Five is a prompt target rather than a hard file limit;
 supporting schemas and tests count toward the review effort. Failed generation or
 checks do not publish a PR; inspect the Actions logs before retrying.

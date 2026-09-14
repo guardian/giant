@@ -104,8 +104,11 @@ jobs:
           paths = changed()
           if not paths:
               raise SystemExit('No migration produced; no PR will be opened.')
-          if any(not p.startswith('frontend/src/') for p in paths):
-              raise SystemExit('Migration changed files outside frontend/src.')
+          plan = '.github/codex/typescript-migration-plan.md'
+          if any(not p.startswith('frontend/src/') and p != plan for p in paths):
+              raise SystemExit('Migration changed files outside frontend/src and the migration plan.')
+          if not pathlib.Path(plan).is_file():
+              raise SystemExit('Keep the migration plan file, even when all steps are complete.')
           deleted = changed('--diff-filter=D')
           migrated = [p for p in deleted if pathlib.Path(p).suffix in ('.js', '.jsx')
                       and any(pathlib.Path(p).with_suffix(ext).is_file() for ext in ('.ts', '.tsx'))]
@@ -131,7 +134,9 @@ jobs:
           token: ${{ github.token }}
           branch: automation/typescript-migration
           base: ${{ github.event.repository.default_branch }}
-          add-paths: frontend/src/
+          add-paths: |
+            frontend/src/
+            .github/codex/typescript-migration-plan.md
           commit-message: 'Migrate a small frontend batch to TypeScript'
           title: 'Migrate a small frontend batch to TypeScript'
           body: |
