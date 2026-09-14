@@ -19,7 +19,12 @@ generated files. Dependencies are already installed, including Zod 4. Do not com
 push, or create a PR yourself. Do not change git configuration or branches.
 
 Use .tsx for JSX and .ts otherwise. Preserve behavior and public interfaces; update
-explicit .js imports where necessary. Keep the functional style simple and readable.
+explicit .js imports where necessary. Use git mv for file renames and keep edits
+focused on the migration so Git can detect the rename and history remains easy to
+follow. Git infers renames from content similarity; avoid unrelated formatting or
+rewrites that obscure that relationship. If a TypeScript counterpart already exists,
+consolidate into it deliberately rather than overwriting it, and explain the file
+lineage in the PR description. Keep the functional style simple and readable.
 Create useful types for props, state, parameters, results, and domain objects.
 Reuse existing types where accurate; keep local types local and share types only
 where relevant. Do not use any, @ts-ignore, @ts-nocheck, broad assertions, or weaker
