@@ -68,6 +68,41 @@ class Neo4JManifestITest extends AnyFreeSpec
 
   "Neo4JManifest" - {
 
+    def extractor(_name: String, _priority: Int, costFn: Long => Long = identity): Extractor = new Extractor {
+      override def name: String = _name
+      override def canProcessMimeType: String => Boolean = (_: String) => true
+      override def indexing: Boolean = false
+      override def priority: Int = _priority
+      override def cost(mimeType: MimeType, size: Long): Long = costFn(size)
+      override def extract(blob: Blob, inputStream: InputStream, params: ExtractionParams): Either[Failure, Unit] = ???
+    }
+
+    val extractors: Map[String, Extractor] = Map(
+      "ArchiveExtractor" -> 5,
+      "RarExtractor" -> 5,
+      "DocumentBodyExtractor" -> 4,
+      "PdfOcrExtractor" -> 1
+    ).map { case(name, priority) => name -> extractor(name, priority) }
+
+    def blob(uri: Uri, extractors: List[Extractor], ingestion: String, size: Long = 1024L, workspace: Option[String] = None) = {
+      Manifest.InsertBlob(
+        IngestionFile(
+          uri, Uri(uri.value.split("/").dropRight(1).mkString("/")), size,
+          None, None, None, true
+        ),
+        Uri(Hashing.goodFastHash(32).hashString(uri.value, StandardCharsets.UTF_8).toString),
+        parentBlobs = List.empty,
+        MimeType("application/test"),
+        ingestion,
+        List(English.key),
+        extractors,
+        workspace = workspace.map { id =>
+          WorkspaceItemContext(id, id, uri.value)
+        },
+        isFastLane = true
+      )
+    }
+
     // this test needs to go first so that it's working on a clean database
     "Two workers calling fetchWork concurrently should not receive the same blob" in {
       val collection = Uri("concurrent_fetch_test")
@@ -258,41 +293,6 @@ class Neo4JManifestITest extends AnyFreeSpec
     }
 
     "Extractors" - {
-      def extractor(_name: String, _priority: Int, costFn: Long => Long = identity): Extractor = new Extractor {
-        override def name: String = _name
-        override def canProcessMimeType: String => Boolean = (_: String) => true
-        override def indexing: Boolean = false
-        override def priority: Int = _priority
-        override def cost(mimeType: MimeType, size: Long): Long = costFn(size)
-        override def extract(blob: Blob, inputStream: InputStream, params: ExtractionParams): Either[Failure, Unit] = ???
-      }
-
-      val extractors: Map[String, Extractor] = Map(
-        "ArchiveExtractor" -> 5,
-        "RarExtractor" -> 5,
-        "DocumentBodyExtractor" -> 4,
-        "PdfOcrExtractor" -> 1
-      ).map { case(name, priority) => name -> extractor(name, priority) }
-
-      def blob(uri: Uri, extractors: List[Extractor], ingestion: String, size: Long = 1024L, workspace: Option[String] = None) = {
-        Manifest.InsertBlob(
-          IngestionFile(
-            uri, Uri(uri.value.split("/").dropRight(1).mkString("/")), size,
-            None, None, None, true
-          ),
-          Uri(Hashing.goodFastHash(32).hashString(uri.value, StandardCharsets.UTF_8).toString),
-          parentBlobs = List.empty,
-          MimeType("application/test"),
-          ingestion,
-          List(English.key),
-          extractors,
-          workspace = workspace.map { id =>
-            WorkspaceItemContext(id, id, uri.value)
-          },
-          isFastLane = true
-        )
-      }
-
       def fetchWork(worker: String, maxBatchSize: Int, maxCost: Int = 10000, workerCount: Int = 1, workerIndex: Int = 0): List[(Uri, String)] = {
         val result = manifest.fetchWork(worker, workerCount, workerIndex, maxBatchSize, maxCost)
         result.toOption.get.map { case WorkItem(blob, _, extractor, _, _, _) => blob.uri -> extractor }
