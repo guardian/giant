@@ -26,21 +26,24 @@ jobs:
           cache: npm
           cache-dependency-path: |
             frontend/package-lock.json
+            e2e-tests/package-lock.json
             infra/migrate-db/package-lock.json
-      - name: Install frontend and Chromium
-        working-directory: frontend
+      - name: Install frontend
+        run: npm ci --prefix frontend
+      - name: Install E2E dependencies and Chromium
+        working-directory: e2e-tests
         run: |
           npm ci
           npx playwright install --with-deps chromium
       - name: Run isolated E2E suite
-        run: ./scripts/test-e2e.sh
+        working-directory: e2e-tests
+        run: |
+          npm run typecheck
+          npm test
       - name: Upload test report and service logs
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: e2e-results
-          path: |
-            frontend/playwright-report/
-            frontend/test-results/
-            frontend/e2e-artifacts/
+          path: e2e-tests/reports/
           retention-days: 7

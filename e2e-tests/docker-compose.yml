@@ -1,4 +1,4 @@
-# Disposable services for scripts/test-e2e.sh; never uses development volumes.
+# Disposable services for run.sh; never uses development volumes.
 services:
   neo4j:
     image: neo4j:2026.02.2
@@ -64,7 +64,7 @@ services:
     ports:
       - "127.0.0.1:13900:3900"
     volumes:
-      - ./infra/garage/garage.toml:/etc/garage.toml:ro
+      - ../infra/garage/garage.toml:/etc/garage.toml:ro
       - garage-data:/var/lib/garage/data
       - garage-meta:/var/lib/garage/meta
     command: /garage server --single-node --default-bucket
