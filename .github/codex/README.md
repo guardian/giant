@@ -2,7 +2,8 @@
 
 The workflow runs daily at 07:23 UTC, when its workflow file changes on `main`,
 and can also be started from Actions → Daily
-TypeScript migration → Run workflow. It always starts from the default branch.
+TypeScript migration → Run workflow. It starts from the triggering branch and
+targets that branch with its generated PR; scheduled runs use the default branch.
 It targets roughly five related frontend JavaScript files, adds relevant types and
 Zod schemas, and opens a PR only after build/typecheck, lint, tests, and formatting
 pass. The same checks run before generation so existing failures do not prompt
@@ -24,6 +25,14 @@ API usage is billed to the key's project. Generation has a 35-minute timeout and
 the whole migration job has a 60-minute timeout; these are not monetary spend caps.
 
 ## Review and operation
+
+Before merging the automation, changes to the workflow file on
+`automation/setup-daily-typescript-migration` also trigger a run. These runs use
+the instructions and source on that branch and open a PR against it from
+`automation/typescript-migration-test`. This lets reviewers inspect a generated
+migration without merging the setup PR. Test PRs do not block default-branch runs.
+Close the test PR when finished; remove the setup branch from the push trigger
+when pre-merge testing is no longer needed.
 
 Only one migration PR is open at a time, on `automation/typescript-migration`.
 While it is open, scheduled and manual runs skip generation, preserving the diff
