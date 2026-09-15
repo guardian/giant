@@ -18,7 +18,17 @@ npm test
 
 `npm test` starts a fresh isolated Giant instance, generates Playwright tests from the feature files, runs them, and stops the instance and removes its volumes on exit. The same command runs in CI. No AWS credentials or pre-existing account are required.
 
-To watch or debug the scenario:
+To start fresh test infrastructure and open Playwright UI mode:
+
+```sh
+npm run test:ui
+```
+
+Open http://localhost:9323 to select tests, run them, and inspect each action. In a dev container, forward port 9323 to your machine. The infrastructure stays running until you stop the terminal command with Ctrl+C, which removes the test containers and volumes.
+
+The genesis scenario requires an empty database. After running it, stop and restart `npm run test:ui` before running it again.
+
+`npm test` runs headlessly, including in CI. To watch the browser or use Playwright Inspector instead:
 
 ```sh
 npm test -- --headed
