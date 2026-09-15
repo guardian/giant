@@ -47,7 +47,6 @@
     "zod": "4.4.3"
   },
   "devDependencies": {
-    "@playwright/test": "1.63.0",
     "@types/filesize": "^4.2.0",
     "@types/lodash": "^4.14.149",
     "@types/node": "^24.10.0",
@@ -88,8 +87,7 @@
     "test:watch": "vitest",
     "lint": "eslint src",
     "prettier:check": "prettier . --check",
-    "prettier:format": "prettier . --write",
-    "test:e2e": "playwright test"
+    "prettier:format": "prettier . --write"
   },
   "browserslist": {
     "production": [

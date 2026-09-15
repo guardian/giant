@@ -3,12 +3,13 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 REPO_DIR="$PWD"
-ARTIFACTS="$REPO_DIR/frontend/e2e-artifacts"
+E2E_DIR="$REPO_DIR/e2e-tests"
+ARTIFACTS="$E2E_DIR/reports/services"
 mkdir -p "$ARTIFACTS"
 
 # Each invocation owns its containers and volumes. Fixed E2E ports keep the
 # configuration simple; concurrent runs on one host fail instead of sharing data.
-COMPOSE=(docker compose -f "$REPO_DIR/docker-compose.e2e.yml" -p "giant-e2e-$$")
+COMPOSE=(docker compose -f "$E2E_DIR/docker-compose.yml" -p "giant-e2e-$$")
 export E2E_RUNTIME_DIR
 E2E_RUNTIME_DIR=$(mktemp -d)
 BACKEND_PID=""
@@ -64,11 +65,11 @@ npm --prefix infra/migrate-db run start -- DEV 18432 >> "$ARTIFACTS/migrations.l
 # Reuse application defaults, but never load a developer's site.conf, which may
 # contain database endpoints, cloud discovery, or authentication overrides.
 sed '/^include "site.conf"$/d' backend/conf/application.conf > "$E2E_RUNTIME_DIR/application.conf"
-cat backend/conf/e2e.conf >> "$E2E_RUNTIME_DIR/application.conf"
+cat "$E2E_DIR/setup/application.conf" >> "$E2E_RUNTIME_DIR/application.conf"
 backend/target/universal/stage/bin/pfi \
   -J-Xms256m -J-Xmx2g \
   -Dconfig.file="$E2E_RUNTIME_DIR/application.conf" \
-  -Dlogger.file="$REPO_DIR/backend/conf/e2e-logback.xml" \
+  -Dlogger.file="$E2E_DIR/setup/logback.xml" \
   -Dhttp.address=127.0.0.1 -Dhttp.port=19001 \
   -Dpidfile.path="$E2E_RUNTIME_DIR/backend.pid" \
   > "$ARTIFACTS/backend.log" 2>&1 &
@@ -93,12 +94,11 @@ wait_for_url http://127.0.0.1:19001/healthcheck "$BACKEND_PID"
 
 (
   cd frontend
-  export GIANT_BACKEND_URL=http://127.0.0.1:19001
-  exec node node_modules/vite/bin/vite.js --host 127.0.0.1 --port 3100 --strictPort
+  exec node node_modules/vite/bin/vite.js --config "$E2E_DIR/vite.config.mts"
 ) > "$ARTIFACTS/frontend.log" 2>&1 &
 FRONTEND_PID=$!
 wait_for_url http://127.0.0.1:3100 "$FRONTEND_PID"
 
 echo "Running Playwright against http://127.0.0.1:3100..."
-cd frontend
-npm run test:e2e -- "$@"
+cd "$E2E_DIR"
+npm run test:run -- "$@"

@@ -1,0 +1,20 @@
+{
+  "name": "giant-e2e-tests",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Cucumber scenarios run with Playwright against an isolated Giant instance.",
+  "scripts": {
+    "test": "./run.sh",
+    "test:run": "bddgen && playwright test",
+    "test:list": "bddgen && playwright test --list",
+    "typecheck": "tsc --noEmit",
+    "format:check": "prettier --check ."
+  },
+  "devDependencies": {
+    "@playwright/test": "1.63.0",
+    "@types/node": "24.10.0",
+    "playwright-bdd": "9.2.1",
+    "prettier": "3.2.4",
+    "typescript": "5.9.3"
+  }
+}
