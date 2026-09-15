@@ -1,4 +1,4 @@
-export function readableFileSize(bytes, fractionalDigits = 1) {
+export function readableFileSize(bytes: number, fractionalDigits = 1): string {
   const threshold = 1024;
   const units = ["B", "KiB", "MiB", "GiB", "TiB"];
 
