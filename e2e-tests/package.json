@@ -5,6 +5,7 @@
   "description": "Cucumber scenarios run with Playwright against an isolated Giant instance.",
   "scripts": {
     "test": "node run.mts",
+    "test:ui": "node run.mts --ui --ui-host=0.0.0.0 --ui-port=9323",
     "test:run": "bddgen && playwright test",
     "test:list": "bddgen && playwright test --list",
     "typecheck": "tsc --noEmit",
