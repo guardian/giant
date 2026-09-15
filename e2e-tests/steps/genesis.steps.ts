@@ -1,6 +1,11 @@
-import { Given, When, Then, expect } from "../fixtures";
+import { expect } from "@playwright/test";
+import { createBdd } from "playwright-bdd";
+import { test } from "../fixtures";
 
-Given("Giant has not been set up", async ({ page }) => {
+// Declared here rather than re-exported so IDE Cucumber plugins can index the steps.
+const { Given, When, Then } = createBdd(test);
+
+Given("a new install of Giant", async ({ page }) => {
   await page.goto("/");
   await expect(
     page.getByRole("heading", { name: "Create Genesis User" }),

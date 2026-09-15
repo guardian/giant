@@ -3,7 +3,7 @@ Feature: Set up the first Giant administrator
   Two-factor authentication is optional in the local test environment.
 
   Scenario: Create the genesis administrator without two-factor authentication
-    Given Giant has not been set up
+    Given a new install of Giant
     When I enter username "genesis-e2e", display name "Genesis E2E", and password "Genesis-e2e-password" and continue
     Then I am offered two-factor authentication setup
     When I skip two-factor authentication
