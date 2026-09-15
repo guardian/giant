@@ -1,6 +1,6 @@
 import React from "react";
 import PropTypes from "prop-types";
-import QRCode from "qrcode.react";
+import { QRCodeCanvas as QRCode } from "qrcode.react";
 import { ProgressAnimation } from "../UtilComponents/ProgressAnimation";
 
 export class Setup2Fa extends React.Component {

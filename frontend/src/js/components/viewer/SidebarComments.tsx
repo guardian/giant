@@ -1,9 +1,9 @@
 import React, { useState } from "react";
 import { useDispatch } from "react-redux";
 import hdate from "human-date";
-import CommentIcon from "react-icons/lib/md/comment";
-import ExpandLess from "react-icons/lib/md/expand-less";
-import ExpandMore from "react-icons/lib/md/expand-more";
+import { MdComment } from "react-icons/md";
+import { MdExpandLess } from "react-icons/md";
+import { MdExpandMore } from "react-icons/md";
 import ModalAction from "../UtilComponents/ModalAction";
 
 import { CommentData, Resource } from "../../types/Resource";
@@ -88,7 +88,7 @@ export function SidebarComments({
           className="sidebar-comments__header"
           onClick={() => setCollapsed(!collapsed)}
         >
-          {collapsed ? <ExpandMore /> : <ExpandLess />}
+          {collapsed ? <MdExpandMore /> : <MdExpandLess />}
           Comments{comments.length > 0 ? ` (${comments.length})` : ""}
         </span>
       </div>
@@ -144,7 +144,7 @@ export function SidebarComments({
               className="btn sidebar-comments__add-btn"
               onClick={() => setAdding(true)}
             >
-              <CommentIcon /> Add comment
+              <MdComment /> Add comment
             </button>
           )}
         </>

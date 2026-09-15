@@ -1,14 +1,14 @@
-import DocumentIcon from "react-icons/lib/ti/document";
-import PdfIcon from "react-icons/lib/md/picture-as-pdf";
-import MovieIcon from "react-icons/lib/md/movie";
-import AudioIcon from "react-icons/lib/md/mic";
-import ImageIcon from "react-icons/lib/md/image";
-import GridIcon from "react-icons/lib/md/grid-on";
-import SlideshowIcon from "react-icons/lib/md/slideshow";
-import ArchiveIcon from "react-icons/lib/md/archive";
-import WebIcon from "react-icons/lib/md/web";
-import EmailIcon from "react-icons/lib/md/email";
-import CodeIcon from "react-icons/lib/md/code";
+import { TiDocument } from "react-icons/ti";
+import { MdPictureAsPdf } from "react-icons/md";
+import { MdMovie } from "react-icons/md";
+import { MdMic } from "react-icons/md";
+import { MdImage } from "react-icons/md";
+import { MdGridOn } from "react-icons/md";
+import { MdSlideshow } from "react-icons/md";
+import { MdArchive } from "react-icons/md";
+import { MdWeb } from "react-icons/md";
+import { MdEmail } from "react-icons/md";
+import { MdCode } from "react-icons/md";
 import React from "react";
 
 type IconInfo = {
@@ -19,23 +19,23 @@ type IconInfo = {
 // Maps file categories (from the backend's MimeDetails.categoryFor) to icons.
 // Valid categories: document, pdf, video, audio, image, spreadsheet, presentation, archive, web, email, technical
 const categoryIconMap: Record<string, IconInfo> = {
-  pdf: { icon: PdfIcon, className: "search-result__icon-pdf" },
-  video: { icon: MovieIcon, className: "search-result__icon-video" },
-  audio: { icon: AudioIcon, className: "search-result__icon-audio" },
-  image: { icon: ImageIcon, className: "search-result__icon-image" },
-  spreadsheet: { icon: GridIcon, className: "search-result__icon-spreadsheet" },
+  pdf: { icon: MdPictureAsPdf, className: "search-result__icon-pdf" },
+  video: { icon: MdMovie, className: "search-result__icon-video" },
+  audio: { icon: MdMic, className: "search-result__icon-audio" },
+  image: { icon: MdImage, className: "search-result__icon-image" },
+  spreadsheet: { icon: MdGridOn, className: "search-result__icon-spreadsheet" },
   presentation: {
-    icon: SlideshowIcon,
+    icon: MdSlideshow,
     className: "search-result__icon-presentation",
   },
-  archive: { icon: ArchiveIcon, className: "search-result__icon-archive" },
-  web: { icon: WebIcon, className: "search-result__icon-web" },
-  email: { icon: EmailIcon, className: "search-result__icon-email" },
-  technical: { icon: CodeIcon, className: "search-result__icon-technical" },
+  archive: { icon: MdArchive, className: "search-result__icon-archive" },
+  web: { icon: MdWeb, className: "search-result__icon-web" },
+  email: { icon: MdEmail, className: "search-result__icon-email" },
+  technical: { icon: MdCode, className: "search-result__icon-technical" },
 };
 
 const defaultIcon: IconInfo = {
-  icon: DocumentIcon,
+  icon: TiDocument,
   className: "search-result__icon-document",
 };
 

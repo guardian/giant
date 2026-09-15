@@ -1,8 +1,8 @@
 import React from "react";
 import PropTypes from "prop-types";
 import SelectionPopover from "../UtilComponents/SelectionPopover";
-import CommentIcon from "react-icons/lib/md/comment";
-import SearchIcon from "react-icons/lib/md/search";
+import { MdComment } from "react-icons/md";
+import { MdSearch } from "react-icons/md";
 import history from "../../util/history";
 import buildLink from "../../util/buildLink";
 
@@ -70,14 +70,14 @@ class TextPopoverUnconnected extends React.Component {
                 onClick={this.search}
                 title="Search in Giant"
               >
-                <SearchIcon className="textpopover-icon" />
+                <MdSearch className="textpopover-icon" />
               </button>
               <button
                 className="btn"
                 onClick={this.addComment}
                 title="Add comment"
               >
-                <CommentIcon className="textpopover-icon" />
+                <MdComment className="textpopover-icon" />
               </button>
             </div>
           </div>

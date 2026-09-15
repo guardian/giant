@@ -17,7 +17,7 @@ import { getMyPermissions } from "../../actions/users/getMyPermissions";
 import { getCollections } from "../../actions/collections/getCollections";
 import { addCollectionsToUser } from "../../actions/users/addCollectionToUser";
 import { setUserPermissions } from "../../actions/users/setUserPermissions";
-import MdDone from "react-icons/lib/md/done";
+import { MdDone } from "react-icons/md";
 
 type Props = ReturnType<typeof mapStateToProps> &
   ReturnType<typeof mapDispatchToProps>;

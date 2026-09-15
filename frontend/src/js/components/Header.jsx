@@ -1,10 +1,10 @@
 import React from "react";
 import PropTypes from "prop-types";
-import SearchIcon from "react-icons/lib/md/search";
-import Settings from "react-icons/lib/md/settings";
-import FolderIcon from "react-icons/lib/md/folder-open";
-import BookIcon from "react-icons/lib/fa/book";
-import DatabaseIcon from "react-icons/lib/fa/database";
+import { MdSearch } from "react-icons/md";
+import { MdSettings } from "react-icons/md";
+import { MdFolderOpen } from "react-icons/md";
+import { FaBook } from "react-icons/fa";
+import { FaDatabase } from "react-icons/fa";
 import { SearchLink, NavSearchLink } from "./UtilComponents/SearchLink";
 
 function calculateActive(paths) {
@@ -72,7 +72,7 @@ export default class Header extends React.Component {
         activePaths={["/guide"]}
         title="Giant user guide"
       >
-        <BookIcon className="main-header__item__icon" />
+        <FaBook className="main-header__item__icon" />
       </HeaderSearchLink>
     );
   }
@@ -84,7 +84,7 @@ export default class Header extends React.Component {
         activePaths={["/settings"]}
         title="Settings"
       >
-        <Settings className="main-header__item__icon" />
+        <MdSettings className="main-header__item__icon" />
       </HeaderSearchLink>
     );
   }
@@ -93,15 +93,15 @@ export default class Header extends React.Component {
     return (
       <React.Fragment>
         <HeaderSearchLink to="/search" activePaths={["/search"]}>
-          <SearchIcon className="main-header__item__icon" />
+          <MdSearch className="main-header__item__icon" />
           Search
         </HeaderSearchLink>
         <HeaderSearchLink to="/collections" activePaths={this.collectionsPaths}>
-          <DatabaseIcon className="main-header__item__icon" />
+          <FaDatabase className="main-header__item__icon" />
           Datasets
         </HeaderSearchLink>
         <HeaderSearchLink to="/workspaces" activePaths={["/workspaces"]}>
-          <FolderIcon className="main-header__item__icon" />
+          <MdFolderOpen className="main-header__item__icon" />
           Workspaces
         </HeaderSearchLink>
       </React.Fragment>

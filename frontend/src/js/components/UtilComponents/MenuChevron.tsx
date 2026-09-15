@@ -1,13 +1,13 @@
-import React, { ReactSVGElement } from "react";
-import ChevronIcon from "react-icons/lib/md/expand-more";
+import React from "react";
+import { MdExpandMore } from "react-icons/md";
 
 type MenuChevronPropTypes = {
   expanded: boolean;
-  onClick: (e: React.MouseEvent<ReactSVGElement>) => void;
+  onClick: (e: React.MouseEvent<SVGElement>) => void;
 };
 
 export const MenuChevron = (props: MenuChevronPropTypes) => (
-  <ChevronIcon
+  <MdExpandMore
     onClick={props.onClick}
     className={
       props.expanded
