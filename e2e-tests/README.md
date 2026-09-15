@@ -6,7 +6,7 @@ This standalone npm package owns the scenarios, test dependencies, browser confi
 
 ## Install and run
 
-With Docker Compose, Java, sbt and Node installed, run from the repository root:
+With Docker Compose 2.24.4 or later, Java, sbt and Node installed, run from the repository root:
 
 ```sh
 npm ci --prefix frontend
@@ -49,6 +49,8 @@ The genesis scenario creates the first account through the UI, skips optional 2F
 ## Infrastructure and isolation
 
 `run.sh` builds a packaged backend, starts fresh Neo4j, PostgreSQL, Elasticsearch and Garage containers, creates storage buckets, runs PostgreSQL migrations, and starts the backend and Vite. It reuses the application's default configuration and Garage configuration but excludes the developer's `backend/conf/site.conf`.
+
+`docker-compose.yml` extends the root Compose services so image versions and shared settings stay in one place. It replaces published ports and clears fixed container names to keep the test stack isolated.
 
 E2E ports: frontend 3100, backend 19001, cluster 11234, Neo4j 17687, PostgreSQL 18432, Elasticsearch 19200 and Garage 13900. Development containers and volumes are not used. Each invocation owns a unique Compose project and removes only its own volumes, including after failures. Run one E2E suite at a time on a host.
 

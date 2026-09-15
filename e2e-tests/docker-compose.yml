@@ -1,15 +1,18 @@
 # Disposable services for run.sh; never uses development volumes.
 services:
   neo4j:
-    image: neo4j:2026.02.2
+    extends:
+      file: ../docker-compose.yml
+      service: neo4j
+    container_name: !reset null
     environment:
-      NEO4J_AUTH: neo4j/password
+      NEO4J_dbms_connector_bolt_advertised__address: !reset null
       NEO4J_server_memory_heap_initial__size: 256m
       NEO4J_server_memory_heap_max__size: 512m
       NEO4J_server_memory_pagecache_size: 256m
-    ports:
+    ports: !override
       - "127.0.0.1:17687:7687"
-    volumes:
+    volumes: !override
       - neo4j:/data
     healthcheck:
       test: ["CMD", "cypher-shell", "-u", "neo4j", "-p", "password", "RETURN 1"]
@@ -18,15 +21,14 @@ services:
       retries: 60
 
   elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.2
+    extends:
+      file: ../docker-compose.yml
+      service: elasticsearch
+    container_name: !reset null
     environment:
-      discovery.type: single-node
-      xpack.security.enabled: "false"
       ES_JAVA_OPTS: "-Xms512m -Xmx512m"
-    ports:
+    ports: !override
       - "127.0.0.1:19200:9200"
-    volumes:
-      - elasticsearch:/usr/share/elasticsearch/data
     healthcheck:
       test:
         [
@@ -40,15 +42,11 @@ services:
       retries: 60
 
   postgres:
-    image: postgres:15.3
-    environment:
-      POSTGRES_USER: giant_master
-      POSTGRES_PASSWORD: giant
-      POSTGRES_DB: giant
-    ports:
+    extends:
+      file: ../docker-compose.yml
+      service: postgres
+    ports: !override
       - "127.0.0.1:18432:5432"
-    volumes:
-      - postgres:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U giant_master -d giant"]
       interval: 5s
@@ -56,18 +54,13 @@ services:
       retries: 30
 
   garage:
-    image: dxflrs/garage:v2.3.0
-    environment:
-      GARAGE_DEFAULT_ACCESS_KEY: garage-user
-      GARAGE_DEFAULT_SECRET_KEY: reallyverysecret
-      GARAGE_DEFAULT_BUCKET: unused-bucket
-    ports:
+    extends:
+      file: ../docker-compose.yml
+      service: garage
+    container_name: !reset null
+    restart: "no"
+    ports: !override
       - "127.0.0.1:13900:3900"
-    volumes:
-      - ../infra/garage/garage.toml:/etc/garage.toml:ro
-      - garage-data:/var/lib/garage/data
-      - garage-meta:/var/lib/garage/meta
-    command: /garage server --single-node --default-bucket
     healthcheck:
       test: ["CMD", "/garage", "bucket", "info", "unused-bucket"]
       interval: 5s
@@ -77,6 +70,6 @@ services:
 volumes:
   neo4j:
   elasticsearch:
-  postgres:
+  postgres-data:
   garage-data:
   garage-meta:
