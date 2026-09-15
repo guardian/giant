@@ -1,4 +1,4 @@
-# Disposable services for run.sh; never uses development volumes.
+# Disposable services for run.mts; never uses development volumes.
 services:
   neo4j:
     extends:

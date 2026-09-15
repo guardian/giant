@@ -10,6 +10,7 @@
     "types": ["node"],
   },
   "include": [
+    "run.mts",
     "playwright.config.ts",
     "vite.config.mts",
     "fixtures.ts",

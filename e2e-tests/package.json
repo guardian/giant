@@ -4,7 +4,7 @@
   "private": true,
   "description": "Cucumber scenarios run with Playwright against an isolated Giant instance.",
   "scripts": {
-    "test": "./run.sh",
+    "test": "node run.mts",
     "test:run": "bddgen && playwright test",
     "test:list": "bddgen && playwright test --list",
     "typecheck": "tsc --noEmit",
@@ -15,6 +15,7 @@
     "@types/node": "24.10.0",
     "playwright-bdd": "9.2.1",
     "prettier": "3.2.4",
-    "typescript": "5.9.3"
+    "typescript": "5.9.3",
+    "zx": "8.8.5"
   }
 }
