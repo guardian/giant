@@ -17,7 +17,7 @@ import { Collection } from "../../types/Collection";
 import { TreeEntry, TreeNode } from "../../types/Tree";
 import { getWorkspace } from "../../actions/workspaces/getWorkspace";
 import ShareWorkspaceModal from "./ShareWorkspaceModal";
-import { MdSearch as SearchIcon } from "react-icons/md";
+import { MdSearch } from "react-icons/md";
 import TakeOwnershipOfWorkspaceModal from "./TakeOwnershipOfWorkspaceModal";
 import { takeOwnershipOfWorkspace } from "../../actions/workspaces/takeOwnershipOfWorkspace";
 import { CaptureFromUrl } from "../Uploads/CaptureFromUrl";
@@ -148,7 +148,7 @@ export default function WorkspaceSummary({
         title="Search workspace"
         aria-label={`Search workspace ${workspace.name}`}
       >
-        <SearchIcon style={{ marginRight: "3px", marginBottom: "1px" }} />
+        <MdSearch style={{ marginRight: "3px", marginBottom: "1px" }} />
         Search workspace
       </button>
       <UploadFiles

@@ -2,9 +2,9 @@ import React, { useState } from "react";
 import { Pagination } from "semantic-ui-react";
 import sortBy from "lodash/sortBy";
 
-import { TiDocument as DocumentIcon } from "react-icons/ti";
-import { MdEmail as EmailIcon } from "react-icons/md";
-import { MdFolderOpen as FolderIcon } from "react-icons/md";
+import { TiDocument } from "react-icons/ti";
+import { MdEmail } from "react-icons/md";
+import { MdFolderOpen } from "react-icons/md";
 
 import { Resource, BasicResource } from "../../types/Resource";
 import { getLastPart } from "../../util/stringUtils";
@@ -15,11 +15,11 @@ import { SearchLink } from "../UtilComponents/SearchLink";
 export function renderIcon(resource: BasicResource) {
   switch (resource.type) {
     case "directory":
-      return <FolderIcon className="file-browser__icon" />;
+      return <MdFolderOpen className="file-browser__icon" />;
     case "file":
-      return <DocumentIcon className="file-browser__icon" />;
+      return <TiDocument className="file-browser__icon" />;
     case "email":
-      return <EmailIcon className="file-browser__icon" />;
+      return <MdEmail className="file-browser__icon" />;
     default:
       return null;
   }

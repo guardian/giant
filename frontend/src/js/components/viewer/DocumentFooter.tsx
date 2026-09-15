@@ -1,9 +1,9 @@
 import React, { FC, useCallback, useEffect, useMemo, useRef } from "react";
 import { useSelector } from "react-redux";
-import { FaUndo as RotateLeft } from "react-icons/fa";
-import { FaRedo as RotateRight } from "react-icons/fa";
-import { FaSearchPlus as ZoomInIcon } from "react-icons/fa";
-import { FaSearchMinus as ZoomOutIcon } from "react-icons/fa";
+import { FaUndo } from "react-icons/fa";
+import { FaRedo } from "react-icons/fa";
+import { FaSearchPlus } from "react-icons/fa";
+import { FaSearchMinus } from "react-icons/fa";
 
 import PreviewSwitcher from "./PreviewSwitcher";
 import { DocNavButton } from "./DocNavButton";
@@ -171,22 +171,22 @@ export const DocumentFooter: FC<DocumentFooterProps> = ({
             />
           )}
           <button onClick={pageViewControls.zoomIn} title="Zoom in">
-            <ZoomInIcon />
+            <FaSearchPlus />
           </button>
           <button onClick={pageViewControls.zoomOut} title="Zoom out">
-            <ZoomOutIcon />
+            <FaSearchMinus />
           </button>
           <button
             onClick={pageViewControls.rotateAnticlockwise}
             title="Rotate anti-clockwise"
           >
-            <RotateLeft />
+            <FaUndo />
           </button>
           <button
             onClick={pageViewControls.rotateClockwise}
             title="Rotate clockwise"
           >
-            <RotateRight />
+            <FaRedo />
           </button>
         </span>
       )}

@@ -1,5 +1,5 @@
 import React from "react";
-import { MdExpandMore as ChevronIcon } from "react-icons/md";
+import { MdExpandMore } from "react-icons/md";
 
 type MenuChevronPropTypes = {
   expanded: boolean;
@@ -7,7 +7,7 @@ type MenuChevronPropTypes = {
 };
 
 export const MenuChevron = (props: MenuChevronPropTypes) => (
-  <ChevronIcon
+  <MdExpandMore
     onClick={props.onClick}
     className={
       props.expanded

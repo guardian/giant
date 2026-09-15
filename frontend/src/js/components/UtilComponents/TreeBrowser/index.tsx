@@ -1,6 +1,6 @@
 import React, { SyntheticEvent } from "react";
-import { MdExpandLess as UpwardPointingChevron } from "react-icons/md";
-import { MdExpandMore as DownwardPointingChevron } from "react-icons/md";
+import { MdExpandLess } from "react-icons/md";
+import { MdExpandMore } from "react-icons/md";
 
 import Node from "./Node";
 import Leaf from "./Leaf";
@@ -340,9 +340,9 @@ export default class TreeBrowser<T> extends React.Component<Props<T>, State> {
                       {this.props.columnsConfig.sortColumn === c.name ? (
                         <span className="file-browser__sort-tip">
                           {this.props.columnsConfig.sortDescending ? (
-                            <DownwardPointingChevron />
+                            <MdExpandMore />
                           ) : (
-                            <UpwardPointingChevron />
+                            <MdExpandLess />
                           )}
                         </span>
                       ) : (

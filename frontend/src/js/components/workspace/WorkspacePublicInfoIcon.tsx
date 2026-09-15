@@ -1,5 +1,5 @@
 import { Popup } from "semantic-ui-react";
-import { MdInfoOutline as InfoIcon } from "react-icons/md";
+import { MdInfoOutline } from "react-icons/md";
 import React from "react";
 
 export function WorkspacePublicInfoIcon() {
@@ -10,7 +10,7 @@ export function WorkspacePublicInfoIcon() {
   return (
     <Popup
       content={publicExplainer}
-      trigger={<InfoIcon className="info-icon" data-effect="solid" />}
+      trigger={<MdInfoOutline className="info-icon" data-effect="solid" />}
     />
   );
 }

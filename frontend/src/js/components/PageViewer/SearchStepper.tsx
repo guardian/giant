@@ -1,6 +1,6 @@
 import React, { FC } from "react";
-import { FaChevronLeft as ChevronLeft } from "react-icons/fa";
-import { FaChevronRight as ChevronRight } from "react-icons/fa";
+import { FaChevronLeft } from "react-icons/fa";
+import { FaChevronRight } from "react-icons/fa";
 import styles from "./SearchStepper.module.css";
 
 // unfortunately in GiantState q is just a string so we have to do all this to tease out the type and format it nicely
@@ -59,10 +59,10 @@ export const SearchStepper: FC<SearchStepperProps> = ({
         onClick={onPrevious}
         title="Previous match"
       >
-        <ChevronLeft />
+        <FaChevronLeft />
       </button>
       <button className={styles.navButton} onClick={onNext} title="Next match">
-        <ChevronRight />
+        <FaChevronRight />
       </button>
     </div>
   );

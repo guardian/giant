@@ -2,8 +2,8 @@ import React, { useState } from "react";
 import { Menu } from "semantic-ui-react";
 import { Resource, BasicResource } from "../../types/Resource";
 import { getLastPart } from "../../util/stringUtils";
-import { TiDocument as DocumentIcon } from "react-icons/ti";
-import { MdEmail as EmailIcon } from "react-icons/md";
+import { TiDocument } from "react-icons/ti";
+import { MdEmail } from "react-icons/md";
 import TreeBrowser from "../UtilComponents/TreeBrowser";
 import { ResourceBreadcrumbs } from "../ResourceBreadcrumbs";
 import DetectClickOutside from "../UtilComponents/DetectClickOutside";
@@ -86,9 +86,9 @@ function renderIcon(resource: BasicResource) {
 
   switch (resource.type) {
     case "file":
-      return <DocumentIcon className="file-browser__icon" />;
+      return <TiDocument className="file-browser__icon" />;
     case "email":
-      return <EmailIcon className="file-browser__icon" />;
+      return <MdEmail className="file-browser__icon" />;
     default:
       return null;
   }

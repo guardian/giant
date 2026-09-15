@@ -1,8 +1,8 @@
 import React from "react";
 import PropTypes from "prop-types";
-import { MdWarning as WarningIcon } from "react-icons/md";
-import { MdError as ErrorIcon } from "react-icons/md";
-import { MdClose as CloseIcon } from "react-icons/md";
+import { MdWarning } from "react-icons/md";
+import { MdError } from "react-icons/md";
+import { MdClose } from "react-icons/md";
 
 import { connect } from "react-redux";
 import { bindActionCreators } from "redux";
@@ -83,12 +83,12 @@ class ProblemPopup extends React.Component {
     return (
       <div className={"error-bar__item error-bar__" + this.props.type}>
         {this.props.type === "error" ? (
-          <ErrorIcon className="error-bar__icon" />
+          <MdError className="error-bar__icon" />
         ) : (
-          <WarningIcon className="error-bar__icon" />
+          <MdWarning className="error-bar__icon" />
         )}
         <span className="error-bar__text">{this.props.message}</span>
-        <CloseIcon className="error-bar__icon" onClick={this.closeClicked} />
+        <MdClose className="error-bar__icon" onClick={this.closeClicked} />
       </div>
     );
   }

@@ -7,8 +7,8 @@ import React, {
   useMemo,
   useState,
 } from "react";
-import { FaChevronLeft as ChevronLeft } from "react-icons/fa";
-import { FaChevronRight as ChevronRight } from "react-icons/fa";
+import { FaChevronLeft } from "react-icons/fa";
+import { FaChevronRight } from "react-icons/fa";
 import styles from "./FindInput.module.css";
 import { HighlightForSearchNavigation } from "./model";
 import { Loader } from "semantic-ui-react";
@@ -128,14 +128,14 @@ export const FindInput = forwardRef<HTMLInputElement, FindInputProps>(
           className={styles.navButton}
           title="Previous match in document (shift enter)"
         >
-          <ChevronLeft />
+          <FaChevronLeft />
         </button>
         <button
           onClick={jumpToNextFindHit}
           className={styles.navButton}
           title="Next match in document (enter)"
         >
-          <ChevronRight />
+          <FaChevronRight />
         </button>
         <div
           data-visible={showWarning || null}

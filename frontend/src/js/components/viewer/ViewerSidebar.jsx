@@ -9,8 +9,8 @@ import { EmailMetadata } from "./EmailMetadata";
 import { connect } from "react-redux";
 import { bindActionCreators } from "redux";
 
-import { MdNavigateNext as NextIcon } from "react-icons/md";
-import { MdNavigateBefore as PreviousIcon } from "react-icons/md";
+import { MdNavigateNext } from "react-icons/md";
+import { MdNavigateBefore } from "react-icons/md";
 
 import { getResource } from "../../actions/resources/getResource";
 import { permissionsPropType } from "../../types/User";
@@ -84,7 +84,7 @@ class ViewerSidebar extends React.Component {
                 this.setState({ collapsed: !this.state.collapsed })
               }
             >
-              {this.state.collapsed ? <NextIcon /> : <PreviousIcon />}
+              {this.state.collapsed ? <MdNavigateNext /> : <MdNavigateBefore />}
             </button>
           </div>
           {resource.type === "blob" ? (

@@ -1,6 +1,6 @@
 import React from "react";
 import PropTypes from "prop-types";
-import { MdSearch as SearchIcon } from "react-icons/md";
+import { MdSearch } from "react-icons/md";
 import { Link } from "react-router-dom";
 import buildLink from "../../util/buildLink";
 
@@ -56,7 +56,7 @@ class HoverSearchLinkUnconnected extends React.Component {
         title={this.props.title}
       >
         <div className={wrapperClass}>
-          <SearchIcon className={iconClass} />
+          <MdSearch className={iconClass} />
         </div>
         {this.props.display ? this.props.display : this.props.q}
       </Link>

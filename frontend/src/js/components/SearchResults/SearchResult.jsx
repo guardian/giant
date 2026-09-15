@@ -1,6 +1,6 @@
 import React from "react";
 import PropTypes from "prop-types";
-import { MdEmail as EmailIcon } from "react-icons/md";
+import { MdEmail } from "react-icons/md";
 import * as R from "ramda";
 import md5 from "md5";
 import { SearchLink } from "../UtilComponents/SearchLink";
@@ -84,7 +84,7 @@ export class SearchResult extends React.Component {
         return (
           <React.Fragment>
             <div>
-              <EmailIcon className="search-result__icon-email" />
+              <MdEmail className="search-result__icon-email" />
             </div>
             <div>
               <SearchLink

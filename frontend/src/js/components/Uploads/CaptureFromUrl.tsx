@@ -1,4 +1,4 @@
-import { MdPublic as MdGlobeIcon } from "react-icons/md";
+import { MdPublic } from "react-icons/md";
 
 import React, { FormEvent, useEffect, useMemo, useState } from "react";
 import LanguagePicker from "./LanguagePicker";
@@ -204,7 +204,7 @@ export const CaptureFromUrl = connect(
           className="btn file-upload__button"
           onClick={() => setIsOpen(true)}
         >
-          <MdGlobeIcon className="file-upload__icon" />
+          <MdPublic className="file-upload__icon" />
           Capture from&nbsp;URL
         </button>
       )}

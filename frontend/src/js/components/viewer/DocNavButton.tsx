@@ -1,5 +1,5 @@
 import React, { FC } from "react";
-import { MdPlayArrow as PlayArrow } from "react-icons/md";
+import { MdPlayArrow } from "react-icons/md";
 
 type DocNavButtonProps = {
   title: string;
@@ -26,7 +26,7 @@ export const DocNavButton: FC<DocNavButtonProps> = ({
       role="button"
       tabIndex={isActive ? 0 : -1}
     >
-      <PlayArrow />
+      <MdPlayArrow />
     </span>
   );
 };

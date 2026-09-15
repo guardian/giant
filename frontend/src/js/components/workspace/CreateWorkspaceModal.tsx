@@ -1,6 +1,6 @@
 import React from "react";
 import Select from "react-select";
-import { MdInfoOutline as InfoIcon } from "react-icons/md";
+import { MdInfoOutline } from "react-icons/md";
 import ReactTooltip from "react-tooltip";
 
 import { connect } from "react-redux";
@@ -83,7 +83,7 @@ class CreateWorkspaceModalUnconnected extends React.Component<Props, State> {
         <div className="form__row">
           <label className="form__label" htmlFor="#tagColor">
             Tag Colour
-            <InfoIcon
+            <MdInfoOutline
               className="info-icon"
               data-tip={tagExplain}
               data-effect="solid"

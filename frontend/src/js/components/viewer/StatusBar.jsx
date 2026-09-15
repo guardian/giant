@@ -2,10 +2,10 @@ import React from "react";
 import PropTypes from "prop-types";
 import { resourcePropType } from "../../types/Resource";
 import PreviewSwitcher from "./PreviewSwitcher";
-import { MdArrowDownward as DownIcon } from "react-icons/md";
-import { MdNavigateBefore as PreviousIcon } from "react-icons/md";
-import { MdNavigateNext as NextIcon } from "react-icons/md";
-import { MdArrowUpward as UpIcon } from "react-icons/md";
+import { MdArrowDownward } from "react-icons/md";
+import { MdNavigateBefore } from "react-icons/md";
+import { MdNavigateNext } from "react-icons/md";
+import { MdArrowUpward } from "react-icons/md";
 import HighlightToggle from "./HighlightToggle";
 import { keyboardShortcuts } from "../../util/keyboardShortcuts";
 import { KeyboardShortcut } from "../UtilComponents/KeyboardShortcut";
@@ -127,11 +127,11 @@ class StatusBar extends React.Component {
   renderSearchResultNavigation = () => {
     const buttons = (
       <React.Fragment>
-        <UpIcon
+        <MdArrowUpward
           onClick={this.previousSearchHighlight}
           className="document__status-icon"
         />
-        <DownIcon
+        <MdArrowDownward
           onClick={this.nextSearchHighlight}
           className="document__status-icon"
         />
@@ -185,7 +185,7 @@ class StatusBar extends React.Component {
         />
         <span>
           <NavButton
-            IconElement={PreviousIcon}
+            IconElement={MdNavigateBefore}
             title={`Previous result from search (${keyboardShortcuts.previousResult})`}
             onClick={this.props.previousFn}
           />
@@ -204,7 +204,7 @@ class StatusBar extends React.Component {
             resource={this.props.resource}
           />
           <NavButton
-            IconElement={NextIcon}
+            IconElement={MdNavigateNext}
             title={`Next result from search (${keyboardShortcuts.nextResult})`}
             onClick={this.props.nextFn}
           />

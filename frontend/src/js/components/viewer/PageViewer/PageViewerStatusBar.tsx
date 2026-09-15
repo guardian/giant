@@ -1,9 +1,9 @@
 import React from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { MdArrowDownward as DownIcon } from "react-icons/md";
-import { MdNavigateBefore as PreviousIcon } from "react-icons/md";
-import { MdNavigateNext as NextIcon } from "react-icons/md";
-import { MdArrowUpward as UpIcon } from "react-icons/md";
+import { MdArrowDownward } from "react-icons/md";
+import { MdNavigateBefore } from "react-icons/md";
+import { MdNavigateNext } from "react-icons/md";
+import { MdArrowUpward } from "react-icons/md";
 import { keyboardShortcuts } from "../../../util/keyboardShortcuts";
 import { KeyboardShortcut } from "../../UtilComponents/KeyboardShortcut";
 import { navigateToHighlight } from "../../../actions/pages/navigateToHighlight";
@@ -49,7 +49,7 @@ export default function PageViewerStatusBar({
           disabled={previousDocumentFn === undefined}
           onClick={previousDocumentFn}
         >
-          <PreviousIcon /> Previous document
+          <MdNavigateBefore /> Previous document
         </button>
       ) : (
         <span />
@@ -61,7 +61,7 @@ export default function PageViewerStatusBar({
           title={`Previous highlight (${keyboardShortcuts.previousHighlight})`}
           onClick={() => dispatch(navigateToHighlight(pages, "previous"))}
         >
-          <UpIcon /> Previous highlight
+          <MdArrowUpward /> Previous highlight
         </button>
 
         <button
@@ -69,7 +69,7 @@ export default function PageViewerStatusBar({
           title={`Next highlight (${keyboardShortcuts.nextResult})`}
           onClick={() => dispatch(navigateToHighlight(pages, "next"))}
         >
-          Next highlight <DownIcon />
+          Next highlight <MdArrowDownward />
         </button>
       </span>
 
@@ -80,7 +80,7 @@ export default function PageViewerStatusBar({
           disabled={nextDocumentFn === undefined}
           onClick={nextDocumentFn}
         >
-          Next document <NextIcon />
+          Next document <MdNavigateNext />
         </button>
       ) : (
         <span />
