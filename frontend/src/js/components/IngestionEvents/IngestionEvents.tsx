@@ -174,7 +174,7 @@ const columns: Array<EuiBasicTableColumn<BlobStatus>> = [
           <EuiIconTip
             aria-label="Info"
             size="m"
-            type="iInCircle"
+            type="info"
             color="primary"
             content={
               "This file has been ingested more than once so ingestion run time may not be accurate."
