@@ -1,14 +1,14 @@
-import DocumentIcon from "react-icons/lib/ti/document";
-import PdfIcon from "react-icons/lib/md/picture-as-pdf";
-import MovieIcon from "react-icons/lib/md/movie";
-import AudioIcon from "react-icons/lib/md/mic";
-import ImageIcon from "react-icons/lib/md/image";
-import GridIcon from "react-icons/lib/md/grid-on";
-import SlideshowIcon from "react-icons/lib/md/slideshow";
-import ArchiveIcon from "react-icons/lib/md/archive";
-import WebIcon from "react-icons/lib/md/web";
-import EmailIcon from "react-icons/lib/md/email";
-import CodeIcon from "react-icons/lib/md/code";
+import { TiDocument as DocumentIcon } from "react-icons/ti";
+import { MdPictureAsPdf as PdfIcon } from "react-icons/md";
+import { MdMovie as MovieIcon } from "react-icons/md";
+import { MdMic as AudioIcon } from "react-icons/md";
+import { MdImage as ImageIcon } from "react-icons/md";
+import { MdGridOn as GridIcon } from "react-icons/md";
+import { MdSlideshow as SlideshowIcon } from "react-icons/md";
+import { MdArchive as ArchiveIcon } from "react-icons/md";
+import { MdWeb as WebIcon } from "react-icons/md";
+import { MdEmail as EmailIcon } from "react-icons/md";
+import { MdCode as CodeIcon } from "react-icons/md";
 import React from "react";
 
 type IconInfo = {

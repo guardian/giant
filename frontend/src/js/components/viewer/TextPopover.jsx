@@ -1,8 +1,8 @@
 import React from "react";
 import PropTypes from "prop-types";
 import SelectionPopover from "../UtilComponents/SelectionPopover";
-import CommentIcon from "react-icons/lib/md/comment";
-import SearchIcon from "react-icons/lib/md/search";
+import { MdComment as CommentIcon } from "react-icons/md";
+import { MdSearch as SearchIcon } from "react-icons/md";
 import history from "../../util/history";
 import buildLink from "../../util/buildLink";
 

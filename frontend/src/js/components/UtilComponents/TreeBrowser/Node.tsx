@@ -1,4 +1,4 @@
-import React, { DragEvent, ReactSVGElement } from "react";
+import React, { DragEvent } from "react";
 
 import { MenuChevron } from "../MenuChevron";
 import Leaf from "./Leaf";
@@ -135,7 +135,7 @@ export default class Node<T> extends React.Component<Props<T>, State> {
     }
   };
 
-  onClickMenuChevron = (e: React.MouseEvent<ReactSVGElement>) => {
+  onClickMenuChevron = (e: React.MouseEvent<SVGElement>) => {
     e.stopPropagation();
 
     this.toggleExpanded(e.metaKey, e.shiftKey);

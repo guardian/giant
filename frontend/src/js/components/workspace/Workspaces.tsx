@@ -25,7 +25,7 @@ import { getCollections } from "../../actions/collections/getCollections";
 import { setNodeAsCollapsed } from "../../actions/workspaces/setNodeAsCollapsed";
 import { setNodeAsExpanded } from "../../actions/workspaces/setNodeAsExpanded";
 import { listUsers } from "../../actions/users/listUsers";
-import DocumentIcon from "react-icons/lib/ti/document";
+import { TiDocument as DocumentIcon } from "react-icons/ti";
 import { Icon, Loader, Menu, Popup } from "semantic-ui-react";
 import WorkspaceSummary from "./WorkspaceSummary";
 import {
@@ -86,7 +86,7 @@ import {
   EuiText,
   EuiToolTip,
 } from "@elastic/eui";
-import MdGlobeIcon from "react-icons/lib/md/public";
+import { MdPublic as MdGlobeIcon } from "react-icons/md";
 import { FromNowDurationText } from "../UtilComponents/FromNowDurationText";
 import { DroppedFilesInfo } from "../Uploads/UploadFiles";
 import { createWarning } from "../../actions/problems";

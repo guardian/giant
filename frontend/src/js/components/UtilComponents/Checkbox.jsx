@@ -1,9 +1,9 @@
 import React from "react";
 import PropTypes from "prop-types";
 
-import BlankCheckboxIcon from "react-icons/lib/md/check-box-outline-blank";
-import CheckIcon from "react-icons/lib/md/check";
-import IndeterminateCheckMinus from "react-icons/lib/md/remove";
+import { MdCheckBoxOutlineBlank as BlankCheckboxIcon } from "react-icons/md";
+import { MdCheck as CheckIcon } from "react-icons/md";
+import { MdRemove as IndeterminateCheckMinus } from "react-icons/md";
 
 export const Checkbox = (props) => (
   <div

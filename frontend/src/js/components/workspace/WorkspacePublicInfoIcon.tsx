@@ -1,5 +1,5 @@
 import { Popup } from "semantic-ui-react";
-import InfoIcon from "react-icons/lib/md/info-outline";
+import { MdInfoOutline as InfoIcon } from "react-icons/md";
 import React from "react";
 
 export function WorkspacePublicInfoIcon() {

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import ErrorIcon from "react-icons/lib/md/error";
+import { MdError as ErrorIcon } from "react-icons/md";
 
 import { EmbeddedPdfViewer } from "./EmbeddedPdfViewer";
 import {

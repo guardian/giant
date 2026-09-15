@@ -1,8 +1,8 @@
 import React from "react";
 import PropTypes from "prop-types";
-import WarningIcon from "react-icons/lib/md/warning";
-import ErrorIcon from "react-icons/lib/md/error";
-import CloseIcon from "react-icons/lib/md/close";
+import { MdWarning as WarningIcon } from "react-icons/md";
+import { MdError as ErrorIcon } from "react-icons/md";
+import { MdClose as CloseIcon } from "react-icons/md";
 
 import { connect } from "react-redux";
 import { bindActionCreators } from "redux";

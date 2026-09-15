@@ -1,6 +1,6 @@
 import React, { FC } from "react";
-import ChevronLeft from "react-icons/lib/fa/chevron-left";
-import ChevronRight from "react-icons/lib/fa/chevron-right";
+import { FaChevronLeft as ChevronLeft } from "react-icons/fa";
+import { FaChevronRight as ChevronRight } from "react-icons/fa";
 import styles from "./SearchStepper.module.css";
 
 // unfortunately in GiantState q is just a string so we have to do all this to tease out the type and format it nicely

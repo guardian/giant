@@ -16,7 +16,7 @@ import { WorkspaceEntry, WorkspaceMetadata } from "../../types/Workspaces";
 import { GiantState } from "../../types/redux/GiantState";
 import { GiantDispatch } from "../../types/redux/GiantDispatch";
 import { isTreeNode, TreeEntry, TreeNode } from "../../types/Tree";
-import { ValueType } from "react-select/src/types";
+import { SingleValue } from "react-select";
 import { getWorkspace } from "../../actions/workspaces/getWorkspace";
 
 interface PropsFromParent {
@@ -128,10 +128,9 @@ class AddToWorkspaceModalUnconnected extends React.Component<Props, State> {
   };
 
   workspaceSelected = (
-    selected: ValueType<{ value: string; label: string }, false>,
+    selected: SingleValue<{ value: string; label: string }>,
   ): void => {
-    const s = Array.isArray(selected) ? selected[0] : selected;
-    this.setState({ workspaceId: s.value });
+    if (selected) this.setState({ workspaceId: selected.value });
   };
 
   onFocus = (entry: TreeEntry<WorkspaceEntry>) => {
@@ -223,6 +222,7 @@ class AddToWorkspaceModalUnconnected extends React.Component<Props, State> {
             <span className="form__label required-field">Workspace</span>
             {/* TODO probably make this have custom rendering to make it obvious what's personal and what's public*/}
             <Select
+              classNamePrefix="giant-select"
               name="workspace-select"
               value={
                 this.props.currentWorkspace
@@ -232,10 +232,10 @@ class AddToWorkspaceModalUnconnected extends React.Component<Props, State> {
                     }
                   : null
               }
-              autofocus
+              autoFocus
               options={this.workspaceSelection()}
-              searchable={true}
-              clearable={false}
+              isSearchable={true}
+              isClearable={false}
               onChange={this.workspaceSelected}
             />
           </div>

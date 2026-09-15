@@ -2,9 +2,9 @@ import React, { useState } from "react";
 import { Pagination } from "semantic-ui-react";
 import sortBy from "lodash/sortBy";
 
-import DocumentIcon from "react-icons/lib/ti/document";
-import EmailIcon from "react-icons/lib/md/email";
-import FolderIcon from "react-icons/lib/md/folder-open";
+import { TiDocument as DocumentIcon } from "react-icons/ti";
+import { MdEmail as EmailIcon } from "react-icons/md";
+import { MdFolderOpen as FolderIcon } from "react-icons/md";
 
 import { Resource, BasicResource } from "../../types/Resource";
 import { getLastPart } from "../../util/stringUtils";

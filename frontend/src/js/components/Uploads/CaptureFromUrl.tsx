@@ -1,4 +1,4 @@
-import MdGlobeIcon from "react-icons/lib/md/public";
+import { MdPublic as MdGlobeIcon } from "react-icons/md";
 
 import React, { FormEvent, useEffect, useMemo, useState } from "react";
 import LanguagePicker from "./LanguagePicker";
@@ -237,14 +237,15 @@ export const CaptureFromUrl = connect(
           <div className="form__row">
             <span className="form__label required-field">Workspace</span>
             <Select
+              classNamePrefix="giant-select"
               name="workspace-select"
               autoFocus
               options={workspacesMetadata.map((w) => ({
                 value: w.id,
                 label: w.name,
               }))}
-              searchable
-              clearable={false}
+              isSearchable
+              isClearable={false}
               isMulti={false}
               value={
                 workspace

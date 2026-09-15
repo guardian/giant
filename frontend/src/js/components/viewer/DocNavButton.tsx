@@ -1,5 +1,5 @@
 import React, { FC } from "react";
-import PlayArrow from "react-icons/lib/md/play-arrow";
+import { MdPlayArrow as PlayArrow } from "react-icons/md";
 
 type DocNavButtonProps = {
   title: string;

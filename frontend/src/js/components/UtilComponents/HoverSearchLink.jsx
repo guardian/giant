@@ -1,6 +1,6 @@
 import React from "react";
 import PropTypes from "prop-types";
-import SearchIcon from "react-icons/lib/md/search";
+import { MdSearch as SearchIcon } from "react-icons/md";
 import { Link } from "react-router-dom";
 import buildLink from "../../util/buildLink";
 

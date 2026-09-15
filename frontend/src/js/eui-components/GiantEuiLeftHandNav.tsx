@@ -170,8 +170,6 @@ export const GiantEuiLeftHandNav = ({ workspacesMetadata }: Props) => {
             onPinClick={removePin}
             maxWidth="none"
             color="text"
-            gutterSize="none"
-            size="s"
           />
         </EuiCollapsibleNavGroup>
       </EuiFlexItem>
@@ -183,7 +181,7 @@ export const GiantEuiLeftHandNav = ({ workspacesMetadata }: Props) => {
         {/* Workspaces section */}
         <EuiCollapsibleNavGroup
           title="Workspaces"
-          iconType="training"
+          iconType="presentation"
           isCollapsible={true}
           initialIsOpen={openGroups.includes("Workspaces")}
           onToggle={(isOpen: boolean) => toggleAccordion(isOpen, "Workspaces")}
@@ -197,8 +195,6 @@ export const GiantEuiLeftHandNav = ({ workspacesMetadata }: Props) => {
             onPinClick={addPin}
             maxWidth="none"
             color="subdued"
-            gutterSize="none"
-            size="s"
           />
         </EuiCollapsibleNavGroup>
 
@@ -206,7 +202,6 @@ export const GiantEuiLeftHandNav = ({ workspacesMetadata }: Props) => {
         <EuiShowFor sizes={["l", "xl"]}>
           <EuiCollapsibleNavGroup>
             <EuiListGroupItem
-              size="xs"
               color="subdued"
               label={`${navIsDocked ? "Undock" : "Dock"} navigation`}
               onClick={() => {

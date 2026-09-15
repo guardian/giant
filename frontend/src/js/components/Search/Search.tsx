@@ -235,6 +235,7 @@ class Search extends React.Component<SearchProps, SearchState> {
           Compact
         </Checkbox>
         <Select
+          classNamePrefix="giant-select"
           className="search__control"
           value={currentSortBy}
           options={sortByOptions}
@@ -244,9 +245,10 @@ class Search extends React.Component<SearchProps, SearchState> {
             this.props.updatePage("1");
             this.props.updateSortBy(option.value);
           }}
-          clearable={false}
+          isClearable={false}
         />
         <Select
+          classNamePrefix="giant-select"
           className="search__control"
           value={currentPageSize}
           options={pageSizeOptions}
@@ -256,7 +258,7 @@ class Search extends React.Component<SearchProps, SearchState> {
             this.props.updatePage("1");
             this.props.updatePageSize(option.value);
           }}
-          clearable={false}
+          isClearable={false}
         />
       </div>
     );

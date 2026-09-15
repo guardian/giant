@@ -17,7 +17,7 @@ import { Collection } from "../../types/Collection";
 import { TreeEntry, TreeNode } from "../../types/Tree";
 import { getWorkspace } from "../../actions/workspaces/getWorkspace";
 import ShareWorkspaceModal from "./ShareWorkspaceModal";
-import SearchIcon from "react-icons/lib/md/search";
+import { MdSearch as SearchIcon } from "react-icons/md";
 import TakeOwnershipOfWorkspaceModal from "./TakeOwnershipOfWorkspaceModal";
 import { takeOwnershipOfWorkspace } from "../../actions/workspaces/takeOwnershipOfWorkspace";
 import { CaptureFromUrl } from "../Uploads/CaptureFromUrl";

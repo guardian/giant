@@ -1,6 +1,6 @@
 import React from "react";
 import PropTypes from "prop-types";
-import EmailIcon from "react-icons/lib/md/email";
+import { MdEmail as EmailIcon } from "react-icons/md";
 import * as R from "ramda";
 import md5 from "md5";
 import { SearchLink } from "../UtilComponents/SearchLink";

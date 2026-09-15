@@ -1,6 +1,6 @@
 import React, { useReducer, useState, useEffect } from "react";
 import uuid from "uuid/v4";
-import MdFileUpload from "react-icons/lib/md/file-upload";
+import { MdFileUpload as MdFileUpload } from "react-icons/md";
 import Modal from "../UtilComponents/Modal";
 import FilePicker from "./FilePicker";
 import FileList from "./FileList";

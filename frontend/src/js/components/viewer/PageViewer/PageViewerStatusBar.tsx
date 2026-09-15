@@ -1,9 +1,9 @@
 import React from "react";
 import { useDispatch, useSelector } from "react-redux";
-import DownIcon from "react-icons/lib/md/arrow-downward";
-import PreviousIcon from "react-icons/lib/md/navigate-before";
-import NextIcon from "react-icons/lib/md/navigate-next";
-import UpIcon from "react-icons/lib/md/arrow-upward";
+import { MdArrowDownward as DownIcon } from "react-icons/md";
+import { MdNavigateBefore as PreviousIcon } from "react-icons/md";
+import { MdNavigateNext as NextIcon } from "react-icons/md";
+import { MdArrowUpward as UpIcon } from "react-icons/md";
 import { keyboardShortcuts } from "../../../util/keyboardShortcuts";
 import { KeyboardShortcut } from "../../UtilComponents/KeyboardShortcut";
 import { navigateToHighlight } from "../../../actions/pages/navigateToHighlight";

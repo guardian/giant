@@ -1,9 +1,9 @@
 import React, { FC, useCallback, useEffect, useMemo, useRef } from "react";
 import { useSelector } from "react-redux";
-import RotateLeft from "react-icons/lib/fa/rotate-left";
-import RotateRight from "react-icons/lib/fa/repeat";
-import ZoomInIcon from "react-icons/lib/fa/search-plus";
-import ZoomOutIcon from "react-icons/lib/fa/search-minus";
+import { FaUndo as RotateLeft } from "react-icons/fa";
+import { FaRedo as RotateRight } from "react-icons/fa";
+import { FaSearchPlus as ZoomInIcon } from "react-icons/fa";
+import { FaSearchMinus as ZoomOutIcon } from "react-icons/fa";
 
 import PreviewSwitcher from "./PreviewSwitcher";
 import { DocNavButton } from "./DocNavButton";

@@ -1,6 +1,6 @@
-import React, { ReactNode } from "react";
-import Select, { ValueType } from "react-select";
-import InfoIcon from "react-icons/lib/md/info-outline";
+import React from "react";
+import Select from "react-select";
+import { MdInfoOutline as InfoIcon } from "react-icons/md";
 import ReactTooltip from "react-tooltip";
 
 import { connect } from "react-redux";
@@ -23,7 +23,7 @@ type Props = ReturnType<typeof mapStateToProps> &
 type State = {
   name: string;
   isPublic: boolean;
-  tagColor: ValueType<{ value: string; label: string }, boolean>;
+  tagColor: { value: string; label: string };
 };
 
 class CreateWorkspaceModalUnconnected extends React.Component<Props, State> {
@@ -90,6 +90,7 @@ class CreateWorkspaceModalUnconnected extends React.Component<Props, State> {
             />
           </label>
           <Select
+            classNamePrefix="giant-select"
             name="tagColor"
             value={this.state.tagColor}
             className="form__select"
@@ -101,13 +102,15 @@ class CreateWorkspaceModalUnconnected extends React.Component<Props, State> {
               { value: "orange", label: "Orange" },
               { value: "purple", label: "Purple" },
             ]}
-            valueComponent={ColorTagValue}
-            optionComponent={ColorTagOption}
-            onChange={(o: ValueType<{ value: string; label: string }, false>) =>
-              this.setState({ tagColor: o })
-            }
-            clearable={false}
-            searchable={false}
+            formatOptionLabel={({ value, label }) => (
+              <span className="workspace-modal__tag-dropdown">
+                <span className={`workspace__tag workspace__tag--${value}`} />
+                {label}
+              </span>
+            )}
+            onChange={(tagColor) => tagColor && this.setState({ tagColor })}
+            isClearable={false}
+            isSearchable={false}
           />
         </div>
         {this.state.isPublic ? <WorkspacePublicMessage /> : false}
@@ -116,71 +119,6 @@ class CreateWorkspaceModalUnconnected extends React.Component<Props, State> {
         </button>
         <ReactTooltip insecure={false} html={false} />
       </form>
-    );
-  }
-}
-
-type ColorTagOptionProps = {
-  children: ReactNode[] | ReactNode;
-  className: string;
-  isDisabled: boolean;
-  isFocused: boolean;
-  isSelected: boolean;
-  onFocus: (o: { value: string; title: string }, e: React.MouseEvent) => void;
-  onSelect: (o: { value: string; title: string }, e: React.MouseEvent) => void;
-  option: { value: string; title: string };
-};
-
-class ColorTagOption extends React.Component<ColorTagOptionProps> {
-  handleMouseDown = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    this.props.onSelect(this.props.option, e);
-  };
-
-  handleMouseEnter = (e: React.MouseEvent) => {
-    this.props.onFocus(this.props.option, e);
-  };
-
-  handleMouseMove = (e: React.MouseEvent) => {
-    if (this.props.isFocused) return;
-    this.props.onFocus(this.props.option, e);
-  };
-
-  render() {
-    const colorClass = `workspace__tag--${this.props.option.value}`;
-
-    return (
-      <div
-        className={this.props.className + " workspace-modal__tag-dropdown"}
-        onMouseDown={this.handleMouseDown}
-        onMouseEnter={this.handleMouseEnter}
-        onMouseMove={this.handleMouseMove}
-        title={this.props.option.title}
-      >
-        <div className={`workspace__tag ${colorClass}`} />
-        {this.props.children}
-      </div>
-    );
-  }
-}
-
-type ColorTagValueProps = {
-  children: ReactNode[] | ReactNode;
-  value: { value: string };
-};
-
-class ColorTagValue extends React.Component<ColorTagValueProps> {
-  render() {
-    const colorClass = `workspace__tag--${this.props.value.value}`;
-
-    return (
-      <div className="Select-value">
-        <span className="Select-value-label workspace-modal__tag-dropdown">
-          <div className={`workspace__tag ${colorClass}`} />
-          {this.props.children}
-        </span>
-      </div>
     );
   }
 }

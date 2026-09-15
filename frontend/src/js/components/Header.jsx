@@ -1,10 +1,10 @@
 import React from "react";
 import PropTypes from "prop-types";
-import SearchIcon from "react-icons/lib/md/search";
-import Settings from "react-icons/lib/md/settings";
-import FolderIcon from "react-icons/lib/md/folder-open";
-import BookIcon from "react-icons/lib/fa/book";
-import DatabaseIcon from "react-icons/lib/fa/database";
+import { MdSearch as SearchIcon } from "react-icons/md";
+import { MdSettings as Settings } from "react-icons/md";
+import { MdFolderOpen as FolderIcon } from "react-icons/md";
+import { FaBook as BookIcon } from "react-icons/fa";
+import { FaDatabase as DatabaseIcon } from "react-icons/fa";
 import { SearchLink, NavSearchLink } from "./UtilComponents/SearchLink";
 
 function calculateActive(paths) {

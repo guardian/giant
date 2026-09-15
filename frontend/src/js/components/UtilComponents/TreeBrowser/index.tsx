@@ -1,6 +1,6 @@
 import React, { SyntheticEvent } from "react";
-import UpwardPointingChevron from "react-icons/lib/md/expand-less";
-import DownwardPointingChevron from "react-icons/lib/md/expand-more";
+import { MdExpandLess as UpwardPointingChevron } from "react-icons/md";
+import { MdExpandMore as DownwardPointingChevron } from "react-icons/md";
 
 import Node from "./Node";
 import Leaf from "./Leaf";

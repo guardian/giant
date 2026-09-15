@@ -1,8 +1,8 @@
 import React from "react";
 import PropTypes from "prop-types";
 import { searchResultsPropType } from "../../types/SearchResults";
-import EmailIcon from "react-icons/lib/md/email";
-import AttachmentIcon from "react-icons/lib/md/attach-file";
+import { MdEmail as EmailIcon } from "react-icons/md";
+import { MdAttachFile as AttachmentIcon } from "react-icons/md";
 import * as R from "ramda";
 import md5 from "md5";
 import { SearchLink } from "../UtilComponents/SearchLink";

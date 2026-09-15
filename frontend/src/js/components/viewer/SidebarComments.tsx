@@ -1,9 +1,9 @@
 import React, { useState } from "react";
 import { useDispatch } from "react-redux";
 import hdate from "human-date";
-import CommentIcon from "react-icons/lib/md/comment";
-import ExpandLess from "react-icons/lib/md/expand-less";
-import ExpandMore from "react-icons/lib/md/expand-more";
+import { MdComment as CommentIcon } from "react-icons/md";
+import { MdExpandLess as ExpandLess } from "react-icons/md";
+import { MdExpandMore as ExpandMore } from "react-icons/md";
 import ModalAction from "../UtilComponents/ModalAction";
 
 import { CommentData, Resource } from "../../types/Resource";

@@ -9,8 +9,8 @@ import { EmailMetadata } from "./EmailMetadata";
 import { connect } from "react-redux";
 import { bindActionCreators } from "redux";
 
-import NextIcon from "react-icons/lib/md/navigate-next";
-import PreviousIcon from "react-icons/lib/md/navigate-before";
+import { MdNavigateNext as NextIcon } from "react-icons/md";
+import { MdNavigateBefore as PreviousIcon } from "react-icons/md";
 
 import { getResource } from "../../actions/resources/getResource";
 import { permissionsPropType } from "../../types/User";

@@ -1,7 +1,7 @@
 import React from "react";
 import PropTypes from "prop-types";
 import ReactTooltip from "react-tooltip";
-import InfoIcon from "react-icons/lib/md/info-outline";
+import { MdInfoOutline as InfoIcon } from "react-icons/md";
 
 import { searchFilter, searchFilterOption } from "../../types/SearchFilter.js";
 import { searchResultsPropType } from "../../types/SearchResults";
