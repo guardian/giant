@@ -6,7 +6,7 @@ This standalone npm package owns the scenarios, test dependencies, browser confi
 
 ## Install and run
 
-With Docker Compose 2.24.4 or later, Java, sbt and Node installed, run from the repository root:
+With Docker Compose 2.24.4 or later, Java, sbt and Node 24 installed, run from the repository root:
 
 ```sh
 npm ci --prefix frontend
@@ -48,7 +48,7 @@ The genesis scenario creates the first account through the UI, skips optional 2F
 
 ## Infrastructure and isolation
 
-`run.sh` builds a packaged backend, starts fresh Neo4j, PostgreSQL, Elasticsearch and Garage containers, creates storage buckets, runs PostgreSQL migrations, and starts the backend and Vite. It reuses the application's default configuration and Garage configuration but excludes the developer's `backend/conf/site.conf`.
+`run.mts` runs directly with Node, using `zx` for shell commands and process cleanup. It builds a packaged backend, starts fresh Neo4j, PostgreSQL, Elasticsearch and Garage containers, creates storage buckets, runs PostgreSQL migrations, and starts the backend and Vite. It reuses the application's default configuration and Garage configuration but excludes the developer's `backend/conf/site.conf`.
 
 `docker-compose.yml` extends the root Compose services so image versions and shared settings stay in one place. It replaces published ports and clears fixed container names to keep the test stack isolated.
 
