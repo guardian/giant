@@ -1,0 +1,6 @@
+.features-gen/
+reports/
+# Locally generated planner files are not part of the executable suite.
+.codex/
+seed.spec.ts
+specs/

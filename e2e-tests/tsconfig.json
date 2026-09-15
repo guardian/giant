@@ -1,0 +1,19 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "strict": true,
+    "noEmit": true,
+    "allowImportingTsExtensions": true,
+    "skipLibCheck": true,
+    "types": ["node"],
+  },
+  "include": [
+    "run.mts",
+    "playwright.config.ts",
+    "vite.config.mts",
+    "fixtures.ts",
+    "steps/**/*.ts",
+  ],
+}
