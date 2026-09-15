@@ -38,13 +38,22 @@ npm run typecheck
 
 - `features/*.feature` describes behavior using Given/When/Then steps.
 - `steps/*.steps.ts` implements those steps using Playwright locators and assertions.
-- `fixtures.ts` exports the step functions and manages the independent browser session used to verify login.
+- `fixtures.ts` exports the extended Playwright `test` and manages the independent browser session used to verify login. Each step file builds its own bindings with `createBdd(test)`.
 - `playwright.config.ts` connects the features and steps with `defineBddConfig` and configures reporting.
 - `vite.config.mts` reuses the frontend's Vite configuration with separate E2E ports and backend proxy settings.
 
 `bddgen` generates `.features-gen/` automatically before each run. Edit features and step definitions, not the generated tests. Undefined steps fail generation.
 
 The genesis scenario creates the first account through the UI, skips optional 2FA, then logs in from a fresh browser session and verifies administrator access. One worker and no retries keep the fresh-instance requirement explicit. Additional scenarios that require genesis will need an explicit setup dependency or their own provisioning; do not rely on feature file order.
+
+## IDE setup (IntelliJ IDEA)
+
+Gherkin steps only resolve to the TypeScript step definitions when both plugins are installed:
+
+- **Gherkin** — feature file syntax.
+- **Cucumber.js** (`org.jetbrains.plugins.cucumber.javascript`) — resolves `Given/When/Then` in `.ts` files.
+
+After installing, run `npm ci --prefix e2e-tests` so `node_modules` exists, then File | Invalidate Caches / Restart if steps are still unresolved. If steps in a new file do not resolve, define them via `createBdd(test)` in that file, as `steps/genesis.steps.ts` does, rather than importing `Given/When/Then` from another module.
 
 ## Infrastructure and isolation
 
