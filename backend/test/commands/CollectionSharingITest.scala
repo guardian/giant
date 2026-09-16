@@ -9,6 +9,7 @@ import org.apache.pekko.util.Timeout
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.time.{Millis, Seconds, Span}
+import org.testcontainers.lifecycle.Startables
 import play.api.libs.json.Json
 import play.api.test.FakeRequest
 import play.api.test.Helpers.{await, contentAsJson, status}
@@ -36,8 +37,9 @@ class CollectionSharingITest extends AnyFunSuite
   var paulsBlobWithinDirectory: Blob = _
 
   override def startContainers(): Neo4jContainer and ElasticsearchContainer = {
-    val elasticContainer = getElasticSearchContainer()
-    val neo4jContainer = getNeo4jContainer()
+    val elasticContainer = createElasticSearchContainer()
+    val neo4jContainer = createNeo4jContainer()
+    Startables.deepStart(elasticContainer, neo4jContainer).join()
     val url = s"http://${elasticContainer.container.getHttpHostAddress}"
 
     val neo4jDriver = new Neo4jTestService(neo4jContainer.container.getBoltUrl).neo4jDriver

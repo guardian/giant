@@ -8,15 +8,19 @@ import test.AttemptValues
 trait Neo4jTestContainer extends AttemptValues {
   implicit def patience: PatienceConfig = PatienceConfig(Span(30, Seconds), Span(250, Millis))
 
-  def getNeo4jContainer() = {
+  def getNeo4jContainer(): Neo4jContainer = {
+    val neo4jContainer = createNeo4jContainer()
+    neo4jContainer.start()
+    neo4jContainer
+  }
+
+  def createNeo4jContainer(): Neo4jContainer = {
     val neo4jContainerDef = Neo4jContainer.Def(
       dockerImageName = DockerImageName.parse("neo4j:2026.02.2").asCompatibleSubstituteFor("neo4j")
     )
 
     val neo4jContainer = neo4jContainerDef.createContainer()
     neo4jContainer.container.withEnv("NEO4J_AUTH", "none")
-
-    neo4jContainer.start()
 
     neo4jContainer
   }

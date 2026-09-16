@@ -12,6 +12,9 @@ import sbt.Package.FixedTimestamp
 // See https://github.com/guardian/grid/pull/3600/commits/01c904e4c47c5a4443c48354b92ada3e17533895
 ThisBuild / packageOptions += FixedTimestamp(Package.keepTimestamps)
 
+// Deployment packages do not need Scala API documentation.
+ThisBuild / Compile / packageDoc / publishArtifact := false
+
 val compilerFlags = Seq(
   "-unchecked",
   "-deprecation",
@@ -109,6 +112,7 @@ lazy val backend = (project in file("backend"))
   .settings(buildInfoSettings)
   .settings(
     name := "pfi",
+    includeDocumentationInBinary := false,
     scalacOptions := compilerFlags,
     evictionErrorLevel := Level.Warn,
     libraryDependencies ++= Seq(

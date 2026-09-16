@@ -16,6 +16,12 @@ trait ElasticSearchTestContainer extends AttemptValues{
   )
 
   def getElasticSearchContainer(): ElasticsearchContainer = {
+    val elasticContainer = createElasticSearchContainer()
+    elasticContainer.start()
+    elasticContainer
+  }
+
+  def createElasticSearchContainer(): ElasticsearchContainer = {
     val elasticContainer = elasticContainerDef.createContainer()
 
     elasticContainer.container.setHostAccessible(true)
@@ -23,8 +29,6 @@ trait ElasticSearchTestContainer extends AttemptValues{
     elasticContainer.container.withEnv(
       Map("discovery.type" -> "single-node", "http.publish_port" -> s"${exposedPort}", "xpack.security.enabled" -> "false").asJava
     )
-
-    elasticContainer.start()
 
     elasticContainer
   }
