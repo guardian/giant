@@ -13,7 +13,7 @@
   },
   "devDependencies": {
     "@guardian/cdk": "64.7.0",
-    "@guardian/eslint-config-typescript": "5.0.0",
+    "@guardian/eslint-config": "14.0.1",
     "@guardian/node-riffraff-artifact": "^0.3.2",
     "@guardian/prettier": "5.0.0",
     "@types/jest": "^29.5.3",
@@ -21,7 +21,8 @@
     "aws-cdk": "2.1135.0",
     "aws-cdk-lib": "2.263.0",
     "constructs": "10.8.1",
-    "eslint": "^8.46.0",
+    "eslint": "^9.39.2",
+    "eslint-plugin-import-x": "4.16.1",
     "jest": "^29.6.2",
     "prettier": "^3.0.1",
     "source-map-support": "^0.5.20",
@@ -40,34 +41,6 @@
     },
     "setupFilesAfterEnv": [
       "./jest.setup.js"
-    ]
-  },
-  "eslintConfig": {
-    "root": true,
-    "env": {
-      "node": true,
-      "jest": true
-    },
-    "extends": [
-      "@guardian/eslint-config-typescript"
-    ],
-    "parserOptions": {
-      "ecmaVersion": 2020,
-      "sourceType": "module"
-    },
-    "plugins": [
-      "@typescript-eslint"
-    ],
-    "rules": {
-      "@typescript-eslint/no-inferrable-types": 0,
-      "import/no-namespace": 2
-    },
-    "ignorePatterns": [
-      "**/*.js",
-      "node_modules",
-      "cdk.out",
-      ".eslintrc.js",
-      "jest.config.js"
     ]
   }
 }
