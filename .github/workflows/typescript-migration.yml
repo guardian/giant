@@ -62,7 +62,7 @@ jobs:
             echo 'No JavaScript source files remain to migrate.' >> "$GITHUB_STEP_SUMMARY"
           fi
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         if: steps.candidates.outputs.remaining == 'true'
         with:
           node-version-file: .nvmrc
