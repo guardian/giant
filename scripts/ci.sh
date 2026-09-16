@@ -3,6 +3,7 @@ set -e
 
 pushd frontend
 
+sudo apt-get update
 sudo apt-get install build-essential libcairo2-dev libpango1.0-dev libjpeg-dev libgif-dev librsvg2-dev
 npm install
 npm run lint
@@ -23,4 +24,4 @@ echo 'java version:'
 echo $(java --version)
 
 # Do a full build of PFI including all tests
-AWS_REGION=eu-west-1 sbt -DPFI_STACK=pfi-playground clean runAllTests debian:packageBin Universal/packageZipTarball
+AWS_REGION=eu-west-1 sbt -DPFI_STACK=pfi-playground clean runAllTests debian:packageBin cli/Universal/packageZipTarball

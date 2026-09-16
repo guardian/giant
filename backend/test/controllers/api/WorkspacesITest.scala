@@ -9,6 +9,7 @@ import org.apache.pekko.util.Timeout
 import org.scalatest._
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.time.{Millis, Seconds, Span}
+import org.testcontainers.lifecycle.Startables
 import play.api.test.Helpers.status
 import test.integration.Helpers._
 import test.integration._
@@ -40,8 +41,9 @@ class WorkspacesITest extends AnyFunSuite
   override type Containers = Neo4jContainer and ElasticsearchContainer
 
   override def startContainers(): Containers = {
-    val elasticContainer = getElasticSearchContainer()
-    val neo4jContainer = getNeo4jContainer()
+    val elasticContainer = createElasticSearchContainer()
+    val neo4jContainer = createNeo4jContainer()
+    Startables.deepStart(elasticContainer, neo4jContainer).join()
     val url = s"http://${elasticContainer.container.getHttpHostAddress}"
 
     elasticsearchTestService = new ElasticsearchTestService(url)
