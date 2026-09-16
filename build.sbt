@@ -79,11 +79,11 @@ lazy val fetchSchema = inputKey[Unit](
     "Optionally takes the branch (or tag/commit) to fetch from, defaulting to main, e.g. `fetchSchema my-branch`"
 )
 
-lazy val generateTranscriptionWorkerInterface = taskKey[Unit](
+lazy val generateInterface = taskKey[Unit](
   "Generate the Scala case classes in the transcription-worker-interface project from the transcription worker interface JSON schema"
 )
 
-lazy val checkTranscriptionWorkerInterface = taskKey[Unit](
+lazy val checkInterface = taskKey[Unit](
   "Fail if the checked-in transcription worker interface Scala has drifted from the JSON schema"
 )
 
@@ -92,7 +92,7 @@ lazy val root = (project in file("."))
   .settings(
     runAllTests := Def
       .sequential(
-        transcriptionWorkerInterface / checkTranscriptionWorkerInterface,
+        transcriptionWorkerInterface / checkInterface,
         transcriptionWorkerInterface / Test / test,
         common / Test / test,
         cli / Test / test,
@@ -121,7 +121,7 @@ lazy val transcriptionWorkerInterface =
           log = streams.value.log
         )
       },
-      generateTranscriptionWorkerInterface := {
+      generateInterface := {
         val log = streams.value.log
         val schema = baseDirectory.value / "worker-interface-schema.json"
         val outputDirectory =
@@ -137,7 +137,7 @@ lazy val transcriptionWorkerInterface =
 
         log.info(s"Generated $outputFile from $schema")
       },
-      checkTranscriptionWorkerInterface := {
+      checkInterface := {
         val schema = baseDirectory.value / "worker-interface-schema.json"
         val outputFile =
           (Compile / sourceDirectory).value / "scala" /
