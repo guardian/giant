@@ -15,6 +15,15 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   timeout: 60_000,
   expect: { timeout: 15_000 },
+  projects: [
+    { name: "genesis", testMatch: "**/genesis.feature.spec.js" },
+    {
+      name: "chromium",
+      testIgnore: "**/genesis.feature.spec.js",
+      dependencies: ["genesis"],
+      timeout: 240_000,
+    },
+  ],
   reporter: [
     ["list"],
     ["html", { open: "never", outputFolder: "reports/playwright" }],
