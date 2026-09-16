@@ -1,3 +1,3 @@
-export default function (s) {
+export default function (s: string): string {
   return s.replace(/[-/\\^$*+?.()|[\]{}]/g, "\\$&");
 }

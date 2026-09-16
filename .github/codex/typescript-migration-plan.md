@@ -37,21 +37,10 @@ when their JS consumers migrate; unrelated TS cleanup is not part of the plan.
 
 ## Remaining steps
 
-### 01. Small formatting utilities
-
-Start with isolated functions and their existing tests; retain formatting and escaping behavior.
-
-- `js/util/readableFileSize.js`
-- `js/util/readableFileSize.spec.js`
-- `js/util/regexEscape.js`
-- `js/util/styleLocalization.js`
-
 ### 02. Markdown and document titles
 
 Keep implementation and tests together. Type the document-title input from its callers.
 
-- `js/util/markdownToHtml.js`
-- `js/util/markdownToHtml.spec.js`
 - `js/components/UtilComponents/documentTitle.js`
 - `js/components/UtilComponents/documentTitle.spec.js`
 
