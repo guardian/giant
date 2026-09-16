@@ -1,0 +1,151 @@
+name: Daily TypeScript migration
+
+on:
+  push:
+    branches: [main, automation/setup-daily-typescript-migration]
+    paths:
+      - '.github/workflows/typescript-migration.yml'
+  schedule:
+    - cron: '23 7 * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: typescript-migration
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  pull-requests: read
+
+env:
+  MIGRATION_BRANCH: ${{ github.ref_name == github.event.repository.default_branch && 'automation/typescript-migration' || 'automation/typescript-migration-test' }}
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    outputs:
+      ready: ${{ steps.check.outputs.ready }}
+    steps:
+      - name: Wait for the previous migration to be reviewed
+        id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          count=$(gh pr list --state open --head "$MIGRATION_BRANCH" --json number --jq 'length')
+          if [ "$count" = 0 ]; then
+            echo 'ready=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'Skipping: a TypeScript migration PR is still open.' >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+  migrate:
+    needs: check
+    if: needs.check.outputs.ready == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+          persist-credentials: false
+
+      - name: Check for remaining JavaScript
+        id: candidates
+        run: |
+          if [ -n "$(git ls-files 'frontend/src/*.js' 'frontend/src/*.jsx')" ]; then
+            echo 'remaining=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'No JavaScript source files remain to migrate.' >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - uses: actions/setup-node@v4
+        if: steps.candidates.outputs.remaining == 'true'
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies and check the baseline
+        if: steps.candidates.outputs.remaining == 'true'
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run build
+          npm run lint
+          npm test
+          npm run prettier:check
+
+      - name: Migrate a small batch
+        id: codex
+        if: steps.candidates.outputs.remaining == 'true'
+        uses: openai/codex-action@v1
+        timeout-minutes: 35
+        with:
+          openai-api-key: ${{ secrets.OPENAI_API_KEY }}
+          prompt-file: .github/codex/typescript-migration.md
+          model: ${{ vars.TYPESCRIPT_MIGRATION_MODEL }}
+          sandbox: workspace-write
+          safety-strategy: drop-sudo
+
+      - name: Check migration scope
+        if: steps.candidates.outputs.remaining == 'true'
+        run: |
+          git add --intent-to-add .
+          python3 - <<'PY'
+          import pathlib
+          import subprocess
+
+          def changed(*args):
+              return subprocess.check_output(
+                  ['git', 'diff', '--name-only', '--no-renames', '-z', *args, 'HEAD']
+              ).decode().split('\0')[:-1]
+
+          paths = changed()
+          if not paths:
+              raise SystemExit('No migration produced; no PR will be opened.')
+          plan = '.github/codex/typescript-migration-plan.md'
+          if any(not p.startswith('frontend/src/') and p != plan for p in paths):
+              raise SystemExit('Migration changed files outside frontend/src and the migration plan.')
+          if not pathlib.Path(plan).is_file():
+              raise SystemExit('Keep the migration plan file, even when all steps are complete.')
+          deleted = changed('--diff-filter=D')
+          migrated = [p for p in deleted if pathlib.Path(p).suffix in ('.js', '.jsx')
+                      and any(pathlib.Path(p).with_suffix(ext).is_file() for ext in ('.ts', '.tsx'))]
+          if not migrated:
+              raise SystemExit('No JavaScript files were converted to TypeScript.')
+          print(f'Migrated {len(migrated)} JavaScript files; {len(paths)} changed paths including renames.')
+          PY
+          git diff --check HEAD
+
+      - name: Validate the migration
+        if: steps.candidates.outputs.remaining == 'true'
+        working-directory: frontend
+        run: |
+          npm run build
+          npm run lint
+          npm test
+          npm run prettier:check
+
+      - name: Open a pull request
+        if: steps.candidates.outputs.remaining == 'true'
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ github.token }}
+          branch: ${{ env.MIGRATION_BRANCH }}
+          base: ${{ github.ref_name }}
+          add-paths: |
+            frontend/src/
+            .github/codex/typescript-migration-plan.md
+          commit-message: 'Migrate a small frontend batch to TypeScript'
+          title: 'Migrate a small frontend batch to TypeScript'
+          body: |
+            ${{ steps.codex.outputs.final-message }}
+
+            The workflow passed the frontend build (including typecheck), lint, tests, and formatting checks.
+            [Workflow run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
+
+            Generated automatically; human review is required before merging.
