@@ -67,23 +67,36 @@ abstract class BaseOcrExtractor(scratchSpace: ScratchSpace, index:Index)  (impli
 
 object BaseOcrExtractor extends Logging {
 
-  private case class BestLanguageResult(score: Double, chunkCount: Int, language: Language, matchesOcrLanguage: Boolean)
+  /**
+   * The outcome of picking the 'best' OCR run for a document.
+   *
+   * @param ocrLanguage         the language we ran OCR in (ie a key of the textByLanguage map, always a supported [[Language]])
+   * @param detectedLanguageCode the iso639-1 code tika actually detected in that OCR output. This is NOT necessarily
+   *                             one of our supported languages - a Dutch document OCR'd in English will still produce
+   *                             mostly readable Dutch text, so we report `nl` here even though Dutch is not an
+   *                             ingestion language. Downstream translation decisions must use this, not the OCR language.
+   */
+  private[ocr] case class BestLanguage(ocrLanguage: Language, detectedLanguageCode: String)
+
+  private case class BestLanguageResult(score: Double, chunkCount: Int, language: Language, detectedLanguageCode: String) {
+    val matchesOcrLanguage: Boolean = detectedLanguageCode == language.iso6391Code
+  }
 
   /**
    * We OCR once per ingestion language, so a Russian document is also OCR'd in English, producing garbage. Here we use
    * 3 signals to pick the 'best' language - does it match the OCR language, what is the tikka confidence and how many
    * chunks did that language get selected in.
    */
-  private[ocr] def bestOcrLanguage(textByLanguage: Map[Language, String], languageDetector: LanguageDetector): Option[Language] = {
+  private[ocr] def bestOcrLanguage(textByLanguage: Map[Language, String], languageDetector: LanguageDetector): Option[BestLanguage] = {
     val matchingLanguages = textByLanguage.toList.flatMap { case (lang, text) =>
       detectLanguageChunked(languageDetector, s"${lang.key} ocr", text)
-        .map(detected => BestLanguageResult(detected.score, detected.chunkCount.getOrElse(0), lang, detected.detectedLanguage == lang.iso6391Code))
+        .map(detected => BestLanguageResult(detected.score, detected.chunkCount.getOrElse(0), lang, detected.detectedLanguage))
     }
     val sortedLanguages = matchingLanguages.sortBy{ language =>
       val ocrMatchScore = if (language.matchesOcrLanguage) 1 else 0
       (-ocrMatchScore, -language.score, -language.chunkCount)
     }
-    sortedLanguages.headOption.map(_.language)
+    sortedLanguages.headOption.map(best => BestLanguage(best.language, best.detectedLanguageCode))
   }
 
   /**
@@ -93,14 +106,19 @@ object BaseOcrExtractor extends Logging {
                            ingestionServices: IngestionServices, params: ExtractionParams)(implicit ec: ExecutionContext): Unit = {
 
     val bestLanguage = bestOcrLanguage(textByLanguage, ingestionServices.languageDetector.get())
-    // if we get a decent match, save it in the translation data even if it's english
-    bestLanguage.foreach { lang =>
-      index.addDocumentOcrTranslationData(uri, lang, lang.iso6391Code).awaitEither(10.second)
+    // if we get a decent match, save it in the translation data even if it's english. We record the OCR language and
+    // the detected language separately as they can legitimately differ (eg a Dutch document OCR'd in English)
+    bestLanguage.foreach { best =>
+      if (!best.ocrLanguage.iso6391Code.equals(best.detectedLanguageCode)) {
+        logger.info(s"${best.ocrLanguage.key} OCR of ${uri.value} was detected as '${best.detectedLanguageCode}'")
+      }
+      index.addDocumentOcrTranslationData(uri, best.ocrLanguage, best.detectedLanguageCode).awaitEither(10.second)
     }
-    // if the best language is not english, add translation extractor TODO
-    bestLanguage.filter(lang => isNotEnglish(lang.iso6391Code))
-      .foreach { lang =>
-        logger.info(s"Selected ${lang.key} OCR of ${uri.value} for translation")
+    // if the *detected* language is not english, add translation extractor TODO. Note this deliberately uses the
+    // detected code so we still translate documents in languages we don't OCR in.
+    bestLanguage.filter(best => isNotEnglish(best.detectedLanguageCode))
+      .foreach { best =>
+        logger.info(s"Selected ${best.ocrLanguage.key} OCR of ${uri.value} (detected '${best.detectedLanguageCode}') for translation")
         ingestionServices.addTranslationTodo(uri, params, classOf[ExternalOcrTranslationExtractor].getSimpleName)
       }
   }
