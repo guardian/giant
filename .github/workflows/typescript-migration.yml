@@ -48,7 +48,7 @@ jobs:
       contents: write
       pull-requests: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: ${{ github.ref_name }}
           persist-credentials: false
@@ -62,7 +62,7 @@ jobs:
             echo 'No JavaScript source files remain to migrate.' >> "$GITHUB_STEP_SUMMARY"
           fi
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         if: steps.candidates.outputs.remaining == 'true'
         with:
           node-version-file: .nvmrc
@@ -140,8 +140,9 @@ jobs:
           add-paths: |
             frontend/src/
             .github/codex/typescript-migration-plan.md
-          commit-message: 'Migrate a small frontend batch to TypeScript'
-          title: 'Migrate a small frontend batch to TypeScript'
+          commit-message: 'Migrate a batch of frontend files to TypeScript'
+          title: 'Migrate a batch of frontend files to TypeScript'
+          labels: maintenance
           body: |
             ${{ steps.codex.outputs.final-message }}
 
