@@ -25,7 +25,7 @@ import { getCollections } from "../../actions/collections/getCollections";
 import { setNodeAsCollapsed } from "../../actions/workspaces/setNodeAsCollapsed";
 import { setNodeAsExpanded } from "../../actions/workspaces/setNodeAsExpanded";
 import { listUsers } from "../../actions/users/listUsers";
-import DocumentIcon from "react-icons/lib/ti/document";
+import { TiDocument } from "react-icons/ti";
 import { Icon, Loader, Menu, Popup } from "semantic-ui-react";
 import WorkspaceSummary from "./WorkspaceSummary";
 import {
@@ -86,7 +86,7 @@ import {
   EuiText,
   EuiToolTip,
 } from "@elastic/eui";
-import MdGlobeIcon from "react-icons/lib/md/public";
+import { MdPublic } from "react-icons/md";
 import { FromNowDurationText } from "../UtilComponents/FromNowDurationText";
 import { DroppedFilesInfo } from "../Uploads/UploadFiles";
 import { createWarning } from "../../actions/problems";
@@ -167,7 +167,7 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
         default:
           // TODO: this used to use .icon, which seems to me a rendering layer thing so I removed from the server response
           // Also there's only a single workspace node in prod where icon is 'email'. Can this be right??
-          return <DocumentIcon className="file-browser__icon" />;
+          return <TiDocument className="file-browser__icon" />;
       }
     } else if (
       isWorkspaceNode(entry.data) &&
@@ -293,7 +293,7 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
                   </div>
                 }
               >
-                <MdGlobeIcon
+                <MdPublic
                   className="file-upload__icon"
                   style={{ color: "grey", marginLeft: "5px" }}
                 />

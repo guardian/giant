@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import ErrorIcon from "react-icons/lib/md/error";
+import { MdError } from "react-icons/md";
 
 import { EmbeddedPdfViewer } from "./EmbeddedPdfViewer";
 import {
@@ -34,7 +34,7 @@ function LoadingPreview(): React.ReactElement {
 function PreviewError({ message }: PreviewErrorProps): React.ReactElement {
   return (
     <div className="preview__dialog preview__dialog--error">
-      <ErrorIcon className="error-bar__icon" />
+      <MdError className="error-bar__icon" />
       <span>{message}</span>
     </div>
   );

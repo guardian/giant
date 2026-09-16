@@ -108,10 +108,10 @@ function GiantEuiSearchResultNav({
   return (
     <React.Fragment>
       <EuiHeaderSectionItemButton onClick={nextHighlight}>
-        <EuiIcon type="arrowDown" size="m" />
+        <EuiIcon type="chevronSingleDown" size="m" />
       </EuiHeaderSectionItemButton>
       <EuiHeaderSectionItemButton onClick={previousHighlight}>
-        <EuiIcon type="arrowUp" size="m" />
+        <EuiIcon type="chevronSingleUp" size="m" />
       </EuiHeaderSectionItemButton>
     </React.Fragment>
   );

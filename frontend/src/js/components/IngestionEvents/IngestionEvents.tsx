@@ -39,7 +39,7 @@ type BlobProgress =
 
 const blobStatusIcons = {
   complete: (
-    <EuiIconTip type="checkInCircleFilled" content={"Ingestion complete"} />
+    <EuiIconTip type="checkCircleFill" content={"Ingestion complete"} />
   ),
   completeWithErrors: (
     <EuiIconTip type="alert" content={"Ingestion complete with some errors"} />
@@ -174,7 +174,7 @@ const columns: Array<EuiBasicTableColumn<BlobStatus>> = [
           <EuiIconTip
             aria-label="Info"
             size="m"
-            type="iInCircle"
+            type="info"
             color="primary"
             content={
               "This file has been ingested more than once so ingestion run time may not be accurate."
@@ -491,8 +491,8 @@ export function IngestionEvents({
           }
           iconType={
             itemIdToExpandedRowMap[blobStatusId(row)]
-              ? "arrowDown"
-              : "arrowRight"
+              ? "chevronSingleDown"
+              : "chevronSingleRight"
           }
         />
       ),

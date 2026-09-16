@@ -1,8 +1,8 @@
 import React from "react";
 import PropTypes from "prop-types";
 import { searchResultsPropType } from "../../types/SearchResults";
-import EmailIcon from "react-icons/lib/md/email";
-import AttachmentIcon from "react-icons/lib/md/attach-file";
+import { MdEmail } from "react-icons/md";
+import { MdAttachFile } from "react-icons/md";
 import * as R from "ramda";
 import md5 from "md5";
 import { SearchLink } from "../UtilComponents/SearchLink";
@@ -25,7 +25,7 @@ export default class CompactResultsTable extends React.Component {
         if (count) {
           return (
             <div className="search-result__attachment-count">
-              <AttachmentIcon />
+              <MdAttachFile />
               {count}
             </div>
           );
@@ -43,7 +43,7 @@ export default class CompactResultsTable extends React.Component {
     switch (result.details._type) {
       case "email": {
         return (
-          <EmailIcon className="search-result__icon-email search-result__icon--small" />
+          <MdEmail className="search-result__icon-email search-result__icon--small" />
         );
       }
       case "document": {

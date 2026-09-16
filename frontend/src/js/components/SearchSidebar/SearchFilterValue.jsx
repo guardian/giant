@@ -1,7 +1,7 @@
 import React from "react";
 import PropTypes from "prop-types";
 import ReactTooltip from "react-tooltip";
-import InfoIcon from "react-icons/lib/md/info-outline";
+import { MdInfoOutline } from "react-icons/md";
 
 import { searchFilter, searchFilterOption } from "../../types/SearchFilter.js";
 import { searchResultsPropType } from "../../types/SearchResults";
@@ -100,7 +100,7 @@ export class SearchFilterValueUntranslated extends React.Component {
             ? this.props.optionValue.display
             : this.props.optionValue.value}
           {explanation ? (
-            <InfoIcon
+            <MdInfoOutline
               className="info-icon"
               data-tip={markdownToHtml(explanation)}
               data-effect="solid"

@@ -1,9 +1,9 @@
 import React from "react";
 import PropTypes from "prop-types";
 
-import BlankCheckboxIcon from "react-icons/lib/md/check-box-outline-blank";
-import CheckIcon from "react-icons/lib/md/check";
-import IndeterminateCheckMinus from "react-icons/lib/md/remove";
+import { MdCheckBoxOutlineBlank } from "react-icons/md";
+import { MdCheck } from "react-icons/md";
+import { MdRemove } from "react-icons/md";
 
 export const Checkbox = (props) => (
   <div
@@ -11,13 +11,13 @@ export const Checkbox = (props) => (
     onClick={(e) => (!props.disabled ? props.onClick(e) : false)}
   >
     <div className="checkbox__icon">
-      <BlankCheckboxIcon />
+      <MdCheckBoxOutlineBlank />
       {!props.selected && props.indeterminate ? (
-        <IndeterminateCheckMinus className="checkbox__indeterminate" />
+        <MdRemove className="checkbox__indeterminate" />
       ) : (
         false
       )}
-      <CheckIcon
+      <MdCheck
         className={`checkbox__check ${props.highlighted ? "highlight" : ""}`}
       />
     </div>

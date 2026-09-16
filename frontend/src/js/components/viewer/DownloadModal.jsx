@@ -225,7 +225,7 @@ Email Body:
 
     switch (getValue(v.value)) {
       case "preview":
-        this.setState({ downloadType: "perview", extension: "pdf" });
+        this.setState({ downloadType: "preview", extension: "pdf" });
         break;
       case "extractedText":
         this.setState({ downloadType: "extractedText", extension: "txt" });
@@ -260,14 +260,20 @@ Email Body:
           <span className="form__label required-field">Download As</span>
           <div>
             <Select
+              classNamePrefix="giant-select"
               name="downloadType"
-              value={this.state.downloadType}
-              autofocus
+              value={this.downloadTypes().find(
+                (option) =>
+                  option.value === this.state.downloadType &&
+                  (!option.language ||
+                    option.language === this.state.downloadLanguage),
+              )}
+              autoFocus
               options={this.downloadTypes()}
               onChange={this.downloadTypeSelected}
               placeholder="Select download type..."
-              searchable={false}
-              clearable={false}
+              isSearchable={false}
+              isClearable={false}
             />
           </div>
         </div>
