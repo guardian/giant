@@ -41,17 +41,15 @@ when their JS consumers migrate; unrelated TS cleanup is not part of the plan.
 
 Start with isolated functions and their existing tests; retain formatting and escaping behavior.
 
-- `js/util/readableFileSize.js`
-- `js/util/readableFileSize.spec.js`
-- `js/util/regexEscape.js`
 - `js/util/styleLocalization.js`
+
+`styleLocalization.js` imports `../i18n`, which is absent from the checkout.
+Resolve its localization dependency before migrating it; no current callers were found.
 
 ### 02. Markdown and document titles
 
 Keep implementation and tests together. Type the document-title input from its callers.
 
-- `js/util/markdownToHtml.js`
-- `js/util/markdownToHtml.spec.js`
 - `js/components/UtilComponents/documentTitle.js`
 - `js/components/UtilComponents/documentTitle.spec.js`
 
