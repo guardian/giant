@@ -16,6 +16,8 @@ npx playwright install --with-deps chromium
 npm test
 ```
 
+The workspace upload scenario also needs OCRmyPDF, Ghostscript, qpdf, Poppler utilities and English Tesseract data. On Ubuntu, install them with `sudo apt-get install -y ocrmypdf ghostscript qpdf poppler-utils tesseract-ocr-eng`.
+
 `npm test` starts a fresh isolated Giant instance, generates Playwright tests from the feature files, runs them, and stops the instance and removes its volumes on exit. The same command runs in CI. No AWS credentials or pre-existing account are required.
 
 To start fresh test infrastructure and open Playwright UI mode:
@@ -26,7 +28,7 @@ npm run test:ui
 
 Open http://localhost:9323 to select tests, run them, and inspect each action. In a dev container, forward port 9323 to your machine. The infrastructure stays running until you stop the terminal command with Ctrl+C, which removes the test containers and volumes.
 
-The genesis scenario requires an empty database. After running it, stop and restart `npm run test:ui` before running it again.
+The genesis scenario requires an empty database. After running it, stop and restart `npm run test:ui` before running it again. In UI mode, run the `genesis` project before the workspace upload scenario; setup dependencies are not run automatically in UI mode.
 
 `npm test` runs headlessly, including in CI. To watch the browser or use Playwright Inspector instead:
 
@@ -54,7 +56,16 @@ npm run typecheck
 
 `bddgen` generates `.features-gen/` automatically before each run. Edit features and step definitions, not the generated tests. Undefined steps fail generation.
 
-The genesis scenario creates the first account through the UI, skips optional 2FA, then logs in from a fresh browser session and verifies administrator access. One worker and no retries keep the fresh-instance requirement explicit. Additional scenarios that require genesis will need an explicit setup dependency or their own provisioning; do not rely on feature file order.
+The genesis scenario creates the first account through the UI, skips optional 2FA, then logs in from a fresh browser session and verifies administrator access. The `chromium` project depends explicitly on the `genesis` project so the account exists before other scenarios run. One worker and no retries keep the fresh-instance requirement explicit.
+
+The workspace upload scenario logs in with that account, creates a workspace, uploads `fixtures/toast_sandwich_en_wiki.pdf`, and waits for successful extraction. It checks the document icon and `processed` status so an extraction failure cannot count as success.
+
+The PDF fixture is a 300 DPI rasterised copy of the original Wikipedia printout. The original has malformed PDF references and font mappings that produced garbled text with Ubuntu 24.04's extraction tools, triggering translation despite the document being English. Rasterising preserves the page's appearance and lets Giant rebuild its text through OCR. To reproduce the fixture from the original:
+
+```sh
+git show 7fe84416:e2e-tests/fixtures/toast_sandwich_en_wiki.pdf > /tmp/toast-original.pdf
+gs -sDEVICE=pdfimage24 -r300 -o fixtures/toast_sandwich_en_wiki.pdf /tmp/toast-original.pdf
+```
 
 ## IDE setup (IntelliJ IDEA)
 
@@ -73,7 +84,7 @@ After installing, run `npm ci --prefix e2e-tests` so `node_modules` exists, then
 
 E2E ports: frontend 3100, backend 19001, cluster 11234, Neo4j 17687, PostgreSQL 18432, Elasticsearch 19200 and Garage 13900. Development containers and volumes are not used. Each invocation owns a unique Compose project and removes only its own volumes, including after failures. Run one E2E suite at a time on a host.
 
-`setup/application.conf` disables background workers and external extractors for this genesis-only suite. Before adding upload/extraction coverage, enable the required local workers and install the extraction tools exercised by the fixtures in CI.
+`setup/application.conf` enables local extraction workers with a one-second polling interval. External extractors remain disabled, so the suite does not require the transcription or translation services. CI installs the PDF extraction tools used by the upload fixture.
 
 ## Reports
 
