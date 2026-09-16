@@ -160,6 +160,14 @@ To run a specific integration test:
 sbt 'int:testOnly controllers.api.WorkspacesITest'
 ```
 
+### End-to-end tests
+
+Run `npm test --prefix e2e-tests` to test genesis account creation against disposable
+databases and a separate Giant instance. Cucumber scenarios and the infrastructure
+live in `e2e-tests/`. See [the E2E setup guide](e2e-tests/README.md)
+for prerequisites, ports and debugging. The GitHub Actions E2E workflow runs the
+same script.
+
 ### Stopping databases
 
 To terminate the databases without losing data:
