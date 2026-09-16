@@ -60,6 +60,13 @@ The genesis scenario creates the first account through the UI, skips optional 2F
 
 The workspace upload scenario logs in with that account, creates a workspace, uploads `fixtures/toast_sandwich_en_wiki.pdf`, and waits for successful extraction. It checks the document icon and `processed` status so an extraction failure cannot count as success.
 
+The PDF fixture is a 300 DPI rasterised copy of the original Wikipedia printout. The original has malformed PDF references and font mappings that produced garbled text with Ubuntu 24.04's extraction tools, triggering translation despite the document being English. Rasterising preserves the page's appearance and lets Giant rebuild its text through OCR. To reproduce the fixture from the original:
+
+```sh
+git show 7fe84416:e2e-tests/fixtures/toast_sandwich_en_wiki.pdf > /tmp/toast-original.pdf
+gs -sDEVICE=pdfimage24 -r300 -o fixtures/toast_sandwich_en_wiki.pdf /tmp/toast-original.pdf
+```
+
 ## IDE setup (IntelliJ IDEA)
 
 Gherkin steps only resolve to the TypeScript step definitions when both plugins are installed:
