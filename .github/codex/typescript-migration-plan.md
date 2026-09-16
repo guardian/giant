@@ -37,15 +37,6 @@ when their JS consumers migrate; unrelated TS cleanup is not part of the plan.
 
 ## Remaining steps
 
-### 01. Small formatting utilities
-
-Start with isolated functions and their existing tests; retain formatting and escaping behavior.
-
-- `js/util/styleLocalization.js`
-
-`styleLocalization.js` imports `../i18n`, which is absent from the checkout.
-Resolve its localization dependency before migrating it; no current callers were found.
-
 ### 02. Markdown and document titles
 
 Keep implementation and tests together. Type the document-title input from its callers.
