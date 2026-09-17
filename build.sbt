@@ -21,7 +21,7 @@ val compilerFlags = Seq(
 
 val awsSdkVersion2 = "2.54.16"
 val log4jVersion = "2.20.0"
-val slf4jVersion = "2.0.7"
+val slf4jVersion = "2.0.18"
 // To match what the main app gets from scalatestplus-play transitively
 val scalatestVersion = "3.2.17"
 // 0.44.x brings a docker-java that negotiates Docker Engine's API version; older releases
@@ -84,8 +84,8 @@ lazy val common = (project in file("common"))
     scalacOptions := compilerFlags,
     libraryDependencies ++= Seq(
       "org.typelevel" %% "cats-core" % "2.2.0",
-      "org.playframework" %% "play-json" % "3.0.1",
-      "org.playframework" %% "play-json-joda" % "3.0.1",
+      "org.playframework" %% "play-json" % "3.0.6",
+      "org.playframework" %% "play-json-joda" % "3.0.6",
       "software.amazon.awssdk" % "s3" % awsSdkVersion2,
       "software.amazon.awssdk" % "s3-transfer-manager" % awsSdkVersion2,
       "org.scalatest" %% "scalatest" % scalatestVersion,
@@ -96,7 +96,7 @@ lazy val common = (project in file("common"))
       // versions of SLF4J and Logback (i.e. its versions should be evicted by those here).
       // https://github.com/playframework/playframework/issues/11499#issuecomment-1285654119
       "org.slf4j" % "slf4j-api" % slf4jVersion,
-      "ch.qos.logback" % "logback-classic" % "1.4.14"
+      "ch.qos.logback" % "logback-classic" % "1.5.32"
     )
   )
 
@@ -169,7 +169,7 @@ lazy val backend = (project in file("backend"))
       // Test dependencies
 
       "org.scalacheck" %% "scalacheck" % "1.14.0" % Test,
-      "org.scalatestplus.play" %% "scalatestplus-play" % "7.0.0" % Test,
+      "org.scalatestplus.play" %% "scalatestplus-play" % "7.0.2" % Test,
       "org.scalamock" %% "scalamock" % "4.4.0" % Test,
       "com.dimafeng" %% "testcontainers-scala-scalatest" % testcontainersScalaVersion % Test,
       "com.dimafeng" %% "testcontainers-scala-neo4j" % testcontainersScalaVersion % Test,
