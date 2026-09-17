@@ -2,7 +2,7 @@ name: Daily TypeScript migration
 
 on:
   push:
-    branches: [main, automation/setup-daily-typescript-migration]
+    branches: [main, fix-ts-migration]
     paths:
       - '.github/workflows/typescript-migration.yml'
   schedule:
@@ -90,6 +90,7 @@ jobs:
           model: ${{ vars.TYPESCRIPT_MIGRATION_MODEL }}
           sandbox: workspace-write
           safety-strategy: unprivileged-user
+          codex-user: 'codex'
 
       - name: Check migration scope
         if: steps.candidates.outputs.remaining == 'true'
