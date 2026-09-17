@@ -1,10 +1,16 @@
 package extraction
 
 import software.amazon.awssdk.services.sqs.SqsClient
-import model.{CombinedOutputUrl, English, Language, Languages, LlmOutputFailure, LlmOutputSuccess, TranscriptionJob, TranscriptionJobType, TranscriptionOutput, TranscriptionOutputFailure, TranscriptionOutputSuccess}
+import com.gu.transcriptionservice.workerinterface.{
+  CombinedOutputUrl,
+  InputLanguageCode,
+  TranscriptDestinationService,
+  TranscriptionEngine,
+  TranscriptionJob
+}
+import model.{English, Language}
 import model.manifest.Blob
 import org.joda.time.DateTime
-import play.api.libs.json.{JsError, JsResult, JsValue, Json, Reads}
 import services.index.Index
 import services.{ObjectStorage, TranscribeConfig}
 import utils._
@@ -55,21 +61,24 @@ class ExternalTranscriptionExtractor(index: Index, transcribeConfig: TranscribeC
         inputSignedUrl = downloadSignedUrl,
         sentTimestamp = DateTime.now().toString,
         userEmail = "giant",
-        transcriptDestinationService = "Giant",
-        combinedOutputUrl = CombinedOutputUrl(url = combinedOutputUrl,key = combinedOutputKey),
+        transcriptDestinationService = TranscriptDestinationService.Giant,
+        combinedOutputUrl = CombinedOutputUrl(url = combinedOutputUrl, key = combinedOutputKey),
+        ingestion = Some(params.ingestion),
         languageCode = params.languages.headOption.map { lang: Language =>
           if (lang.iso6391Code == English.iso6391Code) {
             // We only recently added language support to workspace uploads, previously we set the language of the ingestion
             // for every upload to English, so we can't rely on the language if it is set to English
-            "auto"
+            InputLanguageCode.Auto
           } else {
-            lang.iso6391Code
+            // the transcription service only understands the language codes in its own schema, so fall
+            // back to auto-detection for anything it doesn't know about
+            InputLanguageCode.fromString(lang.iso6391Code).getOrElse(InputLanguageCode.Auto)
           }
-        }.getOrElse("auto"),
+        }.getOrElse(InputLanguageCode.Auto),
         translate = true,
         diarize = true,
-        engine = "whisperx",
-        ingestion = params.ingestion, jobType = TranscriptionJobType.name)
+        engine = TranscriptionEngine.Whisperx
+      )
     }
 
     transcriptionJob.flatMap { job =>
