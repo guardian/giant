@@ -21,8 +21,8 @@ unrelated repairs. Changes are restricted to `frontend/src` and the migration pl
 4. Merge these files into the default branch to activate the schedule.
 
 The integration uses the [official Codex GitHub Action](https://learn.chatgpt.com/docs/github-action).
-API usage is billed to the key's project. Generation has a 35-minute timeout and
-the whole migration job has a 60-minute timeout; these are not monetary spend caps.
+API usage is billed to the key's project. Each workflow job has a 15-minute timeout,
+including generation and validation in the migration job; these are not monetary spend caps.
 
 ## Review and operation
 
