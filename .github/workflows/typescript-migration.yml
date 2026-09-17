@@ -80,30 +80,16 @@ jobs:
           npm test
           npm run prettier:check
 
-      - name: Prepare Codex user
-        if: steps.candidates.outputs.remaining == 'true'
-        run: |
-          sudo adduser --system --home /home/codex --shell /bin/bash --group codex
-          # Allow access through runner-owned parent directories.
-          sudo usermod -aG runner codex
-          sudo chown -R codex:runner "$GITHUB_WORKSPACE"
-          sudo chmod -R g+rwX "$GITHUB_WORKSPACE"
-
       - name: Migrate a small batch
         id: codex
         if: steps.candidates.outputs.remaining == 'true'
-        uses: openai/codex-action@v1
+        uses: openai/codex-action@v1.11
         with:
           openai-api-key: ${{ secrets.OPENAI_API_KEY }}
           prompt-file: .github/codex/typescript-migration.md
           model: ${{ vars.TYPESCRIPT_MIGRATION_MODEL }}
           sandbox: workspace-write
-          safety-strategy: unprivileged-user
-          codex-user: 'codex'
-
-      - name: Restore checkout ownership
-        if: always() && steps.candidates.outputs.remaining == 'true'
-        run: sudo chown -R runner:runner "$GITHUB_WORKSPACE"
+          safety-strategy: drop-sudo
 
       - name: Check migration scope
         if: steps.candidates.outputs.remaining == 'true'
