@@ -1,38 +1,53 @@
 import { calculateResourceTitle, calculateSearchTitle } from "./documentTitle";
+import type { Resource } from "../../types/Resource";
 
-test("default title for undefined resource", () => {
-  expect(calculateResourceTitle(undefined)).toBe("Giant");
+const resource: Resource = {
+  uri: "",
+  type: "blob",
+  isExpandable: false,
+  processingStage: { type: "processed" },
+  extracted: false,
+  mimeTypes: [],
+  fileSize: 0,
+  parents: [],
+  children: [],
+  comments: [],
+  previewStatus: "disabled",
+};
+
+test("default title for null resource", () => {
+  expect(calculateResourceTitle(null)).toBe("Giant");
 });
 
 test("default title for empty string", () => {
-  expect(calculateResourceTitle({ uri: "", parents: [] })).toBe("Giant");
+  expect(calculateResourceTitle(resource)).toBe("Giant");
 });
 
 test("default title for single path with no parents", () => {
-  expect(calculateResourceTitle({ uri: "1234", parents: [] })).toBe("Giant");
+  expect(calculateResourceTitle({ ...resource, uri: "1234" })).toBe("Giant");
 });
 
 test("first parent name for blob", () => {
   const input = {
+    ...resource,
     uri: "1234",
-    parents: [{ uri: "collection/ingestion/test.jpg" }],
+    parents: [{ ...resource, uri: "collection/ingestion/test.jpg" }],
   };
 
   expect(calculateResourceTitle(input)).toBe("test.jpg - Giant");
 });
 
 test("last part of path for file", () => {
-  const input = { uri: "collection/ingestion/test.jpg", parents: [] };
+  const input = { ...resource, uri: "collection/ingestion/test.jpg" };
 
   expect(calculateResourceTitle(input)).toBe("test.jpg - Giant");
 });
 
 test("use subject in title for email", () => {
   const input = {
+    ...resource,
     type: "email" as const,
     subject: "Testing",
-    uri: "",
-    parents: [],
   };
 
   expect(calculateResourceTitle(input)).toBe("Testing - Giant");

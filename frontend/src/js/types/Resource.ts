@@ -82,6 +82,7 @@ export type TranslationData = {
 };
 
 export type Resource = BasicResource & {
+  subject?: string;
   extracted: boolean;
   mimeTypes: string[];
   fileSize: number;

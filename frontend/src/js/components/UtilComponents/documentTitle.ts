@@ -1,12 +1,6 @@
 import { z } from "zod";
 import type { Resource } from "../../types/Resource";
 
-type TitleResource = Pick<Resource, "uri" | "display"> & {
-  type?: Resource["type"];
-  subject?: string;
-  parents: Pick<Resource, "uri">[];
-};
-
 // Only the display fields are needed here. InputSupper also serializes chip
 // type and workspace IDs; title generation does not consume those fields.
 const titleQuerySchema = z.array(
@@ -21,9 +15,7 @@ const titleQuerySchema = z.array(
 );
 type TitleQuery = z.infer<typeof titleQuerySchema>;
 
-export function calculateResourceTitle(
-  resource: TitleResource | null | undefined,
-): string {
+export function calculateResourceTitle(resource: Resource | null): string {
   const postfix = "Giant";
 
   if (resource) {
