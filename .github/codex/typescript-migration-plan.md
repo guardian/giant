@@ -117,6 +117,17 @@ Consume the validated search response, preserve stale-response suppression, and 
 - `js/actions/search/clearSearch.js`
 - `js/reducers/searchReducer.js`
 
+Follow-up after `js/actions/search/performSearch.js` is migrated to TypeScript:
+consolidate search query-string parsing around the shared schema from step 10.
+Parse and validate once at the search action boundary, then pass typed query
+fragments through the request, Redux state and consumers, including
+`calculateSearchTitle`, instead of reparsing JSON in each consumer. Use the same
+schema across the app, including the query editor as it migrates; preserve chip
+type, operator and workspace/folder IDs, date conversion semantics, URL
+serialization and stale-response suppression. Replace the title-only schema in
+`documentTitle.ts`. Keep this follow-up in the plan until it is complete, even if
+the file migrations above have finished.
+
 ### 12. Collection and document data
 
 Reuse Collection.ts and inspect CollectionsApi.ts, whose responses are currently mostly unvalidated. Add shared collection schemas at the touched boundary as supporting TS changes. Check that DocumentApi.fetchIngestions returns a collection object, despite its name.

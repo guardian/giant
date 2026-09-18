@@ -1,8 +1,9 @@
 import { z } from "zod";
 import type { Resource } from "../../types/Resource";
 
-// Only the display fields are needed here. InputSupper also serializes chip
-// type and workspace IDs; title generation does not consume those fields.
+// TODO: Once we are further down the typescript migration this should be replaced with a single global type used
+// across the app. At the moment the base redux propertiesa are not typed so that's a bit tricky. There is a note
+// in the typescript migration plan to sort this out.
 const titleQuerySchema = z.array(
   z.union([
     z.string(),
