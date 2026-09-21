@@ -1,3 +1,4 @@
+import play.api.libs.json.Json
 import sbt._
 import sbt.util.Logger
 
@@ -66,7 +67,7 @@ object TranscriptionSchemaFetcher {
 
     val downloaded = IO.read(tempFile, StandardCharsets.UTF_8)
 
-    try ujson.read(downloaded)
+    try Json.parse(downloaded)
     catch {
       case e: Exception =>
         fail(

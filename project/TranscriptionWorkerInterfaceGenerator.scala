@@ -1,3 +1,4 @@
+import play.api.libs.json.{JsObject, JsValue, Json}
 import sbt._
 
 import scala.collection.mutable
@@ -24,7 +25,7 @@ import scala.collection.mutable
 object TranscriptionWorkerInterfaceGenerator {
 
   def generate(schemaFile: File, packageName: String): String =
-    new Generator(ujson.read(IO.read(schemaFile)), packageName, schemaFile.getName).render()
+    new Generator(Json.parse(IO.read(schemaFile)), packageName, schemaFile.getName).render()
 
   // ---------------------------------------------------------------------------------------------
   // Model
@@ -56,14 +57,14 @@ object TranscriptionWorkerInterfaceGenerator {
   // Generator
   // ---------------------------------------------------------------------------------------------
 
-  private final class Generator(root: ujson.Value, packageName: String, schemaFileName: String) {
+  private final class Generator(root: JsValue, packageName: String, schemaFileName: String) {
 
-    private val defs: Seq[(String, ujson.Value)] =
-      root.obj.get("$defs").map(objectFields).getOrElse(
+    private val defs: Seq[(String, JsValue)] =
+      root.as[JsObject].value.get("$defs").map(objectFields).getOrElse(
         sys.error("Schema has no `$defs` - expected the Zod output to register named definitions")
       )
 
-    private val defsByName: Map[String, ujson.Value] = defs.toMap
+    private val defsByName: Map[String, JsValue] = defs.toMap
 
     /** Declarations in emission order. */
     private val decls = mutable.LinkedHashMap.empty[String, Decl]
@@ -94,32 +95,32 @@ object TranscriptionWorkerInterfaceGenerator {
         case None    => decls += decl.name -> decl
       }
 
-    private def isUnion(schema: ujson.Value): Boolean = schema.obj.contains("oneOf")
-    private def isEnum(schema: ujson.Value): Boolean = schema.obj.contains("enum")
+    private def isUnion(schema: JsValue): Boolean = schema.as[JsObject].value.contains("oneOf")
+    private def isEnum(schema: JsValue): Boolean = schema.as[JsObject].value.contains("enum")
 
-    private def stringEnumValues(schema: ujson.Value): Seq[String] = {
+    private def stringEnumValues(schema: JsValue): Seq[String] = {
       require(
-        schema.obj.get("type").map(_.str).contains("string"),
-        s"Only string enums are supported, got: ${ujson.write(schema)}"
+        schema.as[JsObject].value.get("type").map(_.as[String]).contains("string"),
+        s"Only string enums are supported, got: ${Json.stringify(schema)}"
       )
-      schema("enum").arr.map(_.str).toList
+      schema("enum").as[List[String]]
     }
 
-    private def refName(schema: ujson.Value): Option[String] =
-      schema.obj.get("$ref").map(_.str).map {
+    private def refName(schema: JsValue): Option[String] =
+      schema.as[JsObject].value.get("$ref").map(_.as[String]).map {
         case r if r.startsWith("#/$defs/") => r.stripPrefix("#/$defs/")
         case other                         => sys.error(s"Unsupported `$$ref`: $other")
       }
 
-    private def buildUnion(name: String, schema: ujson.Value): Unit = {
-      val branches = schema("oneOf").arr.map { branch =>
+    private def buildUnion(name: String, schema: JsValue): Unit = {
+      val branches = schema("oneOf").as[List[JsValue]].map { branch =>
         refName(branch).getOrElse(
           sys.error(
             s"Branch of `oneOf` in `$name` is inline rather than a `$$ref`. Register it as a named " +
               "Zod schema so the generated Scala type has a meaningful name."
           )
         )
-      }.toList
+      }
 
       val branchSchemas =
         branches.map(b => b -> defsByName.getOrElse(b, sys.error(s"Unknown `$$ref` target `$b`")))
@@ -154,52 +155,54 @@ object TranscriptionWorkerInterfaceGenerator {
       register(UnionDecl(name, discriminator, branches, common))
     }
 
-    private def constProperties(schema: ujson.Value): Map[String, String] =
+    private def constProperties(schema: JsValue): Map[String, String] =
       properties(schema).collect {
-        case (prop, s) if s.obj.contains("const") => prop -> s("const").str
+        case (prop, s) if s.as[JsObject].value.contains("const") => prop -> s("const").as[String]
       }.toMap
 
-    private def requiredNonConstProperties(schema: ujson.Value): Set[String] = {
+    private def requiredNonConstProperties(schema: JsValue): Set[String] = {
       val consts = constProperties(schema).keySet
       required(schema).filterNot(consts.contains)
     }
 
-    private def required(schema: ujson.Value): Set[String] =
-      schema.obj.get("required").map(_.arr.map(_.str).toSet).getOrElse(Set.empty)
+    private def required(schema: JsValue): Set[String] =
+      schema.as[JsObject].value.get("required").map(_.as[Set[String]]).getOrElse(Set.empty)
 
-    private def buildClass(name: String, schema: ujson.Value): Unit = {
+    private def buildClass(name: String, schema: JsValue): Unit = {
       require(
-        schema.obj.get("type").map(_.str).contains("object"),
-        s"Unsupported definition `$name`: ${ujson.write(schema)}"
+        schema.as[JsObject].value.get("type").map(_.as[String]).contains("object"),
+        s"Unsupported definition `$name`: ${Json.stringify(schema)}"
       )
       val props = properties(schema)
       val req = required(schema)
 
-      val consts = props.collect { case (p, s) if s.obj.contains("const") => p -> s("const").str }.toList
+      val consts = props.collect {
+        case (p, s) if s.as[JsObject].value.contains("const") => p -> s("const").as[String]
+      }.toList
       val fields = props.toList.collect {
-        case (p, s) if !s.obj.contains("const") => field(name, p, s, optional = !req.contains(p))
+        case (p, s) if !s.as[JsObject].value.contains("const") => field(name, p, s, optional = !req.contains(p))
       }
 
       register(ClassDecl(name, fields, consts, parents.get(name).map(_.toList).getOrElse(Nil)))
     }
 
-    private def field(owner: String, propName: String, schema: ujson.Value, optional: Boolean): Field =
+    private def field(owner: String, propName: String, schema: JsValue, optional: Boolean): Field =
       Field(propName, escape(propName), typeOf(owner, propName, schema), optional)
 
     /** Resolves a property schema to a Scala type name, registering synthetic types as needed. */
-    private def typeOf(owner: String, propName: String, schema: ujson.Value): String =
+    private def typeOf(owner: String, propName: String, schema: JsValue): String =
       refName(schema) match {
         case Some(target) => target
         case None =>
-          schema.obj.get("type").map(_.str) match {
-            case Some("string") if schema.obj.contains("enum") =>
+          schema.as[JsObject].value.get("type").map(_.as[String]) match {
+            case Some("string") if schema.as[JsObject].value.contains("enum") =>
               synthetic(schema, typeName(propName), s => EnumDecl(s, stringEnumValues(schema)))
             case Some("string")  => "String"
             case Some("boolean") => "Boolean"
             case Some("number")  => "Double"
             case Some("integer") => "Long"
             case Some("array") =>
-              val items = schema.obj.getOrElse("items", sys.error(s"`$owner.$propName` array has no `items`"))
+              val items = schema.as[JsObject].value.getOrElse("items", sys.error(s"`$owner.$propName` array has no `items`"))
               s"List[${typeOf(owner, singular(propName), items)}]"
             case Some("object") =>
               synthetic(
@@ -217,13 +220,13 @@ object TranscriptionWorkerInterfaceGenerator {
                 }
               )
             case other =>
-              sys.error(s"Unsupported schema for `$owner.$propName` (type=$other): ${ujson.write(schema)}")
+              sys.error(s"Unsupported schema for `$owner.$propName` (type=$other): ${Json.stringify(schema)}")
           }
       }
 
     /** Registers an inline type once per distinct shape, reusing the name for identical shapes. */
-    private def synthetic(schema: ujson.Value, preferredName: String, make: String => Decl): String = {
-      val shape = ujson.write(schema)
+    private def synthetic(schema: JsValue, preferredName: String, make: String => Decl): String = {
+      val shape = Json.stringify(schema)
       syntheticByShape.getOrElseUpdate(
         shape, {
           val name = uniqueName(preferredName)
@@ -246,11 +249,11 @@ object TranscriptionWorkerInterfaceGenerator {
           .get
 
     /** Object members, in schema declaration order. */
-    private def objectFields(value: ujson.Value): Seq[(String, ujson.Value)] =
-      value.obj.toSeq.map { case (k, v) => k -> v }
+    private def objectFields(value: JsValue): Seq[(String, JsValue)] =
+      value.as[JsObject].fields
 
-    private def properties(schema: ujson.Value): Seq[(String, ujson.Value)] =
-      schema.obj.get("properties").map(objectFields).getOrElse(Nil)
+    private def properties(schema: JsValue): Seq[(String, JsValue)] =
+      schema.as[JsObject].value.get("properties").map(objectFields).getOrElse(Nil)
 
     // -- emitting -------------------------------------------------------------------------------
 
