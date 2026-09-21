@@ -2,7 +2,7 @@ name: Daily TypeScript migration
 
 on:
   push:
-    branches: [main, automation/setup-daily-typescript-migration]
+    branches: [main]
     paths:
       - '.github/workflows/typescript-migration.yml'
   schedule:
@@ -23,6 +23,7 @@ env:
 jobs:
   check:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     outputs:
       ready: ${{ steps.check.outputs.ready }}
     steps:
@@ -43,7 +44,7 @@ jobs:
     needs: check
     if: needs.check.outputs.ready == 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 15
     permissions:
       contents: write
       pull-requests: write
@@ -82,8 +83,7 @@ jobs:
       - name: Migrate a small batch
         id: codex
         if: steps.candidates.outputs.remaining == 'true'
-        uses: openai/codex-action@v1
-        timeout-minutes: 35
+        uses: openai/codex-action@v1.11
         with:
           openai-api-key: ${{ secrets.OPENAI_API_KEY }}
           prompt-file: .github/codex/typescript-migration.md
