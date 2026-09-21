@@ -1,6 +1,18 @@
 import buildLink from "./buildLink";
 
 describe("buildLink", () => {
+  test("supports omitted overrides and numeric pages", () => {
+    expect(buildLink("/search", { q: "term", page: 2 })).toBe(
+      "/search?q=term&page=2",
+    );
+  });
+
+  test("null overrides retain the existing fallback to current parameters", () => {
+    expect(buildLink("/search", { q: "term" }, { q: null })).toBe(
+      "/search?q=term",
+    );
+  });
+
   test("preserves q from urlParams when not overridden", () => {
     const result = buildLink("/test", { q: "search" }, {});
     expect(result).toContain("q=search");

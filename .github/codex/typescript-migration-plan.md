@@ -37,20 +37,10 @@ when their JS consumers migrate; unrelated TS cleanup is not part of the plan.
 
 ## Remaining steps
 
-### 03. Dates and URL serialization
-
-These feed search and navigation. Preserve date boundary semantics and nested/array query-string round trips; use the existing tests. Split dates and URLs into separate PRs if needed.
-
-- `js/util/UrlParameters.js`
-- `js/util/UrlParameters.spec.js`
-
 ### 04. Navigation foundations
 
 Use the URL types from the previous step; keep history on the installed history/router versions.
 
-- `js/util/buildLink.js`
-- `js/util/history.js`
-- `js/util/keyboardShortcuts.js`
 - `js/components/UtilComponents/KeyboardShortcut.js`
 
 ### 05. Shared presentation primitives
