@@ -134,3 +134,28 @@ test("Param string correctly becomes an object", () => {
     },
   });
 });
+
+test("nested filters and repeated array values round trip", () => {
+  const params = {
+    q: '["search & find"]',
+    filters: { collection: ["one", "two"], ingestion: ["测试"] },
+  };
+  expect(paramStringToObject(objectToParamString(params))).toEqual(params);
+});
+
+test("scalar values preserve URL string coercion", () => {
+  expect(objectToParamString({ page: 2, basic: false, value: null })).toBe(
+    "page=2&basic=false&value=null",
+  );
+});
+
+test("mixed scalar and array keys retain concatenation behavior", () => {
+  expect(paramStringToObject("q=one&q[]=two")).toEqual({ q: "onetwo" });
+});
+
+test("invalid percent encoding and conflicting object paths still throw", () => {
+  expect(() => paramStringToObject("q=%")).toThrow(URIError);
+  expect(() => paramStringToObject("filters.q=one&filters[]=two")).toThrow(
+    TypeError,
+  );
+});
