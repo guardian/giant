@@ -1,7 +1,16 @@
 import { objectToParamString } from "./UrlParameters";
+import { UrlParamsState } from "../types/redux/GiantState";
+
+type LinkParameters = {
+  [key: string]: string | number | boolean | object | null | undefined;
+};
 
 // Build a URL but keep search text, page, sort-by and filters unless they are set in overrides
-export default function buildLink(to, urlParams, overrides) {
+export default function buildLink(
+  to: string,
+  urlParams: Partial<Omit<UrlParamsState, "page">> & { page?: string | number },
+  overrides?: LinkParameters,
+): string {
   const params = Object.assign({}, overrides);
   const encodedUri = encodeURI(to);
 

@@ -22,3 +22,23 @@ describe("buildLink", () => {
     expect(result).toContain("view=text");
   });
 });
+
+test("buildLink supports numeric pages and omitted overrides", () => {
+  expect(buildLink("/search", { page: 2 })).toBe("/search?page=2");
+});
+
+test("buildLink preserves filters and details while removing null overrides", () => {
+  expect(
+    buildLink(
+      "/a path",
+      {
+        q: "original",
+        filters: { collection: ["one"] },
+        details: { tab: "metadata" },
+      },
+      { q: null, page: 3, view: null },
+    ),
+  ).toBe(
+    "/a%20path?page=3&q=original&filters.collection[]=one&details.tab=metadata",
+  );
+});

@@ -134,3 +134,46 @@ test("Param string correctly becomes an object", () => {
     },
   });
 });
+
+test("nested filters and repeated arrays round trip", () => {
+  const params = {
+    q: '["a & b"]',
+    filters: { ingestion: ["one", "two"], collection: ["👻"] },
+  };
+  expect(paramStringToObject(objectToParamString(params))).toEqual(params);
+});
+
+test("scalar values retain their URL coercion and omission rules", () => {
+  expect(
+    objectToParamString({
+      empty: "",
+      missing: undefined,
+      nil: null,
+      enabled: false,
+      page: 0,
+    }),
+  ).toBe("nil=null&enabled=false&page=0");
+  expect(objectToParamString({ values: [null, undefined, false, 0] })).toBe(
+    "values[]=null&values[]=undefined&values[]=false&values[]=0",
+  );
+});
+
+test("duplicate and conflicting keys retain their existing behavior", () => {
+  expect(paramStringToObject("q=first&q=last")).toEqual({ q: "last" });
+  expect(paramStringToObject("q=first&q[]=last")).toEqual({ q: "firstlast" });
+  expect(paramStringToObject("q[]=first&q=last")).toEqual({ q: "last" });
+  expect(() => paramStringToObject("q.child=first&q[]=last")).toThrow(
+    TypeError,
+  );
+});
+
+test("malformed percent encoding throws instead of returning partial data", () => {
+  expect(() => paramStringToObject("q=%ZZ")).toThrow(URIError);
+  expect(() => paramStringToObject("%ZZ=value")).toThrow(URIError);
+});
+
+test("deeply nested serialization retains the existing immediate-parent prefix", () => {
+  expect(objectToParamString({ outer: { inner: { value: "test" } } })).toBe(
+    "inner.value=test",
+  );
+});
