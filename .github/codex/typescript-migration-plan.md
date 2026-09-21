@@ -37,19 +37,10 @@ when their JS consumers migrate; unrelated TS cleanup is not part of the plan.
 
 ## Remaining steps
 
-### 02. Markdown and document titles
-
-Keep implementation and tests together. Type the document-title input from its callers.
-
-- `js/components/UtilComponents/documentTitle.js`
-- `js/components/UtilComponents/documentTitle.spec.js`
-
 ### 03. Dates and URL serialization
 
 These feed search and navigation. Preserve date boundary semantics and nested/array query-string round trips; use the existing tests. Split dates and URLs into separate PRs if needed.
 
-- `js/util/parseDate.js`
-- `js/util/parseDate.spec.js`
 - `js/util/UrlParameters.js`
 - `js/util/UrlParameters.spec.js`
 
@@ -125,6 +116,17 @@ Consume the validated search response, preserve stale-response suppression, and 
 - `js/actions/search/getSuggestedFields.js`
 - `js/actions/search/clearSearch.js`
 - `js/reducers/searchReducer.js`
+
+Follow-up after `js/actions/search/performSearch.js` is migrated to TypeScript:
+consolidate search query-string parsing around the shared schema from step 10.
+Parse and validate once at the search action boundary, then pass typed query
+fragments through the request, Redux state and consumers, including
+`calculateSearchTitle`, instead of reparsing JSON in each consumer. Use the same
+schema across the app, including the query editor as it migrates; preserve chip
+type, operator and workspace/folder IDs, date conversion semantics, URL
+serialization and stale-response suppression. Replace the title-only schema in
+`documentTitle.ts`. Keep this follow-up in the plan until it is complete, even if
+the file migrations above have finished.
 
 ### 12. Collection and document data
 
