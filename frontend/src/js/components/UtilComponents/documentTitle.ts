@@ -1,4 +1,25 @@
-export function calculateResourceTitle(resource) {
+import { z } from "zod";
+import type { Resource } from "../../types/Resource";
+
+type TitleResource = Pick<Resource, "uri" | "display"> & {
+  type?: Resource["type"];
+  subject?: string;
+  parents: Pick<Resource, "uri">[];
+};
+
+// Only the fields used to render a title. Chip metadata (including date types)
+// is left to the query editor and search API to interpret.
+const titleQuerySchema = z.array(
+  z.union([
+    z.string(),
+    z.object({ n: z.string(), v: z.string(), op: z.string().optional() }),
+  ]),
+);
+type TitleQuery = z.infer<typeof titleQuerySchema>;
+
+export function calculateResourceTitle(
+  resource: TitleResource | null | undefined,
+): string {
   const postfix = "Giant";
 
   if (resource) {
@@ -29,11 +50,18 @@ export function calculateResourceTitle(resource) {
   return postfix;
 }
 
-export function calculateSearchTitle(search) {
+export function calculateSearchTitle(
+  search: { q?: string } | null | undefined,
+): string {
   if (search && search.q) {
     try {
-      const parts = JSON.parse(search.q).map((part) => {
-        if (part.n) {
+      const parsed: unknown = JSON.parse(search.q);
+      const result = titleQuerySchema.safeParse(parsed);
+      // Invalid query data uses the same default title as malformed JSON.
+      if (!result.success) return "Search - Giant";
+      const query: TitleQuery = result.data;
+      const parts = query.map((part) => {
+        if (typeof part !== "string" && part.n) {
           if (part.op === "-") {
             return `-${part.n}: ${part.v}`;
           }

@@ -40,7 +40,9 @@ const monthNames = [
   ["dec", "december"],
 ];
 
-export function parseDate(text, mode) {
+type DateMode = "from_start" | "from_end";
+
+export function parseDate(text: string, mode: DateMode): number {
   const trimmed = text.trim();
 
   try {
@@ -58,7 +60,10 @@ export function parseDate(text, mode) {
   }
 }
 
-export function parseDateNoFallback(text, mode) {
+export function parseDateNoFallback(
+  text: string,
+  mode: DateMode,
+): number | null {
   // Date parser mode will chose either the from start of your date or the end
   // This is because if you say, "Give me all documents from after 2018" you don't want the
   // calculation to be from the first of January because you'd get results from all of 2018
@@ -124,12 +129,12 @@ export function parseDateNoFallback(text, mode) {
   return null;
 }
 
-function validateDay(day) {
+function validateDay(day: string): boolean {
   const num = Number(day);
   return !!num;
 }
 
-function validateMonth(month) {
+function validateMonth(month: string): boolean {
   const num = Number(month);
   return (
     !!num ||
@@ -137,7 +142,7 @@ function validateMonth(month) {
   );
 }
 
-function getMonthIndex(month) {
+function getMonthIndex(month: string): number {
   const num = Number(month);
   if (num) {
     return num - 1;
@@ -146,7 +151,7 @@ function getMonthIndex(month) {
   return monthNames.findIndex((names) => names.includes(month.toLowerCase()));
 }
 
-function validateYear(year) {
+function validateYear(year: string): boolean {
   const num = Number(year);
   return !!num;
 }
