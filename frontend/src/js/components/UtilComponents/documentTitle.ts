@@ -2,7 +2,7 @@ import { z } from "zod";
 import type { Resource } from "../../types/Resource";
 
 // TODO: Once we are further down the typescript migration this should be replaced with a single global type used
-// across the app. At the moment the base redux propertiesa are not typed so that's a bit tricky. There is a note
+// across the app. At the moment the base redux properties are not typed so that's a bit tricky. There is a note
 // in the typescript migration plan to sort this out.
 const titleQuerySchema = z.array(
   z.union([
