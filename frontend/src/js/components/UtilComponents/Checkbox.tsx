@@ -5,7 +5,16 @@ import { MdCheckBoxOutlineBlank } from "react-icons/md";
 import { MdCheck } from "react-icons/md";
 import { MdRemove } from "react-icons/md";
 
-export const Checkbox = (props) => (
+type CheckboxProps = {
+  selected?: boolean;
+  indeterminate?: boolean;
+  disabled?: boolean;
+  onClick: (event: React.MouseEvent<HTMLDivElement>) => void;
+  highlighted?: boolean;
+  children?: React.ReactNode;
+};
+
+export const Checkbox = (props: CheckboxProps) => (
   <div
     className={`checkbox ${props.disabled ? "checkbox--disabled" : ""} ${props.selected ? "checkbox--checked" : ""}`}
     onClick={(e) => (!props.disabled ? props.onClick(e) : false)}

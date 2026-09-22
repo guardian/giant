@@ -1,7 +1,14 @@
 import React from "react";
 import PropTypes from "prop-types";
 
-export default class PageNavigator extends React.Component {
+type PageNavigatorProps = {
+  currentPage: number;
+  pageSelectCallback: (page: number) => void;
+  pageSpan: number;
+  lastPage: number;
+};
+
+export default class PageNavigator extends React.Component<PageNavigatorProps> {
   static propTypes = {
     currentPage: PropTypes.number.isRequired,
     pageSelectCallback: PropTypes.func.isRequired,
@@ -9,7 +16,7 @@ export default class PageNavigator extends React.Component {
     lastPage: PropTypes.number.isRequired,
   };
 
-  renderPageButton(number) {
+  renderPageButton(number: number) {
     if (number === this.props.currentPage) {
       return (
         <span
@@ -31,23 +38,23 @@ export default class PageNavigator extends React.Component {
     );
   }
 
-  renderStartElipsis(firstDisplayedPage, lastPage) {
+  renderStartElipsis(firstDisplayedPage: number, lastPage: number) {
     if (firstDisplayedPage > 2 && firstDisplayedPage < lastPage) {
       return <span>...</span>;
     }
     return false;
   }
 
-  renderEndElipsis(lastDisplayedPage, lastPage) {
+  renderEndElipsis(lastDisplayedPage: number, lastPage: number) {
     if (lastDisplayedPage < lastPage - 1) {
       return <span> ... </span>;
     }
     return false;
   }
 
-  renderPageSpan(firstDisplayedPage, lastDisplayedPage) {
-    let spans = [];
-    for (var i = firstDisplayedPage; i <= lastDisplayedPage; i++) {
+  renderPageSpan(firstDisplayedPage: number, lastDisplayedPage: number) {
+    const spans = [];
+    for (let i = firstDisplayedPage; i <= lastDisplayedPage; i++) {
       spans.push(this.renderPageButton(i));
     }
     return spans;
