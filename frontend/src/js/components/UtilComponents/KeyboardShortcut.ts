@@ -9,7 +9,12 @@ import Mousetrap from "mousetrap";
 //
 // Representing the API using a dummy React node is one way to automatically register/unregister
 // the listeners as components appear and disappear.
-export function KeyboardShortcut({ shortcut, func }) {
+type Props = {
+  shortcut: string | string[];
+  func: (event: KeyboardEvent, shortcut: string) => void | boolean;
+};
+
+export function KeyboardShortcut({ shortcut, func }: Props) {
   useEffect(() => {
     Mousetrap.bind(shortcut, func);
 

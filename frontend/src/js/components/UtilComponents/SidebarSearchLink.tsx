@@ -3,7 +3,14 @@ import PropTypes from "prop-types";
 
 import { NavSearchLink } from "../UtilComponents/SearchLink";
 
-export default function SidebarSearchLink({ to, children, onDrop }) {
+type Props = {
+  to: string;
+  children: React.ReactNode;
+  className?: string;
+  onDrop?: React.DragEventHandler<HTMLAnchorElement>;
+};
+
+export default function SidebarSearchLink({ to, children, onDrop }: Props) {
   const [hoveredOver, setHoveredOver] = useState(false);
 
   return (
@@ -13,7 +20,7 @@ export default function SidebarSearchLink({ to, children, onDrop }) {
       activeClassName="sidebar__item sidebar__item--active"
       className={`sidebar__item ${hoveredOver ? "sidebar__item--drop-target" : ""}`}
       onDrop={(e) => {
-        onDrop(e);
+        onDrop?.(e);
         setHoveredOver(false);
       }}
       onDragOver={(e) => {

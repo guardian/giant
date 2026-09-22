@@ -308,8 +308,14 @@ export default class TreeBrowser<T> extends React.Component<Props<T>, State> {
 
     return (
       <div className="file-browser__wrapper">
-        <KeyboardShortcut shortcut="home" func={this.focus} />
-        <KeyboardShortcut shortcut="end" func={this.focusLast} />
+        <KeyboardShortcut
+          shortcut="home"
+          func={(event) => this.focus(event.metaKey, event.shiftKey)}
+        />
+        <KeyboardShortcut
+          shortcut="end"
+          func={(event) => this.focusLast(event.metaKey, event.shiftKey)}
+        />
         <table className="file-browser">
           {this.props.showColumnHeaders ? (
             <thead>
