@@ -2,7 +2,15 @@ import React from "react";
 import PropTypes from "prop-types";
 import { KeyboardShortcut } from "../UtilComponents/KeyboardShortcut";
 
-export default class Modal extends React.Component {
+type Props = {
+  isOpen: boolean;
+  dismiss: () => void;
+  children: React.ReactNode;
+  isDismissable?: boolean;
+  panelClassName?: string;
+};
+
+export default class Modal extends React.Component<Props> {
   static defaultProps = {
     isDismissable: true,
   };
@@ -19,7 +27,7 @@ export default class Modal extends React.Component {
     panelClassName: PropTypes.string,
   };
 
-  preventClosingClick(event) {
+  preventClosingClick(event: React.MouseEvent<HTMLDivElement>) {
     event.stopPropagation();
   }
 

@@ -6,7 +6,20 @@ import buildLink from "../../util/buildLink";
 
 import { connect } from "react-redux";
 
-class HoverSearchLinkUnconnected extends React.Component {
+import { GiantState } from "../../types/redux/GiantState";
+
+type Props = {
+  iconOnLeft?: boolean;
+  highlight?: boolean;
+  q: string;
+  display?: string;
+  title?: string;
+  chipName?: string;
+  chipNegate?: boolean;
+  type?: string;
+} & ReturnType<typeof mapStateToProps>;
+
+class HoverSearchLinkUnconnected extends React.Component<Props> {
   static propTypes = {
     iconOnLeft: PropTypes.bool,
     highlight: PropTypes.bool,
@@ -20,12 +33,12 @@ class HoverSearchLinkUnconnected extends React.Component {
   };
 
   render() {
-    var wrapperClass = "hover-search-link__icon-wrapper";
+    let wrapperClass = "hover-search-link__icon-wrapper";
     if (this.props.iconOnLeft) {
       wrapperClass = "hover-search-link__icon-wrapper--left";
     }
 
-    var iconClass = "hover-search-link__icon hover-show__hidden";
+    let iconClass = "hover-search-link__icon hover-show__hidden";
     if (this.props.highlight) {
       iconClass = "hover-search-link__icon--highlighted hover-show__hidden";
     }
@@ -64,7 +77,7 @@ class HoverSearchLinkUnconnected extends React.Component {
   }
 }
 
-function mapStateToProps(state) {
+function mapStateToProps(state: GiantState) {
   return {
     urlParams: state.urlParams,
   };

@@ -37,25 +37,10 @@ when their JS consumers migrate; unrelated TS cleanup is not part of the plan.
 
 ## Remaining steps
 
-### 04. Navigation foundations
-
-Use the URL types from the previous step; keep history on the installed history/router versions.
-
-Before migrating KeyboardShortcut, resolve TreeBrowser's home/end callback contract:
-its focus methods expect boolean modifier flags, but Mousetrap passes a keyboard
-event and shortcut string. Preserve or explicitly resolve the existing selection
-behavior rather than weakening the callback types.
-
-- `js/components/UtilComponents/KeyboardShortcut.js`
-
 ### 06. Links and overlays
 
 Navigation helpers and keyboard handling are now typed. Derive own versus router/Redux-injected props without changing component APIs.
 
-- `js/components/UtilComponents/SearchLink.jsx`
-- `js/components/UtilComponents/SidebarSearchLink.jsx`
-- `js/components/UtilComponents/HoverSearchLink.jsx`
-- `js/components/UtilComponents/Modal.jsx`
 - `js/components/UtilComponents/SelectionPopover.jsx`
 
 ### 07. Preferences and application errors

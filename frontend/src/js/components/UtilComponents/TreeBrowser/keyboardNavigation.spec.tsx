@@ -38,6 +38,7 @@ const columnsConfig: ColumnsConfig<null> = {
 };
 
 const handlers = {
+  onFocus: vi.fn(),
   onSelectLeaf: vi.fn(),
   onExpandNode: vi.fn(),
   onCollapseNode: vi.fn(),
@@ -71,7 +72,10 @@ class Harness extends React.Component<
         focusedEntry={this.state.focused}
         expandedEntries={this.state.expanded}
         clearFocus={() => this.setState({ focused: null })}
-        onFocus={(entry) => this.setState({ focused: entry })}
+        onFocus={(entry, metaKey, shiftKey) => {
+          handlers.onFocus(entry.id, metaKey, shiftKey);
+          this.setState({ focused: entry });
+        }}
         onSelectLeaf={(leaf) => {
           handlers.onSelectLeaf(leaf.id);
           this.setState({ selected: [leaf] });
@@ -131,6 +135,33 @@ describe("workspace tree keyboard navigation", () => {
       ReactDOM.render(<Harness />, container);
     });
   }
+
+  it.each([
+    ["Home", 36, "folder"],
+    ["End", 35, "child"],
+  ])(
+    "%s focuses the boundary row with boolean modifier flags",
+    (key, keyCode, id) => {
+      mount();
+      rowByName(container, "folder").focus();
+      press("Enter");
+      handlers.onFocus.mockClear();
+
+      act(() => {
+        document.dispatchEvent(
+          new KeyboardEvent("keydown", {
+            key,
+            keyCode,
+            which: keyCode,
+            bubbles: true,
+          }),
+        );
+      });
+
+      expect(handlers.onFocus).toHaveBeenCalledWith(id, false, false);
+      expect(document.activeElement).toBe(rowByName(container, id));
+    },
+  );
 
   it("ArrowDown into an expanded folder then Enter opens the child", () => {
     mount();

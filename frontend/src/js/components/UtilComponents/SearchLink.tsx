@@ -1,12 +1,43 @@
 import React from "react";
 import PropTypes from "prop-types";
-import { Link, NavLink } from "react-router-dom";
+import { Link, NavLink, NavLinkProps } from "react-router-dom";
 import buildLink from "../../util/buildLink";
 
 import { connect } from "react-redux";
 
+import { GiantState } from "../../types/redux/GiantState";
+import { UrlParameters } from "../../util/UrlParameters";
+
+type InjectedProps = ReturnType<typeof mapStateToProps>;
+
+type SearchLinkProps = {
+  to: string;
+  children: React.ReactNode;
+  className?: string;
+  params?: UrlParameters;
+} & InjectedProps;
+
+type NavSearchLinkProps = Pick<
+  NavLinkProps,
+  | "children"
+  | "className"
+  | "activeClassName"
+  | "isActive"
+  | "title"
+  | "onDrop"
+  | "onDragOver"
+  | "onDragLeave"
+  | "onDragStart"
+> & { to: string } & InjectedProps;
+
 // Maintains search and filter params across internal links
-function SearchLinkUnconnected({ to, children, className, urlParams, params }) {
+function SearchLinkUnconnected({
+  to,
+  children,
+  className,
+  urlParams,
+  params,
+}: SearchLinkProps) {
   const link = buildLink(to, urlParams, params || {});
 
   return (
@@ -24,7 +55,7 @@ SearchLinkUnconnected.propTypes = {
   params: PropTypes.object,
 };
 
-function NavSearchLinkUnconnected(props) {
+function NavSearchLinkUnconnected(props: NavSearchLinkProps) {
   const { to, urlParams, children, onDrop, onDragOver, onDragLeave } = props;
   const { className, activeClassName, isActive, title } = props;
   const link = buildLink(to, urlParams, {});
@@ -56,7 +87,7 @@ NavSearchLinkUnconnected.propTypes = {
   urlParams: PropTypes.object,
 };
 
-function mapStateToProps(state) {
+function mapStateToProps(state: GiantState) {
   return {
     urlParams: state.urlParams,
   };
