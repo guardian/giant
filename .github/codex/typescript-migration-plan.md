@@ -41,17 +41,12 @@ when their JS consumers migrate; unrelated TS cleanup is not part of the plan.
 
 Use the URL types from the previous step; keep history on the installed history/router versions.
 
+Before migrating KeyboardShortcut, resolve TreeBrowser's home/end callback contract:
+its focus methods expect boolean modifier flags, but Mousetrap passes a keyboard
+event and shortcut string. Preserve or explicitly resolve the existing selection
+behavior rather than weakening the callback types.
+
 - `js/components/UtilComponents/KeyboardShortcut.js`
-
-### 05. Shared presentation primitives
-
-Low-dependency components establish explicit props and event signatures for later consumers.
-
-- `js/components/UtilComponents/ProgressAnimation.jsx`
-- `js/components/UtilComponents/ProgressBar.jsx`
-- `js/components/UtilComponents/Checkbox.jsx`
-- `js/components/UtilComponents/HighlightedText.jsx`
-- `js/components/UtilComponents/PageNavigator.jsx`
 
 ### 06. Links and overlays
 

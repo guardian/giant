@@ -1,11 +1,17 @@
 import React from "react";
 import PropTypes from "prop-types";
 
-function percentageWidth(total, value) {
+type ProgressBarProps = {
+  highest: number;
+  value: number;
+  className?: string;
+};
+
+function percentageWidth(total: number, value: number): string {
   return `${(value / total) * 100}%`;
 }
 
-export const ProgressBar = (props) => (
+export const ProgressBar = (props: ProgressBarProps) => (
   <div className={props.className || "progress-bar"}>
     <div
       className="progress-bar__bar"

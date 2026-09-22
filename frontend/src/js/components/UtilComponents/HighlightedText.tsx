@@ -2,7 +2,12 @@ import React from "react";
 import PropTypes from "prop-types";
 import _escape from "lodash/fp/escape";
 
-function escapeHighlights(text) {
+type HighlightedTextProps = {
+  value: string;
+  preferences?: { showSearchHighlights?: boolean } | null;
+};
+
+function escapeHighlights(text: string): { __html: string } {
   const escaped = _escape(text)
     .replace(
       new RegExp(_escape("<result-highlight>"), "g"),
@@ -16,7 +21,7 @@ function escapeHighlights(text) {
   return { __html: escaped };
 }
 
-function removeHighlights(text) {
+function removeHighlights(text: string): { __html: string } {
   const escaped = _escape(text)
     .replace(new RegExp(_escape("<result-highlight>"), "g"), "")
     .replace(new RegExp(_escape("</result-highlight>"), "g"), "");
@@ -24,7 +29,7 @@ function removeHighlights(text) {
   return { __html: escaped };
 }
 
-export function HighlightedText({ value, preferences }) {
+export function HighlightedText({ value, preferences }: HighlightedTextProps) {
   const innerHtml =
     preferences && !preferences.showSearchHighlights
       ? removeHighlights(value)
