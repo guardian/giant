@@ -37,12 +37,6 @@ when their JS consumers migrate; unrelated TS cleanup is not part of the plan.
 
 ## Remaining steps
 
-### 06. Links and overlays
-
-Navigation helpers and keyboard handling are now typed. Derive own versus router/Redux-injected props without changing component APIs.
-
-- `js/components/UtilComponents/SelectionPopover.jsx`
-
 ### 07. Preferences and application errors
 
 Create a shared preferences schema for localStorage, including missing/malformed values and existing defaults in index.jsx. Extend AppAction and the app slice in GiantState for errors, warnings, preferences, and initial config. Reuse the schema when index.jsx is migrated.
