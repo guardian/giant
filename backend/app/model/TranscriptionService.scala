@@ -121,6 +121,16 @@ object LlmOutputFailure {
   implicit val format: Format[LlmOutputFailure] = Json.format[LlmOutputFailure]
 }
 
+case class OcrOutputSuccess(id: String, status: String, userEmail: String, outputKey: String) extends TranscriptionOutput
+object OcrOutputSuccess {
+  implicit val format: Format[OcrOutputSuccess] = Json.format[OcrOutputSuccess]
+}
+
+case class OcrOutputFailure(id: String, status: String) extends TranscriptionOutput
+object OcrOutputFailure {
+  implicit val format: Format[OcrOutputFailure] = Json.format[OcrOutputFailure]
+}
+
 object TranscriptionOutput {
   // Custom Reads to handle both message types
   implicit val transcriptionOutputReads: Reads[TranscriptionOutput] = new Reads[TranscriptionOutput] {
@@ -129,6 +139,8 @@ object TranscriptionOutput {
         // NOTE: These statuses are defined in the transcription service:
         // https://github.com/guardian/transcription-service/blob/main/packages/common/src/types.ts
         case "SUCCESS" => json.validate[TranscriptionOutputSuccess]
+        case "OCR_SUCCESS" => json.validate[OcrOutputSuccess]
+        case "OCR_FAILURE" => json.validate[OcrOutputFailure]
         case "LLM_SUCCESS" => json.validate[LlmOutputSuccess]
         case "LLM_FAILURE" => json.validate[LlmOutputFailure]
         case "TRANSCRIPTION_FAILURE" => json.validate[TranscriptionOutputFailure]

@@ -552,40 +552,57 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
       )
     )
 
-    Right(summary.list().asScala.toList.map { r =>
-      val rawBlob = r.get("blob")
-      val mimeTypes = r.get("types").values()
+    Right(summary.list().asScala.toList.map(readWorkItem))
+  }
 
-      val blob = Blob.fromNeo4jValue(rawBlob, mimeTypes.asScala.toSeq)
-      val extractorName = r.get("extractorName").asString()
+  override def getExternalWork(uri: Uri, extractorName: String): Either[Failure, List[WorkItem]] = transaction { tx =>
+    val result = tx.run(
+      """
+        |MATCH (e:Extractor {name: $extractorName})-[work:PROCESSING_EXTERNALLY]->(blob:Blob:Resource {uri: $uri})
+        |MATCH (blob)-[:TYPE_OF]-(m:MimeType)
+        |RETURN blob, collect(m) as types, e.name as extractorName,
+        |       work.ingestion as ingestion, work.languages as languages, work.parentBlobs as parentBlobs,
+        |       work.workspaceId as workspaceId, work.workspaceNodeId as workspaceNodeId,
+        |       work.workspaceBlobUri as workspaceBlobUri
+      """.stripMargin,
+      parameters("uri", uri.value, "extractorName", extractorName)
+    )
+    Right(result.list().asScala.toList.map(readWorkItem))
+  }
 
-      val ingestion = r.get("ingestion").asString()
+  private def readWorkItem(r: org.neo4j.driver.Record): WorkItem = {
+    val rawBlob = r.get("blob")
+    val mimeTypes = r.get("types").values()
 
-      val workspaceId = r.get("workspaceId")
-      val workspaceNodeId = r.get("workspaceNodeId")
-      val workspaceBlobUri = r.get("workspaceBlobUri")
+    val blob = Blob.fromNeo4jValue(rawBlob, mimeTypes.asScala.toSeq)
+    val extractorName = r.get("extractorName").asString()
 
-      val workspace =
-        if(workspaceId.isNull || workspaceNodeId.isNull || workspaceBlobUri.isNull)
-          None
-        else
-          Some(WorkspaceItemContext(workspaceId.asString(), workspaceNodeId.asString(), workspaceBlobUri.asString()))
+    val ingestion = r.get("ingestion").asString()
 
-      val rawLanguages = r.get("languages")
-      val rawParentBlobs = r.get("parentBlobs")
+    val workspaceId = r.get("workspaceId")
+    val workspaceNodeId = r.get("workspaceNodeId")
+    val workspaceBlobUri = r.get("workspaceBlobUri")
 
-      if(rawLanguages.isNull || rawParentBlobs.isNull) {
-        val message = s"NULL languages or parentBlobs! blob: $blob. extractorName: $extractorName. ingestion: $ingestion. rawParentBlobs: $rawParentBlobs. rawLanguages: $rawLanguages. workspaceId: $workspaceId. workspaceNodeId: $workspaceNodeId. workspaceBlobUri: $workspaceBlobUri"
-        logger.error(message)
+    val workspace =
+      if(workspaceId.isNull || workspaceNodeId.isNull || workspaceBlobUri.isNull)
+        None
+      else
+        Some(WorkspaceItemContext(workspaceId.asString(), workspaceNodeId.asString(), workspaceBlobUri.asString()))
 
-        throw new IllegalStateException(message)
-      } else {
-        val languages = rawLanguages.asList(_.asString).asScala.toList.flatMap(Languages.getByKey)
-        val parentBlobs: List[Uri] = rawParentBlobs.asList(_.asString, new java.util.ArrayList[String]()).asScala.toList.map(Uri(_))
+    val rawLanguages = r.get("languages")
+    val rawParentBlobs = r.get("parentBlobs")
 
-        WorkItem(blob, parentBlobs, extractorName, ingestion, languages, workspace)
-      }
-    })
+    if(rawLanguages.isNull || rawParentBlobs.isNull) {
+      val message = s"NULL languages or parentBlobs! blob: $blob. extractorName: $extractorName. ingestion: $ingestion. rawParentBlobs: $rawParentBlobs. rawLanguages: $rawLanguages. workspaceId: $workspaceId. workspaceNodeId: $workspaceNodeId. workspaceBlobUri: $workspaceBlobUri"
+      logger.error(message)
+
+      throw new IllegalStateException(message)
+    } else {
+      val languages = rawLanguages.asList(_.asString).asScala.toList.flatMap(Languages.getByKey)
+      val parentBlobs: List[Uri] = rawParentBlobs.asList(_.asString, new java.util.ArrayList[String]()).asScala.toList.map(Uri(_))
+
+      WorkItem(blob, parentBlobs, extractorName, ingestion, languages, workspace)
+    }
   }
 
   // Called by the workers themselves once a batch work is complete
@@ -1241,7 +1258,8 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
   override def getLanguagesProcessedByOcrMyPdf(uri: Uri): Attempt[List[Language]] = attemptTransaction { tx =>
     tx.run(
       """
-        |MATCH (r: Resource { uri: $uri } )<-[p:PROCESSED]-(e :Extractor {name: "OcrMyPdfExtractor"})
+        |MATCH (r: Resource { uri: $uri } )<-[p:PROCESSED]-(e :Extractor)
+        |WHERE e.name IN ["OcrMyPdfExtractor", "ExternalOcrMyPdfExtractor"]
         |RETURN p.languages as languages
       """.stripMargin,
       parameters(
@@ -1250,13 +1268,13 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
     ).map { queryResultSummary =>
       val results = queryResultSummary.list().asScala.toList
 
-      results.headOption.toList.flatMap(r =>
+      results.flatMap(r =>
         r.get("languages")
           .asList((v: Value) => v.asString())
           .asScala
           .toList
           .flatMap(Languages.getByKey)
-      )
+      ).distinct
     }
   }
 

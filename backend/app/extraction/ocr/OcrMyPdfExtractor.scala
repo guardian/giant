@@ -74,7 +74,7 @@ class OcrMyPdfExtractor(scratch: ScratchSpace, index: Index, pageService: Pages,
 
 object OcrMyPdfExtractor extends Logging {
 
-  private def preProcessPdf(blob: Blob, file: File, tmpDir: Path, stdErrLogger: OcrStderrLogger ): Option[Path] = {
+  private[extraction] def preProcessPdf(blob: Blob, file: File, tmpDir: Path, stdErrLogger: OcrStderrLogger ): Option[Path] = {
     val largeVectors = Using(Loader.loadPDF(file)) { doc =>
       Ocr.hasLargeVectorContent(file, doc)
     } match {
@@ -97,18 +97,18 @@ object OcrMyPdfExtractor extends Logging {
 
     textByLanguage.foreach { case (lang, value) =>
       val optionalText = if (value.trim().isEmpty) None else Some(value)
-      index.addDocumentOcr(uri, optionalText, lang).awaitEither(10.second)
+      index.addDocumentOcr(uri, optionalText, lang).await(10.seconds)
     }
 
     handleOcrTranslation(uri, textByLanguage, index, ingestionServices, params)
   }
 
-  private def postProcessPdf(ocrOutput: Map[Language, Path], blob: Blob, pageService: Pages, previewStorage: ObjectStorage, params: ExtractionParams, index: Index, ingestionServices: IngestionServices)(implicit ec: ExecutionContext): Unit = {
+  private[extraction] def postProcessPdf(ocrOutput: Map[Language, Path], blob: Blob, pageService: Pages, previewStorage: ObjectStorage, params: ExtractionParams, index: Index, ingestionServices: IngestionServices)(implicit ec: ExecutionContext): Unit = {
     var pdDocuments: Map[Language, (Path, PDDocument)] = Map.empty
     try {
-      pdDocuments = ocrOutput.map { case (lang, path) =>
+      ocrOutput.foreach { case (lang, path) =>
         val doc = Loader.loadPDF(path.toFile)
-        lang -> (path, doc)
+        pdDocuments += lang -> (path, doc)
       }
       // All docs have the same number of pages with the same dimensions, just different text from the OCR run per language
       val (_, (_, firstDoc)) = pdDocuments.headOption.getOrElse {
@@ -147,7 +147,7 @@ object OcrMyPdfExtractor extends Logging {
       }
 
       // Write to the page index in Elasticsearch - a document in the index corresponds to a single page
-      pageService.addPageContents(blob.uri, pages)
+      pageService.addPageContents(blob.uri, pages).await(30.seconds)
 
       // Upload each page to S3, per language. This is because OCRing English produces totally different output to OCRing
       // Russian for example so we store each page and decide later which one to serve the viewer
@@ -159,7 +159,7 @@ object OcrMyPdfExtractor extends Logging {
 
         // Upload the entire document to S3, per language. We serve these to the client as a download of the whole doc
         // TODO MRB: stop overwriting when we are OCRing against multiple languages?
-        previewStorage.create(blob.uri.toStoragePath, path, Some("application/pdf"))
+        previewStorage.create(blob.uri.toStoragePath, path, Some("application/pdf")).fold(failure => throw failure.toThrowable, identity)
       }
 
       OcrMyPdfExtractor.insertFullText(blob.uri, pages, index, ingestionServices, params)
@@ -181,7 +181,7 @@ object OcrMyPdfExtractor extends Logging {
       doc.save(tempFile.toFile)
 
       val key = PreviewService.getPageStoragePath(blob.uri, language, pageNumber)
-      previewStorage.create(key, tempFile, Some("application/pdf"))
+      previewStorage.create(key, tempFile, Some("application/pdf")).fold(failure => throw failure.toThrowable, identity)
     } finally {
       doc.close()
       Files.deleteIfExists(tempFile)
