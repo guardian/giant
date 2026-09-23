@@ -303,6 +303,35 @@ class Neo4JManifestITest extends AnyFreeSpec
         }
       }
 
+      "External OCR preserves its work context and exposes processed languages for preview cleanup" in {
+        val externalOcr = new Extractor {
+          override def name = "ExternalOcrMyPdfExtractor"
+          override def canProcessMimeType: String => Boolean = _ == "application/pdf"
+          override def indexing = true
+          override def priority = 2
+          override def external = true
+          override def extract(blob: Blob, stream: InputStream, params: ExtractionParams): Either[Failure, Unit] = Right(())
+        }
+        val ingestion = "external_ocr/test"
+        val insertion = blob(Uri(s"$ingestion/document.pdf"), List(externalOcr), ingestion, workspace = Some("ocr-workspace"))
+          .copy(languages = List(English.key, model.French.key), parentBlobs = List(Uri("parent-blob")))
+        val resource = Blob(insertion.blobUri, 1024L, Set(insertion.mimeType))
+        val params = ExtractionParams(ingestion, List(English, model.French), insertion.parentBlobs, insertion.workspace)
+
+        manifest.insertCollection("external_ocr", "OCR", "test").eitherValue.isRight shouldBe true
+        insertIngestion(Uri("external_ocr"), Some(Uri(ingestion))).eitherValue.isRight shouldBe true
+        manifest.insert(List(insertion), Uri(ingestion)).isRight shouldBe true
+        manifest.markExternalAsProcessing(params, resource, externalOcr).isRight shouldBe true
+
+        manifest.getExternalWork(resource.uri, externalOcr.name).toOption.get shouldBe List(
+          WorkItem(resource, params.parentBlobs, externalOcr.name, ingestion, params.languages, params.workspace)
+        )
+        manifest.getExternalWork(resource.uri, "another-extractor").toOption.get shouldBe empty
+        manifest.markExternalAsComplete(resource.uri.value, externalOcr.name).isRight shouldBe true
+        manifest.getExternalWork(resource.uri, externalOcr.name).toOption.get shouldBe empty
+        manifest.getLanguagesProcessedByOcrMyPdf(resource.uri).successValue should contain theSameElementsAs params.languages
+      }
+
       "Can retrieve work by extractor priority" in {
         val blobs = buildBlobs("priority_test", "priority_test/test")
 
