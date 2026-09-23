@@ -21,7 +21,7 @@ import extraction.email.olm.OlmEmailExtractor
 import extraction.email.pst.PstEmailExtractor
 import extraction.ocr.{ImageOcrExtractor, OcrMyPdfExtractor, OcrMyPdfImageExtractor, TesseractPdfOcrExtractor}
 import extraction.tables.{CsvTableExtractor, ExcelTableExtractor}
-import extraction.{DocumentBodyExtractor, ExternalDocumentTranslationExtractor, ExternalOcrTranslationExtractor, ExternalTranscriptionExtractor, ExternalTranscriptionWorker, Extractor, MimeTypeMapper, TranscriptionExtractor, Worker}
+import extraction.{ExternalOcrMyPdfExtractor, DocumentBodyExtractor, ExternalDocumentTranslationExtractor, ExternalOcrTranslationExtractor, ExternalTranscriptionExtractor, ExternalTranscriptionWorker, Extractor, MimeTypeMapper, TranscriptionExtractor, Worker}
 import ingestion.phase2.IngestStorePolling
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.neo4j.driver.{AuthTokens, GraphDatabase}
@@ -183,7 +183,11 @@ class AppComponents(context: Context, config: Config)
     val mboxExtractor = new MBoxEmailExtractor(emlParser)
 
     val tesseractPdfOcrExtractor = new TesseractPdfOcrExtractor(config.ocr, scratchSpace, esResources, esPages, ingestionServices)
-    val ocrMyPdfExtractor = new OcrMyPdfExtractor(scratchSpace, esResources, esPages, previewStorage, ingestionServices)
+    val ocrMyPdfExtractor: Extractor = if (config.worker.useExternalExtractors) {
+      new ExternalOcrMyPdfExtractor(scratchSpace, esResources, config.transcribe, blobStorage, transcriptionServiceStorage, ingestionServices, sqsClient)
+    } else {
+      new OcrMyPdfExtractor(scratchSpace, esResources, esPages, previewStorage, ingestionServices)
+    }
     val imageOcrExtractor = new ImageOcrExtractor(config.ocr, scratchSpace, esResources, ingestionServices)
     val ocrMyPdfImageExtractor = new OcrMyPdfImageExtractor(config.ocr, scratchSpace, esResources, previewStorage, ingestionServices)
 
@@ -262,7 +266,7 @@ class AppComponents(context: Context, config: Config)
       applicationLifecycle.addStopHook(() => workerScheduler.stop())
 
       // external extractor
-      val externalWorker = new ExternalTranscriptionWorker(manifest, sqsClient, config.transcribe, transcriptionServiceStorage, esResources)
+      val externalWorker = new ExternalTranscriptionWorker(manifest, sqsClient, config.transcribe, transcriptionServiceStorage, esResources, scratchSpace, esPages, previewStorage, ingestionServices)
       val externalWorkerScheduler = new ExternalWorkerScheduler(actorSystem, externalWorker, config.worker.interval)(workerExecutionContext)
       externalWorkerScheduler.start()
       applicationLifecycle.addStopHook(() => externalWorkerScheduler.stop())

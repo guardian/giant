@@ -22,7 +22,7 @@ abstract class ExternalExtractor extends Extractor with Logging {
 
   override def external = true
 
-  final override def extract(blob: Blob, inputStream: InputStream, params: ExtractionParams): Either[Failure, Unit] = {
+  override def extract(blob: Blob, inputStream: InputStream, params: ExtractionParams): Either[Failure, Unit] = {
    triggerExtraction(blob, params)
   }
 

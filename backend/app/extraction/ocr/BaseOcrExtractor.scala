@@ -25,26 +25,7 @@ abstract class BaseOcrExtractor(scratchSpace: ScratchSpace, index:Index)  (impli
   def buildStdErrLogger(blob: Blob): OcrStderrLogger
 
   final override def extract(blob: Blob, file: File, params: ExtractionParams): Either[Failure, Unit] = {
-    // extractors are synchronous so we have to await here
-    val detectedLanguageCode = Await.result(index.getTextDetectedLanguage(blob.uri).asFuture, 3.seconds).toOption
-
-    // if we have detected a *supported* language code, use that, otherwise OCR in every language set for the ingestion.
-    // see Languages.scala for a list of supported languages
-    val detectedLanguage = detectedLanguageCode.flatMap { code =>
-      val lang = Languages.getByIso6391Code(code)
-      if (lang.isEmpty) {
-        logger.info(s"${this.name}: detected language '$code' for ${blob.uri.value} is not supported, falling back to ingestion languages")
-      }
-      lang
-    }
-
-    val ocrLanguages = detectedLanguage.map(List(_)).getOrElse(params.languages)
-
-    if (ocrLanguages.isEmpty) {
-      throw new IllegalStateException(s"${this.name} requires at least one language (blob ${blob.uri.value}, ingestion ${params.ingestion}, detected language ${detectedLanguageCode.getOrElse("none")})")
-    }
-
-    val updatedParams = params.copy(languages = ocrLanguages)
+    val updatedParams = BaseOcrExtractor.withOcrLanguages(blob, params, index, name)
 
     val stdErrLogger = buildStdErrLogger(blob)
 
@@ -66,6 +47,29 @@ abstract class BaseOcrExtractor(scratchSpace: ScratchSpace, index:Index)  (impli
 }
 
 object BaseOcrExtractor extends Logging {
+
+  def withOcrLanguages(blob: Blob, params: ExtractionParams, index: Index, extractorName: String)(implicit ec: ExecutionContext): ExtractionParams = {
+    // extractors are synchronous so we have to await here
+    val detectedLanguageCode = Await.result(index.getTextDetectedLanguage(blob.uri).asFuture, 3.seconds).toOption
+
+    // if we have detected a *supported* language code, use that, otherwise OCR in every language set for the ingestion.
+    // see Languages.scala for a list of supported languages
+    val detectedLanguage = detectedLanguageCode.flatMap { code =>
+      val lang = Languages.getByIso6391Code(code)
+      if (lang.isEmpty) {
+        logger.info(s"${extractorName}: detected language '$code' for ${blob.uri.value} is not supported, falling back to ingestion languages")
+      }
+      lang
+    }
+
+    val ocrLanguages = detectedLanguage.map(List(_)).getOrElse(params.languages)
+
+    if (ocrLanguages.isEmpty) {
+      throw new IllegalStateException(s"${extractorName} requires at least one language (blob ${blob.uri.value}, ingestion ${params.ingestion}, detected language ${detectedLanguageCode.getOrElse("none")})")
+    }
+
+    params.copy(languages = ocrLanguages)
+  }
 
   /**
    * The outcome of picking the 'best' OCR run for a document.
@@ -112,14 +116,14 @@ object BaseOcrExtractor extends Logging {
       if (!best.ocrLanguage.iso6391Code.equals(best.detectedLanguageCode)) {
         logger.info(s"${best.ocrLanguage.key} OCR of ${uri.value} was detected as '${best.detectedLanguageCode}'")
       }
-      index.addDocumentOcrTranslationData(uri, best.ocrLanguage, best.detectedLanguageCode).awaitEither(10.second)
+      index.addDocumentOcrTranslationData(uri, best.ocrLanguage, best.detectedLanguageCode).await(10.seconds)
     }
     // if the *detected* language is not english, add translation extractor TODO. Note this deliberately uses the
     // detected code so we still translate documents in languages we don't OCR in.
     bestLanguage.filter(best => isNotEnglish(best.detectedLanguageCode) && textByLanguage.get(best.ocrLanguage).exists(_.length > IngestionServices.TRANSLATION_MINIMUM_LENGTH))
       .foreach { best =>
         logger.info(s"Selected ${best.ocrLanguage.key} OCR of ${uri.value} (detected '${best.detectedLanguageCode}') for translation")
-        ingestionServices.addTranslationTodo(uri, params, classOf[ExternalOcrTranslationExtractor].getSimpleName)
+        ingestionServices.addTranslationTodo(uri, params, classOf[ExternalOcrTranslationExtractor].getSimpleName).fold(failure => throw failure.toThrowable, identity)
       }
   }
 }
