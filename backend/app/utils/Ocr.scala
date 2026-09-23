@@ -212,7 +212,7 @@ object Ocr extends Logging {
   // TODO MRB: allow OcrMyPdf to read DPI if set in metadata
   // OCRmyPDF is a wrapper for Tesseract that we use to overlay the OCR as a text layer in the resulting PDF
   def invokeOcrMyPdf(lang: String, inputFilePath: Path, dpi: Option[Int], stderr: OcrStderrLogger, tmpDir: Path, numberOfPages: Option[Int], initialFlag: OcrMyPdfFlag): Path = {
-    val tempFile = tmpDir.resolve(s"${inputFilePath.getFileName}.ocr.pdf")
+    val tempFile = tmpDir.resolve(s"${inputFilePath.getFileName}.$lang.ocr.pdf")
     val stdout = mutable.Buffer.empty[String]
 
 

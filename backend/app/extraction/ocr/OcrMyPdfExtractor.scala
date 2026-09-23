@@ -46,7 +46,6 @@ class OcrMyPdfExtractor(scratch: ScratchSpace, index: Index, pageService: Pages,
 
   override def extractOcr(blob: Blob, file: File, params: ExtractionParams, stdErrLogger: OcrStderrLogger): Unit = {
     val tmpDir = scratch.createWorkingDir(s"ocrmypdf-tmp-${blob.uri.value}")
-    var pdDocuments: Map[Language, (Path, PDDocument)] = Map.empty
 
     val ocrMyPdfFlag = if (params.skipTextIngestionUris.contains(params.ingestion)) {
       logger.info(s"Using --skip-text instead of --redo-ocr for blob ${blob.uri}, ingestion ${params.ingestion}")
@@ -54,25 +53,63 @@ class OcrMyPdfExtractor(scratch: ScratchSpace, index: Index, pageService: Pages,
     } else RedoOcr
 
     try {
-      pdDocuments = params.languages.map { lang =>
+      // try to get the number of pages - useful for setting timeout on the ocr job
+      val numPages = Using(Loader.loadPDF(file)) { doc => doc.getNumberOfPages }.toOption
 
-        val (numPages, largeVectors) = Using(Loader.loadPDF(file)) { doc =>
-          (doc.getNumberOfPages, Ocr.hasLargeVectorContent(file, doc))
-        } match {
-          case Success((numPages, largeVectors)) =>(Some(numPages), largeVectors)
-          case Failure(exception) =>
-            logger.warn(s"Failed to inspect ${blob.uri} with pdfbox", exception)
-            (None, false)
-        }
+      val preProcessedPdf = OcrMyPdfExtractor.preProcessPdf(blob, file, tmpDir, stdErrLogger)
 
-        val biggerThanA1 = Ocr.hasPagesBiggerThanA1(file.toPath, stdErrLogger)
-        val preProcessPdf = Ocr.preProcessPdf(file.toPath, tmpDir, stdErrLogger, biggerThanA1, largeVectors)
-        val outputPdfPath = Ocr.invokeOcrMyPdf(lang.ocr, preProcessPdf.getOrElse(file.toPath), None, stdErrLogger, tmpDir, numPages, ocrMyPdfFlag)
-        val outputPdfDoc = Loader.loadPDF(outputPdfPath.toFile)
-
-        lang -> (outputPdfPath, outputPdfDoc)
+      val pdDocuments = params.languages.map { lang =>
+        val outputPdfPath = Ocr.invokeOcrMyPdf(lang.ocr, preProcessedPdf.getOrElse(file.toPath), None, stdErrLogger, tmpDir, numPages, ocrMyPdfFlag)
+        lang -> outputPdfPath
       }.toMap
 
+      OcrMyPdfExtractor.postProcessPdf(pdDocuments, blob, pageService, previewStorage, params, index, ingestionServices)
+    } finally {
+
+      FileUtils.deleteDirectory(tmpDir.toFile)
+    }
+  }
+
+}
+
+object OcrMyPdfExtractor extends Logging {
+
+  private def preProcessPdf(blob: Blob, file: File, tmpDir: Path, stdErrLogger: OcrStderrLogger ): Option[Path] = {
+    val largeVectors = Using(Loader.loadPDF(file)) { doc =>
+      Ocr.hasLargeVectorContent(file, doc)
+    } match {
+      case Success(largeVectors) => largeVectors
+      case Failure(exception) =>
+        logger.warn(s"Failed to inspect ${blob.uri} with pdfbox - will assume no large vectors", exception)
+        false
+    }
+    val biggerThanA1 = Ocr.hasPagesBiggerThanA1(file.toPath, stdErrLogger)
+    val preProcessedPdf = Ocr.preProcessPdf(file.toPath, tmpDir, stdErrLogger, biggerThanA1, largeVectors)
+    preProcessedPdf
+  }
+
+  def insertFullText(uri: Uri, pages: List[Page], index: Index, ingestionServices: IngestionServices, params: ExtractionParams)(implicit ec: ExecutionContext): Unit = {
+    val textByLanguage = pages.foldLeft(Map.empty[Language, String]) { (acc, page) =>
+      page.value.foldLeft(acc) { case (acc, (lang, value)) =>
+        acc + (lang -> (acc.getOrElse(lang, "") + value))
+      }
+    }
+
+    textByLanguage.foreach { case (lang, value) =>
+      val optionalText = if (value.trim().isEmpty) None else Some(value)
+      index.addDocumentOcr(uri, optionalText, lang).awaitEither(10.second)
+    }
+
+    handleOcrTranslation(uri, textByLanguage, index, ingestionServices, params)
+  }
+
+  private def postProcessPdf(ocrOutput: Map[Language, Path], blob: Blob, pageService: Pages, previewStorage: ObjectStorage, params: ExtractionParams, index: Index, ingestionServices: IngestionServices)(implicit ec: ExecutionContext): Unit = {
+    var pdDocuments: Map[Language, (Path, PDDocument)] = Map.empty
+    try {
+      pdDocuments = ocrOutput.map { case (lang, path) =>
+        val doc = Loader.loadPDF(path.toFile)
+        lang -> (path, doc)
+      }
       // All docs have the same number of pages with the same dimensions, just different text from the OCR run per language
       val (_, (_, firstDoc)) = pdDocuments.headOption.getOrElse {
         throw new IllegalStateException(s"No OCR output produced for ${blob.uri.value}. This may be because the languages list was empty. Languages: ${params.languages.map(_.key).mkString(", ")}")
@@ -127,13 +164,12 @@ class OcrMyPdfExtractor(scratch: ScratchSpace, index: Index, pageService: Pages,
 
       OcrMyPdfExtractor.insertFullText(blob.uri, pages, index, ingestionServices, params)
     } finally {
-      pdDocuments.foreach { case(_, (path, doc)) =>
+      pdDocuments.foreach { case (_, (path, doc)) =>
         doc.close()
         Files.deleteIfExists(path)
       }
-
-      FileUtils.deleteDirectory(tmpDir.toFile)
     }
+
   }
 
   private def uploadPageAsSeparatePdf(blob: Blob, language: Language, pageNumber: Int, page: PDPage, previewStorage: ObjectStorage): Unit = {
@@ -150,22 +186,5 @@ class OcrMyPdfExtractor(scratch: ScratchSpace, index: Index, pageService: Pages,
       doc.close()
       Files.deleteIfExists(tempFile)
     }
-  }
-}
-
-object OcrMyPdfExtractor {
-  def insertFullText(uri: Uri, pages: List[Page], index: Index, ingestionServices: IngestionServices, params: ExtractionParams)(implicit ec: ExecutionContext): Unit = {
-    val textByLanguage = pages.foldLeft(Map.empty[Language, String]) { (acc, page) =>
-      page.value.foldLeft(acc) { case (acc, (lang, value)) =>
-        acc + (lang -> (acc.getOrElse(lang, "") + value))
-      }
-    }
-
-    textByLanguage.foreach { case (lang, value) =>
-      val optionalText = if (value.trim().isEmpty) None else Some(value)
-      index.addDocumentOcr(uri, optionalText, lang).awaitEither(10.second)
-    }
-
-    handleOcrTranslation(uri, textByLanguage, index, ingestionServices, params)
   }
 }

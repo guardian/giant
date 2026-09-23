@@ -4,10 +4,9 @@ import extraction.ocr.BaseOcrExtractor.handleOcrTranslation
 import extraction.ExtractionParams
 import model.ingestion.RedoOcr
 import model.manifest.{Blob, MimeType}
-import model.{Language, Uri}
+import model.Language
 import org.apache.commons.io.FileUtils
 import org.apache.pdfbox.Loader
-import org.apache.pdfbox.pdmodel.PDDocument
 import org.apache.pdfbox.text.PDFTextStripper
 import services._
 import services.index.Index
@@ -16,12 +15,12 @@ import utils.attempt.AttemptAwait._
 import utils.{Logging, Ocr, OcrStderrLogger}
 
 import java.io.File
-import java.nio.file.{Files, Path}
+import java.nio.file.Path
 import scala.collection.mutable
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 import scala.sys.process.{Process, ProcessLogger}
-import scala.util.{Try, Using}
+import scala.util.Using
 
 class OcrMyPdfImageExtractor(config: OcrConfig, scratch: ScratchSpace, index: Index, previewStorage: ObjectStorage,
   ingestionServices: IngestionServices)(implicit ec: ExecutionContext) extends BaseOcrExtractor(scratch, index) with Logging {
@@ -30,8 +29,6 @@ class OcrMyPdfImageExtractor(config: OcrConfig, scratch: ScratchSpace, index: In
     "image/jpeg",
     "image/tiff"
   )
-
-  val imageTypesWithAlpha = Set("image/png", "image/tiff")
 
   override def canProcessMimeType = mimeTypes.contains
 
@@ -44,6 +41,33 @@ class OcrMyPdfImageExtractor(config: OcrConfig, scratch: ScratchSpace, index: In
 
   override def buildStdErrLogger(blob: Blob): OcrStderrLogger = {
     new OcrStderrLogger(Some(ingestionServices.setProgressNote(blob.uri, this, _)))
+  }
+
+  override def extractOcr(blob: Blob, file: File, params: ExtractionParams, stdErrLogger: OcrStderrLogger): Unit = {
+    val tmpDir = scratch.createWorkingDir(s"ocrmypdf-tmp-${blob.uri.value}")
+
+    try {
+      val fileToOCR = OcrMyPdfImageExtractor.preProcessImage(blob, file, tmpDir, stdErrLogger)
+      val numPages = Using(Loader.loadPDF(fileToOCR))(_.getNumberOfPages).toOption
+
+      val ocrOutput = params.languages.map { lang =>
+        val outputPdfPath = Ocr.invokeOcrMyPdf(lang.ocr, fileToOCR.toPath, Some(config.dpi), stdErrLogger, tmpDir, numPages, RedoOcr)
+        lang -> outputPdfPath
+      }
+
+      OcrMyPdfImageExtractor.postProcessPdf(ocrOutput, blob, previewStorage, params, index, ingestionServices)
+    } finally {
+      FileUtils.deleteDirectory(tmpDir.toFile)
+    }
+  }
+}
+
+object OcrMyPdfImageExtractor extends Logging {
+  private val imageTypesWithAlpha = Set("image/png", "image/tiff")
+
+  private def preProcessImage(blob: Blob, file: File, tmpDir: Path, stdErrLogger: OcrStderrLogger): File = {
+    val shouldRemoveAlpha = blob.mimeType.forall(m => imageTypesWithAlpha.contains(m.mimeType))
+    if (shouldRemoveAlpha) removeAlphaChannel(file, tmpDir, stdErrLogger).getOrElse(file) else file
   }
 
   private def removeAlphaChannel(inputFile: File, tmpDir: Path, stderr: OcrStderrLogger): Option[File] = {
@@ -61,41 +85,23 @@ class OcrMyPdfImageExtractor(config: OcrConfig, scratch: ScratchSpace, index: In
     }
   }
 
-  override def extractOcr(blob: Blob, file: File, params: ExtractionParams, stdErrLogger: OcrStderrLogger): Unit = {
-    val tmpDir = scratch.createWorkingDir(s"ocrmypdf-tmp-${blob.uri.value}")
-    val shouldRemoveAlpha = blob.mimeType.forall(m => imageTypesWithAlpha.contains(m.mimeType))
+  private def postProcessPdf(ocrOutput: List[(Language, Path)], blob: Blob, previewStorage: ObjectStorage,
+    params: ExtractionParams, index: Index, ingestionServices: IngestionServices)(implicit ec: ExecutionContext): Unit = {
+    val textByLanguage = ocrOutput.map { case (lang, pdfFile) =>
+      val text = Using.resource(Loader.loadPDF(pdfFile.toFile)) { document =>
+        val reader = new PDFTextStripper()
+        val text = reader.getText(document)
 
-    try {
-      val fileToOCR = if (shouldRemoveAlpha) removeAlphaChannel(file, tmpDir, stdErrLogger).getOrElse(file) else file
-      val textByLanguage = params.languages.map { lang =>
-        val text = invokeOcrMyPdf(blob.uri, lang, fileToOCR, config, stdErrLogger, tmpDir)
-        val optionalText = if (text.trim().isEmpty) None else Some(text)
-        index.addDocumentOcr(blob.uri, optionalText, lang).awaitEither(10.second)
-        lang -> text
-      }.toMap
+        // TODO MRB: what to do when we are OCRing against multiple languages?
+        previewStorage.create(blob.uri.toStoragePath, pdfFile, Some("application/pdf"))
+        text
+      }
 
-      handleOcrTranslation(blob.uri, textByLanguage, index, ingestionServices, params)
-    } finally {
-      FileUtils.deleteDirectory(tmpDir.toFile)
-    }
-  }
+      val optionalText = if (text.trim().isEmpty) None else Some(text)
+      index.addDocumentOcr(blob.uri, optionalText, lang).awaitEither(10.second)
+      lang -> text
+    }.toMap
 
-  private def invokeOcrMyPdf(blobUri: Uri, lang: Language, file: File, config: OcrConfig, stderr: OcrStderrLogger, tmpDir: Path): String = {
-    val unprocessedFilePages = Using(Loader.loadPDF(file))(_.getNumberOfPages).toOption
-    val pdfFile = Ocr.invokeOcrMyPdf(lang.ocr, file.toPath, Some(config.dpi), stderr, tmpDir, unprocessedFilePages, RedoOcr)
-    var document: PDDocument = null
-
-    try {
-      document = Loader.loadPDF(pdfFile.toFile)
-      val reader = new PDFTextStripper()
-      val text = reader.getText(document)
-
-      // TODO MRB: what to do when we are OCRing against multiple languages?
-      previewStorage.create(blobUri.toStoragePath, pdfFile, Some("application/pdf"))
-      text
-    } finally {
-      Option(document).foreach(_.close())
-      Files.deleteIfExists(pdfFile)
-    }
+    handleOcrTranslation(blob.uri, textByLanguage, index, ingestionServices, params)
   }
 }
