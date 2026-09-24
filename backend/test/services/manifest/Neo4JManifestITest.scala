@@ -323,12 +323,12 @@ class Neo4JManifestITest extends AnyFreeSpec
         manifest.insert(List(insertion), Uri(ingestion)).isRight shouldBe true
         manifest.markExternalAsProcessing(params, resource, externalOcr).isRight shouldBe true
 
-        manifest.getExternalWork(resource.uri, externalOcr.name).toOption.get shouldBe List(
+        manifest.getActiveExternalWorkForBlob(resource.uri, externalOcr.name).toOption.get shouldBe List(
           WorkItem(resource, params.parentBlobs, externalOcr.name, ingestion, params.languages, params.workspace)
         )
-        manifest.getExternalWork(resource.uri, "another-extractor").toOption.get shouldBe empty
+        manifest.getActiveExternalWorkForBlob(resource.uri, "another-extractor").toOption.get shouldBe empty
         manifest.markExternalAsComplete(resource.uri.value, externalOcr.name).isRight shouldBe true
-        manifest.getExternalWork(resource.uri, externalOcr.name).toOption.get shouldBe empty
+        manifest.getActiveExternalWorkForBlob(resource.uri, externalOcr.name).toOption.get shouldBe empty
         manifest.getLanguagesProcessedByOcrMyPdf(resource.uri).successValue should contain theSameElementsAs params.languages
       }
 

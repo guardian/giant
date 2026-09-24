@@ -63,7 +63,8 @@ class OcrMyPdfExtractor(scratch: ScratchSpace, index: Index, pageService: Pages,
         lang -> outputPdfPath
       }.toMap
 
-      OcrMyPdfExtractor.postProcessPdf(pdDocuments, blob, pageService, previewStorage, params, index, ingestionServices)
+      val textByLanguage = OcrMyPdfExtractor.postProcessPdf(pdDocuments, blob.uri, pageService, previewStorage, index)
+      handleOcrTranslation(blob.uri, textByLanguage, index, ingestionServices, params)
     } finally {
 
       FileUtils.deleteDirectory(tmpDir.toFile)
@@ -88,22 +89,22 @@ object OcrMyPdfExtractor extends Logging {
     preProcessedPdf
   }
 
-  def insertFullText(uri: Uri, pages: List[Page], index: Index, ingestionServices: IngestionServices, params: ExtractionParams)(implicit ec: ExecutionContext): Unit = {
-    val textByLanguage = pages.foldLeft(Map.empty[Language, String]) { (acc, page) =>
+  def getFullText(pages: List[Page]): Map[Language, String] = {
+    pages.foldLeft(Map.empty[Language, String]) { (acc, page) =>
       page.value.foldLeft(acc) { case (acc, (lang, value)) =>
         acc + (lang -> (acc.getOrElse(lang, "") + value))
       }
     }
+  }
 
+  def insertFullText(uri: Uri, textByLanguage: Map[Language, String], index: Index)(implicit ec: ExecutionContext): Unit = {
     textByLanguage.foreach { case (lang, value) =>
       val optionalText = if (value.trim().isEmpty) None else Some(value)
       index.addDocumentOcr(uri, optionalText, lang).await(10.seconds)
     }
-
-    handleOcrTranslation(uri, textByLanguage, index, ingestionServices, params)
   }
 
-  private[extraction] def postProcessPdf(ocrOutput: Map[Language, Path], blob: Blob, pageService: Pages, previewStorage: ObjectStorage, params: ExtractionParams, index: Index, ingestionServices: IngestionServices)(implicit ec: ExecutionContext): Unit = {
+  private[extraction] def postProcessPdf(ocrOutput: Map[Language, Path], blobUri: Uri, pageService: Pages, previewStorage: ObjectStorage, index: Index)(implicit ec: ExecutionContext): Map[Language, String] = {
     var pdDocuments: Map[Language, (Path, PDDocument)] = Map.empty
     try {
       ocrOutput.foreach { case (lang, path) =>
@@ -112,7 +113,7 @@ object OcrMyPdfExtractor extends Logging {
       }
       // All docs have the same number of pages with the same dimensions, just different text from the OCR run per language
       val (_, (_, firstDoc)) = pdDocuments.headOption.getOrElse {
-        throw new IllegalStateException(s"No OCR output produced for ${blob.uri.value}. This may be because the languages list was empty. Languages: ${params.languages.map(_.key).mkString(", ")}")
+        throw new IllegalStateException(s"No OCR output produced for ${blobUri.value}. This may be because the languages list was empty")
       }
       val numberOfPages = firstDoc.getNumberOfPages
 
@@ -147,22 +148,24 @@ object OcrMyPdfExtractor extends Logging {
       }
 
       // Write to the page index in Elasticsearch - a document in the index corresponds to a single page
-      pageService.addPageContents(blob.uri, pages).await(30.seconds)
+      pageService.addPageContents(blobUri, pages).await(30.seconds)
 
       // Upload each page to S3, per language. This is because OCRing English produces totally different output to OCRing
       // Russian for example so we store each page and decide later which one to serve the viewer
       pdDocuments.foreach { case (lang, (path, doc)) =>
         (1 to numberOfPages).foreach { pageNumber =>
           val page = doc.getPage(pageNumber - 1)
-          uploadPageAsSeparatePdf(blob, lang, pageNumber, page, previewStorage)
+          uploadPageAsSeparatePdf(blobUri, lang, pageNumber, page, previewStorage)
         }
 
         // Upload the entire document to S3, per language. We serve these to the client as a download of the whole doc
         // TODO MRB: stop overwriting when we are OCRing against multiple languages?
-        previewStorage.create(blob.uri.toStoragePath, path, Some("application/pdf")).fold(failure => throw failure.toThrowable, identity)
+        previewStorage.create(blobUri.toStoragePath, path, Some("application/pdf")).fold(failure => throw failure.toThrowable, identity)
       }
 
-      OcrMyPdfExtractor.insertFullText(blob.uri, pages, index, ingestionServices, params)
+      val textByLanguage = OcrMyPdfExtractor.getFullText(pages)
+      OcrMyPdfExtractor.insertFullText(blobUri, textByLanguage, index)
+      textByLanguage
     } finally {
       pdDocuments.foreach { case (_, (path, doc)) =>
         doc.close()
@@ -172,15 +175,15 @@ object OcrMyPdfExtractor extends Logging {
 
   }
 
-  private def uploadPageAsSeparatePdf(blob: Blob, language: Language, pageNumber: Int, page: PDPage, previewStorage: ObjectStorage): Unit = {
+  private def uploadPageAsSeparatePdf(blobUri: Uri, language: Language, pageNumber: Int, page: PDPage, previewStorage: ObjectStorage): Unit = {
     val doc = new PDDocument()
-    val tempFile = Files.createTempFile(s"${language.key}-${blob.uri}-${pageNumber}", ".pdf")
+    val tempFile = Files.createTempFile(s"${language.key}-${blobUri.value}-${pageNumber}", ".pdf")
 
     try {
       doc.importPage(page)
       doc.save(tempFile.toFile)
 
-      val key = PreviewService.getPageStoragePath(blob.uri, language, pageNumber)
+      val key = PreviewService.getPageStoragePath(blobUri, language, pageNumber)
       previewStorage.create(key, tempFile, Some("application/pdf")).fold(failure => throw failure.toThrowable, identity)
     } finally {
       doc.close()

@@ -35,4 +35,5 @@ object TranscriptionResult {
 object TranscriptionMessageAttributes {
   val GIANT_BLOB_URI = "GiantBlobUri"
   val GIANT_EXTRACTOR_NAME = "GiantExtractorName"
+  val GIANT_INGESTION = "GiantIngestion"
 }

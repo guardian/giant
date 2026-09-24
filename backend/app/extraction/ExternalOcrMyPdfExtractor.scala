@@ -18,7 +18,7 @@ import scala.concurrent.ExecutionContext
 import scala.util.Using
 
 class ExternalOcrMyPdfExtractor(scratch: ScratchSpace, index: Index, transcribeConfig: TranscribeConfig,
-                                sourceStorage: ObjectStorage, outputStorage: ObjectStorage,
+                                sourceStorage: ObjectStorage, transcriptionServiceBucket: ObjectStorage,
                                 ingestionServices: IngestionServices, sqsClient: SqsClient)
                                (implicit ec: ExecutionContext) extends ExternalExtractor {
   override def canProcessMimeType: String => Boolean = _ == "application/pdf"
@@ -32,24 +32,29 @@ class ExternalOcrMyPdfExtractor(scratch: ScratchSpace, index: Index, transcribeC
   }
 
   override def extract(blob: Blob, inputStream: InputStream, params: ExtractionParams): Either[Failure, Unit] = {
-    val ocrParams = BaseOcrExtractor.withOcrLanguages(blob, params, index, name)
+    val ocrLanguages = BaseOcrExtractor.getOcrLanguages(blob, params, index, name)
+    val ocrParams = params.copy(languages = ocrLanguages)
     val tmpDir = scratch.createWorkingDir(s"external-ocrmypdf-${blob.uri.value}")
     try {
       val input = tmpDir.resolve("input.pdf")
       Files.copy(inputStream, input, java.nio.file.StandardCopyOption.REPLACE_EXISTING)
       val stderr = new OcrStderrLogger(Some(ingestionServices.setProgressNote(blob.uri, this, _)))
-      val processed = OcrMyPdfExtractor.preProcessPdf(blob, input.toFile, tmpDir, stderr)
+      val preProcessed = OcrMyPdfExtractor.preProcessPdf(blob, input.toFile, tmpDir, stderr)
       val inputKey = s"ocr-input/${blob.uri.value}-$name.pdf"
       val outputKey = s"ocr-output/${blob.uri.value}-$name.json"
       for {
-        downloadUrl <- processed match {
+        downloadUrl <- preProcessed match {
+          // if pre-processing resulted in a new PDF, upload that to the transcription bucket
+          // Note - the transcription bucket is called transcription-output-data but has been requisitioned as a
+          // general purpose bucket to share data between giant and transcription service that won't fit on an SQS message
           case Some(path) => for {
-            _ <- outputStorage.create(inputKey, path, Some("application/pdf"))
-            url <- outputStorage.getSignedUrl(inputKey)
+            _ <- transcriptionServiceBucket.create(inputKey, path, Some("application/pdf"))
+            url <- transcriptionServiceBucket.getSignedUrl(inputKey)
           } yield url
+          // otherwisem just share the original file
           case None => sourceStorage.getSignedUrl(blob.uri.toStoragePath)
         }
-        uploadUrl <- outputStorage.getUploadSignedUrl(outputKey)
+        uploadUrl <- transcriptionServiceBucket.getUploadSignedUrl(outputKey)
         job = OcrJob(
           id = blob.uri.value,
           originalFilename = blob.uri.value,
