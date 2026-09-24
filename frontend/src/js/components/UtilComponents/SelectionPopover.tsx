@@ -2,10 +2,22 @@ import React, { Component } from "react";
 import PropTypes from "prop-types";
 import onClickOutside from "react-onclickoutside";
 
-function selectionExists() {
-  const selection = window.getSelection();
+type SelectionPopoverProps = {
+  children: React.ReactNode;
+  style?: React.CSSProperties;
+  onDeselect: (event?: MouseEvent | TouchEvent) => void;
+  onSelect: () => void;
+  showPopover: boolean;
+  target: string;
+};
+
+type SelectionPopoverState = {
+  popoverBox: { top: number; left: number };
+};
+
+function selectionExists(selection: Selection | null): selection is Selection {
   return (
-    selection &&
+    selection !== null &&
     selection.rangeCount > 0 &&
     selection.getRangeAt(0) &&
     !selection.getRangeAt(0).collapsed &&
@@ -15,15 +27,31 @@ function selectionExists() {
 }
 
 function clearSelection() {
+  const legacyDocument: Document & { selection?: { empty: () => void } } =
+    document;
   if (window.getSelection) {
-    window.getSelection().removeAllRanges();
-  } else if (document.selection) {
-    document.selection.empty();
+    window.getSelection()?.removeAllRanges();
+  } else if (legacyDocument.selection) {
+    legacyDocument.selection.empty();
   }
 }
 
-class SelectionPopover extends Component {
-  constructor(props) {
+class SelectionPopover extends Component<
+  SelectionPopoverProps,
+  SelectionPopoverState
+> {
+  static propTypes = {
+    children: PropTypes.node.isRequired,
+    style: PropTypes.object,
+    onDeselect: PropTypes.func.isRequired,
+    onSelect: PropTypes.func.isRequired,
+    showPopover: PropTypes.bool.isRequired,
+    target: PropTypes.string.isRequired,
+  };
+
+  private selectionPopover: HTMLDivElement | null = null;
+
+  constructor(props: SelectionPopoverProps) {
     super(props);
     this.state = {
       popoverBox: {
@@ -33,7 +61,7 @@ class SelectionPopover extends Component {
     };
   }
 
-  UNSAFE_componentWillReceiveProps(nextProps) {
+  UNSAFE_componentWillReceiveProps(nextProps: SelectionPopoverProps) {
     if (this.props.showPopover === true && nextProps.showPopover === false) {
       clearSelection();
     }
@@ -41,16 +69,16 @@ class SelectionPopover extends Component {
 
   componentDidMount() {
     const target = document.querySelector("[" + this.props.target + "]");
-    target.addEventListener("mouseup", this._handleMouseUp);
+    target?.addEventListener("mouseup", this._handleMouseUp);
   }
 
   componentWillUnmount() {
     const target = document.querySelector("[" + this.props.target + "]");
-    target.removeEventListener("mouseup", this._handleMouseUp);
+    target?.removeEventListener("mouseup", this._handleMouseUp);
   }
 
   render() {
-    const { onDeselect, onSelect, showPopover, children, style } = this.props; // eslint-disable-line no-unused-vars
+    const { showPopover, children } = this.props;
     const {
       popoverBox: { top, left },
     } = this.state;
@@ -76,7 +104,7 @@ class SelectionPopover extends Component {
   }
 
   _handleMouseUp = () => {
-    if (selectionExists()) {
+    if (selectionExists(window.getSelection())) {
       this.props.onSelect();
       return this.computePopoverBox();
     }
@@ -85,13 +113,18 @@ class SelectionPopover extends Component {
 
   computePopoverBox = () => {
     const selection = window.getSelection();
-    if (!selectionExists()) {
+    if (!selectionExists(selection) || !this.selectionPopover) {
       return;
     }
 
     const selectionBox = selection.getRangeAt(0).getBoundingClientRect();
     const popoverBox = this.selectionPopover.getBoundingClientRect();
-    const targetElement = document.querySelector("[" + this.props.target + "]");
+    const targetElement:
+      | (Element & { currentStyle?: CSSStyleDeclaration })
+      | null = document.querySelector("[" + this.props.target + "]");
+    if (!targetElement) {
+      return;
+    }
 
     const targetStyle =
       targetElement.currentStyle || window.getComputedStyle(targetElement);
@@ -117,18 +150,9 @@ class SelectionPopover extends Component {
     });
   };
 
-  handleClickOutside = (e) => {
+  handleClickOutside = (e: MouseEvent | TouchEvent) => {
     this.props.onDeselect(e);
   };
 }
-
-SelectionPopover.propTypes = {
-  children: PropTypes.node.isRequired,
-  style: PropTypes.object,
-  onDeselect: PropTypes.func.isRequired,
-  onSelect: PropTypes.func.isRequired,
-  showPopover: PropTypes.bool.isRequired,
-  target: PropTypes.string.isRequired,
-};
 
 export default onClickOutside(SelectionPopover);
