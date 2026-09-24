@@ -203,7 +203,7 @@ lazy val backend = (project in file("backend"))
       "com.sksamuel.elastic4s" %% "elastic4s-client-esjava" % "8.11.4",
       "org.elasticsearch.client" % "elasticsearch-rest-client-sniffer" % "8.6.2",
       "org.apache.pekko" %% "pekko-cluster-typed" % "1.0.3", // Needs to match pekko version in Play
-      "org.neo4j.driver" % "neo4j-java-driver" % "6.2.1",
+      "org.neo4j.driver" % "neo4j-java-driver" % "6.3.0",
       "com.pff" % "java-libpst" % "0.9.3",
       // Tika 3 loads custom-mimetypes.xml from the classpath root (backend/conf).
       "org.apache.tika" % "tika-parsers-standard-package" % "3.2.3",
