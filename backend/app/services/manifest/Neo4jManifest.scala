@@ -555,17 +555,17 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
     Right(summary.list().asScala.toList.map(readWorkItem))
   }
 
-  override def getExternalWork(uri: Uri, extractorName: String): Either[Failure, List[WorkItem]] = transaction { tx =>
+  override def getActiveExternalWorkForBlob(uri: Uri, extractorName: String, ingestion: String): Either[Failure, List[WorkItem]] = transaction { tx =>
     val result = tx.run(
       """
-        |MATCH (e:Extractor {name: $extractorName})-[work:PROCESSING_EXTERNALLY]->(blob:Blob:Resource {uri: $uri})
+        |MATCH (e:Extractor {name: $extractorName})-[work:PROCESSING_EXTERNALLY {ingestion: $ingestion}]->(blob:Blob:Resource {uri: $uri})
         |MATCH (blob)-[:TYPE_OF]-(m:MimeType)
         |RETURN blob, collect(m) as types, e.name as extractorName,
         |       work.ingestion as ingestion, work.languages as languages, work.parentBlobs as parentBlobs,
         |       work.workspaceId as workspaceId, work.workspaceNodeId as workspaceNodeId,
         |       work.workspaceBlobUri as workspaceBlobUri
       """.stripMargin,
-      parameters("uri", uri.value, "extractorName", extractorName)
+      parameters("uri", uri.value, "extractorName", extractorName, "ingestion", ingestion)
     )
     Right(result.list().asScala.toList.map(readWorkItem))
   }

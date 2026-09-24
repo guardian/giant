@@ -4,21 +4,22 @@ import cats.syntax.either._
 import model.index.TranslationData
 import software.amazon.awssdk.services.sqs.SqsClient
 import software.amazon.awssdk.services.sqs.model.{DeleteMessageRequest, Message, MessageSystemAttributeName, ReceiveMessageRequest, SendMessageRequest}
-import model.{Languages, OcrOutputSuccess, OcrOutputFailure, Language, LlmOutputFailure, LlmOutputSuccess, TranscriptionMessageAttributes, TranscriptionOutput, TranscriptionOutputFailure, TranscriptionOutputSuccess, TranscriptionResult, TranslationField, Uri}
+import model.{Language, Languages, LlmOutputFailure, LlmOutputSuccess, OcrOutputFailure, OcrOutputSuccess, TranscriptionMessageAttributes, TranscriptionOutput, TranscriptionOutputFailure, TranscriptionOutputSuccess, TranscriptionResult, TranslationField, Uri}
 import play.api.libs.json.{JsError, JsSuccess, Json}
 import services.index.{Index, IndexFields}
 import services.manifest.{Manifest, WorkerManifest}
 import services.{ObjectStorage, ScratchSpace, TranscribeConfig}
 import services.index.Pages
 import services.ingestion.IngestionServices
-import extraction.ocr.OcrMyPdfExtractor
+import extraction.ocr.{BaseOcrExtractor, OcrMyPdfExtractor}
 import com.gu.transcriptionservice.workerinterface.OcrOutput
 import org.apache.commons.io.FileUtils
-import java.nio.file.Files
+
+import java.nio.file.{Files, Path}
 import java.util.Base64
 import scala.util.Using
 import utils.Logging
-import utils.attempt.{Attempt, DocumentUpdateFailure, ExternalTranscriptionOutputFailure, Failure, JsonParseFailure, UnknownFailure}
+import utils.attempt.{Attempt, DocumentUpdateFailure, ExternalPdfOutputParsingError, ExternalTranscriptionOutputFailure, Failure, JsonParseFailure, OcrMyPdfPostProcessFailure, UnknownFailure}
 import TranscriptionOutput.transcriptionOutputReads
 import extraction.ExternalTranscriptionWorker.markExternalExtractorAsComplete
 
@@ -26,7 +27,7 @@ import scala.concurrent.ExecutionContext
 import scala.jdk.CollectionConverters.CollectionHasAsScala
 import scala.util.Try
 
-case class TranscriptionMessageAttribute(receiveCount: Option[Int], messageGroupId: String, blobUri: Option[String], extractorName: Option[String])
+case class TranscriptionMessageAttribute(receiveCount: Option[Int], messageGroupId: String, blobUri: Option[String], extractorName: Option[String], ingestion: Option[String])
 
 class ExternalTranscriptionWorker(manifest: Manifest, sqsClient: SqsClient, transcribeConfig: TranscribeConfig, blobStorage: ObjectStorage, index: Index,
                                   scratch: ScratchSpace, pageService: Pages, previewStorage: ObjectStorage, ingestionServices: IngestionServices)(implicit executionContext: ExecutionContext)  extends Logging{
@@ -42,7 +43,7 @@ class ExternalTranscriptionWorker(manifest: Manifest, sqsClient: SqsClient, tran
         .messageSystemAttributeNames(MessageSystemAttributeName.MESSAGE_GROUP_ID, MessageSystemAttributeName.APPROXIMATE_RECEIVE_COUNT)
         // request the custom attributes that the transcription worker preserves from the original job so that we can
         // match the output back to the relevant blob/extractor
-        .messageAttributeNames(TranscriptionMessageAttributes.GIANT_BLOB_URI, TranscriptionMessageAttributes.GIANT_EXTRACTOR_NAME)
+        .messageAttributeNames(TranscriptionMessageAttributes.GIANT_BLOB_URI, TranscriptionMessageAttributes.GIANT_EXTRACTOR_NAME, TranscriptionMessageAttributes.GIANT_INGESTION)
         .build())
       .messages()
 
@@ -97,13 +98,13 @@ class ExternalTranscriptionWorker(manifest: Manifest, sqsClient: SqsClient, tran
               Left(ExternalTranscriptionOutputFailure.apply(s"LLM output message for ${output.id} is missing the GiantExtractorName message attribute, cannot determine which extractor to mark as complete"))
           }
         case output: OcrOutputSuccess =>
-          messageAttributes.extractorName match {
-            case Some(extractorName) if extractorName == classOf[ExternalOcrMyPdfExtractor].getSimpleName =>
+          (messageAttributes.extractorName, messageAttributes.ingestion) match {
+            case (Some(extractorName), Some(ingestion)) if extractorName == classOf[ExternalOcrMyPdfExtractor].getSimpleName =>
               for {
-                _ <- processOcrOutput(output, extractorName)
+                _ <- processOcrOutput(output, extractorName, ingestion)
                 _ <- markExternalExtractorAsComplete(manifest, output.id, extractorName)
               } yield ()
-            case _ => Left(ExternalTranscriptionOutputFailure(s"OCR output for ${output.id} has a missing or unsupported extractor name"))
+            case _ => Left(ExternalTranscriptionOutputFailure(s"OCR output for ${output.id} has a missing or unsupported extractor name or a missing ingestion"))
           }
         case output: OcrOutputFailure =>
           Left(ExternalTranscriptionOutputFailure(s"External transcription service failed to OCR the file ${output.id}"))
@@ -132,40 +133,49 @@ class ExternalTranscriptionWorker(manifest: Manifest, sqsClient: SqsClient, tran
     }
   }
 
+  private def writePdfData(ocrOutput: OcrOutput, tmpDir: Path) = {
+    require(ocrOutput.ocrData.map(_.language).distinct.size == ocrOutput.ocrData.size, "Duplicate OCR output languages")
+    // write bas64 encoded pdfs to tmpDir
+    val pdfPaths: Map[Language, Path] = ocrOutput.ocrData.zipWithIndex.map { case (data, index) =>
+      val language = Languages.all.find(_.ocr == data.language).getOrElse {
+        throw new IllegalArgumentException(s"Unknown OCR language ${data.language}")
+      }
+      val path = tmpDir.resolve(s"$index.pdf")
+      Files.write(path, Base64.getMimeDecoder.decode(data.pdfBase64))
+      language -> path
+    }.toMap
+    pdfPaths
+  }
 
-
-  private def processOcrOutput(output: OcrOutputSuccess, extractorName: String): Either[Failure, Unit] = {
-    for {
-      stream <- blobStorage.get(output.outputKey)
-      ocrOutput <- Try(Using.resource(stream)(input => Json.parse(input).as[OcrOutput])).toEither.leftMap(UnknownFailure(_))
-      work <- manifest.getExternalWork(Uri(output.id), extractorName)
-      _ <- Either.catchNonFatal {
-        val tmpDir = scratch.createWorkingDir(s"external-ocr-output-${output.id}")
-        try {
-          require(ocrOutput.ocrData.nonEmpty, s"No OCR output for ${output.id}")
-          require(ocrOutput.ocrData.map(_.language).distinct.size == ocrOutput.ocrData.size, "Duplicate OCR output languages")
-          // Decode once. Each ingestion may need its own follow-on translation TODO and workspace context.
-          val pdfs = ocrOutput.ocrData.zipWithIndex.map { case (data, i) =>
-            val language = Languages.all.find(_.ocr == data.language).getOrElse {
-              throw new IllegalArgumentException(s"Unknown OCR language ${data.language}")
-            }
-            val path = tmpDir.resolve(s"$i.pdf")
-            Files.write(path, Base64.getMimeDecoder.decode(data.pdfBase64))
-            language -> path
-          }.toMap
-          work.foreach { item =>
-            // postProcessPdf consumes its input files, so give each ingestion its own copies.
-            val copies = pdfs.map { case (lang, path) =>
-              lang -> Files.copy(path, Files.createTempFile(tmpDir, "ocr-", ".pdf"), java.nio.file.StandardCopyOption.REPLACE_EXISTING)
-            }
-            val params = ExtractionParams(item.ingestion, pdfs.keys.toList, item.parentBlobs, item.workspace)
-            OcrMyPdfExtractor.postProcessPdf(copies, item.blob, pageService, previewStorage, params, index, ingestionServices)
-          }
-        } finally {
-          FileUtils.deleteDirectory(tmpDir.toFile)
+  private def processOcrOutput(output: OcrOutputSuccess, extractorName: String, ingestion: String): Either[Failure, Unit] = {
+    val tmpDir = scratch.createWorkingDir(s"external-ocr-output-${output.id}")
+    try {
+      for {
+        stream <- blobStorage.get(output.outputKey)
+        ocrOutput <- Try(Using.resource(stream)(input => Json.parse(input).as[OcrOutput])).toEither.leftMap(UnknownFailure(_))
+        // we need to get details of the original ingestion from neo4j as it's needed in postProcessPdf to add a translation TODO
+        // if the document is detected to not be in english
+        pdfPaths <- Either.catchNonFatal(writePdfData(ocrOutput, tmpDir)).leftMap(ExternalPdfOutputParsingError(_))
+        textByLanguage <- Either.catchNonFatal {
+          OcrMyPdfExtractor.postProcessPdf(pdfPaths, Uri(output.id), pageService, previewStorage, index)
+        }.leftMap(OcrMyPdfPostProcessFailure(_))
+        workItems <- manifest.getActiveExternalWorkForBlob(Uri(output.id), extractorName, ingestion)
+      } yield {
+        // Work items is a list which is unlikely to have more than one item, but could if: a user uploaded the same file
+        // twice in different directories using the 'upload directory' function (with the upload files function, we
+        // randomly drop one of the duplicates, which is a different bug)
+        // it shouldn't happen via the cli as we always check if the blob exists first
+        // with that in mind, we're just going to take the first work item here and use that to trigger translation
+        // this would mean that in the workspace view, only one of the duplicate uploads would appear to be processing whilst
+        // the translation takes place (but the translation would still be added to the blob)
+        workItems.headOption.foreach { item =>
+          val params = ExtractionParams(item.ingestion, pdfPaths.keys.toList, item.parentBlobs, item.workspace)
+          BaseOcrExtractor.handleOcrTranslation(item.blob.uri, textByLanguage, index, ingestionServices, params)
         }
-      }.leftMap(UnknownFailure(_))
-    } yield ()
+      }
+    } finally {
+    FileUtils.deleteDirectory(tmpDir.toFile)
+  }
   }
 
   private def getLlmTranslationOutput(llmOutput: LlmOutputSuccess): Either[Failure, List[TranslationField]] = {
@@ -204,7 +214,8 @@ class ExternalTranscriptionWorker(manifest: Manifest, sqsClient: SqsClient, tran
       val messageGroupId = attributes.get(MessageSystemAttributeName.MESSAGE_GROUP_ID)
       val blobId = Option(message.messageAttributes().get(TranscriptionMessageAttributes.GIANT_BLOB_URI)).map(_.stringValue())
       val extractorName = Option(message.messageAttributes().get(TranscriptionMessageAttributes.GIANT_EXTRACTOR_NAME)).map(_.stringValue())
-      TranscriptionMessageAttribute(receiveCount, messageGroupId, blobId, extractorName)
+      val ingestion = Option(message.messageAttributes().get(TranscriptionMessageAttributes.GIANT_INGESTION)).map(_.stringValue())
+      TranscriptionMessageAttribute(receiveCount, messageGroupId, blobId, extractorName, ingestion)
     }.toEither
   }
 
