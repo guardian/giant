@@ -25,7 +25,8 @@ abstract class BaseOcrExtractor(scratchSpace: ScratchSpace, index:Index)  (impli
   def buildStdErrLogger(blob: Blob): OcrStderrLogger
 
   final override def extract(blob: Blob, file: File, params: ExtractionParams): Either[Failure, Unit] = {
-    val updatedParams = BaseOcrExtractor.withOcrLanguages(blob, params, index, name)
+    val ocrLanguages = BaseOcrExtractor.getOcrLanguages(blob, params, index, name)
+    val updatedParams = params.copy(languages = ocrLanguages)
 
     val stdErrLogger = buildStdErrLogger(blob)
 
@@ -48,7 +49,7 @@ abstract class BaseOcrExtractor(scratchSpace: ScratchSpace, index:Index)  (impli
 
 object BaseOcrExtractor extends Logging {
 
-  def withOcrLanguages(blob: Blob, params: ExtractionParams, index: Index, extractorName: String)(implicit ec: ExecutionContext): ExtractionParams = {
+  def getOcrLanguages(blob: Blob, params: ExtractionParams, index: Index, extractorName: String)(implicit ec: ExecutionContext): List[Language] = {
     // extractors are synchronous so we have to await here
     val detectedLanguageCode = Await.result(index.getTextDetectedLanguage(blob.uri).asFuture, 3.seconds).toOption
 
@@ -68,7 +69,7 @@ object BaseOcrExtractor extends Logging {
       throw new IllegalStateException(s"${extractorName} requires at least one language (blob ${blob.uri.value}, ingestion ${params.ingestion}, detected language ${detectedLanguageCode.getOrElse("none")})")
     }
 
-    params.copy(languages = ocrLanguages)
+    ocrLanguages
   }
 
   /**
