@@ -1,6 +1,7 @@
 package extraction
 
-import model.{English, TranslationField, TranslationTask}
+import model.English
+import com.gu.transcriptionservice.workerinterface.{TranslationField, TranslationTask}
 import model.index.{Document, IndexedResource}
 import services.index.{Index, IndexFields}
 import services.manifest.Manifest
