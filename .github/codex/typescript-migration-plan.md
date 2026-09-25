@@ -37,16 +37,6 @@ when their JS consumers migrate; unrelated TS cleanup is not part of the plan.
 
 ## Remaining steps
 
-### 07. Preferences and application errors
-
-Create a shared preferences schema for localStorage, including missing/malformed values and existing defaults in index.jsx. Extend AppAction and the app slice in GiantState for errors, warnings, preferences, and initial config. Reuse the schema when index.jsx is migrated.
-
-- `js/actions/preferences.js`
-- `js/actions/problems.js`
-- `js/reducers/appReducer.js`
-- `js/components/UtilComponents/ErrorBar.jsx`
-- `js/components/Settings/FeatureSwitches.jsx`
-
 ### 08. Cluster API slice
 
 Add recursive directory-entry and cluster schemas at the service boundary, then type actions and reducer. The existing fileEntry PropTypes initializer references itself: inspect callers and preserve its public export while correcting the recursive definition.

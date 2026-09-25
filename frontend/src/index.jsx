@@ -2,6 +2,8 @@ import React from "react";
 import { render } from "react-dom";
 import { Provider } from "react-redux";
 
+import { loadPreferences } from "./js/types/Preferences";
+
 import App from "./js/App";
 import store from "./js/util/store";
 import history from "./js/util/history";
@@ -11,28 +13,6 @@ import { StylesheetLoader } from "./js/util/stylesheets/StylesheetLoader";
 
 if (localStorage.pfiAuthHeader) {
   store.dispatch(receiveToken(localStorage.pfiAuthHeader));
-}
-
-const defaultPreferences = {
-  showSearchHighlights: true,
-  showCommentHighlights: true,
-};
-
-function loadPreferences() {
-  const existingItem = localStorage.getItem("preferences");
-  const existingPreferences = existingItem ? JSON.parse(existingItem) : null;
-
-  if (!existingPreferences) {
-    localStorage.setItem("preferences", JSON.stringify(defaultPreferences));
-    return defaultPreferences;
-  }
-
-  if (existingPreferences.showCommentHighlights === undefined) {
-    existingPreferences.showCommentHighlights = true;
-    localStorage.setItem("preferences", JSON.stringify(existingPreferences));
-  }
-
-  return existingPreferences;
 }
 
 fetch("/api/config")

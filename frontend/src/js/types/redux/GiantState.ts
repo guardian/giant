@@ -1,3 +1,4 @@
+import { Preferences } from "../Preferences";
 import { WorkspaceMetadata, WorkspaceEntry, Workspace } from "../Workspaces";
 import { TreeEntry, TreeNode } from "../Tree";
 import { MimeTypeCoverage } from "../MimeType";
@@ -71,6 +72,13 @@ export type PagesState = {
   mountedHighlightElements: { [id: string]: HTMLElement };
 };
 
+export interface AppState {
+  config: Partial<Config>;
+  preferences: Preferences;
+  errors: string[];
+  warnings: string[];
+}
+
 // Once all reducers are typed, we should be able to infer this type, à la:
 // https://github.com/guardian/facia-tool/blob/master/client-v2/src/types/State.ts
 export interface GiantState {
@@ -80,10 +88,7 @@ export interface GiantState {
   users: any;
   highlights: HighlightsState;
   collections: Collection[];
-  app: {
-    config: Config;
-    preferences: any;
-  };
+  app: AppState;
   expandedFiltersState: { [key: string]: boolean };
   resource: Resource | null;
   descendantResources: DescendantResources;
