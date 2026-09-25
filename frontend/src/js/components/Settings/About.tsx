@@ -8,7 +8,7 @@ type Props = ReturnType<typeof mapStateToProps>;
 
 class About extends React.Component<Props> {
   render() {
-    const version = this.props.config.buildInfo;
+    const version = this.props.config.buildInfo ?? {};
 
     return (
       <div className="app__main-content">

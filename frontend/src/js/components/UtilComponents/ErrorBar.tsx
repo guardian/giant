@@ -1,3 +1,5 @@
+import { GiantState } from "../../types/redux/GiantState";
+import { GiantDispatch } from "../../types/redux/GiantDispatch";
 import React from "react";
 import PropTypes from "prop-types";
 import { MdWarning } from "react-icons/md";
@@ -9,7 +11,9 @@ import { bindActionCreators } from "redux";
 
 import * as problemsActions from "../../actions/problems";
 
-export class ErrorBarUnconnected extends React.Component {
+export class ErrorBarUnconnected extends React.Component<
+  ReturnType<typeof mapStateToProps> & ReturnType<typeof mapDispatchToProps>
+> {
   static propTypes = {
     app: PropTypes.shape({
       config: PropTypes.shape({
@@ -24,11 +28,11 @@ export class ErrorBarUnconnected extends React.Component {
     }),
   };
 
-  closeError = (i) => {
+  closeError = (i: number) => {
     this.props.problemsActions.clearError(i);
   };
 
-  closeWarning = (i) => {
+  closeWarning = (i: number) => {
     this.props.problemsActions.clearWarning(i);
   };
 
@@ -67,7 +71,12 @@ export class ErrorBarUnconnected extends React.Component {
   }
 }
 
-class ProblemPopup extends React.Component {
+class ProblemPopup extends React.Component<{
+  type: "error" | "warning";
+  message: string;
+  index: number;
+  onClose: (index: number) => void;
+}> {
   static propTypes = {
     type: PropTypes.string.isRequired,
     message: PropTypes.string.isRequired,
@@ -94,13 +103,13 @@ class ProblemPopup extends React.Component {
   }
 }
 
-function mapStateToProps(state) {
+function mapStateToProps(state: GiantState) {
   return {
     app: state.app,
   };
 }
 
-function mapDispatchToProps(dispatch) {
+function mapDispatchToProps(dispatch: GiantDispatch) {
   return {
     problemsActions: bindActionCreators(
       Object.assign({}, problemsActions),
