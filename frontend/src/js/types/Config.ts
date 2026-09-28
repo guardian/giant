@@ -8,6 +8,7 @@ export const config = PropTypes.shape({
 });
 
 export type Config = {
+  readOnly: boolean;
   warning?: string;
   userProvider: string;
   hideDownloadButton: boolean;

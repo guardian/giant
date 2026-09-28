@@ -1,3 +1,5 @@
+import { GiantState } from "../../types/redux/GiantState";
+import { GiantDispatch } from "../../types/redux/GiantDispatch";
 import React from "react";
 import PropTypes from "prop-types";
 
@@ -6,7 +8,9 @@ import { bindActionCreators } from "redux";
 
 import { updatePreference } from "../../actions/preferences";
 
-export const features = [
+type Feature = { name: "PageViewer" | "EUI"; description: string };
+
+export const features: Feature[] = [
   {
     name: "PageViewer",
     description: "Use new text viewer that understands pages",
@@ -18,18 +22,23 @@ export const features = [
   },
 ];
 
-class FeatureSwitches extends React.Component {
+class FeatureSwitches extends React.Component<
+  ReturnType<typeof mapStateToProps> & ReturnType<typeof mapDispatchToProps>
+> {
   static propTypes = {
     updatePreference: PropTypes.func.isRequired,
     preferences: PropTypes.object,
   };
 
-  toggleFeatureSwitch = (e, name) => {
+  toggleFeatureSwitch = (
+    e: React.ChangeEvent<HTMLInputElement>,
+    name: Feature["name"],
+  ) => {
     this.props.updatePreference("feature" + name, !!e.target.checked);
   };
 
-  renderRow = (feature) => {
-    const value = this.props.preferences["feature" + feature.name];
+  renderRow = (feature: Feature) => {
+    const value = this.props.preferences[`feature${feature.name}`];
 
     return (
       <tr className="date-table__row" key={feature.name}>
@@ -71,13 +80,13 @@ class FeatureSwitches extends React.Component {
   }
 }
 
-function mapStateToProps(state) {
+function mapStateToProps(state: GiantState) {
   return {
     preferences: state.app.preferences,
   };
 }
 
-function mapDispatchToProps(dispatch) {
+function mapDispatchToProps(dispatch: GiantDispatch) {
   return {
     updatePreference: bindActionCreators(updatePreference, dispatch),
   };

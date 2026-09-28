@@ -1,3 +1,5 @@
+import { Config } from "../Config";
+import { Preferences } from "../Preferences";
 import { TreeEntry, TreeNode } from "../Tree";
 import { WorkspaceMetadata, WorkspaceEntry, Workspace } from "../Workspaces";
 import { MimeTypeCoverage } from "../MimeType";
@@ -71,17 +73,38 @@ export type WorkspacesAction =
 
 export enum AppActionType {
   APP_SHOW_ERROR = "APP_SHOW_ERROR",
+  APP_SHOW_WARNING = "APP_SHOW_WARNING",
+  APP_CLEAR_ERROR = "APP_CLEAR_ERROR",
+  APP_CLEAR_WARNING = "APP_CLEAR_WARNING",
+  APP_CLEAR_ERRORS = "APP_CLEAR_ERRORS",
+  APP_CLEAR_WARNINGS = "APP_CLEAR_WARNINGS",
+  APP_SET_CONFIG = "APP_SET_CONFIG",
+  APP_SET_PREFERENCES = "APP_SET_PREFERENCES",
 }
 
 export interface ErrorAction {
   type: AppActionType.APP_SHOW_ERROR;
   message: string;
-  error: Error;
+  error: unknown;
+  receivedAt?: number;
 }
 
-// More types to come here, but this is the only one needed
-// for the workspaces reducer which is all we've typed so far.
-export type AppAction = ErrorAction;
+export type AppAction =
+  | ErrorAction
+  | ({ receivedAt: number } & (
+      | { type: AppActionType.APP_SHOW_WARNING; message: string }
+      | {
+          type: AppActionType.APP_CLEAR_ERROR | AppActionType.APP_CLEAR_WARNING;
+          index: number;
+        }
+      | {
+          type:
+            | AppActionType.APP_CLEAR_ERRORS
+            | AppActionType.APP_CLEAR_WARNINGS;
+        }
+      | { type: AppActionType.APP_SET_CONFIG; config: Config }
+      | { type: AppActionType.APP_SET_PREFERENCES; preferences: Preferences }
+    ));
 
 export enum MetricsActionType {
   MIMETYPE_COVERAGE_GET_RECEIVE = "MIMETYPE_COVERAGE_GET_RECEIVE",

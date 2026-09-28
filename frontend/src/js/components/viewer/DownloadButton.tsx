@@ -9,7 +9,7 @@ function DownloadButton({
   hideDownloadButton,
 }: {
   resource: Resource | null;
-  hideDownloadButton: boolean;
+  hideDownloadButton: boolean | undefined;
 }) {
   const [modalOpen, setModalOpen] = useState(false);
 

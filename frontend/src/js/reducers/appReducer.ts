@@ -1,14 +1,16 @@
+import { AppState } from "../types/redux/GiantState";
+import { GiantAction } from "../types/redux/GiantActions";
 import * as R from "ramda";
 
 export default function app(
-  state = {
+  state: AppState = {
     config: {},
     preferences: {},
     errors: [],
     warnings: [],
   },
-  action,
-) {
+  action: GiantAction,
+): AppState {
   switch (action.type) {
     case "APP_CLEAR_ERRORS":
       return Object.assign({}, state, {
