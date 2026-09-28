@@ -28,7 +28,9 @@
     3903,
     9092,
     7474,
-    7687
+    7687,
+    3100,
+    9423
   ],
   "image" : "mcr.microsoft.com/devcontainers/base:ubuntu26.04",
   "remoteUser" : "vscode",
