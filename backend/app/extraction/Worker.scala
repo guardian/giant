@@ -25,6 +25,7 @@ class Worker(
   manifest: WorkerManifest,
   blobStorage: ObjectStorage,
   extractors: List[Extractor],
+  fallbackExtractors: Map[String, Extractor],
   metricsService: MetricsService,
   postgresClient: PostgresClient,
   skipTextIngestionUris: Set[String] = Set.empty)(implicit executionContext: ExecutionContext) extends Logging {
@@ -55,9 +56,16 @@ class Worker(
       manifest.fetchWork(name, workerDetail.nodes.size, workerIndex, maxBatchSize, maxCost).toAttempt.flatMap { work =>
         Attempt.traverse(work) {
           case WorkItem(blob, parentBlobs, extractorName, ingestion, languages, workspace) =>
+            val params = ExtractionParams(ingestion, languages, parentBlobs, workspace, skipTextIngestionUris)
             extractors.find(_.name == extractorName) match {
               case Some(extractor) =>
-                Attempt.Right((extractor, blob, ExtractionParams(ingestion, languages, parentBlobs, workspace, skipTextIngestionUris)))
+                Attempt.Right((extractor, blob, params))
+              case _ if fallbackExtractors.contains(extractorName) =>
+                val fallbackExtractor = fallbackExtractors(extractorName)
+                logger.warn(s"Extractor $extractorName not found, using fallback extractor ${fallbackExtractor.name} for blob ${blob.uri.value}")
+                manifest.migrateTodo(params, blob, extractorName, fallbackExtractor).toAttempt.map { _ =>
+                  (fallbackExtractor, blob, params)
+                }
 
               case _ =>
                 val failureMsg = s"Unknown extractor $extractorName"

@@ -39,6 +39,8 @@ trait WorkerManifest {
 
   def releaseLocksForTerminatedWorkers(currentWorkerNames: List[String]): Either[Failure, Unit]
 
+  def migrateTodo(params: ExtractionParams, blob: Blob, extractorName: String, replacement: Extractor): Either[Failure, Unit]
+
   def markAsComplete(params: ExtractionParams, blob: Blob, extractor: Extractor): Either[Failure, Unit]
   def markExternalAsProcessing(params: ExtractionParams, blob: Blob, extractor: Extractor): Either[Failure, Unit]
 
