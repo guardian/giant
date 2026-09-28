@@ -708,6 +708,43 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
 
   }
 
+  override def migrateTodo(params: ExtractionParams, blob: Blob, extractorName: String, replacement: Extractor): Either[Failure, Unit] = transaction { tx =>
+    val workspacePredicate = params.workspace.map { _ =>
+      "todo.workspaceId = $workspaceId AND todo.workspaceNodeId = $workspaceNodeId AND todo.workspaceBlobUri = $workspaceBlobUri"
+    }.getOrElse("todo.workspaceId IS NULL AND todo.workspaceNodeId IS NULL AND todo.workspaceBlobUri IS NULL")
+
+    val summary = tx.run(
+      s"""
+         |MATCH (b:Blob:Resource {uri: $$uri})<-[todo:TODO {
+         |  ingestion: $$ingestion, parentBlobs: $$parentBlobs
+         |}]-(old:Extractor {name: $$extractorName})
+         |WHERE $workspacePredicate
+         |MATCH (replacement:Extractor {name: $$replacementName})
+         |CREATE (replacement)-[migrated:TODO]->(b)
+         |SET migrated = properties(todo)
+         |DELETE todo
+         |""".stripMargin,
+      parameters(
+        "uri", blob.uri.value,
+        "extractorName", extractorName,
+        "replacementName", replacement.name,
+        "ingestion", params.ingestion,
+        "parentBlobs", params.parentBlobs.map(_.value).asJava,
+        "workspaceId", params.workspace.map(_.workspaceId).orNull,
+        "workspaceNodeId", params.workspace.map(_.workspaceNodeId).orNull,
+        "workspaceBlobUri", params.workspace.map(_.blobAddedToWorkspace).orNull
+      )
+    ).consume()
+
+    val counters = summary.counters()
+    // Returning Left rolls back the transaction, including any replacement relationships.
+    if (counters.relationshipsCreated() != 1 || counters.relationshipsDeleted() != 1) {
+      Left(IllegalStateFailure(s"Expected to migrate one TODO from $extractorName to ${replacement.name}. Created: ${counters.relationshipsCreated()}. Deleted: ${counters.relationshipsDeleted()}"))
+    } else {
+      Right(())
+    }
+  }
+
   override def markAsComplete(params: ExtractionParams, blob: Blob, extractor: Extractor): Either[Failure, Unit] = transaction { tx =>
     logger.info(s"Marking ${blob.uri.value} / ${extractor.name} as complete")
 

@@ -183,14 +183,11 @@ class AppComponents(context: Context, config: Config)
     val mboxExtractor = new MBoxEmailExtractor(emlParser)
 
     val tesseractPdfOcrExtractor = new TesseractPdfOcrExtractor(config.ocr, scratchSpace, esResources, esPages, ingestionServices)
-    val ocrMyPdfExtractor: Extractor = if (config.worker.useExternalExtractors && config.worker.externalOcrForStack(config.aws.map(_.stack).getOrElse("unknown"))) {
-      new ExternalOcrMyPdfExtractor(scratchSpace, esResources, config.transcribe, blobStorage, transcriptionServiceStorage, ingestionServices, sqsClient)
-    } else {
-      new OcrMyPdfExtractor(scratchSpace, esResources, esPages, previewStorage, ingestionServices)
-    }
+    val ocrMyPdfExtractor = new OcrMyPdfExtractor(scratchSpace, esResources, esPages, previewStorage, ingestionServices)
+    val externalOcrMyPdfExtractor = new ExternalOcrMyPdfExtractor(scratchSpace, esResources, config.transcribe, blobStorage, transcriptionServiceStorage, ingestionServices, sqsClient)
+    val useExternalOcrExtractor: Boolean = config.worker.useExternalExtractors && config.worker.externalOcrForStack(config.aws.map(_.stack).getOrElse("unknown"))
     val imageOcrExtractor = new ImageOcrExtractor(config.ocr, scratchSpace, esResources, ingestionServices)
     val ocrMyPdfImageExtractor = new OcrMyPdfImageExtractor(config.ocr, scratchSpace, esResources, previewStorage, ingestionServices)
-
 
     val externalExtractors: List[Extractor] = if (config.worker.useExternalExtractors) {
       List(
@@ -203,7 +200,7 @@ class AppComponents(context: Context, config: Config)
     }
 
     val ocrExtractors = config.ocr.defaultEngine match {
-      case OcrEngine.OcrMyPdf => List(ocrMyPdfExtractor, ocrMyPdfImageExtractor)
+      case OcrEngine.OcrMyPdf => if (useExternalOcrExtractor) List(externalOcrMyPdfExtractor, ocrMyPdfImageExtractor) else List(ocrMyPdfExtractor, ocrMyPdfImageExtractor)
       case OcrEngine.Tesseract => List(tesseractPdfOcrExtractor, imageOcrExtractor)
     }
 
@@ -212,6 +209,8 @@ class AppComponents(context: Context, config: Config)
 
     val extractors = List(olmExtractor, zipExtractor, rarExtractor, documentBodyExtractor, pstExtractor, emlExtractor, msgExtractor, mboxExtractor, csvTableExtractor, excelTableExtractor) ++ externalExtractors ++ ocrExtractors
     extractors.foreach(mimeTypeMapper.addExtractor)
+
+    val fallbackExtractors: Map[String, Extractor] = if (useExternalOcrExtractor) Map(ocrMyPdfExtractor.name -> externalOcrMyPdfExtractor) else Map.empty
 
     // Common components
     val failureToResultMapper = new CloudWatchReportingFailureToResultMapper(metricsService)
@@ -253,7 +252,7 @@ class AppComponents(context: Context, config: Config)
       logger.info("Worker enabled on this instance")
 
       // PFI processors
-      val worker = new Worker(workerName, workerControl, manifest, blobStorage, extractors, metricsService, postgresClient, config.ingestion.skipTextIngestionUris)(workerExecutionContext)
+      val worker = new Worker(workerName, workerControl, manifest, blobStorage, extractors, fallbackExtractors, metricsService, postgresClient, config.ingestion.skipTextIngestionUris)(workerExecutionContext)
       // ingestion phase 2
       val phase2IngestionScheduler =
         new IngestStorePolling(actorSystem, workerExecutionContext, workerControl, ingestStorage, scratchSpace, ingestionServices, config.ingestion.batchSize, metricsService, postgresClient)
