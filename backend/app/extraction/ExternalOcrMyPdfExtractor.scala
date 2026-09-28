@@ -70,7 +70,7 @@ class ExternalOcrMyPdfExtractor(scratch: ScratchSpace, index: Index, transcribeC
             dpi = None
           )
         )
-        _ <- sendToQueue(sqsClient, transcribeConfig.transcriptionServiceQueueUrl, job, blob.uri.value, name)
+        _ <- sendToQueue(sqsClient, transcribeConfig.transcriptionServiceQueueUrl, job, blob.uri.value, name, params.ingestion)
       } yield ()
     } finally {
       FileUtils.deleteDirectory(tmpDir.toFile)
