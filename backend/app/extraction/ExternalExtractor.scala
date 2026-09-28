@@ -31,7 +31,7 @@ abstract class ExternalExtractor extends Extractor with Logging {
   // giant doesn't care about the cost of external extractors because another service handles it, so set this low
   def cost(mimeType: String, size: Long): Long = 10
 
-  protected def sendToQueue[T: Writes](sqsClient: SqsClient, queueUrl: String, job: T, blobUri: String, extractorName: String): Either[Failure, Unit] = {
+  protected def sendToQueue[T: Writes](sqsClient: SqsClient, queueUrl: String, job: T, blobUri: String, extractorName: String, ingestion: String): Either[Failure, Unit] = {
     try {
       logger.info(s"sending message to Transcription Service Queue")
       val messageRequest = SendMessageRequest.builder()
@@ -41,8 +41,10 @@ abstract class ExternalExtractor extends Extractor with Logging {
         // these attributes should be returned unchanged by the transcription service so we can match the response to the original extractor
         .messageAttributes(Map(
           TranscriptionMessageAttributes.GIANT_BLOB_URI -> MessageAttributeValue.builder().dataType("String").stringValue(blobUri).build(),
-          TranscriptionMessageAttributes.GIANT_EXTRACTOR_NAME -> MessageAttributeValue.builder().dataType("String").stringValue(extractorName).build()
+          TranscriptionMessageAttributes.GIANT_EXTRACTOR_NAME -> MessageAttributeValue.builder().dataType("String").stringValue(extractorName).build(),
+          TranscriptionMessageAttributes.GIANT_INGESTION -> MessageAttributeValue.builder().dataType("String").stringValue(ingestion).build()
         ).asJava)
+
         .build()
       sqsClient.sendMessage(messageRequest)
       Right(())

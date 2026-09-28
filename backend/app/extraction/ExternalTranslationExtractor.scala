@@ -97,7 +97,7 @@ abstract class ExternalTranslationExtractor(manifest: Manifest, index: Index, tr
     }
 
     llmJob.flatMap {
-      case Some(job) => sendToQueue(sqsClient, transcribeConfig.transcriptionServiceQueueUrl, job, blob.uri.value, name)
+      case Some(job) => sendToQueue(sqsClient, transcribeConfig.transcriptionServiceQueueUrl, job, blob.uri.value, name, params.ingestion)
       case None => Right(())
     }
   }
