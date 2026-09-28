@@ -73,7 +73,7 @@ class ExternalTranscriptionExtractor(index: Index, transcribeConfig: TranscribeC
     }
 
     transcriptionJob.flatMap { job =>
-      sendToQueue(sqsClient, transcribeConfig.transcriptionServiceQueueUrl, job, blob.uri.value, name)
+      sendToQueue(sqsClient, transcribeConfig.transcriptionServiceQueueUrl, job, blob.uri.value, name, params.ingestion)
     }
   }
 }
