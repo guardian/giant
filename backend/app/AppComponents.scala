@@ -183,7 +183,7 @@ class AppComponents(context: Context, config: Config)
     val mboxExtractor = new MBoxEmailExtractor(emlParser)
 
     val tesseractPdfOcrExtractor = new TesseractPdfOcrExtractor(config.ocr, scratchSpace, esResources, esPages, ingestionServices)
-    val ocrMyPdfExtractor: Extractor = if (config.worker.useExternalExtractors) {
+    val ocrMyPdfExtractor: Extractor = if (config.worker.useExternalExtractors && config.worker.externalOcrForStack(config.aws.map(_.stack).getOrElse("unknown"))) {
       new ExternalOcrMyPdfExtractor(scratchSpace, esResources, config.transcribe, blobStorage, transcriptionServiceStorage, ingestionServices, sqsClient)
     } else {
       new OcrMyPdfExtractor(scratchSpace, esResources, esPages, previewStorage, ingestionServices)

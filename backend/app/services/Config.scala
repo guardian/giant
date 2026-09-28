@@ -107,8 +107,11 @@ case class WorkerConfig(
   controlCooldown: FiniteDuration,
   enabled: Boolean,
   workspace: String,
-  useExternalExtractors: Boolean
-)
+  useExternalExtractors: Boolean,
+  useExternalOcrExtractor: Boolean
+) {
+  def externalOcrForStack(stack: String) = if (useExternalOcrExtractor) useExternalOcrExtractor else stack == "pfi-playground"
+}
 
 case class Neo4jQueryLoggingConfig(
   slowQueryThreshold: FiniteDuration,
