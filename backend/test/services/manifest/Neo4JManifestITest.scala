@@ -333,6 +333,77 @@ class Neo4JManifestITest extends AnyFreeSpec
         manifest.getLanguagesProcessedByOcrMyPdf(resource.uri).successValue should contain theSameElementsAs params.languages
       }
 
+      "Migrating a fallback TODO preserves its context and allows external completion" in {
+        val original = extractor("LegacyOcrExtractor", 2)
+        val replacement = new Extractor {
+          override def name = "ReplacementOcrExtractor"
+          override def canProcessMimeType: String => Boolean = _ => true
+          override def indexing = true
+          override def priority = 2
+          override def external = true
+          override def extract(blob: Blob, stream: InputStream, params: ExtractionParams): Either[Failure, Unit] = Right(())
+        }
+        val collection = Uri("fallback_ocr")
+        val ingestion = collection.chain("test")
+        val otherIngestion = collection.chain("other")
+        manifest.insertCollection(collection.value, "OCR fallback", "test").eitherValue.isRight shouldBe true
+        insertIngestion(collection, Some(ingestion)).eitherValue.isRight shouldBe true
+        insertIngestion(collection, Some(otherIngestion)).eitherValue.isRight shouldBe true
+
+        val insertion = blob(ingestion.chain("document.pdf"), List(original), ingestion.value)
+          .copy(languages = List(English.key, model.French.key), parentBlobs = List(Uri("parent-blob")))
+        val workspace = WorkspaceItemContext("ocr-workspace", "ocr-node", insertion.blobUri.value)
+        val workspaceInsertion = insertion.copy(workspace = Some(workspace))
+        val otherInsertion = insertion.copy(ingestion = otherIngestion.value)
+        val resource = Blob(insertion.blobUri, insertion.file.size, Set(insertion.mimeType))
+        val params = ExtractionParams(ingestion.value, List(English, model.French), insertion.parentBlobs, None)
+        val contexts = List(params, params.copy(workspace = Some(workspace)), params.copy(ingestion = otherIngestion.value))
+
+        // Reproduce reprocessing a file that previously completed with the old extractor.
+        List(insertion, workspaceInsertion, otherInsertion).zip(contexts).foreach { case (item, context) =>
+          manifest.insert(List(item), ingestion).isRight shouldBe true
+          manifest.markAsComplete(context, resource, original).isRight shouldBe true
+        }
+        manifest.rerunSuccessfulExtractorsForBlob(resource.uri).successValue shouldBe (())
+
+        // A missing replacement must leave the original TODOs intact.
+        manifest.migrateTodo(params, resource, original.name, replacement).isLeft shouldBe true
+        val unchangedWork = manifest.fetchWork("fallback-worker", 1, 0, 1000, 10000000).toOption.get.filter(_.blob.uri == resource.uri)
+        unchangedWork should contain theSameElementsAs contexts.map { context =>
+          WorkItem(resource, context.parentBlobs, original.name, context.ingestion, context.languages, context.workspace)
+        }
+        manifest.releaseLocks("fallback-worker").isRight shouldBe true
+
+        // Register the replacement through an ordinary ingestion before migrating to it.
+        val replacementInsertion = blob(ingestion.chain("already-external.pdf"), List(replacement), ingestion.value)
+        manifest.insert(List(replacementInsertion), ingestion).isRight shouldBe true
+        markAsComplete(replacementInsertion, ingestion.value, replacement).isRight shouldBe true
+
+        manifest.migrateTodo(params.copy(ingestion = "missing"), resource, original.name, replacement).isLeft shouldBe true
+        manifest.migrateTodo(params, resource, original.name, replacement).isRight shouldBe true
+
+        val work = manifest.fetchWork("fallback-worker", 1, 0, 1000, 10000000).toOption.get.filter(_.blob.uri == resource.uri)
+        work should contain theSameElementsAs contexts.map { context =>
+          val extractorName = if (context == params) replacement.name else original.name
+          WorkItem(resource, context.parentBlobs, extractorName, context.ingestion, context.languages, context.workspace)
+        }
+
+        manifest.markExternalAsProcessing(params, resource, replacement).isRight shouldBe true
+        manifest.getActiveExternalWorkForBlob(resource.uri, replacement.name, params.ingestion).toOption.get shouldBe List(
+          WorkItem(resource, params.parentBlobs, replacement.name, params.ingestion, params.languages, params.workspace)
+        )
+        manifest.markExternalAsComplete(resource.uri.value, replacement.name).isRight shouldBe true
+        manifest.getActiveExternalWorkForBlob(resource.uri, replacement.name, params.ingestion).toOption.get shouldBe empty
+        // Also migrate a workspace TODO to the replacement extractor.
+        val workspaceParams = contexts(1)
+        manifest.migrateTodo(workspaceParams, resource, original.name, replacement).isRight shouldBe true
+        manifest.markAsComplete(workspaceParams, resource, replacement).isRight shouldBe true
+        manifest.markAsComplete(contexts(2), resource, original).isRight shouldBe true
+        manifest.releaseLocks("fallback-worker").isRight shouldBe true
+        manifest.fetchWork("fallback-worker", 1, 0, 1000, 10000000).toOption.get.filter(_.blob.uri == resource.uri) shouldBe empty
+        manifest.releaseLocks("fallback-worker").isRight shouldBe true
+      }
+
       "Can retrieve work by extractor priority" in {
         val blobs = buildBlobs("priority_test", "priority_test/test")
 

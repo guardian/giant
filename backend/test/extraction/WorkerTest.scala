@@ -42,6 +42,7 @@ class WorkerTest extends AnyFlatSpec with Matchers with EitherValues {
 
     manifest.failures should have size 1
     manifest.failures.headOption.map(_._2) should contain(sad.name)
+    manifest.migrations shouldBe empty
   }
 
   it should "return the number of completed tasks" in {
@@ -70,6 +71,50 @@ class WorkerTest extends AnyFlatSpec with Matchers with EitherValues {
     manifest.failures.headOption.map(_._2) should contain(verySad.name)
   }
 
+  it should "migrate a TODO before running its fallback extractor" in {
+    val params = ExtractionParams("test", List(English), List(Uri("parent")), None)
+    val manifest = new TestWorkerManifest(List(WorkItem(blob, params.parentBlobs, "old", params.ingestion, params.languages, params.workspace)))
+    val fallback = new Extractor {
+      override def name = "replacement"
+      override def external = true
+      override def indexing = false
+      override def priority = 1
+      override def canProcessMimeType: String => Boolean = _ => true
+      override def extract(blob: Blob, inputStream: InputStream, actualParams: ExtractionParams): Either[Failure, Unit] = {
+        manifest.migrations shouldBe List((params, blob, "old", this))
+        actualParams shouldBe params
+        Right(())
+      }
+    }
+
+    worker(List(fallback), manifest, Map("old" -> fallback)).pollAndExecute().await() shouldBe 1
+    manifest.completed shouldBe List(blob -> fallback)
+    manifest.failures shouldBe empty
+  }
+
+  it should "not execute the fallback when migration fails and still release locks" in {
+    var invoked = false
+    val fallback = new Extractor {
+      override def name = "replacement"
+      override def indexing = false
+      override def priority = 1
+      override def canProcessMimeType: String => Boolean = _ => true
+      override def extract(blob: Blob, inputStream: InputStream, params: ExtractionParams): Either[Failure, Unit] = {
+        invoked = true
+        Right(())
+      }
+    }
+    val failure = IllegalStateFailure("Migration failed")
+    val manifest = new TestWorkerManifest(List(WorkItem(blob, Nil, "old", "test", List(English), None))) {
+      override def migrateTodo(params: ExtractionParams, blob: Blob, extractorName: String, replacement: Extractor): Either[Failure, Unit] = Left(failure)
+    }
+
+    worker(List(fallback), manifest, Map("old" -> fallback)).pollAndExecute().awaitEither() shouldBe Left(failure)
+    invoked shouldBe false
+    manifest.completed shouldBe empty
+    manifest.locksBroken shouldBe true
+  }
+
   private def extractor(_name: String, result: Either[Failure, Unit] = Right(()), exception: Option[Throwable] = None): Extractor = new Extractor {
     override def name = _name
     override def canProcessMimeType = ???
@@ -81,7 +126,7 @@ class WorkerTest extends AnyFlatSpec with Matchers with EitherValues {
     override def priority = ???
   }
 
-  private def worker(extractors: List[Extractor], manifest: WorkerManifest): Worker = {
+  private def worker(extractors: List[Extractor], manifest: WorkerManifest, fallbacks: Map[String, Extractor] = Map.empty): Worker = {
     val blobStorage = new ObjectStorage {
       override def get(key: String): Either[Failure, InputStream] = Right(null)
       override def getMetadata(key: String): Either[Failure, ObjectMetadata] = ???
@@ -102,15 +147,21 @@ class WorkerTest extends AnyFlatSpec with Matchers with EitherValues {
       override def stop(): scala.concurrent.Future[Unit] = scala.concurrent.Future.successful(())
     }
 
-    new Worker("test", testWorkerControl, manifest, blobStorage, extractors, new NoOpMetricsService, new TestPostgresClient)(scala.concurrent.ExecutionContext.global)
+    new Worker("test", testWorkerControl, manifest, blobStorage, extractors, fallbacks, new NoOpMetricsService, new TestPostgresClient)(scala.concurrent.ExecutionContext.global)
   }
 }
 
 class TestWorkerManifest(work: List[WorkItem]) extends WorkerManifest {
+  var migrations: List[(ExtractionParams, Blob, String, Extractor)] = List.empty
   var completed: List[(Blob, Extractor)] = List.empty
   var failures: List[(Uri, String, String)] = List.empty
 
   var locksBroken: Boolean = false
+
+  override def migrateTodo(params: ExtractionParams, blob: Blob, extractorName: String, replacement: Extractor): Either[Failure, Unit] = {
+    migrations :+= ((params, blob, extractorName, replacement))
+    Right(())
+  }
 
   override def fetchWork(workerName: String, workerCount: Int, workerIndex: Int, maxBatchSize: Int, maxCost: Int): Either[Failure, List[WorkItem]] = {
     Right(work)
