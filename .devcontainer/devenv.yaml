@@ -31,6 +31,8 @@ forwardPorts:
  - 9092 # cerebro
  - 7474 # neo4j ui
  - 7687 # neo4j bolt
+ - 3100 # E2E frontend (npm test)
+ - 9423 # Playwright UI (npm run test:ui)
 
 # Optional: Mount directories from host to container
 # mounts:
