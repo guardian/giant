@@ -9,8 +9,8 @@ import org.scalatest.matchers.should.Matchers
 import play.api.libs.json.{JsArray, JsObject, Json}
 import play.api.mvc.{Action, AnyContentAsEmpty, Request, Results}
 import play.api.test.FakeRequest
-import play.api.test.Helpers._
 import services.users.UserManagement
+import test.PlayHelpers._
 import test.integration.Helpers.stubControllerComponentsAsUser
 import test.{AttemptValues, TestUserManagement, TestUserRegistration}
 import utils.auth.providers.DatabaseUserProvider

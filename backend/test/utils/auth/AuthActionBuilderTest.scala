@@ -10,8 +10,9 @@ import pdi.jwt.JwtSession
 import play.api.http.HeaderNames
 import play.api.libs.json.Json
 import play.api.mvc.{AnyContentAsEmpty, Result, Results}
-import play.api.test.{FakeHeaders, FakeRequest, Helpers}
+import play.api.test.{FakeHeaders, FakeRequest}
 import play.api.{Application, ApplicationLoader, Configuration, Environment}
+import test.{PlayHelpers => Helpers}
 import test.{EmptyAppLoader, TestUserManagement}
 import utils.attempt._
 import utils.controller.DefaultFailureToResultMapper

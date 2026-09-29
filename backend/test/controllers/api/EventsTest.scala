@@ -8,9 +8,9 @@ import model.Uri
 import model.manifest.Collection
 import model.user.UserPermission.CanPerformAdminOperations
 import model.user.{DBUser, UserPermissions}
-import play.api.test.Helpers.contentAsJson
-import play.api.test.{FakeRequest, Helpers}
+import play.api.test.FakeRequest
 import services.events.{ActionComplete, Event}
+import test.PlayHelpers.contentAsJson
 import test.{TestAuthActionBuilder, TestEventsService, TestUserManagement, TestUserRegistration}
 import utils.auth.User
 import test.integration.Helpers.stubControllerComponentsAsUser

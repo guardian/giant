@@ -7,8 +7,8 @@ import model.frontend.{Highlight, SearchResults}
 import model.manifest.{Collection, MimeType}
 import model.{English, Language, Uri}
 import play.api.test.FakeRequest
-import play.api.test.Helpers.contentAsJson
 import services.index
+import test.PlayHelpers.contentAsJson
 import test.integration.ElasticsearchTestService
 import utils.attempt.Attempt
 
