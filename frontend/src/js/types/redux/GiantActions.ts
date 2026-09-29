@@ -1,3 +1,4 @@
+import { SearchFilter } from "../SearchFilter";
 import { Config } from "../Config";
 import { Preferences } from "../Preferences";
 import { TreeEntry, TreeNode } from "../Tree";
@@ -329,7 +330,13 @@ export type PagesAction =
     }
   | { type: PagesActionType.RESET_PAGES };
 
+export type FiltersAction = { receivedAt: number } & (
+  | { type: "FILTERS_GET_REQUEST" }
+  | { type: "FILTERS_GET_RECEIVE"; filters: SearchFilter[] }
+);
+
 export type GiantAction =
+  | FiltersAction
   | WorkspacesAction
   | AppAction
   | MetricsAction

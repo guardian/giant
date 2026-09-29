@@ -41,19 +41,15 @@ when their JS consumers migrate; unrelated TS cleanup is not part of the plan.
 
 Add recursive directory-entry and cluster schemas at the service boundary, then type actions and reducer. The existing fileEntry PropTypes initializer references itself: inspect callers and preserve its public export while correcting the recursive definition.
 
+Blocked: the current checkout has no cluster API routes, backend serializers, or
+response fixtures for `/api/cluster/members` and its filesystem endpoint. Establish
+those wire contracts before adding schemas; the legacy PropTypes alone are not
+sufficient evidence. The independent filter API slice can proceed first.
+
 - `js/types/Cluster.js`
 - `js/services/ClusterApi.js`
 - `js/actions/getNodes.js`
 - `js/reducers/clusterReducer.js`
-
-### 09. Filter API slice
-
-Use backend/app/model/frontend/Filter.scala: recursive suboptions and hideable are part of the contract even though the old PropTypes are incomplete. Validate in FiltersApi before dispatching.
-
-- `js/types/SearchFilter.js`
-- `js/services/FiltersApi.js`
-- `js/actions/getFilters.js`
-- `js/reducers/filtersReducer.js`
 
 ### 10. Search wire contracts and service
 

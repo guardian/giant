@@ -1,7 +1,15 @@
 import { fetchFilters } from "../services/FiltersApi";
 
+import { SearchFilter } from "../types/SearchFilter";
+import {
+  AppActionType,
+  ErrorAction,
+  FiltersAction,
+} from "../types/redux/GiantActions";
+import { GiantDispatch } from "../types/redux/GiantDispatch";
+
 export function getFilters() {
-  return (dispatch) => {
+  return (dispatch: GiantDispatch) => {
     dispatch(requestFilters());
     return fetchFilters()
       .then((res) => {
@@ -11,14 +19,14 @@ export function getFilters() {
   };
 }
 
-function requestFilters() {
+function requestFilters(): FiltersAction {
   return {
     type: "FILTERS_GET_REQUEST",
     receivedAt: Date.now(),
   };
 }
 
-function recieveFilters(filters) {
+function recieveFilters(filters: SearchFilter[]): FiltersAction {
   return {
     type: "FILTERS_GET_RECEIVE",
     filters: filters,
@@ -26,9 +34,9 @@ function recieveFilters(filters) {
   };
 }
 
-function errorReceivingFilters(error) {
+function errorReceivingFilters(error: unknown): ErrorAction {
   return {
-    type: "APP_SHOW_ERROR",
+    type: AppActionType.APP_SHOW_ERROR,
     message: "Failed to get filters",
     error: error,
     receivedAt: Date.now(),
