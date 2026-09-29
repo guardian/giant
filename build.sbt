@@ -35,6 +35,21 @@ val scalatestVersion = "3.2.17"
 val testcontainersScalaVersion = "0.44.1"
 val playJsonVersion = "3.0.1"
 
+// Keep transitive Jackson modules aligned on a release with the security fixes.
+// The sbt build's own dependencies are pinned separately in project/plugins.sbt.
+val jacksonVersion = "2.21.6"
+ThisBuild / dependencyOverrides ++= Seq(
+  "com.fasterxml.jackson.core" % "jackson-core" % jacksonVersion,
+  "com.fasterxml.jackson.core" % "jackson-databind" % jacksonVersion,
+  // Jackson annotations uses a minor-only version from 2.20 onwards.
+  "com.fasterxml.jackson.core" % "jackson-annotations" % "2.21",
+  "com.fasterxml.jackson.datatype" % "jackson-datatype-jdk8" % jacksonVersion,
+  "com.fasterxml.jackson.datatype" % "jackson-datatype-jsr310" % jacksonVersion,
+  "com.fasterxml.jackson.dataformat" % "jackson-dataformat-cbor" % jacksonVersion,
+  "com.fasterxml.jackson.module" % "jackson-module-parameter-names" % jacksonVersion,
+  "com.fasterxml.jackson.module" %% "jackson-module-scala" % jacksonVersion
+)
+
 val transcriptionWorkerInterfacePackage =
   "com.gu.transcriptionservice.workerinterface"
 
