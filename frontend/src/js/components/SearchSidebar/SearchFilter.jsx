@@ -1,7 +1,7 @@
 import React from "react";
 import PropTypes from "prop-types";
 
-import { searchFilter } from "../../types/SearchFilter.js";
+import { searchFilter } from "../../types/SearchFilter";
 import { SearchFilterOption } from "./SearchFilterOption";
 import { MenuChevron } from "../UtilComponents/MenuChevron";
 

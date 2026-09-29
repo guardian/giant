@@ -1,3 +1,4 @@
+import { SearchFilter } from "../SearchFilter";
 import { Preferences } from "../Preferences";
 import { WorkspaceMetadata, WorkspaceEntry, Workspace } from "../Workspaces";
 import { TreeEntry, TreeNode } from "../Tree";
@@ -51,6 +52,8 @@ export interface UrlParamsState {
   currentIngestion?: string;
 }
 
+export type FiltersState = SearchFilter[] | false;
+
 export type ExpandedFiltersState = { [key: string]: boolean };
 
 export type DescendantResources = { [key: string]: BasicResource };
@@ -82,6 +85,7 @@ export interface AppState {
 // Once all reducers are typed, we should be able to infer this type, à la:
 // https://github.com/guardian/facia-tool/blob/master/client-v2/src/types/State.ts
 export interface GiantState {
+  filters: FiltersState;
   workspaces: WorkspacesState;
   metrics: MetricsState;
   auth: Auth;
