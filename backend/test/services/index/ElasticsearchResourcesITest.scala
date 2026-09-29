@@ -11,7 +11,7 @@ import org.scalatest.BeforeAndAfterAll
 import org.scalatest.freespec.AnyFreeSpec
 import org.scalatest.matchers.should.Matchers
 import play.api.test.FakeRequest
-import play.api.test.Helpers._
+import test.PlayHelpers._
 import test.integration.Helpers.stubControllerComponentsAsUser
 import test.integration.{ElasticSearchTestContainer, ElasticsearchTestService}
 import test.{TestAnnotations, TestUserManagement, TestUserRegistration}

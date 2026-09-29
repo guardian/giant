@@ -9,7 +9,7 @@ import org.scalatest.BeforeAndAfterEach
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.time.{Millis, Seconds, Span}
 import org.testcontainers.lifecycle.Startables
-import play.api.test.Helpers.status
+import test.PlayHelpers.status
 import test.integration.Helpers._
 import test.integration.{ElasticSearchTestContainer, ElasticsearchTestService, Neo4jTestContainer, Neo4jTestService}
 

@@ -12,7 +12,7 @@ import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach}
 import org.testcontainers.lifecycle.Startables
 import play.api.libs.json._
 import play.api.test.FakeRequest
-import play.api.test.Helpers.{contentAsJson, status}
+import test.PlayHelpers.{contentAsJson, status}
 import test.integration.Helpers._
 import test.integration._
 

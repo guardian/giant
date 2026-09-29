@@ -191,6 +191,12 @@ lazy val backend = (project in file("backend"))
     includeDocumentationInBinary := false,
     scalacOptions := compilerFlags,
     evictionErrorLevel := Level.Warn,
+    // Tests use Play's application helpers, but not its browser automation support. At the time of committing
+    // these libraries had multiple vulnerabilities - see https://github.com/guardian/giant/pull/870
+    excludeDependencies ++= Seq(
+      ExclusionRule("io.fluentlenium", "fluentlenium-core"),
+      ExclusionRule("org.seleniumhq.selenium", "htmlunit-driver")
+    ),
     libraryDependencies ++= Seq(
       ws,
       "commons-codec" % "commons-codec" % "1.11",

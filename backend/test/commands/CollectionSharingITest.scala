@@ -12,7 +12,7 @@ import org.scalatest.time.{Millis, Seconds, Span}
 import org.testcontainers.lifecycle.Startables
 import play.api.libs.json.Json
 import play.api.test.FakeRequest
-import play.api.test.Helpers.{await, contentAsJson, status}
+import test.PlayHelpers.{await, contentAsJson, status}
 import test.integration.Helpers._
 import test.integration.{ElasticSearchTestContainer, ElasticsearchTestService, Neo4jTestContainer, Neo4jTestService}
 
