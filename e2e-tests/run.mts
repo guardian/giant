@@ -145,6 +145,12 @@ try {
 } finally {
   await stopCommands();
   if (servicesStarted) {
+    // Wipe test database contents (Neo4j + Elasticsearch) before dropping the
+    // volumes so the next run starts on a clean slate. Postgres is left alone
+    // per #856 — its state isn't checked between runs. Best-effort: an empty
+    // database is a no-op, and any failure here must not block teardown.
+    await shell`${compose} exec -T neo4j cypher-shell -u neo4j -p password 'MATCH (n) DETACH DELETE n' > ${resolve(artifacts, "wipe-neo4j.log")} 2>&1`.nothrow();
+    await shell`${compose} exec -T elasticsearch curl -sS -X POST 'http://localhost:9200/_delete_by_query?refresh=true&conflicts=proceed' -H 'Content-Type: application/json' -d '{"query":{"match_all":{}}}' > ${resolve(artifacts, "wipe-elasticsearch.log")} 2>&1`.nothrow();
     await shell`${compose} logs --no-color > ${resolve(artifacts, "services.log")} 2>&1`.nothrow();
     const cleanup =
       await shell`${compose} down --volumes --remove-orphans`.nothrow();
