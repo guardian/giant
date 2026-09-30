@@ -35,20 +35,8 @@ val scalatestVersion = "3.2.17"
 val testcontainersScalaVersion = "0.44.1"
 val playJsonVersion = "3.0.1"
 
-// Keep transitive Jackson modules aligned on a release with the security fixes.
-// The sbt build's own dependencies are pinned separately in project/plugins.sbt.
+// Minimum patched Jackson version; also used by the sbt build in project/plugins.sbt.
 val jacksonVersion = "2.21.6"
-ThisBuild / dependencyOverrides ++= Seq(
-  "com.fasterxml.jackson.core" % "jackson-core" % jacksonVersion,
-  "com.fasterxml.jackson.core" % "jackson-databind" % jacksonVersion,
-  // Jackson annotations uses a minor-only version from 2.20 onwards.
-  "com.fasterxml.jackson.core" % "jackson-annotations" % "2.21",
-  "com.fasterxml.jackson.datatype" % "jackson-datatype-jdk8" % jacksonVersion,
-  "com.fasterxml.jackson.datatype" % "jackson-datatype-jsr310" % jacksonVersion,
-  "com.fasterxml.jackson.dataformat" % "jackson-dataformat-cbor" % jacksonVersion,
-  "com.fasterxml.jackson.module" % "jackson-module-parameter-names" % jacksonVersion,
-  "com.fasterxml.jackson.module" %% "jackson-module-scala" % jacksonVersion
-)
 
 val transcriptionWorkerInterfacePackage =
   "com.gu.transcriptionservice.workerinterface"
@@ -127,6 +115,11 @@ lazy val transcriptionWorkerInterface =
       scalacOptions := compilerFlags,
       libraryDependencies ++= Seq(
         "org.playframework" %% "play-json" % playJsonVersion,
+        // Play JSON still brings in older Jackson; these versions also reach common, backend and cli.
+        "com.fasterxml.jackson.core" % "jackson-core" % jacksonVersion,
+        "com.fasterxml.jackson.core" % "jackson-databind" % jacksonVersion,
+        "com.fasterxml.jackson.datatype" % "jackson-datatype-jdk8" % jacksonVersion,
+        "com.fasterxml.jackson.datatype" % "jackson-datatype-jsr310" % jacksonVersion,
         "org.scalatest" %% "scalatest" % scalatestVersion % Test
       ),
       fetchSchema := {
@@ -214,6 +207,10 @@ lazy val backend = (project in file("backend"))
     ),
     libraryDependencies ++= Seq(
       ws,
+      // Keep Play/Pekko's additional Jackson modules aligned with Play JSON's modules above.
+      "com.fasterxml.jackson.dataformat" % "jackson-dataformat-cbor" % jacksonVersion,
+      "com.fasterxml.jackson.module" % "jackson-module-parameter-names" % jacksonVersion,
+      "com.fasterxml.jackson.module" %% "jackson-module-scala" % jacksonVersion,
       "commons-codec" % "commons-codec" % "1.11",
       "org.bouncycastle" % "bcprov-jdk18on" % "1.85",
       // required by tikka, used to be part of bcprov-jdk15on, pulled out into a separate library from 1.69 onwards

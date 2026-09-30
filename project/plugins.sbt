@@ -12,12 +12,11 @@ addSbtPlugin("com.github.sbt" % "sbt-native-packager" % "1.11.1")
 // Used by the transcription worker interface schema fetcher and generator
 libraryDependencies += "org.playframework" %% "play-json" % "3.0.1"
 
-// The sbt build has its own dependency graph; keep Jackson aligned with build.sbt.
+// The sbt build has its own dependency graph; require the same patched Jackson as build.sbt.
 val jacksonVersion = "2.21.6"
-dependencyOverrides ++= Seq(
+libraryDependencies ++= Seq(
   "com.fasterxml.jackson.core" % "jackson-core" % jacksonVersion,
   "com.fasterxml.jackson.core" % "jackson-databind" % jacksonVersion,
-  "com.fasterxml.jackson.core" % "jackson-annotations" % "2.21",
   "com.fasterxml.jackson.datatype" % "jackson-datatype-jdk8" % jacksonVersion,
   "com.fasterxml.jackson.datatype" % "jackson-datatype-jsr310" % jacksonVersion,
   "com.fasterxml.jackson.dataformat" % "jackson-dataformat-cbor" % jacksonVersion
