@@ -6,7 +6,7 @@ import controllers.api.Search
 import model.frontend.Highlight
 import model.index.Document
 import model.manifest.Collection
-import model.{Arabic, Email, English, Portuguese, Recipient, Russian, Uri}
+import model.{Arabic, Email, English, Hebrew, Portuguese, Recipient, Russian, Uri}
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.freespec.AnyFreeSpec
 import org.scalatest.matchers.should.Matchers
@@ -421,6 +421,24 @@ class ElasticsearchResourcesITest extends AnyFreeSpec with Matchers with BeforeA
           Highlight("ocr.english", "OCR Text", "this is the <result-highlight>english</result-highlight> part of the document"),
           Highlight("ocr.russian", "OCR Text", "это <result-highlight>русская</result-highlight> часть документа")
         )
+      }
+    }
+
+    "Find and highlight Hebrew text and OCR with or without vowel marks" in {
+      val docUri = indexTestHelpers.addTestDocument(catCollection, "search_results_hebrew",
+        maybeText = Map(Hebrew -> "שָׁלוֹם שלום"),
+        maybeOcrText = Map(Hebrew -> "שָׁלוֹם שלום")
+      ).await()
+
+      val highlighted = "<result-highlight>שָׁלוֹם</result-highlight> <result-highlight>שלום</result-highlight>"
+      TestSetup(users, reqUser = canSeeCatsUser) { controller =>
+        List("שלום", "שָׁלוֹם").foreach { query =>
+          indexTestHelpers.getSearchHighlights(controller, query).map(_.highlight) should contain only highlighted
+
+          val resource = elasticsearchTestService.elasticResources.getResource(docUri, Some(query)).await().asInstanceOf[Document]
+          resource.text shouldBe highlighted
+          resource.ocr shouldBe Some(Map(Hebrew.key -> highlighted))
+        }
       }
     }
 

@@ -24,6 +24,10 @@ trait ElasticSearchTestContainer extends AttemptValues{
   def createElasticSearchContainer(): ElasticsearchContainer = {
     val elasticContainer = elasticContainerDef.createContainer()
 
+    elasticContainer.container.withCommand(
+      "bash", "-c",
+      "bin/elasticsearch-plugin install --batch analysis-icu && exec /usr/local/bin/docker-entrypoint.sh"
+    )
     elasticContainer.container.setHostAccessible(true)
     val exposedPort = elasticContainer.container.getExposedPorts.get(0)
     elasticContainer.container.withEnv(

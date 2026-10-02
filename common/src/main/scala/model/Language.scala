@@ -3,7 +3,7 @@ package model
 import play.api.libs.json._
 
 object Languages {
-  val all: List[Language] = List(Arabic, English, French, German, Russian, Portuguese, Persian, Spanish)
+  val all: List[Language] = List(Arabic, English, French, German, Russian, Portuguese, Persian, Spanish, Hebrew)
 
   def getByKey(key: String): Option[Language] = {
     all.find(l => l.key == key)
@@ -107,4 +107,11 @@ object Spanish extends Language {
   override def ocr = "spa"
   override def iso6391Code = "es"
   override def analyzer = "spanish"
+}
+
+object Hebrew extends Language {
+  override def key = "hebrew"
+  override def ocr = "heb"
+  override def iso6391Code = "he"
+  override def analyzer = "icu_analyzer"
 }

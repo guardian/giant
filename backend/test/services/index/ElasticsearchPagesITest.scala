@@ -3,7 +3,7 @@ package services.index
 import com.dimafeng.testcontainers.ElasticsearchContainer
 import com.dimafeng.testcontainers.scalatest.TestContainersForAll
 import model.index.{Page, PageDimensions}
-import model.{English, Russian, Uri}
+import model.{English, Hebrew, Russian, Uri}
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.freespec.AnyFreeSpec
 import org.scalatest.matchers.should.Matchers
@@ -82,6 +82,21 @@ class ElasticsearchPagesITest extends AnyFreeSpec with Matchers with BeforeAndAf
         English -> "<result-highlight>vases</result-highlight> <result-highlight>vase</result-highlight>",
         Russian -> "<result-highlight>вазах</result-highlight> <result-highlight>ваз</result-highlight>"
       )
+    }
+
+    "Find and highlight Hebrew with or without vowel marks" in {
+      val uri = Uri("hebrew-search-results")
+      val inputPage = Page(page = 1, Map(
+        Hebrew -> "שָׁלוֹם שלום"
+      ), PageDimensions.A4_PORTRAIT)
+
+      elasticsearchTestService.elasticPages.addPageContents(uri, Seq(inputPage)).successValue
+
+      List("שלום", "שָׁלוֹם").foreach { query =>
+        pages2.hasSearchMatch(uri, query).successValue shouldBe true
+        val page = elasticsearchTestService.elasticPages.getPage(uri, 1, Some(query)).successValue
+        page.value(Hebrew) shouldBe "<result-highlight>שָׁלוֹם</result-highlight> <result-highlight>שלום</result-highlight>"
+      }
     }
 
     "Highlight quoted search results per language" in {
