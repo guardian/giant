@@ -38,6 +38,15 @@
 		"WorkerJob": {
 			"$ref": "#/$defs/WorkerJob"
 		},
+		"OcrJob": {
+			"$ref": "#/$defs/OcrJob"
+		},
+		"OcrSettings": {
+			"$ref": "#/$defs/OcrSettings"
+		},
+		"OcrData": {
+			"$ref": "#/$defs/OcrData"
+		},
 		"LlmPrompt": {
 			"$ref": "#/$defs/LlmPrompt"
 		},
@@ -62,6 +71,15 @@
 		"LLMOutputFailure": {
 			"$ref": "#/$defs/LLMOutputFailure"
 		},
+		"OcrOutputSuccess": {
+			"$ref": "#/$defs/OcrOutputSuccess"
+		},
+		"OcrOutputFailure": {
+			"$ref": "#/$defs/OcrOutputFailure"
+		},
+		"OcrOutput": {
+			"$ref": "#/$defs/OcrOutput"
+		},
 		"TranscriptionResult": {
 			"$ref": "#/$defs/TranscriptionResult"
 		},
@@ -85,6 +103,9 @@
 		"LLMJob",
 		"LLMTranslationJob",
 		"WorkerJob",
+		"OcrJob",
+		"OcrSettings",
+		"OcrData",
 		"LlmPrompt",
 		"TranslationField",
 		"TranslationTask",
@@ -93,6 +114,9 @@
 		"TranscriptionOutputFailure",
 		"LLMOutputSuccess",
 		"LLMOutputFailure",
+		"OcrOutputSuccess",
+		"OcrOutputFailure",
+		"OcrOutput",
 		"TranscriptionResult",
 		"TranscriptionOutput",
 		"MediaDownloadFailure"
@@ -353,7 +377,7 @@
 		},
 		"JobType": {
 			"type": "string",
-			"enum": ["transcribe", "llm", "llm-translation"]
+			"enum": ["transcribe", "llm", "llm-translation", "ocr"]
 		},
 		"Job": {
 			"type": "object",
@@ -607,9 +631,108 @@
 					"$ref": "#/$defs/TranscriptionJob"
 				},
 				{
+					"$ref": "#/$defs/OcrJob"
+				},
+				{
 					"$ref": "#/$defs/LLMTranslationJob"
 				}
 			]
+		},
+		"OcrJob": {
+			"type": "object",
+			"properties": {
+				"id": {
+					"type": "string"
+				},
+				"originalFilename": {
+					"type": "string"
+				},
+				"inputSignedUrl": {
+					"type": "string"
+				},
+				"sentTimestamp": {
+					"type": "string"
+				},
+				"userEmail": {
+					"type": "string"
+				},
+				"transcriptDestinationService": {
+					"type": "string",
+					"enum": ["TranscriptionService", "Giant"]
+				},
+				"combinedOutputUrl": {
+					"type": "object",
+					"properties": {
+						"url": {
+							"type": "string"
+						},
+						"key": {
+							"type": "string"
+						}
+					},
+					"required": ["url", "key"],
+					"additionalProperties": false
+				},
+				"jobType": {
+					"type": "string",
+					"const": "ocr"
+				},
+				"ingestion": {
+					"type": "string"
+				},
+				"settings": {
+					"$ref": "#/$defs/OcrSettings"
+				}
+			},
+			"required": [
+				"id",
+				"originalFilename",
+				"inputSignedUrl",
+				"sentTimestamp",
+				"userEmail",
+				"transcriptDestinationService",
+				"combinedOutputUrl",
+				"jobType",
+				"settings"
+			],
+			"additionalProperties": false
+		},
+		"OcrSettings": {
+			"type": "object",
+			"properties": {
+				"ocrLanguages": {
+					"minItems": 1,
+					"type": "array",
+					"items": {
+						"type": "string",
+						"minLength": 1
+					}
+				},
+				"initialFlag": {
+					"type": "string",
+					"enum": ["--redo-ocr", "--skip-text", "--force-ocr"]
+				},
+				"dpi": {
+					"type": "integer",
+					"exclusiveMinimum": 0,
+					"maximum": 9007199254740991
+				}
+			},
+			"required": ["ocrLanguages"],
+			"additionalProperties": false
+		},
+		"OcrData": {
+			"type": "object",
+			"properties": {
+				"language": {
+					"type": "string"
+				},
+				"pdfBase64": {
+					"type": "string"
+				}
+			},
+			"required": ["language", "pdfBase64"],
+			"additionalProperties": false
 		},
 		"LlmPrompt": {
 			"type": "object",
@@ -785,6 +908,56 @@
 			"required": ["id", "userEmail", "status"],
 			"additionalProperties": false
 		},
+		"OcrOutputSuccess": {
+			"type": "object",
+			"properties": {
+				"id": {
+					"type": "string"
+				},
+				"userEmail": {
+					"type": "string"
+				},
+				"status": {
+					"type": "string",
+					"const": "OCR_SUCCESS"
+				},
+				"outputKey": {
+					"type": "string"
+				}
+			},
+			"required": ["id", "userEmail", "status", "outputKey"],
+			"additionalProperties": false
+		},
+		"OcrOutputFailure": {
+			"type": "object",
+			"properties": {
+				"id": {
+					"type": "string"
+				},
+				"userEmail": {
+					"type": "string"
+				},
+				"status": {
+					"type": "string",
+					"const": "OCR_FAILURE"
+				}
+			},
+			"required": ["id", "userEmail", "status"],
+			"additionalProperties": false
+		},
+		"OcrOutput": {
+			"type": "object",
+			"properties": {
+				"ocrData": {
+					"type": "array",
+					"items": {
+						"$ref": "#/$defs/OcrData"
+					}
+				}
+			},
+			"required": ["ocrData"],
+			"additionalProperties": false
+		},
 		"TranscriptionResult": {
 			"type": "object",
 			"properties": {
@@ -817,6 +990,12 @@
 				},
 				{
 					"$ref": "#/$defs/LLMOutputFailure"
+				},
+				{
+					"$ref": "#/$defs/OcrOutputSuccess"
+				},
+				{
+					"$ref": "#/$defs/OcrOutputFailure"
 				}
 			]
 		},

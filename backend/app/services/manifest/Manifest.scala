@@ -96,6 +96,8 @@ trait Manifest extends WorkerManifest {
 
   def rerunFailedExternalExtractorsForBlob(uri: Uri): Attempt[Unit]
 
+  def getActiveExternalWorkForBlob(uri: Uri, extractorName: String, ingestion: String): Either[Failure, List[WorkItem]]
+
   def getBlob(uri: Uri): Either[Failure, Blob]
 
   def getBlobsForFiles(fileUris: List[String]): Either[Failure, Map[String, Blob]]
