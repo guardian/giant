@@ -29,14 +29,16 @@ export const guStacks: GuStackWithGiantVPC[] = [
 	new MainGiantStack(new GiantApp({outdir: "cdk.out/main/pfi-playground"}), 'pfi-playground-investigations-rex', {
 		env,
 		stack: "pfi-playground",
-		stage: 'rex', // CODE
+		stage: 'rex',
+		transcriptionServiceStage: "CODE",
 		app: "pfi",
 	}),
 
 	new MainGiantStack(new GiantApp({outdir: "cdk.out/main/pfi-giant"}), 'pfi-giant-investigations-rex', {
 		env,
 		stack: "pfi-giant",
-		stage: 'rex', // PROD
+		stage: 'rex',
+		transcriptionServiceStage: "PROD",
 		app: "pfi",
 	}),
 ];
