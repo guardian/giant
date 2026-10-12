@@ -51,6 +51,7 @@ object WorkerJob {
     (json \ "jobType").validate[String].flatMap {
       case LLMJob.JobTypeValue => json.validate[LLMJob]
       case TranscriptionJob.JobTypeValue => json.validate[TranscriptionJob]
+      case OcrJob.JobTypeValue => json.validate[OcrJob]
       case LLMTranslationJob.JobTypeValue => json.validate[LLMTranslationJob]
       case other => JsError(s"Unknown WorkerJob jobType: $other")
     }
@@ -59,6 +60,7 @@ object WorkerJob {
   implicit val writes: Writes[WorkerJob] = Writes {
     case value: LLMJob => Json.toJson(value)
     case value: TranscriptionJob => Json.toJson(value)
+    case value: OcrJob => Json.toJson(value)
     case value: LLMTranslationJob => Json.toJson(value)
   }
 }
@@ -77,6 +79,8 @@ object TranscriptionOutput {
       case MediaDownloadFailure.StatusValue => json.validate[MediaDownloadFailure]
       case LLMOutputSuccess.StatusValue => json.validate[LLMOutputSuccess]
       case LLMOutputFailure.StatusValue => json.validate[LLMOutputFailure]
+      case OcrOutputSuccess.StatusValue => json.validate[OcrOutputSuccess]
+      case OcrOutputFailure.StatusValue => json.validate[OcrOutputFailure]
       case other => JsError(s"Unknown TranscriptionOutput status: $other")
     }
   }
@@ -87,6 +91,8 @@ object TranscriptionOutput {
     case value: MediaDownloadFailure => Json.toJson(value)
     case value: LLMOutputSuccess => Json.toJson(value)
     case value: LLMOutputFailure => Json.toJson(value)
+    case value: OcrOutputSuccess => Json.toJson(value)
+    case value: OcrOutputFailure => Json.toJson(value)
   }
 }
 
@@ -389,8 +395,9 @@ object JobType {
   case object Transcribe extends JobType("transcribe")
   case object Llm extends JobType("llm")
   case object LlmTranslation extends JobType("llm-translation")
+  case object Ocr extends JobType("ocr")
 
-  val All: Seq[JobType] = Seq(Transcribe, Llm, LlmTranslation)
+  val All: Seq[JobType] = Seq(Transcribe, Llm, LlmTranslation, Ocr)
 
   def fromString(value: String): Option[JobType] = All.find(_.value == value)
 
@@ -489,6 +496,68 @@ object LLMTranslationJob {
 
   implicit val writes: OWrites[LLMTranslationJob] =
     Json.writes[LLMTranslationJob].transform((json: JsObject) => json ++ Json.obj("jobType" -> JobTypeValue))
+}
+
+final case class OcrJob(
+    id: String,
+    originalFilename: String,
+    inputSignedUrl: String,
+    sentTimestamp: String,
+    userEmail: String,
+    transcriptDestinationService: TranscriptDestinationService,
+    combinedOutputUrl: CombinedOutputUrl,
+    ingestion: Option[String],
+    settings: OcrSettings
+) extends WorkerJob {
+  def jobType: String = OcrJob.JobTypeValue
+}
+
+object OcrJob {
+  val JobTypeValue: String = "ocr"
+
+  implicit val reads: Reads[OcrJob] = Json.reads[OcrJob]
+
+  implicit val writes: OWrites[OcrJob] =
+    Json.writes[OcrJob].transform((json: JsObject) => json ++ Json.obj("jobType" -> JobTypeValue))
+}
+
+sealed abstract class InitialFlag(val value: String)
+
+object InitialFlag {
+  case object RedoOcr extends InitialFlag("--redo-ocr")
+  case object SkipText extends InitialFlag("--skip-text")
+  case object ForceOcr extends InitialFlag("--force-ocr")
+
+  val All: Seq[InitialFlag] = Seq(RedoOcr, SkipText, ForceOcr)
+
+  def fromString(value: String): Option[InitialFlag] = All.find(_.value == value)
+
+  implicit val reads: Reads[InitialFlag] = Reads {
+    case JsString(value) =>
+      fromString(value).fold[JsResult[InitialFlag]](JsError(s"Unknown InitialFlag: $value"))(JsSuccess(_))
+    case other => JsError(s"Expected a JSON string for InitialFlag, got: $other")
+  }
+
+  implicit val writes: Writes[InitialFlag] = Writes(value => JsString(value.value))
+}
+
+final case class OcrSettings(
+    ocrLanguages: List[String],
+    initialFlag: Option[InitialFlag],
+    dpi: Option[Long]
+)
+
+object OcrSettings {
+  implicit val format: OFormat[OcrSettings] = Json.format[OcrSettings]
+}
+
+final case class OcrData(
+    language: String,
+    pdfBase64: String
+)
+
+object OcrData {
+  implicit val format: OFormat[OcrData] = Json.format[OcrData]
 }
 
 final case class LlmPrompt(
@@ -601,6 +670,47 @@ object LLMOutputFailure {
 
   implicit val writes: OWrites[LLMOutputFailure] =
     Json.writes[LLMOutputFailure].transform((json: JsObject) => json ++ Json.obj("status" -> StatusValue))
+}
+
+final case class OcrOutputSuccess(
+    id: String,
+    userEmail: String,
+    outputKey: String
+) extends TranscriptionOutput {
+  def status: String = OcrOutputSuccess.StatusValue
+}
+
+object OcrOutputSuccess {
+  val StatusValue: String = "OCR_SUCCESS"
+
+  implicit val reads: Reads[OcrOutputSuccess] = Json.reads[OcrOutputSuccess]
+
+  implicit val writes: OWrites[OcrOutputSuccess] =
+    Json.writes[OcrOutputSuccess].transform((json: JsObject) => json ++ Json.obj("status" -> StatusValue))
+}
+
+final case class OcrOutputFailure(
+    id: String,
+    userEmail: String
+) extends TranscriptionOutput {
+  def status: String = OcrOutputFailure.StatusValue
+}
+
+object OcrOutputFailure {
+  val StatusValue: String = "OCR_FAILURE"
+
+  implicit val reads: Reads[OcrOutputFailure] = Json.reads[OcrOutputFailure]
+
+  implicit val writes: OWrites[OcrOutputFailure] =
+    Json.writes[OcrOutputFailure].transform((json: JsObject) => json ++ Json.obj("status" -> StatusValue))
+}
+
+final case class OcrOutput(
+    ocrData: List[OcrData]
+)
+
+object OcrOutput {
+  implicit val format: OFormat[OcrOutput] = Json.format[OcrOutput]
 }
 
 final case class TranscriptionResult(

@@ -1,6 +1,7 @@
 package extraction.ocr
 
 import extraction.ExtractionParams
+import extraction.ocr.BaseOcrExtractor
 import model.index.{Page, PageDimensions}
 import model.manifest.{Blob, MimeType}
 import org.apache.pdfbox.Loader
@@ -84,7 +85,9 @@ class TesseractPdfOcrExtractor(config: OcrConfig, scratch: ScratchSpace, index: 
       }
 
       pageService.addPageContents(blob.uri, pages)
-      OcrMyPdfExtractor.insertFullText(blob.uri, pages, index, ingestionServices, params)
+      val textByLanguage = OcrMyPdfExtractor.getFullText(pages)
+      OcrMyPdfExtractor.insertFullText(blob.uri, textByLanguage, index)
+      BaseOcrExtractor.handleOcrTranslation(blob.uri, textByLanguage, index, ingestionServices, params)
     } finally {
       Option(document).foreach(_.close())
       cleanup(file)

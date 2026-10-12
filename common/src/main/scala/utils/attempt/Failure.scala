@@ -141,3 +141,7 @@ case class RemoteIngestFailure(msg: String) extends Failure
 case class NoTextToTranslateFailure(msg: String) extends Failure
 
 case class GzipUnzipFailed(throwable: Throwable) extends FailureWithThrowable
+
+case class ExternalPdfOutputParsingError(throwable: Throwable) extends FailureWithThrowable
+
+case class OcrMyPdfPostProcessFailure(throwable: Throwable) extends FailureWithThrowable

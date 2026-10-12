@@ -141,6 +141,12 @@ object FailureToResultMapper extends Logging {
       case GzipUnzipFailed(throwable) =>
         logger.error("Gzip unzip failedd", throwable)
         Results.InternalServerError(throwable.getMessage)
+      case ExternalPdfOutputParsingError(throwable) =>
+        logger.error("Failed to decode or write the base 64 encoded pdfs from external ocr extractor to disk", throwable)
+        Results.InternalServerError(throwable.getMessage)
+      case OcrMyPdfPostProcessFailure(throwable) =>
+        logger.error("Error whilst trying to ingest data from external ocrmypdf job", throwable)
+        Results.InternalServerError(throwable.getMessage)
     }
   }
 }
