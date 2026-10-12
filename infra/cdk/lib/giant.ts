@@ -1,8 +1,16 @@
 import type {GuStackProps} from "@guardian/cdk/lib/constructs/core";
-import {CfnResource, TagManager, Tags} from "aws-cdk-lib";
 import {CfnInclude} from "aws-cdk-lib/cloudformation-include";
 import type {GiantApp} from "./constructs/GiantApp";
 import {GuStackWithGiantVPC} from "./constructs/GuStackWithGiantVPC";
+import {
+  activityTypes,
+  buildVerifiedQueueName,
+  priorityLevels,
+  sensitivityLevels
+} from "../../../external/transcription-service/packages/common/src/queue-gardens";
+import {Queue} from 'aws-cdk-lib/aws-sqs';
+import {AutoScalingGroup} from "aws-cdk-lib/aws-autoscaling";
+import { Role } from "aws-cdk-lib/aws-iam";
 
 
 export class MainGiantStack extends GuStackWithGiantVPC {
@@ -17,14 +25,41 @@ export class MainGiantStack extends GuStackWithGiantVPC {
     this.addTag("gu:riff-raff:project",`investigations::${this.stack}`); // needs to match step in build.yaml
 
     // see https://docs.aws.amazon.com/cdk/v2/guide/use-cfn-template.html
-    new CfnInclude(this, 'ExistingTemplate', {
+    const existingTemplate = new CfnInclude(this, 'ExistingTemplate', {
       templateFile: '../../external/investigations-platform/giant-deploy/src/main/resources/pfi/investigations.yaml',
       preserveLogicalIds: true,
       parameters: {
         // TODO need to change the param in the yaml file in investigations-platform to take VPC ID rather than name,
-        //  in order to benefit from this.vpc.vpcId (provided by  GuStackWithGiantVPC)
+        //  in order to benefit from this.vpc.vpcId (provided by GuStackWithGiantVPC)
         // VPCStackName:
       }
     });
+
+    const workerRole = Role.fromRoleName(
+      this,
+      'WorkerRole',
+      existingTemplate.getResource('WorkerRole').ref
+    );
+
+    for (const priorityLevel of priorityLevels) {
+      for (const sensitivityLevel of sensitivityLevels) {
+        for (const activityType of activityTypes) {
+          const getQueueName = buildVerifiedQueueName(
+            priorityLevel,
+            sensitivityLevel,
+            activityType,
+          );
+
+          const queue = Queue.fromQueueArn(
+            this,
+            getQueueName('queue'), // sans stage
+            `arn:aws:sqs:${this.region}:${this.account}:${getQueueName('queue', this.stage)}`,
+          );
+
+          queue.grantSendMessages(workerRole);
+        }
+      }
+    }
+
   }
 }
