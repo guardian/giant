@@ -51,13 +51,6 @@ sufficient evidence. The independent filter API slice can proceed first.
 - `js/actions/getNodes.js`
 - `js/reducers/clusterReducer.js`
 
-### 10. Search wire contracts and service
-
-Consolidate SearchResults.js into the existing SearchResults.ts; do not overwrite the TS file. Preserve legacy PropTypes exports and check explicit and extensionless imports. Use backend/app/model/frontend/SearchResult.scala for the _type-discriminated details and recursive aggregations. Separate the wire response from client-computed pages. Define a shared schema for serialized query fragments (strings/date chips/etc.) by reading InputSupper and its callers; validate both the query JSON and API responses, including suggested fields. This is a small-file-count but complex PR.
-
-- `js/types/SearchResults.js`
-- `js/services/SearchApi.js`
-
 ### 11. Search actions and state
 
 Consume the validated search response, preserve stale-response suppression, and compute pages in the reducer. Extend the existing SearchState and GiantAction types rather than making parallel versions.
