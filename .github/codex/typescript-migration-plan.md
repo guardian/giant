@@ -55,11 +55,6 @@ sufficient evidence. The independent filter API slice can proceed first.
 
 Consume the validated search response, preserve stale-response suppression, and compute pages in the reducer. Extend the existing SearchState and GiantAction types rather than making parallel versions.
 
-- `js/actions/search/performSearch.js`
-- `js/actions/search/getSuggestedFields.js`
-- `js/actions/search/clearSearch.js`
-- `js/reducers/searchReducer.js`
-
 Follow-up after `js/actions/search/performSearch.js` is migrated to TypeScript:
 consolidate search query-string parsing around the shared schema from step 10.
 Parse and validate once at the search action boundary, then pass typed query

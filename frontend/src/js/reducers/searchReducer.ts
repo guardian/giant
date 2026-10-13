@@ -1,6 +1,12 @@
+import { GiantAction, SearchAction } from "../types/redux/GiantActions";
+import { SearchState } from "../types/redux/GiantState";
+
 import _isEqual from "lodash/isEqual";
 
-function handleSearchResults(action, state) {
+function handleSearchResults(
+  action: Extract<SearchAction, { type: "SEARCH_GET_RECEIVE" }>,
+  state: SearchState,
+): SearchState["currentResults"] {
   if (_isEqual(action.query, state.currentQuery)) {
     const { hits, pageSize } = action.searchResults;
     const pages = pageSize === 0 ? 0 : Math.ceil(hits / pageSize);
@@ -12,15 +18,15 @@ function handleSearchResults(action, state) {
 }
 
 export default function search(
-  state = {
+  state: SearchState = {
     currentQuery: undefined,
     currentResults: undefined,
     isSearchInProgress: false,
     suggestedFields: [],
     searchFailed: undefined,
   },
-  action,
-) {
+  action: GiantAction,
+): SearchState {
   switch (action.type) {
     case "SEARCH_GET_REQUEST":
       return Object.assign({}, state, {

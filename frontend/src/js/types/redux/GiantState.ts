@@ -1,3 +1,4 @@
+import { SearchQuery } from "../SearchQuery";
 import { SearchFilter } from "../SearchFilter";
 import { Preferences } from "../Preferences";
 import { WorkspaceMetadata, WorkspaceEntry, Workspace } from "../Workspaces";
@@ -39,7 +40,7 @@ export interface HighlightsState {
 }
 
 export interface UrlParamsState {
-  filters?: object;
+  filters?: SearchQuery["filters"];
   q: string;
   view?: string;
   details?: object;
@@ -60,7 +61,7 @@ export type DescendantResources = { [key: string]: BasicResource };
 
 export type SearchState = {
   currentResults?: SearchResults;
-  currentQuery?: { q: string };
+  currentQuery?: SearchQuery;
   isSearchInProgress: boolean;
   suggestedFields: SuggestedField[];
   searchFailed?: boolean;
