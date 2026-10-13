@@ -28,7 +28,7 @@ npm run test:ui
 
 Open http://localhost:9423 to select tests, run them, and inspect each action. In a dev container, forward port 9423 to your machine. The infrastructure stays running until you stop the terminal command with Ctrl+C, which removes the test containers and volumes.
 
-The genesis scenario requires an empty database. After running it, stop and restart `npm run test:ui` before running it again. In UI mode, run the `genesis` project before the workspace upload scenario; setup dependencies are not run automatically in UI mode.
+The genesis scenario requires an empty database. After running it, stop the playwright command with Ctrl+C and start it again. In UI mode, run the `genesis` project before the workspace upload scenario; setup dependencies are not run automatically in UI mode.
 
 `npm test` runs headlessly, including in CI. To watch the browser or use Playwright Inspector instead:
 
