@@ -1,3 +1,6 @@
+import { SearchQuery } from "../SearchQuery";
+import { SearchResponse } from "../SearchResults";
+import { SuggestedField } from "../SuggestedFields";
 import { SearchFilter } from "../SearchFilter";
 import { Config } from "../Config";
 import { Preferences } from "../Preferences";
@@ -335,7 +338,19 @@ export type FiltersAction = { receivedAt: number } & (
   | { type: "FILTERS_GET_RECEIVE"; filters: SearchFilter[] }
 );
 
+export type SearchAction = { receivedAt: number } & (
+  | { type: "SEARCH_GET_REQUEST"; query: SearchQuery }
+  | {
+      type: "SEARCH_GET_RECEIVE";
+      query: SearchQuery;
+      searchResults: SearchResponse;
+    }
+  | { type: "SEARCH_CLEAR" | "SEARCH_FAILURE" }
+  | { type: "SUGGESTED_FIELDS_GET_RECEIVE"; fields: SuggestedField[] }
+);
+
 export type GiantAction =
+  | SearchAction
   | FiltersAction
   | WorkspacesAction
   | AppAction

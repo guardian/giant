@@ -1,18 +1,22 @@
+import { GiantDispatch } from "../../types/redux/GiantDispatch";
+import { SearchAction } from "../../types/redux/GiantActions";
+import { SearchQuery } from "../../types/SearchQuery";
+import { SearchResponse } from "../../types/SearchResults";
 import { performSearch as performSearchService } from "../../services/SearchApi";
 
-export function performSearch(searchQuery) {
-  return async (dispatch) => {
+export function performSearch(searchQuery: SearchQuery) {
+  return async (dispatch: GiantDispatch) => {
     dispatch(requestSearch(searchQuery));
     try {
       const res = await performSearchService(searchQuery);
       dispatch(receiveSearch(res, searchQuery));
-    } catch (err) {
+    } catch {
       dispatch(errorReceivingSearch());
     }
   };
 }
 
-function requestSearch(searchQuery) {
+function requestSearch(searchQuery: SearchQuery): SearchAction {
   return {
     type: "SEARCH_GET_REQUEST",
     query: searchQuery,
@@ -20,7 +24,10 @@ function requestSearch(searchQuery) {
   };
 }
 
-function receiveSearch(searchResults, searchQuery) {
+function receiveSearch(
+  searchResults: SearchResponse,
+  searchQuery: SearchQuery,
+): SearchAction {
   return {
     type: "SEARCH_GET_RECEIVE",
     searchResults: searchResults,
@@ -29,7 +36,7 @@ function receiveSearch(searchResults, searchQuery) {
   };
 }
 
-function errorReceivingSearch() {
+function errorReceivingSearch(): SearchAction {
   return {
     type: "SEARCH_FAILURE",
     receivedAt: Date.now(),

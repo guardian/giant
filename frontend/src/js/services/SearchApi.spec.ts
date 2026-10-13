@@ -207,5 +207,18 @@ it.each(["json", "network"])(
     }
     await expect(performSearch(query)).rejects.toThrow();
     await expect(getSuggestedFields()).rejects.toThrow();
+    const dispatch = vi.fn();
+    await searchAction(query)(dispatch);
+    expect(dispatch).toHaveBeenLastCalledWith({
+      type: "SEARCH_FAILURE",
+      receivedAt: expect.any(Number),
+    });
+    await fieldsAction()(dispatch);
+    expect(dispatch).toHaveBeenLastCalledWith({
+      type: "APP_SHOW_ERROR",
+      message: "Failed to get suggested fields",
+      error: expect.any(Error),
+      receivedAt: expect.any(Number),
+    });
   },
 );
