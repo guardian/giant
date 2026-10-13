@@ -78,7 +78,10 @@ test("collapse query parts", () => {
 });
 
 test("collapse chips in query parts", () => {
-  const q = ["hello", { n: "Mime Type", v: "application/json" }];
+  const q = [
+    "hello",
+    { n: "Mime Type", v: "application/json", op: "+", t: "text" },
+  ];
 
   // This happens when you manually deleted everything from the search bar
   expect(calculateSearchTitle({ q: JSON.stringify(q) })).toBe(
@@ -87,7 +90,10 @@ test("collapse chips in query parts", () => {
 });
 
 test("collapse negative chips in query parts", () => {
-  const q = ["hello", { op: "-", n: "Mime Type", v: "application/json" }];
+  const q = [
+    "hello",
+    { op: "-", n: "Mime Type", v: "application/json", t: "text" },
+  ];
 
   // This happens when you manually deleted everything from the search bar
   expect(calculateSearchTitle({ q: JSON.stringify(q) })).toBe(
@@ -126,11 +132,18 @@ test("render date and workspace chips without using their extra fields", () => {
       n: "Folder",
       v: "Evidence",
       t: "workspace_folder",
+      op: "+",
       workspaceId: "w",
       folderId: "f",
     },
   ];
   expect(calculateSearchTitle({ q: JSON.stringify(q) })).toBe(
     "Created Before: 2018 -Created After: Feb 2019 Folder: Evidence - Search - Giant",
+  );
+});
+
+test("uses validated fragments from search state without reparsing q", () => {
+  expect(calculateSearchTitle({ q: "{", fragments: ["hello"] })).toBe(
+    "hello - Search - Giant",
   );
 });
