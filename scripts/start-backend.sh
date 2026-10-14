@@ -38,20 +38,6 @@ if [[ "$EXTERNAL" == true ]]; then
     SBT_ARGS=(-Dworker.useExternalExtractors=true -Dworker.useExternalOcrExtractor=true)
     export LOCALSTACK_PORT=${LOCALSTACK_PORT:-4567}
     docker compose --profile external up -d --wait --wait-timeout 120 localstack
-
-    # Give the worker its own process group so npm, uv and their children are
-#    # stopped along with the backend, including when the user presses Ctrl-C.
-#    set -m
-#    "$SCRIPTPATH/start-external-worker.sh" &
-#    EXTERNAL_WORKER_PID=$!
-#    set +m
-#    cleanup() {
-#        kill -TERM -- "-$EXTERNAL_WORKER_PID" 2>/dev/null || true
-#        wait "$EXTERNAL_WORKER_PID" 2>/dev/null || true
-#    }
-#    trap cleanup EXIT
-#    trap 'exit 130' INT
-#    trap 'exit 143' TERM
 fi
 
 sbt "${SBT_ARGS[@]}" backend/run -mem 4096 -jvm-debug 5005
