@@ -11,6 +11,13 @@ Given("I open workspaces in a fresh browser session", async ({ freshPage }) => {
   ).toBeVisible();
 });
 
+Given("I open workspaces using the existing session", async ({ freshPage }) => {
+  await freshPage.goto("/workspaces");
+  await expect(
+    freshPage.getByRole("button", { name: "New Workspace", exact: true }),
+  ).toBeVisible();
+});
+
 When(
   "I create a new workspace named {string}",
   async ({ freshPage }, name: string) => {

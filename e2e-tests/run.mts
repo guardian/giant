@@ -183,7 +183,8 @@ try {
     headless: browserArgs.length === 0,
   });
   const browserEndpoint = browserServer.wsEndpoint();
-  await run`env E2E_PHASE=internal E2E_BROWSER_WS_ENDPOINT=${browserEndpoint} npm --prefix ${e2eDir} run test:run -- --project=internal ${browserArgs}`;
+  const authState = resolve(runtimeDir, "auth-state.json");
+  await run`env E2E_PHASE=internal E2E_BROWSER_WS_ENDPOINT=${browserEndpoint} E2E_AUTH_STATE=${authState} npm --prefix ${e2eDir} run test:run -- --project=internal ${browserArgs}`;
 
   console.log("Preparing external transcription and OCR...");
   await access(resolve(transcriptionDir, "packages/worker/src/index.ts")).catch(
@@ -244,7 +245,7 @@ try {
 
   console.log("Running external extraction tests...");
   // Account and internal tests already ran; dependencies must not run again.
-  await run`env E2E_PHASE=external E2E_BROWSER_WS_ENDPOINT=${browserEndpoint} npm --prefix ${e2eDir} run test:run -- --project=external --no-deps ${process.argv.slice(2)}`;
+  await run`env E2E_PHASE=external E2E_BROWSER_WS_ENDPOINT=${browserEndpoint} E2E_AUTH_STATE=${authState} npm --prefix ${e2eDir} run test:run -- --project=external --no-deps ${process.argv.slice(2)}`;
 } catch (error) {
   process.exitCode ||= error instanceof ProcessOutput ? error.exitCode || 1 : 1;
   if (!signal.aborted) console.error(error);

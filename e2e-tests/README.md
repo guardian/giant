@@ -96,13 +96,13 @@ npm run test:list
 npm run typecheck
 ```
 
-`npm run test:run -- --project=internal --headed` runs the internal scenarios against an already-started instance. To run external scenarios against an existing account and an externally configured instance, use `npm run test:run -- --project=external --no-deps --headed`. These commands do not start, restart or reset Giant. Normally use `npm test` for the complete lifecycle.
+`npm run test:run -- --project=internal --headed` runs the internal scenarios against an already-started instance. To run external scenarios against an existing account and an externally configured instance, use `E2E_AUTH_STATE=/path/to/auth-state.json npm run test:run -- --project=external --no-deps --headed`, providing authenticated storage state saved by an internal run. The normal lifecycle runner manages this state automatically. These commands do not start, restart or reset Giant. Normally use `npm test` for the complete lifecycle.
 
 ## Writing scenarios
 
 - `features/*.feature` describes behavior using Given/When/Then steps.
 - `steps/*.steps.ts` implements those steps using Playwright locators and assertions.
-- `fixtures.ts` exports the extended Playwright `test` and manages the independent browser session used to verify login. Each step file builds its own bindings with `createBdd(test)`.
+- `fixtures.ts` exports the extended Playwright `test`, manages fresh sessions for login checks, and shares the authenticated context between external tests. Each step file builds its own bindings with `createBdd(test)`.
 - `playwright.config.ts` connects the features and steps with `defineBddConfig` and configures reporting.
 - `vite.config.mts` reuses the frontend's Vite configuration with separate E2E ports and backend proxy settings.
 
@@ -119,8 +119,11 @@ the same databases and buckets. LocalStack and the native worker start for this 
 phase. Genesis and the internal tests are not rerun.
 
 The frontend, databases and a shared Chromium browser process stay running across
-the switch. Each scenario still gets a fresh browser context for session isolation.
-Both Playwright phases connect to the same browser server; it closes at final cleanup.
+the switch. Genesis and internal tests start with fresh sessions to verify login.
+The internal upload test saves its authenticated storage state in the temporary
+runtime directory. External tests restore it into one shared browser context and
+use new pages within that session, without logging in again. Both Playwright phases
+connect to the same browser server; the browser and saved state are removed at final cleanup.
 
 `features/external-extractors.feature` contains audio transcription and external OCR.
 The OCR scenario uploads `fixtures/lifes_a_riot_with_spy_vs_spy_en.pdf` and uses the same
