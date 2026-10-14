@@ -21,7 +21,7 @@ import extraction.email.olm.OlmEmailExtractor
 import extraction.email.pst.PstEmailExtractor
 import extraction.ocr.{ImageOcrExtractor, OcrMyPdfExtractor, OcrMyPdfImageExtractor, TesseractPdfOcrExtractor}
 import extraction.tables.{CsvTableExtractor, ExcelTableExtractor}
-import extraction.{ExternalOcrMyPdfExtractor, DocumentBodyExtractor, ExternalDocumentTranslationExtractor, ExternalOcrTranslationExtractor, ExternalTranscriptionExtractor, ExternalTranscriptionWorker, Extractor, MimeTypeMapper, TranscriptionExtractor, Worker}
+import extraction.{ExternalOcrMyPdfImageExtractor, ExternalOcrMyPdfExtractor, DocumentBodyExtractor, ExternalDocumentTranslationExtractor, ExternalOcrTranslationExtractor, ExternalTranscriptionExtractor, ExternalTranscriptionWorker, Extractor, MimeTypeMapper, TranscriptionExtractor, Worker}
 import ingestion.phase2.IngestStorePolling
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.neo4j.driver.{AuthTokens, GraphDatabase}
@@ -189,6 +189,8 @@ class AppComponents(context: Context, config: Config)
     val imageOcrExtractor = new ImageOcrExtractor(config.ocr, scratchSpace, esResources, ingestionServices)
     val ocrMyPdfImageExtractor = new OcrMyPdfImageExtractor(config.ocr, scratchSpace, esResources, previewStorage, ingestionServices)
 
+    val externalOcrMyPdfImageExtractor = new ExternalOcrMyPdfImageExtractor(config.ocr, scratchSpace, esResources, config.transcribe, blobStorage, transcriptionServiceStorage, ingestionServices, sqsClient)
+
     val externalExtractors: List[Extractor] = if (config.worker.useExternalExtractors) {
       List(
         new ExternalTranscriptionExtractor(esResources, config.transcribe, blobStorage, transcriptionServiceStorage, sqsClient),
@@ -200,7 +202,7 @@ class AppComponents(context: Context, config: Config)
     }
 
     val ocrExtractors = config.ocr.defaultEngine match {
-      case OcrEngine.OcrMyPdf => if (useExternalOcrExtractor) List(externalOcrMyPdfExtractor, ocrMyPdfImageExtractor) else List(ocrMyPdfExtractor, ocrMyPdfImageExtractor)
+      case OcrEngine.OcrMyPdf => if (useExternalOcrExtractor) List(externalOcrMyPdfExtractor, externalOcrMyPdfImageExtractor) else List(ocrMyPdfExtractor, ocrMyPdfImageExtractor)
       case OcrEngine.Tesseract => List(tesseractPdfOcrExtractor, imageOcrExtractor)
     }
 
@@ -210,7 +212,10 @@ class AppComponents(context: Context, config: Config)
     val extractors = List(olmExtractor, zipExtractor, rarExtractor, documentBodyExtractor, pstExtractor, emlExtractor, msgExtractor, mboxExtractor, csvTableExtractor, excelTableExtractor) ++ externalExtractors ++ ocrExtractors
     extractors.foreach(mimeTypeMapper.addExtractor)
 
-    val fallbackExtractors: Map[String, Extractor] = if (useExternalOcrExtractor) Map(ocrMyPdfExtractor.name -> externalOcrMyPdfExtractor) else Map.empty
+    val fallbackExtractors: Map[String, Extractor] = if (useExternalOcrExtractor) Map(
+      ocrMyPdfExtractor.name -> externalOcrMyPdfExtractor,
+      ocrMyPdfImageExtractor.name -> externalOcrMyPdfImageExtractor
+    ) else Map.empty
 
     // Common components
     val failureToResultMapper = new CloudWatchReportingFailureToResultMapper(metricsService)
