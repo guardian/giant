@@ -91,7 +91,8 @@ case class TranscribeConfig(
                              transcriptionServiceQueueUrl: String,
                              transcriptionOutputQueueUrl: String,
                              transcriptionOutputDeadLetterQueueUrl: String,
-                             llmBackend: String
+                             llmBackend: String,
+                             diarize: Boolean = true
 )
 
 case class RemoteIngestConfig(

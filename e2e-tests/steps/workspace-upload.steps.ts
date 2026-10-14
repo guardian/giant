@@ -11,6 +11,13 @@ Given("I open workspaces in a fresh browser session", async ({ freshPage }) => {
   ).toBeVisible();
 });
 
+Given("I open workspaces using the existing session", async ({ freshPage }) => {
+  await freshPage.goto("/workspaces");
+  await expect(
+    freshPage.getByRole("button", { name: "New Workspace", exact: true }),
+  ).toBeVisible();
+});
+
 When(
   "I create a new workspace named {string}",
   async ({ freshPage }, name: string) => {
@@ -51,6 +58,30 @@ When(
       .locator("form")
       .getByRole("button", { name: "Close", exact: true })
       .click();
+  },
+);
+
+Then(
+  "file {string} has a non-empty transcript",
+  async ({ freshPage }, filename: string) => {
+    const viewerOpened = freshPage.waitForEvent("popup");
+    await freshPage
+      .getByRole("row")
+      .filter({ has: freshPage.getByText(filename, { exact: true }) })
+      .dblclick();
+    const viewer = await viewerOpened;
+    try {
+      await expect(viewer).toHaveURL(/\/viewer\//);
+      await viewer
+        .getByRole("button", { name: /^Transcript \(/ })
+        .first()
+        .click();
+      await expect(viewer.locator("[data-selectable-text-preview]")).toHaveText(
+        /\S/,
+      );
+    } finally {
+      await viewer.close();
+    }
   },
 );
 

@@ -76,7 +76,7 @@ class ExternalTranscriptionExtractor(index: Index, transcribeConfig: TranscribeC
           }
         }.getOrElse(InputLanguageCode.Auto),
         translate = true,
-        diarize = true,
+        diarize = transcribeConfig.diarize,
         engine = TranscriptionEngine.Whisperx
       )
     }
