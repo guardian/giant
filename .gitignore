@@ -10,6 +10,7 @@ backend/public/build
 npm-debug.log
 .DS_Store
 backend/conf/site.conf
+/.transcription-service/
 .bsp/
 .bloop/
 .metals/

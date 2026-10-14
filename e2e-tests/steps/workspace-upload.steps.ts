@@ -55,6 +55,30 @@ When(
 );
 
 Then(
+  "file {string} has a non-empty transcript",
+  async ({ freshPage }, filename: string) => {
+    const viewerOpened = freshPage.waitForEvent("popup");
+    await freshPage
+      .getByRole("row")
+      .filter({ has: freshPage.getByText(filename, { exact: true }) })
+      .dblclick();
+    const viewer = await viewerOpened;
+    try {
+      await expect(viewer).toHaveURL(/\/viewer\//);
+      await viewer
+        .getByRole("button", { name: /^Transcript \(/ })
+        .first()
+        .click();
+      await expect(viewer.locator("[data-selectable-text-preview]")).toHaveText(
+        /\S/,
+      );
+    } finally {
+      await viewer.close();
+    }
+  },
+);
+
+Then(
   "file {string} is successfully processed in the workspace",
   async ({ freshPage }, filename: string) => {
     const fileRow = freshPage.getByRole("row").filter({
