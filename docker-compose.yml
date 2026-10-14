@@ -1,6 +1,23 @@
 # NOTE: if you change port numbers here, please also update the devenv.yaml and re-generate the devcontainer.json files
 version: "3"
 services:
+  localstack:
+    image: localstack/localstack:4.12.0
+    profiles: [external]
+    ports:
+      - "127.0.0.1:${LOCALSTACK_PORT:-4567}:4566"
+    environment:
+      SERVICES: sqs,sns,dynamodb
+      PERSISTENCE: 1
+      SQS_ENDPOINT_STRATEGY: dynamic
+    volumes:
+      - localstack-data:/var/lib/localstack
+    healthcheck:
+      test: ["CMD", "awslocal", "sqs", "list-queues"]
+      interval: 2s
+      timeout: 5s
+      retries: 60
+
   neo4j:
     image: neo4j:2026.02.2
     container_name: neo4j
@@ -94,6 +111,8 @@ services:
       ["postgres", "-c", "log_statement=all", "-c", "random_page_cost=1.5"]
 
 volumes:
+  localstack-data:
+    driver: local
   neo4j:
     driver: local
 

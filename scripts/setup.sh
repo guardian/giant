@@ -1,4 +1,9 @@
 #!/usr/bin/env bash
+set -e
+
+SCRIPTPATH=$(cd "$(dirname "$0")" && pwd -P)
+cd "$SCRIPTPATH/.."
+
 
 if [[ "$OSTYPE" == "darwin"* ]]; then
   echo "Installing contents of Brewfile..."
@@ -27,5 +32,11 @@ echo "Running cluster setup script to make sure giant can run libre office and w
 
 echo "Creating giant buckets in garage container"
 ./scripts/initialise-garage.sh
+
+if [[ ! -d ../transcription-service ]]; then
+  echo "Cloning and setting up transcription-service for external workers..."
+  git clone --branch main https://github.com/guardian/transcription-service.git ../transcription-service
+  (cd ../transcription-service && ./scripts/setup.sh --worker-only)
+fi
 
 echo "Setup complete"

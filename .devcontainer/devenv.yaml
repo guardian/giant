@@ -33,6 +33,7 @@ forwardPorts:
  - 7687 # neo4j bolt
  - 3100 # E2E frontend (npm test)
  - 9423 # Playwright UI (npm run test:ui)
+# - 4567 # LocalStack for external workers - disabled by default but maybe useful for debugging
 
 # Optional: Mount directories from host to container
 # mounts:
