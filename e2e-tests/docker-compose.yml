@@ -1,5 +1,17 @@
 # Disposable services for run.mts; never uses development volumes.
 services:
+  localstack:
+    extends:
+      file: ../docker-compose.yml
+      service: localstack
+    profiles: [external]
+    ports: !override
+      - "127.0.0.1:14566:4566"
+    environment:
+      SERVICES: sqs,ssm
+    cpus: 1
+    mem_limit: 768m
+
   neo4j:
     extends:
       file: ../docker-compose.yml
@@ -68,6 +80,7 @@ services:
       retries: 30
 
 volumes:
+  localstack-data:
   neo4j:
   elasticsearch:
   postgres-data:
