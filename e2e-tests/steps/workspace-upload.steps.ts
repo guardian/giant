@@ -86,6 +86,30 @@ Then(
 );
 
 Then(
+  "file {string} has OCR output containing {string}",
+  async ({ freshPage }, filename: string, text: string) => {
+    const viewerOpened = freshPage.waitForEvent("popup");
+    await freshPage
+      .getByRole("row")
+      .filter({ has: freshPage.getByText(filename, { exact: true }) })
+      .dblclick();
+    const viewer = await viewerOpened;
+    try {
+      await expect(viewer).toHaveURL(/\/viewer\//);
+      await viewer
+        .getByRole("button", { name: /^OCR \(/ })
+        .first()
+        .click();
+      await expect(
+        viewer.locator("[data-selectable-text-preview]"),
+      ).toContainText(text, { ignoreCase: true });
+    } finally {
+      await viewer.close();
+    }
+  },
+);
+
+Then(
   "file {string} is successfully processed in the workspace",
   async ({ freshPage }, filename: string) => {
     const fileRow = freshPage.getByRole("row").filter({
