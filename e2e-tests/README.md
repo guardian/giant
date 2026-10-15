@@ -16,7 +16,7 @@ git clone --branch local-giant-support https://github.com/guardian/transcription
 
 Set `TRANSCRIPTION_SERVICE_DIR` to use a checkout elsewhere. The worker runs directly
 on the host using that checkout's Node dependencies and `.venv`; an existing local
-transcription-service setup can be reused. Ensure `ffmpeg`, Ghostscript, qpdf and Poppler utilities are on PATH. The worker uses `.venv/bin/ocrmypdf` with the RapidOCR plugin.
+transcription-service setup can be reused. Ensure `ffmpeg`, Ghostscript, qpdf, Poppler utilities and ImageMagick's `convert` are on PATH. Giant uses `convert` to remove image alpha channels before external OCR. The worker uses `.venv/bin/ocrmypdf` with the RapidOCR plugin.
 
 Install dependencies if needed and cache the public tiny model before running tests:
 
@@ -44,7 +44,7 @@ npx playwright install --with-deps chromium
 npm test
 ```
 
-The workspace upload scenario also needs OCRmyPDF, Ghostscript, qpdf, Poppler utilities and English Tesseract data. On Ubuntu, install them with `sudo apt-get install -y ocrmypdf ghostscript qpdf poppler-utils tesseract-ocr-eng`.
+The workspace upload scenarios also need OCRmyPDF, Ghostscript, qpdf, Poppler utilities, ImageMagick and English Tesseract data. On Ubuntu, install them with `sudo apt-get install -y ocrmypdf ghostscript qpdf poppler-utils imagemagick tesseract-ocr-eng`.
 
 `npm test` starts a fresh isolated Giant instance, generates Playwright tests from the feature files, runs them, and stops the instance and removes its volumes on exit. The same command runs in CI. No AWS or Hugging Face credentials or pre-existing account are required.
 

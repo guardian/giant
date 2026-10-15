@@ -63,11 +63,12 @@ jobs:
         run: |
           npm ci
           npx playwright install --with-deps chromium
-      - name: Install PDF extraction tools
+      - name: Install extraction tools
         # English is the only OCR language needed by the fixture.
+        # ImageMagick's convert removes image alpha channels before external OCR.
         run: |
           sudo apt-get update
-          sudo apt-get install -y ocrmypdf ghostscript qpdf poppler-utils tesseract-ocr-eng ffmpeg
+          sudo apt-get install -y ocrmypdf ghostscript qpdf poppler-utils tesseract-ocr-eng ffmpeg imagemagick
       - name: Run isolated E2E suite
         working-directory: e2e-tests
         env:
