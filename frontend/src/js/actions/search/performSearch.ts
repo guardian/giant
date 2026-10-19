@@ -1,15 +1,30 @@
 import { GiantDispatch } from "../../types/redux/GiantDispatch";
 import { SearchAction } from "../../types/redux/GiantActions";
-import { SearchQuery } from "../../types/SearchQuery";
+import {
+  SearchQuery,
+  parseSearchQueryFragments,
+} from "../../types/SearchQuery";
 import { SearchResponse } from "../../types/SearchResults";
 import { performSearch as performSearchService } from "../../services/SearchApi";
 
 export function performSearch(searchQuery: SearchQuery) {
   return async (dispatch: GiantDispatch) => {
-    dispatch(requestSearch(searchQuery));
+    let query: SearchQuery;
     try {
-      const res = await performSearchService(searchQuery);
-      dispatch(receiveSearch(res, searchQuery));
+      query = {
+        ...searchQuery,
+        fragments: parseSearchQueryFragments(searchQuery.q),
+      };
+    } catch {
+      // Preserve request/failure dispatches even when parsing fails before fetch.
+      dispatch(requestSearch(searchQuery));
+      dispatch(errorReceivingSearch());
+      return;
+    }
+    dispatch(requestSearch(query));
+    try {
+      const res = await performSearchService(query);
+      dispatch(receiveSearch(res, query));
     } catch {
       dispatch(errorReceivingSearch());
     }

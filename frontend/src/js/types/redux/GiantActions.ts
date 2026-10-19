@@ -1,3 +1,4 @@
+import { Collection } from "../Collection";
 import { SearchQuery } from "../SearchQuery";
 import { SearchResponse } from "../SearchResults";
 import { SuggestedField } from "../SuggestedFields";
@@ -349,7 +350,15 @@ export type SearchAction = { receivedAt: number } & (
   | { type: "SUGGESTED_FIELDS_GET_RECEIVE"; fields: SuggestedField[] }
 );
 
+export type CollectionAction = { receivedAt: number } & (
+  | { type: "COLLECTIONS_GET_REQUEST" }
+  | { type: "COLLECTION_GET_REQUEST"; uri: string }
+  | { type: "COLLECTIONS_GET_RECEIVE"; collections: Collection[] }
+  | { type: "COLLECTION_GET_RECEIVE"; collection: Collection }
+);
+
 export type GiantAction =
+  | CollectionAction
   | SearchAction
   | FiltersAction
   | WorkspacesAction
