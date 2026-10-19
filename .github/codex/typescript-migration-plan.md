@@ -68,18 +68,18 @@ its leaves and chips in steps 26–28.
 
 Reuse Resource.ts, existing resource actions, and ResourceApi.ts. Validate the basic/full responses used by this batch at their boundary; preserve child/grandchild flattening and loading/error handling. Allow a smaller batch for these nested contracts.
 
+Blocked for a small batch: `ResourceApi.ts` currently promises `Resource` for
+both basic and full responses. Backend `model/frontend/Resource.scala` instead
+returns basic, email and document variants: related entries lack processingStage,
+and basic/email responses lack document-only fileSize and mimeTypes. Accurate
+validation requires reconciling that union with the typed resource reducer and
+viewer consumers, including child/grandchild flattening. Retain this work rather
+than fabricating fields or casting validated basic responses to full resources;
+the independent email slice can proceed first.
+
 - `js/actions/resources/getResource.js`
 - `js/actions/resources/clearResource.js`
 - `js/reducers/descendantResourcesReducer.js`
-
-### 14. Email API slice
-
-Follow controllers/api/Emails.scala and model/frontend/email/EmailThread.scala. The wire key is haveSource, not the old PropTypes hasSource; metadata and timestamps need the actual serializer shape. Preserve thread ordering, neighbours, and missingNodes.
-
-- `js/types/Email.js`
-- `js/services/EmailApi.js`
-- `js/actions/email/getEmailThread.js`
-- `js/reducers/emailsReducer.js`
 
 ### 15. Authentication contracts and token receipt
 

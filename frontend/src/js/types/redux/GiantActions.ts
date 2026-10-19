@@ -1,3 +1,4 @@
+import { EmailThread } from "../Email";
 import { Collection } from "../Collection";
 import { SearchQuery } from "../SearchQuery";
 import { SearchResponse } from "../SearchResults";
@@ -357,7 +358,15 @@ export type CollectionAction = { receivedAt: number } & (
   | { type: "COLLECTION_GET_RECEIVE"; collection: Collection }
 );
 
+export type EmailAction = {
+  type: "EMAIL_THREAD_RECEIVE";
+  uri: string;
+  timeline: EmailThread;
+  receivedAt: number;
+};
+
 export type GiantAction =
+  | EmailAction
   | CollectionAction
   | SearchAction
   | FiltersAction
