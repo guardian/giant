@@ -2,46 +2,30 @@ import authFetch from "../util/auth/authFetch";
 import authUploadWithProgress, {
   ProgressHandler,
 } from "../util/auth/authUploadWithProgress";
-import {
-  Collection,
-  Language,
-  LanguageSchema,
-  collectionSchema,
-  collectionWithUsersSchema,
-  collectionsSchema,
-} from "../types/Collection";
+import { Collection, Language, LanguageSchema } from "../types/Collection";
 import { WorkspaceUploadMetadata } from "../components/Uploads/UploadFiles";
 import { z } from "zod";
 
-export async function newCollection(name: string) {
-  const res = await authFetch("/api/collections", {
+export function newCollection(name: string): Promise<Collection> {
+  return authFetch("/api/collections", {
     headers: new Headers({ "Content-Type": "application/json" }),
     method: "POST",
     body: JSON.stringify({ name: name }),
+  }).then((res) => res.json());
+}
+
+export function fetchCollections(): Promise<Collection[]> {
+  return authFetch("/api/collections").then((res) => res.json());
+}
+
+export function fetchCollection(uri: string): Promise<Collection | undefined> {
+  return authFetch(`/api/collections/${uri}`).then((res) => {
+    if (res.status === 404) {
+      return undefined;
+    }
+
+    return res.json();
   });
-  const data: unknown = await res.json();
-  const result = collectionSchema.safeParse(data);
-  if (!result.success) throw result.error;
-  return result.data;
-}
-
-export async function fetchCollections(): Promise<Collection[]> {
-  const res = await authFetch("/api/collections");
-  const data: unknown = await res.json();
-  const result = collectionsSchema.safeParse(data);
-  if (!result.success) throw result.error;
-  return result.data;
-}
-
-export async function fetchCollection(
-  uri: string,
-): Promise<Collection | undefined> {
-  const res = await authFetch(`/api/collections/${uri}`);
-  if (res.status === 404) return undefined;
-  const data: unknown = await res.json();
-  const result = collectionWithUsersSchema.safeParse(data);
-  if (!result.success) throw result.error;
-  return result.data;
 }
 
 const LanguageArray = z.array(LanguageSchema);

@@ -25,18 +25,7 @@ export type SearchQueryFragment = z.infer<
   typeof searchQueryFragmentsSchema
 >[number];
 
-export function parseSearchQueryFragments(
-  serialized: string,
-): SearchQueryFragment[] {
-  const incoming: unknown = JSON.parse(serialized);
-  const result = searchQueryFragmentsSchema.safeParse(incoming);
-  if (!result.success) throw result.error;
-  return result.data;
-}
-
 export type SearchQuery = {
-  // Set at the search action boundary; q remains the original URL serialization.
-  fragments?: SearchQueryFragment[];
   q: string;
   filters?: Record<string, string[]>;
   page?: string | number;

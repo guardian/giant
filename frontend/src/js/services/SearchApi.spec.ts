@@ -222,13 +222,3 @@ it.each(["json", "network"])(
     });
   },
 );
-
-it("carries the original serialization and validated fragments through search state", async () => {
-  vi.mocked(authFetch).mockResolvedValue(Response.json(response));
-  const dispatch = vi.fn();
-  await searchAction(query)(dispatch);
-  const requested = dispatch.mock.calls[0][0];
-  const received = dispatch.mock.calls[1][0];
-  expect(requested.query).toEqual({ ...query, fragments: ["hello"] });
-  expect(received.query).toBe(requested.query);
-});
