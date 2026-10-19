@@ -50,6 +50,8 @@ export function getWorkspace(
           }),
         )
         .finally(() => {
+          if (idInProgress !== id) return;
+
           if (
             idRequestedAgainWhilstInProgress &&
             idInProgress === idRequestedAgainWhilstInProgress
