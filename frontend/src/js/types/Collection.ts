@@ -25,7 +25,7 @@ export const ingestionSchema = z.looseObject({
   endTime: z.iso.datetime({ offset: true }).nullish(),
   path: z.string().nullish(),
   failureMessage: z.string().nullish(),
-  languages: z.array(LanguageSchema),
+  languages: z.array(z.string()),
   fixed: z.boolean(),
   default: z.boolean(),
 });

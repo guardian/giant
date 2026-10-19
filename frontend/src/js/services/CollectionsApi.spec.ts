@@ -18,9 +18,7 @@ const ingestion = {
   uri: "collection/ingestion",
   display: "Ingestion",
   startTime: "2026-10-13T12:00:00+01:00",
-  languages: [
-    { key: "english", ocr: "eng", iso6391Code: "en", analyzer: "english" },
-  ],
+  languages: ["english"],
   fixed: true,
   default: false,
 };
