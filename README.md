@@ -58,6 +58,12 @@ Then run the setup script:
 ./scripts/setup.sh
 ```
 
+Setup checks for a sibling `../transcription-service` checkout. If it is missing,
+setup clones its `main` branch and runs `scripts/setup.sh --worker-only` there to
+install the worker dependencies and models, skipping its dev-nginx and Docker setup.
+This requires read only Janus credentials. If the folder exists it is left unchanged; run
+`./scripts/setup.sh --worker-only` from transcription-service if it still needs setup.
+
 Run the Scala backend:
 
 ```
@@ -67,8 +73,7 @@ Run the Scala backend:
 This will also automatically launch the databases in the background by running
 `docker-compose up -d`.
 
-In a separate terminal, run the [Create React App](https://github.com/facebook/create-react-app)
-frontend:
+In a separate terminal, run the vite frontend:
 
 ```
 ./scripts/start-frontend.sh
@@ -78,6 +83,30 @@ The frontend script will wait for the backend to start before launching Giant at
 `http://localhost:3000`.
 
 Once Giant has started, follow the [admin quickstart guide](./docs/02-admin-quickstart.md).
+
+## Running with external workers
+Transcription, translation and OCR in giant are handled by the transcription-service -
+these extractors are referred to as 'external workers'
+
+To use external workers when running locally:
+
+```bash
+./scripts/start-backend.sh --external
+```
+
+This starts giant's own LocalStack on port **4567** and enables external extractors,
+overriding values in application.conf using SBT_ARGS. Start the worker in a separate 
+terminal:
+
+```bash
+./scripts/start-external-worker.sh
+```
+
+The worker script provisions LocalStack resources and starts the worker in the
+existing sibling checkout. It needs a read only AWS access to fetch a secret for
+hugging face from parameter store.
+
+Set `LOCALSTACK_PORT=14567` for both startup commands to choose another port.
 
 ## (Developers) Getting started - running in a dev container
 We have started using [dev containers](https://containers.dev/) to isolate dev environments from the host machine.
