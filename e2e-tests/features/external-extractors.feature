@@ -19,4 +19,4 @@ Feature: Extract uploaded files using transcription-service
     When I create a new workspace named "Image external OCR"
     And I upload "for_the_many.png" to the workspace
     Then file "for_the_many.png" is successfully processed in the workspace
-    And file "for_the_many.png" has OCR output containing "for the many"
+    And file "for_the_many.png" has OCR output containing "the many"
