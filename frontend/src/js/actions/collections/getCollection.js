@@ -1,14 +1,7 @@
-import { GiantDispatch } from "../../types/redux/GiantDispatch";
-import { Collection } from "../../types/Collection";
-import {
-  CollectionAction,
-  AppAction,
-  AppActionType,
-} from "../../types/redux/GiantActions";
 import { fetchCollection } from "../../services/CollectionsApi";
 
-export function getCollection(uri: string) {
-  return (dispatch: GiantDispatch) => {
+export function getCollection(uri) {
+  return (dispatch) => {
     dispatch(requestCollection(uri));
     return fetchCollection(uri)
       .then((res) => {
@@ -22,7 +15,7 @@ export function getCollection(uri: string) {
   };
 }
 
-function requestCollection(uri: string): CollectionAction {
+function requestCollection(uri) {
   return {
     type: "COLLECTION_GET_REQUEST",
     uri: uri,
@@ -30,7 +23,7 @@ function requestCollection(uri: string): CollectionAction {
   };
 }
 
-function receiveCollection(collection: Collection): CollectionAction {
+function receiveCollection(collection) {
   return {
     type: "COLLECTION_GET_RECEIVE",
     collection: collection,
@@ -38,9 +31,9 @@ function receiveCollection(collection: Collection): CollectionAction {
   };
 }
 
-function errorReceivingCollection(error: unknown, uri: string): AppAction {
+function errorReceivingCollection(error, uri) {
   return {
-    type: AppActionType.APP_SHOW_ERROR,
+    type: "APP_SHOW_ERROR",
     message: `Failed to get collection: ${uri}`,
     error: error,
     receivedAt: Date.now(),

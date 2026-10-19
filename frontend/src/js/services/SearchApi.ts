@@ -5,7 +5,7 @@ import { searchResponseSchema } from "../types/SearchResults";
 import {
   SearchQuery,
   SearchQueryFragment,
-  parseSearchQueryFragments,
+  searchQueryFragmentsSchema,
 } from "../types/SearchQuery";
 import { parseDate } from "../util/parseDate";
 
@@ -49,9 +49,12 @@ function transformQuery(q: SearchQueryFragment[]) {
 export async function performSearch(searchQuery: SearchQuery) {
   // Syntax, schema, fetch and response JSON failures reject through the action's
   // existing SEARCH_FAILURE path.
-  const fragments =
-    searchQuery.fragments ?? parseSearchQueryFragments(searchQuery.q);
-  const queryString = JSON.stringify(transformQuery(fragments));
+  const query: unknown = JSON.parse(searchQuery.q);
+  const parsed = searchQueryFragmentsSchema.safeParse(query);
+  if (!parsed.success) {
+    throw parsed.error;
+  }
+  const queryString = JSON.stringify(transformQuery(parsed.data));
 
   const queryObject = Object.assign({}, searchQuery.filters, {
     q: queryString,

@@ -67,13 +67,14 @@ export function AllIngestionEvents({
     if (currentCollection) {
       const sc = getCollection(currentCollection, collections);
       sc &&
-        setIngestOptions([
-          { value: "all", text: "All ingestions" },
-          ...sc.ingestions.map((ingestion: Ingestion) => ({
-            value: ingestion.path ?? undefined,
-            text: ingestion.display,
-          })),
-        ]);
+        setIngestOptions(
+          [{ value: "all", text: "All ingestions" }].concat(
+            sc.ingestions.map((ingestion: Ingestion) => ({
+              value: ingestion.path,
+              text: ingestion.display,
+            })),
+          ),
+        );
       if (
         sc?.ingestions &&
         sc?.ingestions.find((i) => i.display === currentIngestion) === undefined
