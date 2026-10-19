@@ -20,7 +20,7 @@ jobs:
         uses: actions/checkout@v7
         with:
           repository: guardian/transcription-service
-          ref: local-giant-support
+          ref: main
           path: .transcription-service
           persist-credentials: false
       - uses: actions/setup-java@v6
