@@ -12,7 +12,7 @@ import services.manifest.{Manifest, WorkerManifest}
 import services.{ObjectStorage, ScratchSpace, TranscribeConfig}
 import services.index.Pages
 import services.ingestion.IngestionServices
-import extraction.ocr.{BaseOcrExtractor, OcrMyPdfExtractor, OcrMyPdfImageExtractor}
+import extraction.ocr.{BaseOcrExtractor, OcrMyPdfExtractor}
 import org.apache.commons.io.FileUtils
 
 import java.nio.file.{Files, Path}
@@ -98,7 +98,7 @@ class ExternalTranscriptionWorker(manifest: Manifest, sqsClient: SqsClient, tran
           }
         case output: OcrOutputSuccess =>
           (messageAttributes.extractorName, messageAttributes.ingestion) match {
-            case (Some(extractorName), Some(ingestion)) if Set(classOf[ExternalOcrMyPdfExtractor].getSimpleName, classOf[ExternalOcrMyPdfImageExtractor].getSimpleName).contains(extractorName) =>
+            case (Some(extractorName), Some(ingestion)) if extractorName == classOf[ExternalOcrMyPdfExtractor].getSimpleName =>
               for {
                 _ <- processOcrOutput(output, extractorName, ingestion)
                 _ <- markExternalExtractorAsComplete(manifest, output.id, extractorName)
@@ -161,11 +161,7 @@ class ExternalTranscriptionWorker(manifest: Manifest, sqsClient: SqsClient, tran
         // if the document is detected to not be in english
         pdfPaths <- Either.catchNonFatal(writePdfData(ocrOutput, tmpDir)).leftMap(ExternalPdfOutputParsingError(_))
         textByLanguage <- Either.catchNonFatal {
-          if (extractorName == classOf[ExternalOcrMyPdfImageExtractor].getSimpleName) {
-            OcrMyPdfImageExtractor.postProcessPdf(pdfPaths.toList, Uri(output.id), previewStorage, index)
-          } else {
-            OcrMyPdfExtractor.postProcessPdf(pdfPaths, Uri(output.id), pageService, previewStorage, index)
-          }
+          OcrMyPdfExtractor.postProcessPdf(pdfPaths, Uri(output.id), pageService, previewStorage, index)
         }.leftMap(OcrMyPdfPostProcessFailure(_))
         workItems <- manifest.getActiveExternalWorkForBlob(Uri(output.id), extractorName, ingestion)
       } yield {
