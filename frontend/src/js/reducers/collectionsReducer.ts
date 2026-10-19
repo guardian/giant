@@ -1,6 +1,11 @@
+import { Collection } from "../types/Collection";
+import { GiantAction } from "../types/redux/GiantActions";
 import * as R from "ramda";
 
-export default function collections(state = [], action) {
+export default function collections(
+  state: Collection[] = [],
+  action: GiantAction,
+): Collection[] {
   switch (action.type) {
     case "COLLECTIONS_GET_RECEIVE":
       return action.collections;

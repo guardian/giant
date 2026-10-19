@@ -1,20 +1,8 @@
-import { z } from "zod";
+import {
+  SearchQueryFragment,
+  parseSearchQueryFragments,
+} from "../../types/SearchQuery";
 import type { Resource } from "../../types/Resource";
-
-// TODO: Once we are further down the typescript migration this should be replaced with a single global type used
-// across the app. At the moment the base redux properties are not typed so that's a bit tricky. There is a note
-// in the typescript migration plan to sort this out.
-const titleQuerySchema = z.array(
-  z.union([
-    z.string(),
-    z.object({
-      n: z.string(),
-      v: z.string(),
-      op: z.enum(["+", "-"]).optional(),
-    }),
-  ]),
-);
-type TitleQuery = z.infer<typeof titleQuerySchema>;
 
 export function calculateResourceTitle(resource: Resource | null): string {
   const postfix = "Giant";
@@ -48,7 +36,11 @@ export function calculateResourceTitle(resource: Resource | null): string {
 }
 
 export function calculateSearchTitle(
-  search: { q?: string | string[] } | string | null | undefined,
+  search:
+    | { q?: string | string[]; fragments?: SearchQueryFragment[] }
+    | string
+    | null
+    | undefined,
 ): string {
   if (
     search &&
@@ -57,13 +49,7 @@ export function calculateSearchTitle(
     search.q
   ) {
     try {
-      const parsed: unknown = JSON.parse(search.q);
-      const result = titleQuerySchema.safeParse(parsed);
-      // Invalid query data uses the same default title as malformed JSON.
-      if (!result.success) {
-        return "Search - Giant";
-      }
-      const query: TitleQuery = result.data;
+      const query = search.fragments ?? parseSearchQueryFragments(search.q);
       const parts = query.map((part) => {
         if (typeof part !== "string" && part.n) {
           if (part.op === "-") {
