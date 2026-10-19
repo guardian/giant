@@ -3,11 +3,11 @@ package services
 import java.io.InputStream
 import java.util.UUID
 import cats.syntax.either._
-import software.amazon.awssdk.services.s3.model.{CopyObjectRequest, DeleteObjectRequest, DeleteObjectResponse, GetObjectRequest, ListObjectsV2Request, S3Object}
+import software.amazon.awssdk.services.s3.model.{CopyObjectRequest, DeleteObjectRequest, DeleteObjectResponse, GetObjectRequest, ListObjectsV2Request, PutObjectRequest, S3Object}
 import model.ingestion._
 import play.api.libs.json.{JsError, JsSuccess, Json}
 import software.amazon.awssdk.services.s3.presigner.S3Presigner
-import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest
+import software.amazon.awssdk.services.s3.presigner.model.PutObjectPresignRequest
 import utils.Logging
 import utils.attempt.{Failure, IllegalStateFailure, JsonParseFailure, UnknownFailure}
 import utils.aws.S3Client
@@ -37,17 +37,17 @@ class S3IngestStorage private(client: S3Client, presigner: S3Presigner, ingestBu
   }
 
   def getUploadSignedUrl(key: Key): Either[Failure, String] = {
-    val getObjectRequest = GetObjectRequest.builder()
+    val putObjectRequest = PutObjectRequest.builder()
       .bucket(ingestBucket)
       .key(dataKey(key))
       .build()
 
-    val presignRequest = GetObjectPresignRequest.builder()
+    val presignRequest = PutObjectPresignRequest.builder()
       .signatureDuration(Duration.ofHours(24))
-      .getObjectRequest(getObjectRequest)
+      .putObjectRequest(putObjectRequest)
       .build()
 
-    Either.catchNonFatal(presigner.presignGetObject(presignRequest).url().toString).leftMap(UnknownFailure.apply)
+    Either.catchNonFatal(presigner.presignPutObject(presignRequest).url().toString).leftMap(UnknownFailure.apply)
   }
 
 
