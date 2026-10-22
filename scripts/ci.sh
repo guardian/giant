@@ -24,4 +24,4 @@ echo 'java version:'
 echo $(java --version)
 
 # Do a full build of PFI including all tests
-AWS_REGION=eu-west-1 sbt -DPFI_STACK=pfi-playground clean runAllTests debian:packageBin cli/Universal/packageZipTarball
+AWS_REGION=eu-west-1 sbt -DPFI_STACK=pfi-playground clean runAllTests checkInterface debian:packageBin cli/Universal/packageZipTarball
