@@ -77,6 +77,9 @@
 		"OcrOutputFailure": {
 			"$ref": "#/$defs/OcrOutputFailure"
 		},
+		"OcrMyPdfFailureReason": {
+			"$ref": "#/$defs/OcrMyPdfFailureReason"
+		},
 		"OcrOutput": {
 			"$ref": "#/$defs/OcrOutput"
 		},
@@ -116,6 +119,7 @@
 		"LLMOutputFailure",
 		"OcrOutputSuccess",
 		"OcrOutputFailure",
+		"OcrMyPdfFailureReason",
 		"OcrOutput",
 		"TranscriptionResult",
 		"TranscriptionOutput",
@@ -940,10 +944,30 @@
 				"status": {
 					"type": "string",
 					"const": "OCR_FAILURE"
+				},
+				"failureReason": {
+					"$ref": "#/$defs/OcrMyPdfFailureReason"
+				},
+				"message": {
+					"type": "string"
 				}
 			},
-			"required": ["id", "userEmail", "status"],
+			"required": ["id", "userEmail", "status", "failureReason", "message"],
 			"additionalProperties": false
+		},
+		"OcrMyPdfFailureReason": {
+			"type": "string",
+			"enum": [
+				"BAD_ARGS",
+				"INPUT_FILE",
+				"MISSING_DEPENDENCY",
+				"FILE_ACCESS_ERROR",
+				"ALREADY_DONE_OCR",
+				"CHILD_PROCESS_ERROR",
+				"ENCRYPTED_PDF",
+				"INVALID_CONFIG",
+				"OTHER_ERROR"
+			]
 		},
 		"OcrOutput": {
 			"type": "object",
