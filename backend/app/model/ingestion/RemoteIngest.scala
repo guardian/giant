@@ -70,7 +70,8 @@ case class RemoteIngest(
   url: String,
   addedBy: PartialUser,
   tasks: Map[String, RemoteIngestTask],
-  language: String
+  language: String,
+  destinationFolderId: Option[String] = None
 ) {
 
   def taskKey(taskId: String): (Long, UUID) = RemoteIngest.ingestionKey(createdAt, taskId)
@@ -85,7 +86,8 @@ case class RemoteIngest(
 
     val addedOn = Some(createdAt.getMillis)
 
-    val maybeExistingFolderId = findExistingFolderId(parentFolderId, title)
+    // Jobs created before destination IDs were stored still use the legacy lookup.
+    val maybeExistingFolderId = destinationFolderId.orElse(findExistingFolderId(parentFolderId, title))
 
     val jobId = s"RemoteIngest/$id"
 

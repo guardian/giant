@@ -13,6 +13,7 @@ trait RemoteIngestStore {
     title: String,
     workspaceId: String,
     parentFolderId: String,
+    destinationFolderId: String,
     collection: String,
     createdAt: DateTime,
     url: String,
