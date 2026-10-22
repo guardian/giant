@@ -1,5 +1,6 @@
 package services
 
+import com.gu.transcriptionservice.workerinterface.{ActivityType, PriorityLevel, QueueType, SensitivityLevel, Stage}
 import net.ceedubs.ficus.Ficus._
 import net.ceedubs.ficus.readers.ArbitraryTypeReader._
 import net.ceedubs.ficus.readers.EnumerationReader._
@@ -88,12 +89,22 @@ case class TranslationConfig(
 
 case class TranscribeConfig(
                              whisperModelFilename: String,
-                             transcriptionServiceQueueUrl: String,
+                             private val queuesBaseUrl: String,
+                             private val stage: Stage,
                              transcriptionOutputQueueUrl: String,
                              transcriptionOutputDeadLetterQueueUrl: String,
                              llmBackend: String,
                              diarize: Boolean = true
-)
+) {
+  def buildQueueUrl(
+    priorityLevel: PriorityLevel,
+    sensitivityLevel: SensitivityLevel,
+    activityType: ActivityType,
+  ): String = {
+    // IMPORTANT: this must match the implementation in `queue-gardens.ts` in transcription-service
+    s"${queuesBaseUrl}investigations-${QueueType.Queue}_${priorityLevel.value.toUpperCase}-priority_${sensitivityLevel}_${activityType}_${stage}"
+  }
+}
 
 case class RemoteIngestConfig(
                                taskTopicArn: String,

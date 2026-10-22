@@ -1,13 +1,7 @@
 package extraction
 
 import software.amazon.awssdk.services.sqs.SqsClient
-import com.gu.transcriptionservice.workerinterface.{
-  CombinedOutputUrl,
-  InputLanguageCode,
-  TranscriptDestinationService,
-  TranscriptionEngine,
-  TranscriptionJob
-}
+import com.gu.transcriptionservice.workerinterface.{ActivityType, CombinedOutputUrl, InputLanguageCode, PriorityLevel, SensitivityLevel, TranscriptDestinationService, TranscriptionEngine, TranscriptionJob}
 import model.{English, Language}
 import model.manifest.Blob
 import org.joda.time.DateTime
@@ -81,8 +75,14 @@ class ExternalTranscriptionExtractor(index: Index, transcribeConfig: TranscribeC
       )
     }
 
+    val queueUrl = transcribeConfig.buildQueueUrl(
+      PriorityLevel.Standard, // TODO capture priority as a property of the blob/ingestion (from UI/CLI)
+      SensitivityLevel.RegularSensitivity, // TODO capture sensitivity as a property of the blob (from UI/CLI)
+      ActivityType.Transcription
+    )
+
     transcriptionJob.flatMap { job =>
-      sendToQueue(sqsClient, transcribeConfig.transcriptionServiceQueueUrl, job, blob.uri.value, name, params.ingestion)
+      sendToQueue(sqsClient, queueUrl, job, blob.uri.value, name, params.ingestion)
     }
   }
 }

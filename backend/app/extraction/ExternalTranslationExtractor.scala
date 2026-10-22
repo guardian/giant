@@ -1,13 +1,7 @@
 package extraction
 
 import model.index.{Document, IndexedResource, TranslationData}
-import com.gu.transcriptionservice.workerinterface.{
-  CombinedOutputUrl,
-  LLMTranslationJob,
-  LlmBackend,
-  TranscriptDestinationService,
-  TranslationTask
-}
+import com.gu.transcriptionservice.workerinterface.{ActivityType, CombinedOutputUrl, LLMTranslationJob, LlmBackend, PriorityLevel, SensitivityLevel, TranscriptDestinationService, TranslationTask}
 import model.manifest.Blob
 import org.joda.time.DateTime
 import play.api.libs.json.Json
@@ -96,8 +90,14 @@ abstract class ExternalTranslationExtractor(manifest: Manifest, index: Index, tr
       }
     }
 
+    val queueUrl = transcribeConfig.buildQueueUrl(
+      PriorityLevel.Standard, // TODO capture priority as a property of the blob/ingestion (from UI/CLI)
+      SensitivityLevel.RegularSensitivity, // TODO capture sensitivity as a property of the blob (from UI/CLI)
+      ActivityType.Translation
+    )
+
     llmJob.flatMap {
-      case Some(job) => sendToQueue(sqsClient, transcribeConfig.transcriptionServiceQueueUrl, job, blob.uri.value, name, params.ingestion)
+      case Some(job) => sendToQueue(sqsClient, queueUrl, job, blob.uri.value, name, params.ingestion)
       case None => Right(())
     }
   }

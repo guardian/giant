@@ -92,7 +92,9 @@ object AwsDiscovery extends Logging {
       transcribe = config.transcribe.copy(
         whisperModelFilename = readSSMParameter("transcribe/modelFilename", stack, stage, ssmClient),
         transcriptionOutputQueueUrl = readSSMParameter("transcribe/transcriptionOutputQueueUrl", stack, stage, ssmClient),
-        transcriptionServiceQueueUrl = readSSMParameter("transcribe/transcriptionServiceQueueUrl", stack, stage, ssmClient),
+//      transcriptionServiceQueueUrl = readSSMParameter("transcribe/transcriptionServiceQueueUrl", stack, stage, ssmClient), // FIXME remove
+        queuesBaseUrl = ???, // TODO ideally we'd use the SSM params as transcription-service
+        stage = ???, // TODO should we load this from SSM (new params to map giant stack/stage to transcription-service stage) or do the mapping in the code here
         transcriptionOutputDeadLetterQueueUrl = readSSMParameter("transcribe/transcriptionOutputDeadLetterQueueUrl", stack, stage, ssmClient),
         llmBackend = readSSMParameter("transcribe/llmBackend", stack, stage, ssmClient)
       ),

@@ -7,7 +7,9 @@ import play.api.libs.json._
 // Generated from worker-interface-schema.json by `sbt generateTranscriptionWorkerInterface`.
 // Re-run that task after updating the schema, and commit the result.
 
-sealed abstract class TranscriptDestinationService(val value: String)
+sealed abstract class TranscriptDestinationService(val value: String) {
+  override def toString: String = value
+}
 
 object TranscriptDestinationService {
   case object TranscriptionService extends TranscriptDestinationService("TranscriptionService")
@@ -96,7 +98,9 @@ object TranscriptionOutput {
   }
 }
 
-sealed abstract class OutputLanguageCode(val value: String)
+sealed abstract class OutputLanguageCode(val value: String) {
+  override def toString: String = value
+}
 
 object OutputLanguageCode {
   case object Unknown extends OutputLanguageCode("UNKNOWN")
@@ -234,7 +238,9 @@ object TranscriptionMetadata {
   implicit val format: OFormat[TranscriptionMetadata] = Json.format[TranscriptionMetadata]
 }
 
-sealed abstract class TranscriptionEngine(val value: String)
+sealed abstract class TranscriptionEngine(val value: String) {
+  override def toString: String = value
+}
 
 object TranscriptionEngine {
   case object Whisperx extends TranscriptionEngine("whisperx")
@@ -252,7 +258,9 @@ object TranscriptionEngine {
   implicit val writes: Writes[TranscriptionEngine] = Writes(value => JsString(value.value))
 }
 
-sealed abstract class LlmBackend(val value: String)
+sealed abstract class LlmBackend(val value: String) {
+  override def toString: String = value
+}
 
 object LlmBackend {
   case object Local extends LlmBackend("LOCAL")
@@ -271,7 +279,9 @@ object LlmBackend {
   implicit val writes: Writes[LlmBackend] = Writes(value => JsString(value.value))
 }
 
-sealed abstract class InputLanguageCode(val value: String)
+sealed abstract class InputLanguageCode(val value: String) {
+  override def toString: String = value
+}
 
 object InputLanguageCode {
   case object Auto extends InputLanguageCode("auto")
@@ -389,7 +399,9 @@ object InputLanguageCode {
   implicit val writes: Writes[InputLanguageCode] = Writes(value => JsString(value.value))
 }
 
-sealed abstract class JobType(val value: String)
+sealed abstract class JobType(val value: String) {
+  override def toString: String = value
+}
 
 object JobType {
   case object Transcribe extends JobType("transcribe")
@@ -521,7 +533,9 @@ object OcrJob {
     Json.writes[OcrJob].transform((json: JsObject) => json ++ Json.obj("jobType" -> JobTypeValue))
 }
 
-sealed abstract class InitialFlag(val value: String)
+sealed abstract class InitialFlag(val value: String) {
+  override def toString: String = value
+}
 
 object InitialFlag {
   case object RedoOcr extends InitialFlag("--redo-ocr")
@@ -691,7 +705,9 @@ object OcrOutputSuccess {
 
 final case class OcrOutputFailure(
     id: String,
-    userEmail: String
+    userEmail: String,
+    failureReason: OcrMyPdfFailureReason,
+    message: String
 ) extends TranscriptionOutput {
   def status: String = OcrOutputFailure.StatusValue
 }
@@ -703,6 +719,34 @@ object OcrOutputFailure {
 
   implicit val writes: OWrites[OcrOutputFailure] =
     Json.writes[OcrOutputFailure].transform((json: JsObject) => json ++ Json.obj("status" -> StatusValue))
+}
+
+sealed abstract class OcrMyPdfFailureReason(val value: String) {
+  override def toString: String = value
+}
+
+object OcrMyPdfFailureReason {
+  case object BadArgs extends OcrMyPdfFailureReason("BAD_ARGS")
+  case object InputFile extends OcrMyPdfFailureReason("INPUT_FILE")
+  case object MissingDependency extends OcrMyPdfFailureReason("MISSING_DEPENDENCY")
+  case object FileAccessError extends OcrMyPdfFailureReason("FILE_ACCESS_ERROR")
+  case object AlreadyDoneOcr extends OcrMyPdfFailureReason("ALREADY_DONE_OCR")
+  case object ChildProcessError extends OcrMyPdfFailureReason("CHILD_PROCESS_ERROR")
+  case object EncryptedPdf extends OcrMyPdfFailureReason("ENCRYPTED_PDF")
+  case object InvalidConfig extends OcrMyPdfFailureReason("INVALID_CONFIG")
+  case object OtherError extends OcrMyPdfFailureReason("OTHER_ERROR")
+
+  val All: Seq[OcrMyPdfFailureReason] = Seq(BadArgs, InputFile, MissingDependency, FileAccessError, AlreadyDoneOcr, ChildProcessError, EncryptedPdf, InvalidConfig, OtherError)
+
+  def fromString(value: String): Option[OcrMyPdfFailureReason] = All.find(_.value == value)
+
+  implicit val reads: Reads[OcrMyPdfFailureReason] = Reads {
+    case JsString(value) =>
+      fromString(value).fold[JsResult[OcrMyPdfFailureReason]](JsError(s"Unknown OcrMyPdfFailureReason: $value"))(JsSuccess(_))
+    case other => JsError(s"Expected a JSON string for OcrMyPdfFailureReason, got: $other")
+  }
+
+  implicit val writes: Writes[OcrMyPdfFailureReason] = Writes(value => JsString(value.value))
 }
 
 final case class OcrOutput(
@@ -723,7 +767,9 @@ object TranscriptionResult {
   implicit val format: OFormat[TranscriptionResult] = Json.format[TranscriptionResult]
 }
 
-sealed abstract class FailureReason(val value: String)
+sealed abstract class FailureReason(val value: String) {
+  override def toString: String = value
+}
 
 object FailureReason {
   case object Failure extends FailureReason("FAILURE")
@@ -759,4 +805,113 @@ object MediaDownloadFailure {
 
   implicit val writes: OWrites[MediaDownloadFailure] =
     Json.writes[MediaDownloadFailure].transform((json: JsObject) => json ++ Json.obj("status" -> StatusValue))
+}
+
+sealed abstract class PriorityLevel(val value: String) {
+  override def toString: String = value
+}
+
+object PriorityLevel {
+  case object High extends PriorityLevel("high")
+  case object Standard extends PriorityLevel("standard")
+  case object Low extends PriorityLevel("low")
+
+  val All: Seq[PriorityLevel] = Seq(High, Standard, Low)
+
+  def fromString(value: String): Option[PriorityLevel] = All.find(_.value == value)
+
+  implicit val reads: Reads[PriorityLevel] = Reads {
+    case JsString(value) =>
+      fromString(value).fold[JsResult[PriorityLevel]](JsError(s"Unknown PriorityLevel: $value"))(JsSuccess(_))
+    case other => JsError(s"Expected a JSON string for PriorityLevel, got: $other")
+  }
+
+  implicit val writes: Writes[PriorityLevel] = Writes(value => JsString(value.value))
+}
+
+sealed abstract class ActivityType(val value: String) {
+  override def toString: String = value
+}
+
+object ActivityType {
+  case object Transcription extends ActivityType("transcription")
+  case object Translation extends ActivityType("translation")
+  case object VisualOcr extends ActivityType("visual-ocr")
+  case object AiPrompt extends ActivityType("ai-prompt")
+
+  val All: Seq[ActivityType] = Seq(Transcription, Translation, VisualOcr, AiPrompt)
+
+  def fromString(value: String): Option[ActivityType] = All.find(_.value == value)
+
+  implicit val reads: Reads[ActivityType] = Reads {
+    case JsString(value) =>
+      fromString(value).fold[JsResult[ActivityType]](JsError(s"Unknown ActivityType: $value"))(JsSuccess(_))
+    case other => JsError(s"Expected a JSON string for ActivityType, got: $other")
+  }
+
+  implicit val writes: Writes[ActivityType] = Writes(value => JsString(value.value))
+}
+
+sealed abstract class SensitivityLevel(val value: String) {
+  override def toString: String = value
+}
+
+object SensitivityLevel {
+  case object PublicDomain extends SensitivityLevel("public-domain")
+  case object RegularSensitivity extends SensitivityLevel("regular-sensitivity")
+
+  val All: Seq[SensitivityLevel] = Seq(PublicDomain, RegularSensitivity)
+
+  def fromString(value: String): Option[SensitivityLevel] = All.find(_.value == value)
+
+  implicit val reads: Reads[SensitivityLevel] = Reads {
+    case JsString(value) =>
+      fromString(value).fold[JsResult[SensitivityLevel]](JsError(s"Unknown SensitivityLevel: $value"))(JsSuccess(_))
+    case other => JsError(s"Expected a JSON string for SensitivityLevel, got: $other")
+  }
+
+  implicit val writes: Writes[SensitivityLevel] = Writes(value => JsString(value.value))
+}
+
+sealed abstract class QueueType(val value: String) {
+  override def toString: String = value
+}
+
+object QueueType {
+  case object Queue extends QueueType("queue")
+  case object Dlq extends QueueType("DLQ")
+
+  val All: Seq[QueueType] = Seq(Queue, Dlq)
+
+  def fromString(value: String): Option[QueueType] = All.find(_.value == value)
+
+  implicit val reads: Reads[QueueType] = Reads {
+    case JsString(value) =>
+      fromString(value).fold[JsResult[QueueType]](JsError(s"Unknown QueueType: $value"))(JsSuccess(_))
+    case other => JsError(s"Expected a JSON string for QueueType, got: $other")
+  }
+
+  implicit val writes: Writes[QueueType] = Writes(value => JsString(value.value))
+}
+
+sealed abstract class Stage(val value: String) {
+  override def toString: String = value
+}
+
+object Stage {
+  case object Dev extends Stage("DEV")
+  case object Code extends Stage("CODE")
+  case object Prod extends Stage("PROD")
+
+  val All: Seq[Stage] = Seq(Dev, Code, Prod)
+
+  def fromString(value: String): Option[Stage] = All.find(_.value == value)
+
+  implicit val reads: Reads[Stage] = Reads {
+    case JsString(value) =>
+      fromString(value).fold[JsResult[Stage]](JsError(s"Unknown Stage: $value"))(JsSuccess(_))
+    case other => JsError(s"Expected a JSON string for Stage, got: $other")
+  }
+
+  implicit val writes: Writes[Stage] = Writes(value => JsString(value.value))
 }

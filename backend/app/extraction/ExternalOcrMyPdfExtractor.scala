@@ -1,6 +1,6 @@
 package extraction
 
-import com.gu.transcriptionservice.workerinterface.{CombinedOutputUrl, InitialFlag, OcrJob, OcrSettings, TranscriptDestinationService}
+import com.gu.transcriptionservice.workerinterface.{ActivityType, CombinedOutputUrl, InitialFlag, OcrJob, OcrSettings, PriorityLevel, SensitivityLevel, TranscriptDestinationService}
 import extraction.ocr.{BaseOcrExtractor, OcrMyPdfExtractor}
 import model.manifest.Blob
 import org.apache.commons.io.FileUtils
@@ -70,7 +70,12 @@ class ExternalOcrMyPdfExtractor(scratch: ScratchSpace, index: Index, transcribeC
             dpi = None
           )
         )
-        _ <- sendToQueue(sqsClient, transcribeConfig.transcriptionServiceQueueUrl, job, blob.uri.value, name, params.ingestion)
+        queueUrl = transcribeConfig.buildQueueUrl(
+          PriorityLevel.Standard, // TODO capture priority as a property of the blob/ingestion (from UI/CLI)
+          SensitivityLevel.RegularSensitivity, // TODO capture sensitivity as a property of the blob (from UI/CLI)
+          ActivityType.VisualOcr
+        )
+        _ <- sendToQueue(sqsClient, queueUrl, job, blob.uri.value, name, params.ingestion)
       } yield ()
     } finally {
       FileUtils.deleteDirectory(tmpDir.toFile)

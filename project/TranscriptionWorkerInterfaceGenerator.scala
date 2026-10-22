@@ -282,7 +282,9 @@ object TranscriptionWorkerInterfaceGenerator {
     private def emitEnum(d: EnumDecl): String = {
       val members = d.values.map(v => s"""  case object ${typeName(v)} extends ${d.name}("$v")""").mkString("\n")
       val all = d.values.map(typeName).mkString(", ")
-      s"""sealed abstract class ${d.name}(val value: String)
+      s"""sealed abstract class ${d.name}(val value: String) {
+         |  override def toString: String = value
+         |}
          |
          |object ${d.name} {
          |$members
