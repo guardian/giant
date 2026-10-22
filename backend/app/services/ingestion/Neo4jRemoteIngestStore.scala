@@ -38,6 +38,7 @@ class Neo4jRemoteIngestStore(driver: Driver, executionContext: ExecutionContext,
     title: String,
     workspaceId: String,
     parentFolderId: String,
+    destinationFolderId: String,
     collection: String,
     createdAt: DateTime,
     url: String,
@@ -68,6 +69,7 @@ class Neo4jRemoteIngestStore(driver: Driver, executionContext: ExecutionContext,
         |  status: $status,
         |  workspaceId: $workspaceId,
         |  parentFolderId: $parentFolderId,
+        |  destinationFolderId: $destinationFolderId,
         |  collection: $collection,
         |  ingestion: $ingestion,
         |  createdAt: $createdAt,
@@ -89,6 +91,7 @@ class Neo4jRemoteIngestStore(driver: Driver, executionContext: ExecutionContext,
       "status", RemoteIngestStatus.Queued.toString,
       "workspaceId", workspaceId,
       "parentFolderId", parentFolderId,
+      "destinationFolderId", destinationFolderId,
       "collection", collection,
       "ingestion", id, // re-use the job id as ingestion ID for now
       "createdAt", createdAt.getMillis,
@@ -105,8 +108,9 @@ class Neo4jRemoteIngestStore(driver: Driver, executionContext: ExecutionContext,
     |RETURN ri.id AS id,
     |       ri.title AS title,
     |       ri.status AS status,
-    |       ri.workspaceId AS workspace_id,
+    |       coalesce(destinationWorkspace.id, ri.workspaceId) AS workspace_id,
     |       ri.parentFolderId AS parent_folder_id,
+    |       ri.destinationFolderId AS destination_folder_id,
     |       ri.collection AS collection,
     |       ri.ingestion AS ingestion,
     |       ri.createdAt AS created_at,
@@ -123,6 +127,7 @@ class Neo4jRemoteIngestStore(driver: Driver, executionContext: ExecutionContext,
       title = record.get("title").asString(),
       workspaceId = record.get("workspace_id").asString(),
       parentFolderId = record.get("parent_folder_id").asString(),
+      destinationFolderId = if (record.get("destination_folder_id").isNull) None else Some(record.get("destination_folder_id").asString()),
       collection = record.get("collection").asString(),
       ingestion = record.get("ingestion").asString(),
       createdAt = createdAt,
@@ -138,6 +143,7 @@ class Neo4jRemoteIngestStore(driver: Driver, executionContext: ExecutionContext,
     val query =
       s"""
         |MATCH (ri:RemoteIngest {id: ${"$id"}})
+        |OPTIONAL MATCH (:WorkspaceNode {id: ri.destinationFolderId})-[:PART_OF]->(destinationWorkspace:Workspace)
         |MATCH (addedBy :User)-[:CREATED]->(ri)
         |MATCH (ri)-[:HAS_TASK]->(task: RemoteIngestTask)
         |$returnFields
@@ -153,13 +159,15 @@ class Neo4jRemoteIngestStore(driver: Driver, executionContext: ExecutionContext,
   override def getRemoteIngestJobs(maybeWorkspaceId: Option[String], maybeSinceUTCEpoch: Option[Long], maybeContainsTaskWithStatusIn: Option[List[RemoteIngestStatus]]): Attempt[List[RemoteIngest]] = attemptTransaction { tx =>
     // important: don't remove the whitespace around the comparison operators in the where clauses, as they are used to split the string later
     val filters = List(
-      maybeWorkspaceId.map("ri.workspaceId = $workspaceId" -> _),
+      maybeWorkspaceId.map("coalesce(destinationWorkspace.id, ri.workspaceId) = $workspaceId" -> _),
       maybeSinceUTCEpoch.map("ri.createdAt > $since" -> _),
       maybeContainsTaskWithStatusIn.map("task.status IN $taskStatuses" -> _.map(_.toString).toArray )
     ).flatten
 
     val query = s"""
           |MATCH (ri:RemoteIngest)-[:HAS_TASK]->(task: RemoteIngestTask)
+          |OPTIONAL MATCH (:WorkspaceNode {id: ri.destinationFolderId})-[:PART_OF]->(destinationWorkspace:Workspace)
+          |WITH ri, task, destinationWorkspace
           |${if (filters.isEmpty) "" else s"WHERE ${filters.toMap.keys.mkString(" AND ")}"}
           |MATCH (addedBy :User)-[:CREATED]->(ri)
           |$returnFields

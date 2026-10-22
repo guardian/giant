@@ -128,7 +128,11 @@ class RemoteIngestWorker(
           workspaceMetadata <- annotations.getWorkspaceMetadata(job.addedBy.username, job.workspaceId)
           _ <- remoteIngestStore.updateRemoteIngestTaskStatus(remoteIngestOutput.taskId, RemoteIngestStatus.Ingesting)
           ingestion <- Collections.createIngestionIfNotExists(Uri(job.collection), job.ingestion, job.language, manifest, index, pages, s3Config)
-          folderId <- annotations.addOrGetFolder(job.addedBy.username, job.workspaceId, job.parentFolderId, job.title)
+          folderId <- job.destinationFolderId match {
+            case Some(id) => Attempt.Right(id)
+            // Jobs submitted before destination IDs were stored still need to create or find their folder.
+            case None => annotations.addOrGetFolder(job.addedBy.username, job.workspaceId, job.parentFolderId, job.title)
+          }
           _ <- remoteIngestStore.linkRemoteIngestToWorkspaceNode(job.id, folderId)
           _ <- IngestStorePolling.fetchData(job.taskKey(remoteIngestOutput.taskId), remoteIngestStorage, scratchSpace){ (path, fingerprint) =>
               if (remoteIngestOutput.outputType == "WEBPAGE_SNAPSHOT") {

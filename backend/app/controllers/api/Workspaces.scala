@@ -354,7 +354,7 @@ class Workspaces(
       _ = logAction(req.user, workspaceId, s"Add remote url to workspace. Node ID: $itemId. Data: $data")
       defaultCollectionUriForUser <- users.getDefaultCollectionUriForUser(req.user.username)
       // Create the destination now so the workspace displays a real folder while capture is pending.
-      _ <- annotation.addOrGetFolder(req.user.username, workspaceId, data.parentFolderId, data.title)
+      destinationFolderId <- annotation.addOrGetFolder(req.user.username, workspaceId, data.parentFolderId, data.title)
       createdAt = DateTime.now
       id <- remoteIngestStore.insertRemoteIngest(
         id = itemId,
@@ -363,6 +363,7 @@ class Workspaces(
         title = data.title,
         url = data.url,
         parentFolderId = data.parentFolderId,
+        destinationFolderId = destinationFolderId,
         createdAt = createdAt,
         username = req.user.username,
         mediaDownloadId = mediaDownloadId,
