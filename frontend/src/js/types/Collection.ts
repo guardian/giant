@@ -16,17 +16,20 @@ export const language = PropTypes.shape({
   iso6391Code: PropTypes.string.isRequired,
 });
 
-export type Ingestion = {
-  display: string;
-  uri: string;
-  startTime: Date;
-  endTime: null | Date;
-  path: string;
-  failureMessage: null | string;
-  languages: Language[];
-  fixed: boolean;
-  default: boolean;
-};
+// model.manifest.Ingestion serializes OffsetDateTime as a string and omits
+// absent Option fields. Keep the wire values unchanged for existing consumers.
+export const ingestionSchema = z.looseObject({
+  display: z.string(),
+  uri: z.string(),
+  startTime: z.iso.datetime({ offset: true }),
+  endTime: z.iso.datetime({ offset: true }).nullish(),
+  path: z.string().nullish(),
+  failureMessage: z.string().nullish(),
+  languages: z.array(z.string()),
+  fixed: z.boolean(),
+  default: z.boolean(),
+});
+export type Ingestion = z.infer<typeof ingestionSchema>;
 
 export const ingestion = PropTypes.shape({
   display: PropTypes.string.isRequired,
@@ -39,13 +42,19 @@ export const ingestion = PropTypes.shape({
   failureMessage: PropTypes.string,
 });
 
-export type Collection = {
-  uri: string;
-  display: string;
-  createdBy: null | string;
-  ingestions: Ingestion[];
-  users: string[];
-};
+// CollectionWithUsers is returned by the list/detail endpoints; creation
+// returns Collection without users.
+export const collectionSchema = z.looseObject({
+  uri: z.string(),
+  display: z.string(),
+  createdBy: z.string().nullish(),
+  ingestions: z.array(ingestionSchema),
+});
+export const collectionWithUsersSchema = collectionSchema.extend({
+  users: z.array(z.string()),
+});
+export const collectionsSchema = z.array(collectionWithUsersSchema);
+export type Collection = z.infer<typeof collectionWithUsersSchema>;
 
 export const collection = PropTypes.shape({
   uri: PropTypes.string.isRequired,

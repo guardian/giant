@@ -55,25 +55,14 @@ sufficient evidence. The independent filter API slice can proceed first.
 
 Consume the validated search response, preserve stale-response suppression, and compute pages in the reducer. Extend the existing SearchState and GiantAction types rather than making parallel versions.
 
-Follow-up after `js/actions/search/performSearch.js` is migrated to TypeScript:
-consolidate search query-string parsing around the shared schema from step 10.
-Parse and validate once at the search action boundary, then pass typed query
-fragments through the request, Redux state and consumers, including
-`calculateSearchTitle`, instead of reparsing JSON in each consumer. Use the same
-schema across the app, including the query editor as it migrates; preserve chip
-type, operator and workspace/folder IDs, date conversion semantics, URL
-serialization and stale-response suppression. Replace the title-only schema in
-`documentTitle.ts`. Keep this follow-up in the plan until it is complete, even if
-the file migrations above have finished.
-
-### 12. Collection and document data
-
-Reuse Collection.ts and inspect CollectionsApi.ts, whose responses are currently mostly unvalidated. Add shared collection schemas at the touched boundary as supporting TS changes. Check that DocumentApi.fetchIngestions returns a collection object, despite its name.
-
-- `js/services/DocumentApi.js`
-- `js/actions/collections/getCollection.js`
-- `js/actions/collections/getCollections.js`
-- `js/reducers/collectionsReducer.js`
+Remaining query-parsing follow-up: the search action now validates fragments with
+step 10's shared schema and passes them through the service and Redux query to
+`calculateSearchTitle`; the title-only schema has been removed. Consolidate the
+remaining consumers (`SearchStepper`, `TimeHistogram`, and the query editor) around
+that same schema as they migrate. Preserve chip type, operator and workspace/folder
+IDs, date conversion semantics, URL serialization and stale-response suppression.
+Retain this step until those consumers are complete; the editor integration follows
+its leaves and chips in steps 26–28.
 
 ### 13. Resource actions and descendants
 
