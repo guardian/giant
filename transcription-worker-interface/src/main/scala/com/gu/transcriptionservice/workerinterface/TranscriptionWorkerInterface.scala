@@ -691,7 +691,9 @@ object OcrOutputSuccess {
 
 final case class OcrOutputFailure(
     id: String,
-    userEmail: String
+    userEmail: String,
+    failureReason: OcrMyPdfFailureReason,
+    message: String
 ) extends TranscriptionOutput {
   def status: String = OcrOutputFailure.StatusValue
 }
@@ -703,6 +705,32 @@ object OcrOutputFailure {
 
   implicit val writes: OWrites[OcrOutputFailure] =
     Json.writes[OcrOutputFailure].transform((json: JsObject) => json ++ Json.obj("status" -> StatusValue))
+}
+
+sealed abstract class OcrMyPdfFailureReason(val value: String)
+
+object OcrMyPdfFailureReason {
+  case object BadArgs extends OcrMyPdfFailureReason("BAD_ARGS")
+  case object InputFile extends OcrMyPdfFailureReason("INPUT_FILE")
+  case object MissingDependency extends OcrMyPdfFailureReason("MISSING_DEPENDENCY")
+  case object FileAccessError extends OcrMyPdfFailureReason("FILE_ACCESS_ERROR")
+  case object AlreadyDoneOcr extends OcrMyPdfFailureReason("ALREADY_DONE_OCR")
+  case object ChildProcessError extends OcrMyPdfFailureReason("CHILD_PROCESS_ERROR")
+  case object EncryptedPdf extends OcrMyPdfFailureReason("ENCRYPTED_PDF")
+  case object InvalidConfig extends OcrMyPdfFailureReason("INVALID_CONFIG")
+  case object OtherError extends OcrMyPdfFailureReason("OTHER_ERROR")
+
+  val All: Seq[OcrMyPdfFailureReason] = Seq(BadArgs, InputFile, MissingDependency, FileAccessError, AlreadyDoneOcr, ChildProcessError, EncryptedPdf, InvalidConfig, OtherError)
+
+  def fromString(value: String): Option[OcrMyPdfFailureReason] = All.find(_.value == value)
+
+  implicit val reads: Reads[OcrMyPdfFailureReason] = Reads {
+    case JsString(value) =>
+      fromString(value).fold[JsResult[OcrMyPdfFailureReason]](JsError(s"Unknown OcrMyPdfFailureReason: $value"))(JsSuccess(_))
+    case other => JsError(s"Expected a JSON string for OcrMyPdfFailureReason, got: $other")
+  }
+
+  implicit val writes: Writes[OcrMyPdfFailureReason] = Writes(value => JsString(value.value))
 }
 
 final case class OcrOutput(
