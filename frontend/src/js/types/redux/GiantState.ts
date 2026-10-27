@@ -1,3 +1,4 @@
+import { EmailThread } from "../Email";
 import { SearchQuery } from "../SearchQuery";
 import { SearchFilter } from "../SearchFilter";
 import { Preferences } from "../Preferences";
@@ -83,9 +84,15 @@ export interface AppState {
   warnings: string[];
 }
 
+export type EmailsState = {
+  uri: string;
+  timeline: EmailThread;
+} | null;
+
 // Once all reducers are typed, we should be able to infer this type, à la:
 // https://github.com/guardian/facia-tool/blob/master/client-v2/src/types/State.ts
 export interface GiantState {
+  emails: EmailsState;
   filters: FiltersState;
   workspaces: WorkspacesState;
   metrics: MetricsState;
