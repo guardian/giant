@@ -41,39 +41,44 @@ class DefaultAuthActionBuilder(val controllerComponents: ControllerComponents, f
     maybeToken match {
       case (JsSuccess(token, _)) if token.loginExpiry > now =>
         val isVerificationExpired = token.verificationExpiry <= now
-        for {
-          maybeDbUser <- if (isVerificationExpired) getUser(token.user.username).asFuture else Future.successful(Left(AuthenticationFailure("Verification hasn't expired", reportAsFailure = true)))
-          result <- block(new AuthenticatedRequest(token.user, request))
-        } yield {
-          if (isVerificationExpired) {
-            maybeDbUser match {
-              case Right(user) if user.invalidationTime.exists(token.issuedAt < _) =>
-                // The user has logged out
-                val msg = s"Authenticated failed because token was issued before database invalidation time"
-                logger.warn(token.user.asLogMarker, msg)
-                Left(AuthenticationFailure(msg, reportAsFailure = true))
-              case Left(failure) =>
-                logger.error(token.user.asLogMarker, "Authentication failed because user was not found in DB", failure.toThrowable)
-                Left(failure)
-              case Right(_) =>
-                val verificationExpiry = now + maxVerificationAge.toMillis
-                val expiryDateTime = LocalDateTime.ofInstant(
-                  Instant.ofEpochMilli(verificationExpiry),
-                  ZoneId.systemDefault()
-                )
-                logger.info(token.user.asLogMarker, s"Authentication succeeded, verification expired but token renewed. New verification expiry: ${expiryDateTime}")
-                Right(result
-                  .refreshJwtSession
-                  .addingToJwtSession(Token.VERIFICATION_EXPIRY_KEY, verificationExpiry)
-                  .addingToJwtSession(Token.REFRESHED_AT_KEY, now)
-                )
+        def runAuthenticatedBlock(): Future[Either[Failure, Result]] = {
+          block(new AuthenticatedRequest(token.user, request)).map { result =>
+            if (isVerificationExpired) {
+              val verificationExpiry = now + maxVerificationAge.toMillis
+              val expiryDateTime = LocalDateTime.ofInstant(
+                Instant.ofEpochMilli(verificationExpiry),
+                ZoneId.systemDefault()
+              )
+              logger.info(token.user.asLogMarker, s"Authentication succeeded, verification expired but token renewed. New verification expiry: ${expiryDateTime}")
+              Right(result
+                .refreshJwtSession
+                .addingToJwtSession(Token.VERIFICATION_EXPIRY_KEY, verificationExpiry)
+                .addingToJwtSession(Token.REFRESHED_AT_KEY, now)
+              )
+            } else {
+              Right(result
+                .refreshJwtSession
+                .addingToJwtSession(Token.REFRESHED_AT_KEY, now)
+              )
             }
-          } else {
-            Right(result
-              .refreshJwtSession
-              .addingToJwtSession(Token.REFRESHED_AT_KEY, now)
-            )
           }
+        }
+
+        if (isVerificationExpired) {
+          getUser(token.user.username).asFuture.flatMap {
+            case Right(user) if user.invalidationTime.exists(token.issuedAt < _) =>
+              // The user has logged out. Reject before executing the endpoint.
+              val msg = "Authentication failed because token was issued before database invalidation time"
+              logger.warn(token.user.asLogMarker, msg)
+              Future.successful(Left(AuthenticationFailure(msg, reportAsFailure = true)))
+            case Left(failure) =>
+              logger.error(token.user.asLogMarker, "Authentication failed because user was not found in DB", failure.toThrowable)
+              Future.successful(Left(failure))
+            case Right(_) =>
+              runAuthenticatedBlock()
+          }
+        } else {
+          runAuthenticatedBlock()
         }
 
       case JsSuccess(token, _) => {

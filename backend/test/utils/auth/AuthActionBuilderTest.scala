@@ -19,6 +19,7 @@ import utils.controller.DefaultFailureToResultMapper
 
 import java.io.File
 import java.time.Clock
+import java.util.concurrent.atomic.AtomicInteger
 import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.language.postfixOps
@@ -89,15 +90,20 @@ class AuthActionBuilderTest extends AnyFreeSpec with Matchers with BaseOneAppPer
         claimData.as[Token]
       }
 
-      val block: (UserIdentityRequest[AnyContentAsEmpty.type]) => Future[Result] = { req =>
-        Future.successful(Ok(s"Hi ${req.user.displayName}"))
+      class RecordingBlock {
+        val invocations = new AtomicInteger(0)
+        val run: UserIdentityRequest[AnyContentAsEmpty.type] => Future[Result] = { req =>
+          invocations.incrementAndGet()
+          Future.successful(Ok(s"Hi ${req.user.displayName}"))
+        }
       }
 
       implicit val timeout = Timeout(5 seconds)
 
       "should return an error when no authorization header is present" in {
+        val block = new RecordingBlock
         val request = makeRequest(None)
-        val futureResult = authActionBuilder.invokeBlockWithTime(request, block, now.getMillis)
+        val futureResult = authActionBuilder.invokeBlockWithTime(request, block.run, now.getMillis)
         val result = Helpers.await(futureResult)
         result.left.value should matchPattern {
           case _: HiddenFailure =>
@@ -106,9 +112,11 @@ class AuthActionBuilderTest extends AnyFreeSpec with Matchers with BaseOneAppPer
           case uf: HiddenFailure =>
             uf.actualMessage should startWith ("Failed to parse token: ")
         }
+        block.invocations.get() shouldBe 0
       }
 
       "should return an error if the token is too old" in {
+        val block = new RecordingBlock
         val token = Token(
           user = userMickey,
           issuedAt = now.minusMinutes(30).getMillis,
@@ -118,12 +126,14 @@ class AuthActionBuilderTest extends AnyFreeSpec with Matchers with BaseOneAppPer
           verificationExpiry = now.plusMinutes(30).getMillis
         )
         val request = requestFromToken(token)
-        val futureResult = authActionBuilder.invokeBlockWithTime(request, block, now.plusMinutes(10).getMillis)
+        val futureResult = authActionBuilder.invokeBlockWithTime(request, block.run, now.plusMinutes(10).getMillis)
         val result = Helpers.await(futureResult)
         result.left.value shouldBe AuthenticationFailure("Token is older than 8 hours", None, false)
+        block.invocations.get() shouldBe 0
       }
 
       "should return an error if the user is no longer in the database and the verification has expired" in {
+        val block = new RecordingBlock
         val authActionBuilderWithEmptyUserDb =
           new DefaultAuthActionBuilder(Helpers.stubControllerComponents(), new DefaultFailureToResultMapper, 8 hours, 15 minutes, TestUserManagement(Nil))
 
@@ -137,12 +147,14 @@ class AuthActionBuilderTest extends AnyFreeSpec with Matchers with BaseOneAppPer
         )
         val request = requestFromToken(token)
         val futureResult = authActionBuilderWithEmptyUserDb.
-          invokeBlockWithTime(request, block, now.plusMinutes(10).getMillis)
+          invokeBlockWithTime(request, block.run, now.plusMinutes(10).getMillis)
         val result = Helpers.await(futureResult)
         result.left.value shouldBe UserDoesNotExistFailure("mickey")
+        block.invocations.get() shouldBe 0
       }
 
       "should refresh the token verification if it has expired and the user is in the database" in {
+        val block = new RecordingBlock
         val token = Token(
           user = userMickey,
           issuedAt = now.minusMinutes(30).getMillis,
@@ -153,17 +165,20 @@ class AuthActionBuilderTest extends AnyFreeSpec with Matchers with BaseOneAppPer
         )
         val request = requestFromToken(token)
         val requestTime = now.plusMinutes(10)
-        val futureResult = authActionBuilder.invokeBlockWithTime(request, block, requestTime.getMillis)
+        val futureResult = authActionBuilder.invokeBlockWithTime(request, block.run, requestTime.getMillis)
         val resultEither = Helpers.await(futureResult)
         val result = resultEither.toOption.get
 
         val newToken = tokenFromResult(result)
         newToken.user shouldBe token.user
+        newToken.loginExpiry shouldBe token.loginExpiry
         newToken.verificationExpiry shouldBe requestTime.plusMinutes(15).getMillis
         newToken.refreshedAt shouldBe requestTime.getMillis
+        block.invocations.get() shouldBe 1
       }
 
       "should refresh the token expiry" in {
+        val block = new RecordingBlock
         val token = Token(
           user = userMickey,
           issuedAt = now.minusMinutes(30).getMillis,
@@ -174,7 +189,7 @@ class AuthActionBuilderTest extends AnyFreeSpec with Matchers with BaseOneAppPer
         )
         val request = requestFromToken(token)
         val requestTime = now.plusMinutes(10)
-        val futureResult = authActionBuilder.invokeBlockWithTime(request, block, requestTime.getMillis)
+        val futureResult = authActionBuilder.invokeBlockWithTime(request, block.run, requestTime.getMillis)
         val resultEither = Helpers.await(futureResult)
         val result = resultEither.toOption.get
 
@@ -184,9 +199,35 @@ class AuthActionBuilderTest extends AnyFreeSpec with Matchers with BaseOneAppPer
         newToken.loginExpiry shouldBe token.loginExpiry
         newToken.exp shouldBe ((System.currentTimeMillis() + 900000) / 1000 +- 10)
         newToken.refreshedAt shouldBe requestTime.getMillis
+        block.invocations.get() shouldBe 1
+      }
+
+      "should use cached verification without checking the database until it expires" in {
+        val block = new RecordingBlock
+        val builder = new DefaultAuthActionBuilder(
+          Helpers.stubControllerComponents(), new DefaultFailureToResultMapper,
+          8 hours, 15 minutes, TestUserManagement(Nil)
+        )
+        val token = Token(
+          user = userMickey,
+          issuedAt = now.minusMinutes(5).getMillis,
+          refreshedAt = now.minusMinutes(5).getMillis,
+          exp = now.plusMinutes(30).getMillis,
+          loginExpiry = now.plusHours(7).getMillis,
+          verificationExpiry = now.plusMinutes(10).getMillis
+        )
+
+        val result = Helpers.await(builder.invokeBlockWithTime(requestFromToken(token), block.run, now.getMillis)).value
+        result.header.status shouldBe 200
+        val refreshedToken = tokenFromResult(result)
+        refreshedToken.loginExpiry shouldBe token.loginExpiry
+        refreshedToken.verificationExpiry shouldBe token.verificationExpiry
+        refreshedToken.refreshedAt shouldBe now.getMillis
+        block.invocations.get() shouldBe 1
       }
 
       "should return an error if the user is not registered" in {
+        val block = new RecordingBlock
         val authActionBuilderWithInvalidatedUser = builderWithUser(
           invalidationTime = Some(now.minusMinutes(10).getMillis),
           registered = false
@@ -203,12 +244,14 @@ class AuthActionBuilderTest extends AnyFreeSpec with Matchers with BaseOneAppPer
 
         val request = requestFromToken(token)
         val futureResult = authActionBuilderWithInvalidatedUser.
-          invokeBlockWithTime(request, block, now.getMillis)
+          invokeBlockWithTime(request, block.run, now.getMillis)
         val result = Helpers.await(futureResult)
         result.left.value shouldBe an [AuthenticationFailure]
+        block.invocations.get() shouldBe 0
       }
 
       "should return an error if the token is older than invalidatedTime and the verification has expired" in {
+        val block = new RecordingBlock
         val authActionBuilderWithInvalidatedUser = builderWithUser(
           invalidationTime = Some(now.minusMinutes(10).getMillis)
         )
@@ -223,12 +266,14 @@ class AuthActionBuilderTest extends AnyFreeSpec with Matchers with BaseOneAppPer
         )
         val request = requestFromToken(token)
         val futureResult = authActionBuilderWithInvalidatedUser.
-          invokeBlockWithTime(request, block, now.getMillis)
+          invokeBlockWithTime(request, block.run, now.getMillis)
         val result = Helpers.await(futureResult)
         result.left.value shouldBe an [AuthenticationFailure]
+        block.invocations.get() shouldBe 0
       }
 
       "should be permitted if the token is newer than invalidatedTime and the verification has expired" in {
+        val block = new RecordingBlock
         // a user that has an invalidation time of 10 minutes ago
         val authActionBuilderWithInvalidatedUser = builderWithUser(
           invalidationTime = Some(now.minusMinutes(10).getMillis)
@@ -244,10 +289,11 @@ class AuthActionBuilderTest extends AnyFreeSpec with Matchers with BaseOneAppPer
         )
         val request = requestFromToken(token)
         val futureResult = authActionBuilderWithInvalidatedUser.
-          invokeBlockWithTime(request, block, now.getMillis)
+          invokeBlockWithTime(request, block.run, now.getMillis)
         val resultOrFailure = Helpers.await(futureResult)
         val result = resultOrFailure.toOption.get
         result.header.status shouldBe 200
+        block.invocations.get() shouldBe 1
       }
     }
 
