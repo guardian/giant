@@ -1,7 +1,7 @@
 package controllers.api
 
 import software.amazon.awssdk.services.sns.SnsClient
-import commands.DeleteResource
+import commands.{DeleteResource, GetResource, ResourceFetchMode}
 import model.Uri
 import model.annotations.{ProcessingStage, Workspace, WorkspaceEntry, WorkspaceLeaf}
 import model.frontend.{TreeEntry, TreeLeaf, TreeNode}
@@ -282,6 +282,7 @@ class Workspaces(
       val blobUri = data.parameters.uri.map(Uri(_)).get
 
       for {
+        _ <- GetResource(blobUri, ResourceFetchMode.Basic, username, manifest, index, annotation, users).process()
         _ <- annotation.addResourceToWorkspaceFolder(username, data.name, blobUri, data.parameters.size, data.parameters.mimeType, data.icon.get, workspaceId, data.parentId, workspaceNodeId)
         _ <- index.addResourceToWorkspace(blobUri, workspaceId, workspaceNodeId)
       } yield {
