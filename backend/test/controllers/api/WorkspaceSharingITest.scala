@@ -99,6 +99,50 @@ class WorkspaceSharingITest extends AnyFunSuite
     }
   }
 
+  test("Barry cannot grant himself access to Paul's private file by adding it to his workspace") {
+    val paulBlobId = uploadAndAddFileToWorkspaceAsPaul().blobId
+
+    asUser("barry") { implicit controllers =>
+      getBlobResourceStatus(paulBlobId) should be(404)
+
+      status(addFileToWorkspace(
+        workspaceId = barryWorkspace.id,
+        parentNodeId = barryWorkspace.rootNodeId,
+        blobId = paulBlobId,
+        name = "paul.txt"
+      )) should be(404)
+
+      insideChildren(getWorkspace(barryWorkspace.id).rootNode) { children =>
+        children should be(empty)
+      }
+      getBlobResourceStatus(paulBlobId) should be(404)
+      searchExact("paul.txt", barryWorkspace.id).hits should be(0)
+    }
+  }
+
+  test("Barry can add a file shared through Paul's workspace to his own workspace") {
+    val paulBlobId = uploadAndAddFileToWorkspaceAsPaul().blobId
+
+    asUser("paul") { implicit controllers =>
+      status(setWorkspaceFollowers(paulWorkspace.id, List("barry"))) should be(204)
+    }
+
+    asUser("barry") { implicit controllers =>
+      status(addFileToWorkspace(
+        workspaceId = barryWorkspace.id,
+        parentNodeId = barryWorkspace.rootNodeId,
+        blobId = paulBlobId,
+        name = "paul.txt"
+      )) should be(201)
+
+      insideChildren(getWorkspace(barryWorkspace.id).rootNode) { children =>
+        children.map(_.name) should be(List("paul.txt"))
+      }
+      getBlobResourceStatus(paulBlobId) should be(200)
+      searchExact("paul.txt", barryWorkspace.id).hits should be(1)
+    }
+  }
+
   test("Paul adds a new entry to the workspace and then removes it") {
     asUser("paul") { implicit controllers =>
       val paulWorkspaceFromApi = getWorkspace(paulWorkspace.id)
