@@ -4,15 +4,22 @@ import com.dimafeng.testcontainers.lifecycle.and
 import com.dimafeng.testcontainers.scalatest.TestContainersForAll
 import com.dimafeng.testcontainers.{ElasticsearchContainer, Neo4jContainer}
 import model.frontend.user.PartialUser
+import model.{CreateIngestionRequest, English, Uri}
 import org.apache.pekko.util.Timeout
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.time.{Millis, Seconds, Span}
 import org.testcontainers.lifecycle.Startables
-import test.PlayHelpers.status
+import org.joda.time.DateTime
+import play.api.libs.json.Json
+import play.api.test.FakeRequest
+import services.ingestion.Neo4jRemoteIngestStore
+import test.PlayHelpers.{contentAsJson, status}
 import test.integration.Helpers._
 import test.integration.{ElasticSearchTestContainer, ElasticsearchTestService, Neo4jTestContainer, Neo4jTestService}
+import utils.attempt.AttemptAwait._
 
+import java.util.UUID
 import java.util.concurrent.TimeUnit
 import scala.concurrent.{Await, ExecutionContext, Future}
 
@@ -141,6 +148,102 @@ class WorkspaceSharingITest extends AnyFunSuite
       getBlobResourceStatus(paulBlobId) should be(200)
       searchExact("paul.txt", barryWorkspace.id).hits should be(1)
     }
+  }
+
+  private def remoteIngestStore = new Neo4jRemoteIngestStore(
+    neo4jTestService.neo4jDriver, executionContext, neo4jTestService.neo4jQueryLoggingConfig
+  )
+
+  private def createRemoteJob(username: String, workspace: MinimalWorkspace): String = {
+    val taskId = UUID.randomUUID().toString
+    remoteIngestStore.insertRemoteIngest(
+      id = UUID.randomUUID().toString,
+      title = "Remote document",
+      workspaceId = workspace.id,
+      parentFolderId = workspace.rootNodeId,
+      collection = s"e2e-test-$username",
+      createdAt = DateTime.now,
+      url = "https://example.com/document",
+      username = username,
+      mediaDownloadId = taskId,
+      webpageSnapshotId = UUID.randomUUID().toString,
+      language = "english"
+    ).await()
+    taskId
+  }
+
+  test("Remote jobs are visible only to users with workspace access") {
+    createRemoteJob("paul", paulWorkspace)
+
+    asUser("barry") { implicit controllers =>
+      status(controllers.workspace.getRelevantRemoteJobs(paulWorkspace.id).apply(FakeRequest())) should be(404)
+      status(controllers.workspace.getRelevantRemoteJobs("missing").apply(FakeRequest())) should be(404)
+    }
+
+    asUser("paul") { implicit controllers =>
+      status(setWorkspaceFollowers(paulWorkspace.id, List("barry"))) should be(204)
+    }
+    asUser("barry") { implicit controllers =>
+      contentAsJson(controllers.workspace.getRelevantRemoteJobs(paulWorkspace.id).apply(FakeRequest()))
+        .as[List[play.api.libs.json.JsValue]].size should be(1)
+    }
+  }
+
+  test("Archiving a remote task requires access to its actual workspace") {
+    val taskId = createRemoteJob("paul", paulWorkspace)
+
+    asUser("barry") { implicit controllers =>
+      status(controllers.workspace.archiveRemoteIngestTask(paulWorkspace.id, taskId).apply(FakeRequest())) should be(404)
+      status(controllers.workspace.archiveRemoteIngestTask(barryWorkspace.id, taskId).apply(FakeRequest())) should be(404)
+      status(controllers.workspace.archiveRemoteIngestTask(barryWorkspace.id, "missing").apply(FakeRequest())) should be(404)
+    }
+    remoteIngestStore.getRelevantRemoteIngestJobs(paulWorkspace.id).await().head.tasks.keySet should contain(taskId)
+
+    asUser("paul") { implicit controllers =>
+      status(setWorkspaceIsPublic(paulWorkspace.id, isPublic = true)) should be(204)
+    }
+    asUser("barry") { implicit controllers =>
+      status(controllers.workspace.archiveRemoteIngestTask(paulWorkspace.id, taskId).apply(FakeRequest())) should be(204)
+    }
+    remoteIngestStore.getRelevantRemoteIngestJobs(paulWorkspace.id).await().head.tasks.keySet should not contain taskId
+  }
+
+  test("Remote URL submission rejects inaccessible workspaces and invalid destination folders before creating jobs") {
+    val fileNodeId = uploadAndAddFileToWorkspaceAsPaul().nodeId
+    List("paul", "barry").foreach { username =>
+      asUser(username) { implicit controllers =>
+        status(controllers.collections.newIngestion(Uri(s"e2e-test-$username")).apply(
+          FakeRequest().withBody(Json.toJson(CreateIngestionRequest(
+            path = None, name = Some("default"), languages = List(English.key), fixed = Some(false), default = Some(true)
+          )))
+        )) should be(200)
+      }
+    }
+
+    asUser("barry") { implicit controllers =>
+      val destinations = List(
+        paulWorkspace.id -> paulWorkspace.rootNodeId,
+        "missing" -> "missing",
+        barryWorkspace.id -> paulWorkspace.rootNodeId,
+        barryWorkspace.id -> "missing"
+      )
+      destinations.foreach { case (workspaceId, parentId) =>
+        status(controllers.workspace.addRemoteUrlToWorkspace(workspaceId).apply(
+          FakeRequest().withBody(Json.toJson(AddRemoteUrlData("https://example.com", "Test", parentId, "english")))
+        )) should be(404)
+      }
+    }
+    asUser("paul") { implicit controllers =>
+      status(controllers.workspace.addRemoteUrlToWorkspace(paulWorkspace.id).apply(
+        FakeRequest().withBody(Json.toJson(AddRemoteUrlData("https://example.com", "Test", fileNodeId, "english")))
+      )) should be(404)
+      status(setWorkspaceFollowers(paulWorkspace.id, List("barry"))) should be(204)
+    }
+    remoteIngestStore.getRelevantRemoteIngestJobs(paulWorkspace.id).await() should be(empty)
+    remoteIngestStore.getRelevantRemoteIngestJobs(barryWorkspace.id).await() should be(empty)
+
+    createRemoteJob("barry", paulWorkspace)
+    remoteIngestStore.getRelevantRemoteIngestJobs(paulWorkspace.id).await().size should be(1)
   }
 
   test("Paul adds a new entry to the workspace and then removes it") {
