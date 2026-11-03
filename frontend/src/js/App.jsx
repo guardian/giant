@@ -77,7 +77,7 @@ class App extends React.Component {
           />
           <Route path="/guide" component={DocsSidebar} />
           <Route path="/settings" component={SettingsSidebar} />
-          <Route path="/video-verifier" component={VideoVerifier} />
+          {/*<Route path="/video-verifier" component={VideoVerifier} /> NOTE: see VideoVerifier.scala */}
           <Route path="/workspaces/:id?" component={WorkspacesSidebar} />
 
           <div className="app__content">

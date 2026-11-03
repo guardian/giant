@@ -25,6 +25,10 @@ class VideoVerifier(override val controllerComponents: AuthControllerComponents)
 
   private implicit val format: Format[InputItem] = Json.format[InputItem]
 
+  // FIXME the route pointing to this has been removed for now,
+  //  but should we re-enable it, then we ought to have more guards (than just the IAM role in investigations-platform)
+  //  to allow-list bucket and key prefixes that can be requested via this endpoint, otherwise anyone with access
+  //  to the API could get a signed URL for any object in any bucket that giant frontend has access to
   def fetchVideosToVerify(): Action[List[InputItem]] = ApiAction.attempt(parse.json[List[InputItem]]) { req =>
     Attempt.Right(
       Ok(
