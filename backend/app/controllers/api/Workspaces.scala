@@ -332,15 +332,16 @@ class Workspaces(
 
   def getRelevantRemoteJobs(workspaceId: String) = ApiAction.attempt { req =>
     for {
+      _ <- annotation.getWorkspaceMetadata(req.user.username, workspaceId)
       jobs <- remoteIngestStore.getRelevantRemoteIngestJobs(workspaceId)
     } yield {
       Ok(Json.toJson(jobs))
     }
   }
 
-  def archiveRemoteIngestTask(workspaceId: String, taskId: String) = ApiAction.attempt {
+  def archiveRemoteIngestTask(workspaceId: String, taskId: String) = ApiAction.attempt { req =>
     for {
-      _ <- remoteIngestStore.archiveRemoteIngestTask(taskId)
+      _ <- remoteIngestStore.archiveRemoteIngestTask(req.user.username, workspaceId, taskId)
     } yield {
       NoContent
     }

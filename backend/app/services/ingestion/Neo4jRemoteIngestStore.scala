@@ -50,6 +50,9 @@ class Neo4jRemoteIngestStore(driver: Driver, executionContext: ExecutionContext,
     val query =
       """
         |MATCH (user: User { username: $username})
+        |MATCH (workspace:Workspace {id: $workspaceId})
+        |WHERE (user)-[:FOLLOWING|OWNS]->(workspace) OR workspace.isPublic
+        |MATCH (:WorkspaceNode {id: $parentFolderId, type: 'folder'})-[:PART_OF]->(workspace)
         |CREATE (wst: RemoteIngestTask {
         |  type: 'WebpageSnapshot',
         |  id: $webpageSnapshotId,
@@ -98,7 +101,12 @@ class Neo4jRemoteIngestStore(driver: Driver, executionContext: ExecutionContext,
       "language", language
     )
 
-    tx.run(query, params).map(res => res.single().get("id").asString())
+    tx.run(query, params).flatMap { result =>
+      result.list().asScala.headOption match {
+        case Some(record) => Attempt.Right(record.get("id").asString())
+        case None => Attempt.Left(NotFoundFailure(s"Folder $parentFolderId in workspace $workspaceId not found"))
+      }
+    }
   }
 
   private val returnFields = """
@@ -220,8 +228,25 @@ class Neo4jRemoteIngestStore(driver: Driver, executionContext: ExecutionContext,
   override def updateRemoteIngestTaskStatus(taskId: String, status: RemoteIngestStatus): Attempt[Unit] =
     updateRemoteIngestTaskStatus(taskId, status.toString)
 
-  override def archiveRemoteIngestTask(taskId: String): Attempt[Unit] =
-    updateRemoteIngestTaskStatus(taskId, "ARCHIVED")
+  override def archiveRemoteIngestTask(username: String, workspaceId: String, taskId: String): Attempt[Unit] = attemptTransaction { tx =>
+    tx.run(
+      """
+        |MATCH (user:User {username: $username})
+        |MATCH (workspace:Workspace {id: $workspaceId})
+        |WHERE (user)-[:FOLLOWING|OWNS]->(workspace) OR workspace.isPublic
+        |MATCH (:RemoteIngest {workspaceId: $workspaceId})-[:HAS_TASK]->(task:RemoteIngestTask {id: $taskId})
+        |SET task.status = 'ARCHIVED'
+        |RETURN task.id AS id
+      """.stripMargin,
+      parameters("username", username, "workspaceId", workspaceId, "taskId", taskId)
+    ).flatMap { result =>
+      if (result.list().isEmpty) {
+        Attempt.Left(NotFoundFailure(s"Remote ingest task $taskId in workspace $workspaceId not found"))
+      } else {
+        Attempt.Right(())
+      }
+    }
+  }
 
   override def updateRemoteIngestTaskBlobUris(taskId: String, blobUris: List[String]): Attempt[Unit] = attemptTransaction { tx =>
     val query =
