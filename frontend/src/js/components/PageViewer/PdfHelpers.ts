@@ -1,17 +1,15 @@
-import { PDFPageProxy } from "pdfjs-dist/types/src/display/api";
+import { PDFPageProxy } from "pdfjs-dist";
 import { CachedPreview, PdfText } from "./model";
 import {
   getDocument,
   GlobalWorkerOptions,
   PDFWorker,
-  renderTextLayer,
+  TextLayer,
 } from "pdfjs-dist";
 
-// PDFjs has webpack config built-in but it uses worker-loader which seems
-// to break automatic reloading in dev in our Create React App project.
-// My solution is to symlink the worker js file into our existing 3rd party
-// directory in the backend and reference it directly.
-GlobalWorkerOptions.workerSrc = "/third-party/pdf.worker.min.js";
+import pdfWorkerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
+
+GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
 export const updatePreview = async (
   preview: Promise<CachedPreview>,
   containerSize: number,
@@ -29,6 +27,7 @@ export const renderPdfPreview = async (
 ): Promise<CachedPreview> => {
   const doc = await getDocument({
     data: new Uint8Array(buffer),
+    wasmUrl: "/pdfjs/wasm/",
     // Use the same web worker for all pages
     worker: pdfWorker,
   }).promise;
@@ -45,25 +44,24 @@ export const renderTextOverlays = async (
 
   const textContentSource = pdfPage.streamTextContent();
 
-  const textDivs: HTMLDivElement[] = [];
-  const textContentItemsStr: string[] = [];
   const viewport = pdfPage.getViewport({ scale });
 
-  await renderTextLayer({
+  const textLayer = new TextLayer({
     textContentSource,
     container: document.createElement("div"),
     viewport,
-    textDivs,
-    textContentItemsStr,
-  }).promise;
+  });
+  await textLayer.render();
+  const { textDivs } = textLayer;
 
   return textDivs.map((textDiv) => ({
-    value: textDiv.innerHTML,
+    value: textDiv.textContent ?? "",
     left: textDiv.style.left,
     top: textDiv.style.top,
-    fontSize: textDiv.style.fontSize,
+    // TextLayer stores layout values in CSS variables.
+    fontSize: `${parseFloat(textDiv.style.getPropertyValue("--font-height")) * viewport.scale}px`,
     fontFamily: textDiv.style.fontFamily,
-    transform: textDiv.style.transform,
+    transform: `rotate(${textDiv.style.getPropertyValue("--rotate") || "0deg"}) scaleX(${textDiv.style.getPropertyValue("--scale-x") || "1"})`,
   }));
 };
 
@@ -94,9 +92,10 @@ const renderPagePreview = async (
 
   // Render
   await pdfPage.render({
+    canvas,
     canvasContext,
     viewport,
-  });
+  }).promise;
 
   return { pdfPage, canvas, scale };
 };
