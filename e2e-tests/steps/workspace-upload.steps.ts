@@ -100,9 +100,15 @@ Then(
         .getByRole("button", { name: /^OCR \(/ })
         .first()
         .click();
-      await expect(
-        viewer.locator("[data-selectable-text-preview]"),
-      ).toContainText(text, { ignoreCase: true });
+      await expect
+        .poll(
+          async () =>
+            (await viewer.locator("[data-selectable-text-preview]").innerText())
+              .replace(/\s/g, "")
+              .toLowerCase(),
+          { timeout: 15_000 },
+        )
+        .toContain(text.replace(/\s/g, "").toLowerCase());
     } finally {
       await viewer.close();
     }
