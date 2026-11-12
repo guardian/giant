@@ -81,16 +81,6 @@ the independent email slice can proceed first.
 - `js/actions/resources/clearResource.js`
 - `js/reducers/descendantResourcesReducer.js`
 
-### 15. Authentication contracts and token receipt
-
-Reconcile Token.js with the existing private Token type in Auth.ts. Validate decoded JWT payloads with a shared schema (validation is not signature verification); preserve header/status-based login behavior and rejection paths. AuthApi returns Response/text for several methods, so do not invent JSON parsing there.
-
-- `js/types/Token.js`
-- `js/services/AuthApi.js`
-- `js/actions/auth/getAuthToken.js`
-- `js/reducers/authReducer.js`
-- `js/util/isLoggedIn.js`
-
 ### 16. Session lifecycle and download link
 
 Use the typed token/action contracts, preserving expiry, renewal, logout and text-download behavior.

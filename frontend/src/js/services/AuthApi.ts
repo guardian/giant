@@ -1,6 +1,6 @@
 import authFetch from "../util/auth/authFetch";
 
-export function getToken(username, password, tfaCode) {
+export function getToken(username: string, password: string, tfaCode?: string) {
   const params = new URLSearchParams();
   params.append("username", username);
   params.append("password", password);
@@ -21,7 +21,7 @@ export function invalidateExistingTokens() {
   });
 }
 
-export function authorizedDownload(href) {
+export function authorizedDownload(href: string) {
   return authFetch(href, { credentials: "same-origin" }).then((res) =>
     res.text(),
   );
