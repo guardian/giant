@@ -1,23 +1,14 @@
-import { PartialUser } from "./User";
+import { Token } from "./Token";
 export type Auth = {
-  header: string;
+  header?: string;
   requesting: boolean;
   require2fa: boolean;
   requirePanda: boolean;
   forbidden: boolean;
-  errors: string[];
-  jwtToken: string;
+  errors: (string | undefined)[];
+  jwtToken?: string;
   token?: Token;
-};
-
-type Token = {
-  exp: number;
-  user: PartialUser;
-  issuedAt: number;
-  refreshedAt: number;
-  loginExpiry: number;
-  verificationExpiry: number;
-  permissions: {
-    granted: string[];
-  };
+  username?: string;
+  lastSessionKeepaliveRequest?: number;
+  lastSessionKeepaliveResponse?: number;
 };
