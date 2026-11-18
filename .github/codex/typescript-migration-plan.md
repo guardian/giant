@@ -81,16 +81,6 @@ the independent email slice can proceed first.
 - `js/actions/resources/clearResource.js`
 - `js/reducers/descendantResourcesReducer.js`
 
-### 16. Session lifecycle and download link
-
-Use the typed token/action contracts, preserving expiry, renewal, logout and text-download behavior.
-
-- `js/actions/auth/invalidateAuthToken.js`
-- `js/actions/auth/sessionKeepalive.js`
-- `js/components/Login/SessionKeepalive.js`
-- `js/components/DownloadLink/DownloadLink.jsx`
-- `js/components/DownloadLink/index.js`
-
 ### 17. User API contracts
 
 UserApi has many distinct response shapes: inspect controllers/api/Users.scala, setup/auth handlers and already-typed actions/users callers. Reuse User.ts where accurate and add endpoint schemas rather than one permissive catch-all. Keep this service migration separate from its UI.

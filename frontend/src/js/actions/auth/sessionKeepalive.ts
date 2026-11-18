@@ -1,7 +1,9 @@
 import { sessionKeepalive as sessionKeepaliveApi } from "../../services/AuthApi";
+import { AuthAction } from "../../types/redux/GiantActions";
+import { GiantDispatch } from "../../types/redux/GiantDispatch";
 
 export function sessionKeepalive() {
-  return (dispatch) => {
+  return (dispatch: GiantDispatch) => {
     dispatch(requestSessionKeepalive());
     return sessionKeepaliveApi()
       .then((response) => {
@@ -14,25 +16,27 @@ export function sessionKeepalive() {
           );
         }
       })
-      .catch((error) => dispatch(errorReceivingSessionKeepalive(error)));
+      .catch((error: unknown) =>
+        dispatch(errorReceivingSessionKeepalive(error)),
+      );
   };
 }
 
-function requestSessionKeepalive() {
+function requestSessionKeepalive(): AuthAction {
   return {
     type: "AUTH_SESSION_KEEPALIVE_REQUEST",
     receivedAt: Date.now(),
   };
 }
 
-function receiveSessionKeepalive() {
+function receiveSessionKeepalive(): AuthAction {
   return {
     type: "AUTH_SESSION_KEEPALIVE_RECEIVE",
     receivedAt: Date.now(),
   };
 }
 
-function errorReceivingSessionKeepalive(error) {
+function errorReceivingSessionKeepalive(error: unknown): AuthAction {
   return {
     type: "AUTH_SESSION_KEEPALIVE_ERROR",
     message: "Attempt to keep session alive failed.",
