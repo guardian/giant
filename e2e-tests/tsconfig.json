@@ -7,13 +7,13 @@
     "noEmit": true,
     "allowImportingTsExtensions": true,
     "skipLibCheck": true,
-    "types": ["node"],
+    "types": ["node"]
   },
   "include": [
     "run.mts",
     "playwright.config.ts",
     "vite.config.mts",
     "fixtures.ts",
-    "steps/**/*.ts",
-  ],
+    "steps/**/*.ts"
+  ]
 }

@@ -105,8 +105,7 @@ export type AppAction =
         }
       | {
           type:
-            | AppActionType.APP_CLEAR_ERRORS
-            | AppActionType.APP_CLEAR_WARNINGS;
+            AppActionType.APP_CLEAR_ERRORS | AppActionType.APP_CLEAR_WARNINGS;
         }
       | { type: AppActionType.APP_SET_CONFIG; config: Config }
       | { type: AppActionType.APP_SET_PREFERENCES; preferences: Preferences }
@@ -128,8 +127,7 @@ interface ReceiveExtractionFailuresAction {
 }
 
 export type MetricsAction =
-  | ReceiveMimeTypeCoverageAction
-  | ReceiveExtractionFailuresAction;
+  ReceiveMimeTypeCoverageAction | ReceiveExtractionFailuresAction;
 
 export enum UrlParamsActionType {
   SEARCHQUERY_FILTERS_UPDATE = "SEARCHQUERY_FILTERS_UPDATE",

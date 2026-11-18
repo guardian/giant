@@ -49,7 +49,7 @@ jobs:
       contents: write
       pull-requests: write
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.ref_name }}
           persist-credentials: false
@@ -63,7 +63,7 @@ jobs:
             echo 'No JavaScript source files remain to migrate.' >> "$GITHUB_STEP_SUMMARY"
           fi
 
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         if: steps.candidates.outputs.remaining == 'true'
         with:
           node-version-file: .nvmrc
@@ -83,7 +83,7 @@ jobs:
       - name: Migrate a small batch
         id: codex
         if: steps.candidates.outputs.remaining == 'true'
-        uses: openai/codex-action@v1.11
+        uses: openai/codex-action@306c6a196a99dcc6582530c396a19d2672d5e9ec # v1.14
         with:
           openai-api-key: ${{ secrets.OPENAI_API_KEY }}
           prompt-file: .github/codex/typescript-migration.md
@@ -132,7 +132,7 @@ jobs:
 
       - name: Open a pull request
         if: steps.candidates.outputs.remaining == 'true'
-        uses: peter-evans/create-pull-request@v7
+        uses: peter-evans/create-pull-request@3ffccacd46053766916f087ce41d627c0b8cf2d1 # v8.1.3
         with:
           token: ${{ github.token }}
           branch: ${{ env.MIGRATION_BRANCH }}

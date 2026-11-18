@@ -3,7 +3,7 @@ permissions:
   contents: read
 on:
   pull_request:
-    types: [opened, labeled, unlabeled, synchronize, reopened, edited]
+    types: [opened, labeled, unlabeled, synchronize, reopened, edited, ready_for_review]
 jobs:
   require-label:
-    uses: guardian/.github/.github/workflows/require-label.yaml@4cb5024736632ffcc564b7f4b772c38b8e5ce739 #  v2.0.0
+    uses: guardian/.github/.github/workflows/require-label.yaml@a4c4fa87762d059e2cb64c0b7e0d04742df423b2 # v3.1.3

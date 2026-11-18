@@ -24,16 +24,15 @@ val compilerFlags = Seq(
   "-Xfatal-warnings"
 )
 
-val awsSdkVersion2 = "2.54.16"
-val log4jVersion = "2.20.0"
-val slf4jVersion = "2.0.18"
-// To match what the main app gets from scalatestplus-play transitively
-val scalatestVersion = "3.2.17"
+val awsSdkVersion2 = "2.59.3"
+val log4jVersion = "2.26.1"
+val slf4jVersion = "2.0.20"
+val scalatestVersion = "3.2.20"
 // 0.44.x brings a docker-java that negotiates Docker Engine's API version; older releases
 // pinned a version below the minimum (1.40) enforced by Engine 29+, so testcontainers could
 // not start (HTTP 400 from the daemon).
 val testcontainersScalaVersion = "0.44.1"
-val playJsonVersion = "3.0.1"
+val playJsonVersion = "3.0.6"
 
 val transcriptionWorkerInterfacePackage =
   "com.gu.transcriptionservice.workerinterface"
@@ -162,9 +161,9 @@ lazy val common = (project in file("common"))
     name := "common",
     scalacOptions := compilerFlags,
     libraryDependencies ++= Seq(
-      "org.typelevel" %% "cats-core" % "2.2.0",
-      "org.playframework" %% "play-json" % "3.0.6",
-      "org.playframework" %% "play-json-joda" % "3.0.6",
+      "org.typelevel" %% "cats-core" % "2.13.0",
+      "org.playframework" %% "play-json" % playJsonVersion,
+      "org.playframework" %% "play-json-joda" % playJsonVersion,
       "software.amazon.awssdk" % "s3" % awsSdkVersion2,
       "software.amazon.awssdk" % "s3-transfer-manager" % awsSdkVersion2,
       "org.scalatest" %% "scalatest" % scalatestVersion,
@@ -175,7 +174,7 @@ lazy val common = (project in file("common"))
       // versions of SLF4J and Logback (i.e. its versions should be evicted by those here).
       // https://github.com/playframework/playframework/issues/11499#issuecomment-1285654119
       "org.slf4j" % "slf4j-api" % slf4jVersion,
-      "ch.qos.logback" % "logback-classic" % "1.5.32"
+      "ch.qos.logback" % "logback-classic" % "1.6.7"
     )
   )
 
@@ -199,28 +198,30 @@ lazy val backend = (project in file("backend"))
     ),
     libraryDependencies ++= Seq(
       ws,
-      "commons-codec" % "commons-codec" % "1.11",
-      "org.bouncycastle" % "bcprov-jdk18on" % "1.85",
+      "commons-codec" % "commons-codec" % "1.23.0",
+      "org.bouncycastle" % "bcprov-jdk18on" % "1.87",
       // required by tikka, used to be part of bcprov-jdk15on, pulled out into a separate library from 1.69 onwards
       // see https://github.com/guardian/giant/pull/92 for details - may be removable if it gets added as an explicit
       // dependency to tikka or another library
-      "org.bouncycastle" % "bcutil-jdk18on" % "1.85",
-      "commons-io" % "commons-io" % "2.6",
-      "com.sksamuel.elastic4s" %% "elastic4s-client-esjava" % "8.11.4",
-      "org.elasticsearch.client" % "elasticsearch-rest-client-sniffer" % "8.6.2",
+      "org.bouncycastle" % "bcutil-jdk18on" % "1.87",
+      "commons-io" % "commons-io" % "2.22.0",
+      "com.sksamuel.elastic4s" %% "elastic4s-client-esjava" % "8.11.5",
+      "org.elasticsearch.client" % "elasticsearch-rest-client-sniffer" % "8.19.25",
       "org.apache.pekko" %% "pekko-cluster-typed" % "1.0.3", // Needs to match pekko version in Play
       "org.neo4j.driver" % "neo4j-java-driver" % "6.3.0",
       "com.pff" % "java-libpst" % "0.9.3",
       // Tika 3 loads custom-mimetypes.xml from the classpath root (backend/conf).
-      "org.apache.tika" % "tika-parsers-standard-package" % "3.2.3",
-      "org.apache.tika" % "tika-core" % "3.2.3",
-      "org.apache.tika" % "tika-langdetect-optimaize" % "3.2.3",
+      "org.apache.tika" % "tika-parsers-standard-package" % "3.3.3",
+      "org.apache.tika" % "tika-core" % "3.3.3",
+      "org.apache.tika" % "tika-langdetect-optimaize" % "3.3.3",
+      // Tika upgrades Jackson Databind beyond Play's Scala module; keep the module compatible.
+      "com.fasterxml.jackson.module" %% "jackson-module-scala" % "2.23.0",
       "org.apache.commons" % "commons-compress" % "1.28.0",
       "org.apache.logging.log4j" % "log4j-to-slf4j" % log4jVersion,
       "org.apache.logging.log4j" % "log4j-api" % log4jVersion,
       "org.apache.logging.log4j" % "log4j-core" % log4jVersion,
-      "net.logstash.logback" % "logstash-logback-encoder" % "6.3",
-      "com.github.jwt-scala" % "jwt-play_2.13" % "9.4.5",
+      "net.logstash.logback" % "logstash-logback-encoder" % "6.6",
+      "com.github.jwt-scala" % "jwt-play_2.13" % "9.4.6",
       "software.amazon.awssdk" % "ec2" % awsSdkVersion2,
       "software.amazon.awssdk" % "ssm" % awsSdkVersion2,
       "software.amazon.awssdk" % "autoscaling" % awsSdkVersion2,
@@ -229,32 +230,32 @@ lazy val backend = (project in file("backend"))
       "software.amazon.awssdk" % "sns" % awsSdkVersion2,
       "software.amazon.awssdk" % "secretsmanager" % awsSdkVersion2,
       "software.amazon.awssdk" % "imds" % awsSdkVersion2,
-      "com.beachape" %% "enumeratum-play" % "1.8.0",
+      "com.beachape" %% "enumeratum-play" % "1.9.8",
       "com.iheart" %% "ficus" % "1.5.2",
-      "org.jsoup" % "jsoup" % "1.14.2",
+      "org.jsoup" % "jsoup" % "1.24.1",
       // angus mail is the implementation of jakarta mail. If updating this you may also need to update the mbox provider jar file
       // see https://github.com/guardian/giant/pull/131
-      "org.eclipse.angus" % "angus-mail" % "2.0.2",
+      "org.eclipse.angus" % "angus-mail" % "2.0.5",
       "com.sun.mail" % "javax.mail" % "1.6.2",
       "com.gu" %% "pan-domain-auth-verification" % "21.0.0",
 
       // Libraries whose use are potentially contentious
 
       // These dependencies allow PDF box to read images (which is critical for PdfOcrExtractor)
-      "org.apache.pdfbox" % "jbig2-imageio" % "3.0.2",
+      "org.apache.pdfbox" % "jbig2-imageio" % "3.0.5",
       // The license for jpeg2000 below is unusual and would need review (or removal) before any open sourcing effort
-      "com.github.jai-imageio" % "jai-imageio-jpeg2000" % "1.3.0",
+      "com.github.jai-imageio" % "jai-imageio-jpeg2000" % "1.4.0",
       // Subject to the mad unRAR restriction so again should be reviewed before any open sourcing
       // The latest code is here: https://github.com/junrar/junrar (not in the older repository that appears first in Google)
-      "com.github.junrar" % "junrar" % "7.4.1",
+      "com.github.junrar" % "junrar" % "7.6.1",
 
       // postgres
-      "org.scalikejdbc" %% "scalikejdbc" % "4.0.0",
-      "org.postgresql" % "postgresql" % "42.7.13",
+      "org.scalikejdbc" %% "scalikejdbc" % "4.3.5",
+      "org.postgresql" % "postgresql" % "42.7.14",
 
       // Test dependencies
 
-      "org.scalacheck" %% "scalacheck" % "1.14.0" % Test,
+      "org.scalacheck" %% "scalacheck" % "1.20.0" % Test,
       "org.scalatestplus.play" %% "scalatestplus-play" % "7.0.2" % Test,
       "org.scalamock" %% "scalamock" % "4.4.0" % Test,
       "com.dimafeng" %% "testcontainers-scala-scalatest" % testcontainersScalaVersion % Test,
@@ -296,13 +297,13 @@ lazy val cli = (project in file("cli"))
     scalacOptions := compilerFlags,
     libraryDependencies ++= Seq(
       "org.rogach" %% "scallop" % "3.5.1",
-      "com.beachape" %% "enumeratum" % "1.5.13",
-      "com.squareup.okhttp3" % "okhttp" % "4.9.2",
-      "com.auth0" % "java-jwt" % "3.3.0",
+      "com.beachape" %% "enumeratum" % "1.9.8",
+      "com.squareup.okhttp3" % "okhttp" % "4.12.1",
+      "com.auth0" % "java-jwt" % "3.19.4",
       "org.slf4j" % "jcl-over-slf4j" % slf4jVersion,
       "com.google.guava" % "guava" % "28.2-jre",
       "org.scalatest" %% "scalatest" % scalatestVersion,
-      "software.amazon.awssdk.crt" % "aws-crt" % "0.48.4"
+      "software.amazon.awssdk.crt" % "aws-crt" % "0.48.5"
     ),
     run / fork := true,
     run / connectInput := true,
