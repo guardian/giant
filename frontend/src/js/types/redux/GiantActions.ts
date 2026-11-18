@@ -1,3 +1,4 @@
+import { Token } from "../Token";
 import { EmailThread } from "../Email";
 import { Collection } from "../Collection";
 import { SearchQuery } from "../SearchQuery";
@@ -365,7 +366,39 @@ export type EmailAction = {
   receivedAt: number;
 };
 
+export type AuthAction = { receivedAt: number } & (
+  | { type: "AUTH_TOKEN_GET_REQUEST"; username: string }
+  | {
+      type: "AUTH_TOKEN_GET_RECEIVE";
+      header: string;
+      jwtToken: string;
+      token: Token;
+    }
+  | { type: "AUTH_REQUIRE_2FA" | "AUTH_FORBIDDEN"; message: string }
+  | { type: "AUTH_REQUIRE_PANDA"; url: string }
+  | {
+      type: "AUTH_TOKEN_SHOW_ERROR";
+      username: string;
+      message: string;
+      error: unknown;
+    }
+  | {
+      type:
+        | "AUTH_TOKEN_INVALIDATION_REQUEST"
+        | "AUTH_TOKEN_INVALIDATION_RECEIVE"
+        | "AUTH_FETCH_UNAUTHORISED"
+        | "AUTH_SESSION_KEEPALIVE_REQUEST"
+        | "AUTH_SESSION_KEEPALIVE_RECEIVE";
+    }
+  | {
+      type: "AUTH_TOKEN_INVALIDATION_ERROR" | "AUTH_SESSION_KEEPALIVE_ERROR";
+      message: string;
+      error: unknown;
+    }
+);
+
 export type GiantAction =
+  | AuthAction
   | EmailAction
   | CollectionAction
   | SearchAction
