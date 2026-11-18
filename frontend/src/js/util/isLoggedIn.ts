@@ -1,4 +1,6 @@
-export function isLoggedIn(auth) {
+import { Auth } from "../types/Auth";
+
+export function isLoggedIn(auth: Pick<Auth, "token">) {
   const d = new Date();
   const seconds = Math.round(d.getTime() / 1000);
   return (

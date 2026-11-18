@@ -14,8 +14,9 @@ export function handleResponseFromAuthRequest(
   offerAuthorizationHeader: null | string,
 ): void {
   if (offerAuthorizationHeader) {
+    const action = receiveToken(offerAuthorizationHeader);
     localStorage.pfiAuthHeader = offerAuthorizationHeader;
-    store.dispatch(receiveToken(offerAuthorizationHeader));
+    store.dispatch(action);
   }
   // logout the user if they receive an unauthorised status code from any endpoint
   if (responseStatus === 401) {

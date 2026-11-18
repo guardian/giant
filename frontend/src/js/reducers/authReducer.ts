@@ -1,5 +1,8 @@
+import { Auth } from "../types/Auth";
+import { GiantAction } from "../types/redux/GiantActions";
+
 export default function auth(
-  state = {
+  state: Auth = {
     header: undefined,
     token: undefined,
     username: undefined,
@@ -9,8 +12,8 @@ export default function auth(
     forbidden: false,
     errors: [],
   },
-  action,
-) {
+  action: GiantAction,
+): Auth {
   switch (action.type) {
     case "AUTH_TOKEN_GET_REQUEST":
     case "AUTH_TOKEN_INVALIDATION_REQUEST":
@@ -40,7 +43,8 @@ export default function auth(
       return Object.assign({}, state, {
         requirePanda: true,
         requesting: false,
-        errors: [action.message],
+        // The legacy Panda action supplies a URL, not an error message.
+        errors: [undefined],
       });
 
     case "AUTH_TOKEN_SHOW_ERROR":
