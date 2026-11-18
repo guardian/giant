@@ -120,8 +120,8 @@ class SelectionPopover extends Component<
     const selectionBox = selection.getRangeAt(0).getBoundingClientRect();
     const popoverBox = this.selectionPopover.getBoundingClientRect();
     const targetElement:
-      | (Element & { currentStyle?: CSSStyleDeclaration })
-      | null = document.querySelector("[" + this.props.target + "]");
+      (Element & { currentStyle?: CSSStyleDeclaration }) | null =
+      document.querySelector("[" + this.props.target + "]");
     if (!targetElement) {
       return;
     }

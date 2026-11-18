@@ -96,7 +96,7 @@ services:
       GARAGE_UI_GARAGE_REGION: "garage"
 
   postgres:
-    image: postgres:15.3
+    image: postgres:15.20
     # make sure there's enough memory to run VACUUM
     shm_size: 1g
     ports:

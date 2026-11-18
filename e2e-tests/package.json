@@ -12,10 +12,10 @@
     "format:check": "prettier --check ."
   },
   "devDependencies": {
-    "@playwright/test": "1.63.0",
-    "@types/node": "24.10.0",
+    "@playwright/test": "1.65.1",
+    "@types/node": "24.19.2",
     "playwright-bdd": "9.2.1",
-    "prettier": "3.2.4",
+    "prettier": "3.10.1",
     "typescript": "5.9.3",
     "zx": "8.8.5"
   }

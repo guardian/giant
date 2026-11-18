@@ -32,10 +32,7 @@ import {
 import styles from "./IngestionEvents.module.css";
 
 type BlobProgress =
-  | "complete"
-  | "completeWithErrors"
-  | "inProgress"
-  | "infiniteLoop";
+  "complete" | "completeWithErrors" | "inProgress" | "infiniteLoop";
 
 const blobStatusIcons = {
   complete: (

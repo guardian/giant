@@ -3,8 +3,7 @@ import { Highlight, ResourceRange } from "../../types/Resource";
 import sortBy from "lodash/sortBy";
 
 type FlattenAction =
-  | { type: "delete" }
-  | { type: "truncate"; range: ResourceRange };
+  { type: "delete" } | { type: "truncate"; range: ResourceRange };
 
 function getFlattenAction(
   target: Highlight,

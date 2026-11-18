@@ -7,20 +7,20 @@
         "build": "run-p --print-label type-check bundle"
     },
     "dependencies": {
-        "@aws-sdk/client-secrets-manager": "^3.995.0",
+        "@aws-sdk/client-secrets-manager": "^3.1171.0",
         "lodash": "4.18.1",
         "npm-run-all": "^4.1.5",
-        "pg": "8.7.1",
-        "postgrator": "^5.0.0",
-        "prettier": "^2.8.2",
-        "string-argv": "0.3.1"
+        "pg": "8.23.1",
+        "postgrator": "^5.0.1",
+        "prettier": "^2.8.8",
+        "string-argv": "0.3.2"
     },
     "devDependencies": {
-        "@types/lodash": "4.14.178",
-        "@types/node": "^16.11.11",
-        "@types/pg": "^8.6.1",
-        "esbuild": "0.14.13",
-        "esbuild-runner": "^2.2.1",
-        "typescript": "4.5.3"
+        "@types/lodash": "4.17.27",
+        "@types/node": "^16.18.126",
+        "@types/pg": "^8.23.1",
+        "esbuild": "0.14.54",
+        "esbuild-runner": "^2.2.2",
+        "typescript": "4.9.5"
     }
 }

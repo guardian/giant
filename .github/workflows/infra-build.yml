@@ -24,9 +24,9 @@ jobs:
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: './infra/cdk/.nvmrc'
           cache: npm
@@ -41,7 +41,7 @@ jobs:
           npm run synth
           cat cdk.out/riff-raff.yaml
 
-      - uses: guardian/actions-riff-raff@v4
+      - uses: guardian/actions-riff-raff@9b7f9fe778957e6dc3ef4ab70fec015119ccba83 # v4.3.7
         with:
           buildNumberOffset: 107
           roleArn: ${{ secrets.GU_RIFF_RAFF_ROLE_ARN }}
