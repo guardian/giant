@@ -21,7 +21,7 @@
     "moment-timezone": "^0.5.48",
     "mousetrap": "^1.6.5",
     "papaparse": "^5.2.0",
-    "pdfjs-dist": "4.2.67",
+    "pdfjs-dist": "6.5.438",
     "prop-types": "^15.8.1",
     "qrcode.react": "3.1.0",
     "ramda": "^0.29.1",
