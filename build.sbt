@@ -33,6 +33,19 @@ val scalatestVersion = "3.2.20"
 // not start (HTTP 400 from the daemon).
 val testcontainersScalaVersion = "0.44.1"
 val playJsonVersion = "3.0.6"
+val jacksonVersion = "2.23.0"
+
+// Backend-only Jackson pins leave vulnerable versions in the CLI and shared projects.
+ThisBuild / dependencyOverrides ++= Seq(
+  "com.fasterxml.jackson.core" % "jackson-annotations" % "2.23",
+  "com.fasterxml.jackson.core" % "jackson-core" % jacksonVersion,
+  "com.fasterxml.jackson.core" % "jackson-databind" % jacksonVersion,
+  "com.fasterxml.jackson.dataformat" % "jackson-dataformat-cbor" % jacksonVersion,
+  "com.fasterxml.jackson.datatype" % "jackson-datatype-jdk8" % jacksonVersion,
+  "com.fasterxml.jackson.datatype" % "jackson-datatype-jsr310" % jacksonVersion,
+  "com.fasterxml.jackson.module" % "jackson-module-parameter-names" % jacksonVersion,
+  "com.fasterxml.jackson.module" %% "jackson-module-scala" % jacksonVersion
+)
 
 val transcriptionWorkerInterfacePackage =
   "com.gu.transcriptionservice.workerinterface"
@@ -214,14 +227,12 @@ lazy val backend = (project in file("backend"))
       "org.apache.tika" % "tika-parsers-standard-package" % "3.3.3",
       "org.apache.tika" % "tika-core" % "3.3.3",
       "org.apache.tika" % "tika-langdetect-optimaize" % "3.3.3",
-      // Tika upgrades Jackson Databind beyond Play's Scala module; keep the module compatible.
-      "com.fasterxml.jackson.module" %% "jackson-module-scala" % "2.23.0",
       "org.apache.commons" % "commons-compress" % "1.28.0",
       "org.apache.logging.log4j" % "log4j-to-slf4j" % log4jVersion,
       "org.apache.logging.log4j" % "log4j-api" % log4jVersion,
       "org.apache.logging.log4j" % "log4j-core" % log4jVersion,
       "net.logstash.logback" % "logstash-logback-encoder" % "6.6",
-      "com.github.jwt-scala" % "jwt-play_2.13" % "9.4.6",
+      "com.github.jwt-scala" %% "jwt-play" % "12.0.0",
       "software.amazon.awssdk" % "ec2" % awsSdkVersion2,
       "software.amazon.awssdk" % "ssm" % awsSdkVersion2,
       "software.amazon.awssdk" % "autoscaling" % awsSdkVersion2,
@@ -237,7 +248,7 @@ lazy val backend = (project in file("backend"))
       // see https://github.com/guardian/giant/pull/131
       "org.eclipse.angus" % "angus-mail" % "2.0.5",
       "com.sun.mail" % "javax.mail" % "1.6.2",
-      "com.gu" %% "pan-domain-auth-verification" % "21.0.0",
+      "com.gu" %% "pan-domain-auth-verification" % "23.1.0",
 
       // Libraries whose use are potentially contentious
 
@@ -301,7 +312,7 @@ lazy val cli = (project in file("cli"))
       "com.squareup.okhttp3" % "okhttp" % "4.12.1",
       "com.auth0" % "java-jwt" % "3.19.4",
       "org.slf4j" % "jcl-over-slf4j" % slf4jVersion,
-      "com.google.guava" % "guava" % "28.2-jre",
+      "com.google.guava" % "guava" % "33.8.0-jre",
       "org.scalatest" %% "scalatest" % scalatestVersion,
       "software.amazon.awssdk.crt" % "aws-crt" % "0.48.5"
     ),

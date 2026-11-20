@@ -76,6 +76,7 @@
     "react-router": {
       "path-to-regexp": "1.9.0"
     },
+    "d3-color": "3.1.1",
     "tar": "7.5.23"
   },
   "scripts": {
