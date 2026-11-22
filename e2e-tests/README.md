@@ -80,7 +80,7 @@ npm run test:ui
 
 Open http://localhost:9423 to select tests, run them, and inspect each action. In a dev container, forward port 9423 to your machine. The infrastructure stays running until you stop the terminal command with Ctrl+C, which removes the test containers and volumes.
 
-UI mode runs genesis and the internal PDF test headlessly, restarts Giant, and then opens the external project in Playwright UI. The account already exists, so run the external scenarios there. Restart `npm run test:ui` to reset the databases and repeat both phases.
+UI mode runs genesis and the internal PDF test headlessly, restarts Giant, and then opens the external project in Playwright UI. The account already exists, so run the external scenarios there. Restart `npm run test:ui` to reset the databases and repeat both phases. The genesis scenario requires an empty database. After running it, stop the playwright command with Ctrl+C and start it again. In UI mode, run the `genesis` project before the workspace upload scenario; setup dependencies are not run automatically in UI mode.
 
 `npm test` runs headlessly, including in CI. To watch the browser or use Playwright Inspector instead:
 
