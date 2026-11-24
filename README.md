@@ -189,6 +189,11 @@ To run a specific integration test:
 sbt 'int:testOnly controllers.api.WorkspacesITest'
 ```
 
+Elasticsearch integration tests use disposable Elasticsearch 9.5.7 containers.
+Keep the image in `backend/test/test/integration/ElasticSearchTestContainer.scala`
+aligned with `docker-compose.yml`. The backend uses the elastic4s 9.x client
+without v8 REST compatibility mode.
+
 ### End-to-end tests
 
 Run `npm test --prefix e2e-tests` to test genesis account creation against disposable

@@ -1,6 +1,7 @@
 package services
 
-import com.sksamuel.elastic4s.{ElasticClient, ElasticRequest, Executor, Functor, Handler, HttpClient, RequestFailure, RequestSuccess}
+import cats.instances.future._
+import com.sksamuel.elastic4s.{ElasticClient, Handler, RequestFailure, RequestSuccess}
 import com.sksamuel.elastic4s.ElasticDsl._
 import com.sksamuel.elastic4s.fields.{ObjectField, TextField}
 import com.sksamuel.elastic4s.http.{JavaClient, JavaClientExceptionWrapper}
@@ -19,16 +20,12 @@ import services.index.IndexFields
 import utils.Logging
 import utils.attempt.{Attempt, ContentTooLongFailure, ElasticSearchQueryFailure, MultipleFailures, UnknownFailure}
 
-import scala.concurrent.ExecutionContext
+import scala.concurrent.{ExecutionContext, Future}
 
 trait ElasticsearchSyntax { this: Logging =>
-  def client: ElasticClient
+  def client: ElasticClient[Future]
   // Can be overridden to avoid gnarly waiting in tests
   def refreshPolicy: RefreshPolicy = RefreshPolicy.NONE
-
-  implicit def attemptFunctor(implicit ec: ExecutionContext): Functor[Attempt] = new Functor[Attempt] {
-    override def map[A, B](fa: Attempt[A])(f: A => B): Attempt[B] = fa.map(f)
-  }
 
   def textKeywordField(name: String): TextField = {
     textField(name: String).fields(keywordField("keyword"))
@@ -66,17 +63,6 @@ trait ElasticsearchSyntax { this: Logging =>
     lang.key -> value
   }.toMap
 
-  implicit def attemptExecutor(implicit ec: ExecutionContext): Executor[Attempt] =
-    (client: HttpClient, request: ElasticRequest) => {
-      Attempt.fromFuture(Executor.FutureExecutor(ec).exec(client, request)) {
-        case err: JavaClientExceptionWrapper if err.getCause.isInstanceOf[ContentTooLongException] =>
-          ContentTooLongFailure(err.getMessage)
-
-        case err =>
-          UnknownFailure(err)
-      }
-    }
-
   def createIndexIfNotAlreadyExists(indexName: String, mappingDefinition: MappingDefinition)(implicit ec: ExecutionContext): Attempt[CreateIndexResponse] = {
     execute(indexExists(indexName)).flatMap {
       case IndexExistsResponse(false) =>
@@ -92,7 +78,13 @@ trait ElasticsearchSyntax { this: Logging =>
   }
 
   def execute[T, U](r: T)(implicit handler: Handler[T, U], manifest: Manifest[U], ec: ExecutionContext): Attempt[U] =
-    client.execute(r).flatMap {
+    Attempt.fromFuture(client.execute(r)) {
+      case err: JavaClientExceptionWrapper if err.getCause.isInstanceOf[ContentTooLongException] =>
+        ContentTooLongFailure(err.getMessage)
+
+      case err =>
+        UnknownFailure(err)
+    }.flatMap {
       case r: RequestSuccess[U] =>
         Attempt.Right(r.result)
 
@@ -101,13 +93,7 @@ trait ElasticsearchSyntax { this: Logging =>
     }
 
   def executeNoReturn[T, U](r: T)(implicit handler: Handler[T, U], manifest: Manifest[U], ec: ExecutionContext): Attempt[Unit] =
-    client.execute(r).flatMap {
-      case _: RequestSuccess[U] =>
-        Attempt.Right(())
-
-      case f: RequestFailure =>
-        Attempt.Left(ElasticSearchQueryFailure(new IllegalStateException(f.error.toString), f.status, f.body))
-    }
+    execute(r).map(_ => ())
 
   def executeUpdate[U](r: UpdateRequest)(implicit ec: ExecutionContext): Attempt[Unit] =
     executeNoReturn(r.refresh(refreshPolicy))
@@ -139,20 +125,18 @@ object ElasticsearchSyntax {
 }
 
 object ElasticsearchClient extends Logging {
-  def apply(config: Config)(implicit executionContext: ExecutionContext): Attempt[ElasticClient] =
+  def apply(config: Config)(implicit executionContext: ExecutionContext): Attempt[ElasticClient[Future]] =
     apply(config.elasticsearch.hosts, config.elasticsearch.disableSniffing.getOrElse(false))
 
-  def apply(hostnames: List[String], disableSniffing: Boolean = false)(implicit executionContext: ExecutionContext): Attempt[ElasticClient] = Attempt.catchNonFatalBlasé {
+  def apply(hostnames: List[String], disableSniffing: Boolean = false)(implicit executionContext: ExecutionContext): Attempt[ElasticClient[Future]] = Attempt.catchNonFatalBlasé {
     val hosts = hostnames.map(HttpHost.create)
     val client = RestClient.builder(hosts: _*).setRequestConfigCallback(reqConfigCallback =>
       reqConfigCallback.setConnectionRequestTimeout(5000) // Default is 500. Needed for when we send lots of updates quickly.
     ).build()
 
     // Sniffer allows the client to discover the other nodes in the cluster and load balancer/route around failure
-    if(!disableSniffing) {
-      Sniffer.builder(client).build()
-    }
+    val sniffer = Option.when(!disableSniffing)(Sniffer.builder(client).build())
 
-    ElasticClient(JavaClient.fromRestClient(client))
+    ElasticClient(JavaClient.fromRestClient(client, sniffer))
   }
 }

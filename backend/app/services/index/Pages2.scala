@@ -13,9 +13,9 @@ import services.ElasticsearchSyntax
 import utils.Logging
 import utils.attempt.{Attempt, ElasticSearchQueryFailure, MultipleFailures, NotFoundFailure}
 
-import scala.concurrent.ExecutionContext
+import scala.concurrent.{ExecutionContext, Future}
 
-class Pages2(val client: ElasticClient, indexNamePrefix: String)(implicit val ex: ExecutionContext)
+class Pages2(val client: ElasticClient[Future], indexNamePrefix: String)(implicit val ex: ExecutionContext)
   extends ElasticsearchSyntax with Logging {
   val textIndexName = s"$indexNamePrefix-text"
 
