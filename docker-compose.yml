@@ -19,7 +19,7 @@ services:
       retries: 60
 
   neo4j:
-    image: neo4j:2026.02.2
+    image: neo4j:2026.10.2
     container_name: neo4j
     environment:
       NEO4J_AUTH: neo4j/password
