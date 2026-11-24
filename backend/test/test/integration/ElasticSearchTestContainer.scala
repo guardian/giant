@@ -12,7 +12,7 @@ trait ElasticSearchTestContainer extends AttemptValues{
   implicit def patience: PatienceConfig = PatienceConfig(Span(30, Seconds), Span(250, Millis))
 
   private val elasticContainerDef = ElasticsearchContainer.Def(
-    dockerImageName = DockerImageName.parse("docker.elastic.co/elasticsearch/elasticsearch:8.11.2")
+    dockerImageName = DockerImageName.parse("docker.elastic.co/elasticsearch/elasticsearch:8.19.26")
   )
 
   def getElasticSearchContainer(): ElasticsearchContainer = {
