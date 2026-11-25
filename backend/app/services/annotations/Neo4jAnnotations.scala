@@ -189,7 +189,7 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
                     case _ => 0
                   }.sum,
                   descendantsProcessingLeafCount = children.map {
-                    case TreeNode(_, _, childNode: WorkspaceNode, _) => childNode.descendantsProcessingTaskCount
+                    case TreeNode(_, _, childNode: WorkspaceNode, _) => childNode.descendantsProcessingLeafCount
                     case leaf: TreeLeaf[WorkspaceEntry] => leaf.data match {
                       case wl: WorkspaceLeaf => wl.processingStage match {
                         case ProcessingStage.Processing(_, _) => 1
