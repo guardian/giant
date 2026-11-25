@@ -1315,7 +1315,7 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
     }
   }
 
-  override def deletionChain(uri: Uri): Attempt[List[(Uri, List[String])]] = attemptTransaction { tx =>
+  override def getChildrenCollections(uri: Uri): Attempt[List[(Uri, List[String])]] = attemptTransaction { tx =>
     tx.run(
       """
         |MATCH (item:Resource {uri: $uri})

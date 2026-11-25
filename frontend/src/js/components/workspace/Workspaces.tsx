@@ -1,4 +1,4 @@
-import { confirmDeleteChain } from "../../services/ResourceApi";
+import { confirmDeleteWithChildren } from "../../services/ResourceApi";
 import React, { ClipboardEventHandler } from "react";
 import * as R from "ramda";
 import Modal from "../UtilComponents/Modal";
@@ -1065,7 +1065,7 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
               workspaceLeaf
             ) {
               this.closeContextMenu();
-              void confirmDeleteChain(workspaceLeaf.uri, entry.name)
+              void confirmDeleteWithChildren(workspaceLeaf.uri, entry.name)
                 .then((deleted) => {
                   if (deleted) window.location.reload();
                 })

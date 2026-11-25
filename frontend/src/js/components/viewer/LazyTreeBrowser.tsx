@@ -10,7 +10,10 @@ import TreeBrowser from "../UtilComponents/TreeBrowser";
 import { ResourceBreadcrumbs } from "../ResourceBreadcrumbs";
 import DetectClickOutside from "../UtilComponents/DetectClickOutside";
 import AddToWorkspaceModal from "./AddToWorkspaceModal";
-import { confirmDeleteChain, fetchResource } from "../../services/ResourceApi";
+import {
+  confirmDeleteWithChildren,
+  fetchResource,
+} from "../../services/ResourceApi";
 import { hasSingleBlobChild } from "../../util/resourceUtils";
 import sortBy from "lodash/sortBy";
 import {
@@ -180,7 +183,7 @@ export default function LazyTreeBrowser({
       /\.zip$/i.test(entry.name);
     try {
       if (
-        await confirmDeleteChain(
+        await confirmDeleteWithChildren(
           decodeURIComponent(entry.data.uri),
           entry.name,
           showAffectedCollections,

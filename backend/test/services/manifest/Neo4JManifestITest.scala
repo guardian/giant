@@ -111,7 +111,7 @@ class Neo4JManifestITest extends AnyFreeSpec
         )
       }
 
-      "an archive deletion chain includes shared entries and their collections" in {
+      "deleting an archive with children includes shared entries and their collections" in {
         val first = Uri("chain_first")
         val second = Uri("chain_second")
         val source = first.chain("batch")
@@ -127,10 +127,10 @@ class Neo4JManifestITest extends AnyFreeSpec
           fileBlob(other.chain("shared.txt").value, "chain-shared", other.value)
         ), source).isRight shouldBe true
 
-        val chain = manifest.deletionChain(archive).successValue
-        chain.map(_._1) shouldBe List(Uri("chain-shared"), Uri("chain-archive"))
-        chain.head._2.toSet shouldBe Set(first.value, second.value)
-        chain.foreach { case (uri, _) => manifest.deleteBlob(uri).successValue }
+        val resources = manifest.getChildrenCollections(archive).successValue
+        resources.map(_._1) shouldBe List(Uri("chain-shared"), Uri("chain-archive"))
+        resources.head._2.toSet shouldBe Set(first.value, second.value)
+        resources.foreach { case (uri, _) => manifest.deleteBlob(uri).successValue }
         manifest.getResource(archive).isLeft shouldBe true
         manifest.getResource(other.chain("shared.txt")).isLeft shouldBe true
       }
@@ -191,7 +191,7 @@ class Neo4JManifestITest extends AnyFreeSpec
         Manifest.InsertEmail(email("d", sentAt(15, 40), person3, List(person2), "Hey! Friend!"), Uri("test-collection/test-ingestion"))
       )
 
-      "an email deletion chain leaves thread replies alone" in {
+      "deleting an email with children leaves thread replies alone" in {
         val collection = Uri("chain_email")
         val ingestion = collection.chain("batch")
         val message = email("chain-message", sentAt(10, 40), person1, List(person2), "Original")
@@ -200,7 +200,7 @@ class Neo4JManifestITest extends AnyFreeSpec
         insertIngestion(collection, Some(ingestion)).successValue
         manifest.insert(List(Manifest.InsertEmail(message, ingestion), Manifest.InsertEmail(reply, ingestion)), ingestion).isRight shouldBe true
 
-        manifest.deletionChain(message.uri).successValue shouldBe List(message.uri -> List(collection.value))
+        manifest.getChildrenCollections(message.uri).successValue shouldBe List(message.uri -> List(collection.value))
         manifest.deleteBlob(message.uri, includeEmail = true).successValue
         manifest.getResource(message.uri).isLeft shouldBe true
         manifest.getResource(reply.uri).isRight shouldBe true

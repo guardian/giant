@@ -108,7 +108,7 @@ trait Manifest extends WorkerManifest {
 
   def getLanguagesProcessedByOcrMyPdf(uri: Uri): Attempt[List[Language]]
 
-  def deletionChain(uri: Uri): Attempt[List[(Uri, List[String])]]
+  def getChildrenCollections(uri: Uri): Attempt[List[(Uri, List[String])]]
 
   def deleteBlob(uri: Uri, includeEmail: Boolean = false): Attempt[Unit]
 

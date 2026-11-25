@@ -14,13 +14,13 @@ export function fetchResource(
   );
 }
 
-export async function confirmDeleteChain(
+export async function confirmDeleteWithChildren(
   uri: string,
   name: string,
   showAffectedCollections = true,
 ): Promise<boolean> {
   const query = new URLSearchParams({ uri });
-  const endpoint = `/api/admin/deletion-chain?${query}`;
+  const endpoint = `/api/admin/delete-with-children?${query}`;
   const collections: string[] = showAffectedCollections
     ? await authFetch(endpoint).then((res) => res.json())
     : [];
