@@ -1315,7 +1315,7 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
     }
   }
 
-  override def getChildrenCollections(uri: Uri): Attempt[List[(Uri, List[String])]] = attemptTransaction { tx =>
+  override def getChildrenCollections(uri: Uri): Attempt[List[Manifest.ResourceCollections]] = attemptTransaction { tx =>
     tx.run(
       """
         |MATCH (item:Resource {uri: $uri})
@@ -1329,7 +1329,10 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
         |""".stripMargin,
       parameters("uri", uri.value)
     ).map(_.list().asScala.toList.map { record =>
-      Uri(record.get("uri").asString()) -> record.get("collections").asList((value: Value) => value.asString()).asScala.toList
+      Manifest.ResourceCollections(
+        Uri(record.get("uri").asString()),
+        record.get("collections").asList((value: Value) => value.asString()).asScala.toList
+      )
     })
   }
 

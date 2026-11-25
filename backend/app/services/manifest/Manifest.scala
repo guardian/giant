@@ -29,6 +29,10 @@ object Manifest {
   ) extends Insertion
   case class InsertEmail(email: Email, parent: Uri) extends Insertion
 
+  // All the collections associated with a resource - if the resource has children then this includes all the collections
+  // of all the children of the resource
+  case class ResourceCollections(uri: Uri, collectionUris: List[String])
+
   case class WorkCounts(inProgress: Int, outstanding: Int)
 }
 
@@ -108,7 +112,7 @@ trait Manifest extends WorkerManifest {
 
   def getLanguagesProcessedByOcrMyPdf(uri: Uri): Attempt[List[Language]]
 
-  def getChildrenCollections(uri: Uri): Attempt[List[(Uri, List[String])]]
+  def getChildrenCollections(uri: Uri): Attempt[List[Manifest.ResourceCollections]]
 
   def deleteBlob(uri: Uri, includeEmail: Boolean = false): Attempt[Unit]
 

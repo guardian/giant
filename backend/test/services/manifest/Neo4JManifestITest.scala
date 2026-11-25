@@ -128,9 +128,9 @@ class Neo4JManifestITest extends AnyFreeSpec
         ), source).isRight shouldBe true
 
         val resources = manifest.getChildrenCollections(archive).successValue
-        resources.map(_._1) shouldBe List(Uri("chain-shared"), Uri("chain-archive"))
-        resources.head._2.toSet shouldBe Set(first.value, second.value)
-        resources.foreach { case (uri, _) => manifest.deleteBlob(uri).successValue }
+        resources.map(_.uri) shouldBe List(Uri("chain-shared"), Uri("chain-archive"))
+        resources.head.collectionUris.toSet shouldBe Set(first.value, second.value)
+        resources.foreach(resource => manifest.deleteBlob(resource.uri).successValue)
         manifest.getResource(archive).isLeft shouldBe true
         manifest.getResource(other.chain("shared.txt")).isLeft shouldBe true
       }
@@ -200,7 +200,7 @@ class Neo4JManifestITest extends AnyFreeSpec
         insertIngestion(collection, Some(ingestion)).successValue
         manifest.insert(List(Manifest.InsertEmail(message, ingestion), Manifest.InsertEmail(reply, ingestion)), ingestion).isRight shouldBe true
 
-        manifest.getChildrenCollections(message.uri).successValue shouldBe List(message.uri -> List(collection.value))
+        manifest.getChildrenCollections(message.uri).successValue shouldBe List(Manifest.ResourceCollections(message.uri, List(collection.value)))
         manifest.deleteBlob(message.uri, includeEmail = true).successValue
         manifest.getResource(message.uri).isLeft shouldBe true
         manifest.getResource(reply.uri).isRight shouldBe true

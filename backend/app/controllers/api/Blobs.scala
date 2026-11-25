@@ -113,10 +113,10 @@ class Blobs(override val controllerComponents: AuthControllerComponents, manifes
     }
   }
 
-  def getChildrenCollections(uri: String) = ApiAction.attempt { req =>
+  def getAllCollectionsOfChildren(uri: String) = ApiAction.attempt { req =>
     checkPermission(CanPerformAdminOperations, req) {
       manifest.getChildrenCollections(Uri(uri)).map { resources =>
-        Ok(Json.toJson(resources.flatMap(_._2).distinct.sorted))
+        Ok(Json.toJson(resources.flatMap(_.collectionUris).distinct.sorted))
       }
     }
   }
@@ -125,8 +125,8 @@ class Blobs(override val controllerComponents: AuthControllerComponents, manifes
     checkPermission(CanPerformAdminOperations, req) {
       val deletion = new DeleteResource(manifest, index, previewStorage, objectStorage, postgresClient)
       manifest.getChildrenCollections(Uri(uri)).flatMap { resources =>
-        resources.foldLeft(Attempt.Right(())) { case (previous, (resource, _)) =>
-          previous.flatMap(_ => deletion.deleteBlob(resource.value, includeEmail = true))
+        resources.foldLeft(Attempt.Right(())) { (previous, resource) =>
+          previous.flatMap(_ => deletion.deleteBlob(resource.uri.value, includeEmail = true))
         }.map { _ =>
           logAction(req.user, s"Deleted resource $uri with children")
           NoContent
