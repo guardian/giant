@@ -1,4 +1,0 @@
-/* Keep the embedded preview toolbar free of print, download and editing controls. */
-#toolbarViewerRight {
-  display: none;
-}
