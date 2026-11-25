@@ -2,7 +2,13 @@ import React from "react";
 import PropTypes from "prop-types";
 import { authorizedDownload } from "../../services/AuthApi";
 
-export class DownloadLink extends React.Component {
+type Props = {
+  href: string;
+  className?: string;
+  children?: React.ReactNode;
+};
+
+export class DownloadLink extends React.Component<Props> {
   static propTypes = {
     href: PropTypes.string.isRequired,
     className: PropTypes.string,
@@ -17,7 +23,7 @@ export class DownloadLink extends React.Component {
 
   render() {
     return (
-      <button className={this.props.className} href="#" onClick={this.onClick}>
+      <button className={this.props.className} onClick={this.onClick}>
         {this.props.children}
       </button>
     );

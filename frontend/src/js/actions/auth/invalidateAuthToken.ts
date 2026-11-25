@@ -1,7 +1,9 @@
 import { invalidateExistingTokens } from "../../services/AuthApi";
+import { AuthAction } from "../../types/redux/GiantActions";
+import { GiantDispatch } from "../../types/redux/GiantDispatch";
 
 export function invalidateAuthToken() {
-  return (dispatch) => {
+  return (dispatch: GiantDispatch) => {
     dispatch(requestTokenInvalidation());
     return invalidateExistingTokens()
       .then((response) => {
@@ -15,25 +17,27 @@ export function invalidateAuthToken() {
           );
         }
       })
-      .catch((error) => dispatch(errorReceivingTokenInvalidation(error)));
+      .catch((error: unknown) =>
+        dispatch(errorReceivingTokenInvalidation(error)),
+      );
   };
 }
 
-function requestTokenInvalidation() {
+function requestTokenInvalidation(): AuthAction {
   return {
     type: "AUTH_TOKEN_INVALIDATION_REQUEST",
     receivedAt: Date.now(),
   };
 }
 
-function receiveTokenInvalidation() {
+function receiveTokenInvalidation(): AuthAction {
   return {
     type: "AUTH_TOKEN_INVALIDATION_RECEIVE",
     receivedAt: Date.now(),
   };
 }
 
-function errorReceivingTokenInvalidation(error) {
+function errorReceivingTokenInvalidation(error: unknown): AuthAction {
   return {
     type: "AUTH_TOKEN_INVALIDATION_ERROR",
     message: "Logout failed.",

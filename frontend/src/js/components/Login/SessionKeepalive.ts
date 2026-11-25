@@ -7,13 +7,23 @@ import { bindActionCreators } from "redux";
 
 import { sessionKeepalive } from "../../actions/auth/sessionKeepalive";
 
-class SessionKeepalive extends React.Component {
+import { GiantDispatch } from "../../types/redux/GiantDispatch";
+import { GiantState } from "../../types/redux/GiantState";
+
+type Props = ReturnType<typeof mapStateToProps> &
+  ReturnType<typeof mapDispatchToProps>;
+
+type State = {
+  keepaliveIntervalHandle?: number;
+};
+
+class SessionKeepalive extends React.Component<Props, State> {
   static propTypes = {
     token: token,
     sessionKeepalive: PropTypes.func.isRequired,
   };
 
-  state = {
+  state: State = {
     keepaliveIntervalHandle: undefined,
   };
 
@@ -28,11 +38,13 @@ class SessionKeepalive extends React.Component {
   startInterval() {
     // ensure there isn't currently an interval timer running
     this.stopInterval();
+    if (!this.props.token) return;
+
     // start new interval timer using a period that is half the validity time of the token
     const tokenValidityDuration =
       this.props.token.exp * 1000 - this.props.token.refreshedAt;
     const keepaliveInterval = Math.floor(tokenValidityDuration / 2);
-    const intervalHandle = setInterval(
+    const intervalHandle = window.setInterval(
       this.sessionKeepalive,
       keepaliveInterval,
     );
@@ -55,7 +67,7 @@ class SessionKeepalive extends React.Component {
   }
 }
 
-function mapStateToProps(state) {
+function mapStateToProps(state: GiantState) {
   const { token } = state.auth;
 
   return {
@@ -63,7 +75,7 @@ function mapStateToProps(state) {
   };
 }
 
-function mapDispatchToProps(dispatch) {
+function mapDispatchToProps(dispatch: GiantDispatch) {
   return {
     sessionKeepalive: bindActionCreators(sessionKeepalive, dispatch),
   };
