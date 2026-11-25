@@ -168,6 +168,16 @@ export function mergeFetchedNode<T>(
   fresh: TreeNode<T>,
   loadedNodeIds: string[],
 ): TreeEntry<T> {
+  // Built once per merge: on an eagerly-loaded tree loadedNodeIds holds every folder id, so an
+  // array `includes` per child would make a refresh O(folders × children).
+  return mergeFetchedNodeInto(entry, fresh, new Set(loadedNodeIds));
+}
+
+function mergeFetchedNodeInto<T>(
+  entry: TreeEntry<T>,
+  fresh: TreeNode<T>,
+  loadedNodeIds: ReadonlySet<string>,
+): TreeEntry<T> {
   if (entry.id === fresh.id) {
     // A previously-unfetched placeholder (a leaf, or a node with no children yet) is simply
     // replaced by the freshly-loaded node.
@@ -177,16 +187,11 @@ export function mergeFetchedNode<T>(
     const oldChildrenById = new Map(entry.children.map((c) => [c.id, c]));
     const children = fresh.children.map((freshChild) => {
       const oldChild = oldChildrenById.get(freshChild.id);
-      // The `loadedNodeIds.includes` membership test below is O(n). That's fine while the tree is
-      // partially loaded (loadedNodeIds is bounded by the folders the user has expanded). But if
-      // Stage 9's background backfill merges repeatedly into a large, fully-loaded tree,
-      // loadedNodeIds grows to every folder and this becomes O(n·children) per merge — build a
-      // Set<string> once per merge and test against that instead. See #744 (Stage 9).
       if (
         oldChild &&
         isTreeNode(oldChild) &&
         isTreeNode(freshChild) &&
-        loadedNodeIds.includes(freshChild.id)
+        loadedNodeIds.has(freshChild.id)
       ) {
         // Keep the already-loaded subtree, but adopt the fresh name/data (e.g. after a rename).
         return { ...oldChild, name: freshChild.name, data: freshChild.data };
@@ -197,7 +202,7 @@ export function mergeFetchedNode<T>(
   }
   if (isTreeNode(entry)) {
     const children = entry.children.map((c) =>
-      mergeFetchedNode(c, fresh, loadedNodeIds),
+      mergeFetchedNodeInto(c, fresh, loadedNodeIds),
     );
     // No child changed, so the fresh node is not in this branch: keep this object's identity.
     if (children.every((child, i) => child === entry.children[i])) {

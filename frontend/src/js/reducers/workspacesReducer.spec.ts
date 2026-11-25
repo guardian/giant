@@ -100,6 +100,32 @@ describe("workspacesReducer WORKSPACE_MERGE_NODE", () => {
     expect(next.loadedNodeIds).toStrictEqual(["root", "x"]);
   });
 
+  test("forgets loaded folders that drop out of the tree, with their descendants", () => {
+    // x and its sub-folder y were both expanded; x is then moved or deleted elsewhere, so the
+    // refreshed root no longer lists it. Neither id may stay recorded as loaded: if x came back
+    // as an unfetched placeholder it would otherwise render empty and never refetch.
+    const state = mkState({
+      currentWorkspace: mkWorkspace(
+        mkFolder("root", [
+          mkFolder("x", [mkFolder("y", [mkLeaf("y1")])]),
+          mkFolder("z", [mkLeaf("z1")]),
+        ]),
+      ),
+      loadedNodeIds: ["root", "x", "y", "z"],
+    });
+
+    const next = workspaces(state, {
+      type: WorkspacesActionType.WORKSPACE_MERGE_NODE,
+      node: mkFolder("root", [mkFolder("z", [])]),
+    });
+
+    expect(next.loadedNodeIds).toStrictEqual(["root", "z"]);
+    // z was loaded and is still listed, so its subtree is kept
+    const root = next.currentWorkspace?.rootNode as TreeNode<WorkspaceEntry>;
+    const z = root.children[0] as TreeNode<WorkspaceEntry>;
+    expect(z.children.map((c) => c.id)).toStrictEqual(["z1"]);
+  });
+
   test("is a no-op when the fetched node is no longer in the tree", () => {
     // The node was deleted or moved while the fetch was in flight, or the workspace switched:
     // the tree must not change and — crucially — the id must not be marked as loaded.

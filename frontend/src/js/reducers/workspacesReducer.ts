@@ -90,12 +90,18 @@ export default function workspaces(
       if (rootNode === state.currentWorkspace.rootNode) {
         return state;
       }
+      // Record the fetched node as loaded, and forget any folder that dropped out of the tree
+      // with this merge (deleted or moved away, along with its descendants). Otherwise a folder
+      // that later comes back as an unfetched placeholder would still read as loaded: it would
+      // render empty and expanding it would never refetch.
+      const folderIdsInTree = new Set(collectNodeIds(rootNode));
+      const loadedNodeIds = [
+        ...new Set([...state.loadedNodeIds, action.node.id]),
+      ].filter((id) => folderIdsInTree.has(id));
       return {
         ...state,
         currentWorkspace: { ...state.currentWorkspace, rootNode },
-        loadedNodeIds: state.loadedNodeIds.includes(action.node.id)
-          ? state.loadedNodeIds
-          : [...state.loadedNodeIds, action.node.id],
+        loadedNodeIds,
       };
     }
 
