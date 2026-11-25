@@ -5,7 +5,7 @@ import org.apache.pekko.util.Timeout
 import commands.IngestFileResult
 import controllers.api._
 import extraction.MimeTypeMapper
-import model.annotations.{Workspace, WorkspaceEntry, WorkspaceMetadata}
+import model.annotations.{Workspace, WorkspaceAggregateStats, WorkspaceEntry, WorkspaceMetadata}
 import model.frontend.{Filter, SearchResults, TreeEntry, TreeNode}
 import model.manifest.{Blob, Collection, CollectionWithUsers}
 import model.user.UserPermissions
@@ -385,6 +385,27 @@ object Helpers extends Matchers with Logging with OptionValues with Inside {
 
   def getWorkspace(workspaceId: String)(implicit controllers: Controllers, timeout: Timeout): Workspace = {
     contentAsJson(controllers.workspace.get(workspaceId).apply(FakeRequest())).as[Workspace]
+  }
+
+  // Lazy-loading read endpoints (issue #744).
+  def getWorkspaceRootChildren(workspaceId: String)(implicit controllers: Controllers, timeout: Timeout): TreeEntry[WorkspaceEntry] = {
+    contentAsJson(controllers.workspace.getRootChildren(workspaceId).apply(FakeRequest())).as[TreeEntry[WorkspaceEntry]]
+  }
+
+  def getWorkspaceNodeChildren(workspaceId: String, nodeId: String)(implicit controllers: Controllers, timeout: Timeout): TreeEntry[WorkspaceEntry] = {
+    contentAsJson(controllers.workspace.getNodeChildren(workspaceId, nodeId).apply(FakeRequest())).as[TreeEntry[WorkspaceEntry]]
+  }
+
+  def getWorkspaceAncestors(workspaceId: String, nodeId: String)(implicit controllers: Controllers, timeout: Timeout): List[TreeEntry[WorkspaceEntry]] = {
+    contentAsJson(controllers.workspace.getNodeAncestors(workspaceId, nodeId).apply(FakeRequest())).as[List[TreeEntry[WorkspaceEntry]]]
+  }
+
+  def getWorkspaceAggregate(workspaceId: String)(implicit controllers: Controllers, timeout: Timeout): WorkspaceAggregateStats = {
+    contentAsJson(controllers.workspace.getAggregate(workspaceId).apply(FakeRequest())).as[WorkspaceAggregateStats]
+  }
+
+  def getWorkspaceMetadata(workspaceId: String)(implicit controllers: Controllers, timeout: Timeout): WorkspaceMetadata = {
+    contentAsJson(controllers.workspace.getMetadata(workspaceId).apply(FakeRequest())).as[WorkspaceMetadata]
   }
 
   def getAllWorkspaces()(implicit controllers: Controllers, timeout: Timeout): List[WorkspaceMetadata] = {
