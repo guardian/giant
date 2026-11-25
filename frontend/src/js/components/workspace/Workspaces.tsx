@@ -1,3 +1,4 @@
+import { confirmDeleteChain } from "../../services/ResourceApi";
 import React, { ClipboardEventHandler } from "react";
 import * as R from "ramda";
 import Modal from "../UtilComponents/Modal";
@@ -902,6 +903,20 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
     const deleteFileContent = "Delete file";
 
     const isRemoteIngest = entry.id.startsWith("RemoteIngest");
+    const isArchiveOrEmail =
+      workspaceLeaf &&
+      [
+        "application/zip",
+        "application/x-zip-compressed",
+        "message/rfc822",
+        "application/mbox",
+        "application/vnd.ms-outlook",
+        "application/vnd.ms-outlook-pst",
+        "application/vnd.ms-outlook-olm",
+      ].includes(workspaceLeaf.mimeType);
+    const isAdmin = this.props.myPermissions.includes(
+      "CanPerformAdminOperations",
+    );
 
     const items = [
       { key: "copyFilename", content: copyFilenameContent, icon: "copy" },
@@ -921,7 +936,9 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
     }
 
     if (
-      entry.data.addedBy.username === currentUser.username &&
+      (isArchiveOrEmail
+        ? isAdmin
+        : entry.data.addedBy.username === currentUser.username) &&
       isWorkspaceFile &&
       !isRemoteIngest
     ) {
@@ -951,10 +968,6 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
         icon: "linkify",
       });
     }
-
-    const isAdmin = this.props.myPermissions.includes(
-      "CanPerformAdminOperations",
-    );
 
     if (isAdmin && isWorkspaceFolder && !isRemoteIngest) {
       items.push({
@@ -1044,6 +1057,20 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
                 menuItem.icon = "check";
                 closeMenuDelay = 700;
               }
+            }
+
+            if (
+              menuItemProps.content === deleteFileContent &&
+              isArchiveOrEmail &&
+              workspaceLeaf
+            ) {
+              this.closeContextMenu();
+              void confirmDeleteChain(workspaceLeaf.uri, entry.name)
+                .then((deleted) => {
+                  if (deleted) window.location.reload();
+                })
+                .catch(() => window.alert(`Could not delete "${entry.name}".`));
+              return;
             }
 
             if (

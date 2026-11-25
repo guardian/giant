@@ -1315,11 +1315,29 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
     }
   }
 
-  private def processDelete(uri: Uri, query: String, correctResultsCount: Int => Boolean, errorText: String): Attempt[Unit] = attemptTransaction { tx =>
+  override def deletionChain(uri: Uri): Attempt[List[(Uri, List[String])]] = attemptTransaction { tx =>
+    tx.run(
+      """
+        |MATCH (item:Resource {uri: $uri})
+        |WHERE item:File OR item:Blob OR item:Email
+        |MATCH path = (resource:Resource)-[:PARENT*0..]->(item)
+        |WHERE resource:Blob OR resource:Email
+        |WITH resource, max(length(path)) AS depth
+        |OPTIONAL MATCH (resource)-[:PARENT*]->(collection:Collection)
+        |RETURN resource.uri AS uri, collect(DISTINCT collection.uri) AS collections, depth
+        |ORDER BY depth DESC
+        |""".stripMargin,
+      parameters("uri", uri.value)
+    ).map(_.list().asScala.toList.map { record =>
+      Uri(record.get("uri").asString()) -> record.get("collections").asList((value: Value) => value.asString()).asScala.toList
+    })
+  }
+
+  private def processDelete(uri: Uri, query: String, correctResultsCount: Int => Boolean, errorText: String, includeEmail: Boolean): Attempt[Unit] = attemptTransaction { tx =>
     tx.run(
       query,
       parameters(
-        "uri", uri.value
+        "uri", uri.value, "includeEmail", Boolean.box(includeEmail)
       )).map(_.consume()).flatMap { resultSummary =>
 
       val counters = resultSummary.counters()
@@ -1338,14 +1356,17 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
   //   2. as part of deleting an ingestion or collection, in which case those
   //      orphaned blobs will have been returned from the initial getBlobs ES query
   //      and will therefore be deleted separately as we loop through them.
-  def deleteBlob(uri: Uri): Attempt[Unit] = processDelete(
+  def deleteBlob(uri: Uri, includeEmail: Boolean): Attempt[Unit] = processDelete(
     uri,
     // OPTIONAL MATCH so if there's no Workspace node pointing to it,
     // we still delete the blob, and vice versa. (The vice versa would be
     // unexpected but maybe you're clearing up a blob that was only partially deleted before).
     """
       |OPTIONAL MATCH (w: WorkspaceNode { uri: $uri})
-      |OPTIONAL MATCH (b: Blob:Resource { uri: $uri})-[:PARENT]->(f: File)
+      |OPTIONAL MATCH (b: Resource { uri: $uri})
+      |WHERE b:Blob OR ($includeEmail AND b:Email)
+      |OPTIONAL MATCH (b)-[:PARENT]->(f: File)
+      |WHERE b:Blob
       |OPTIONAL MATCH (descendant :Resource)
       |  WHERE descendant.uri STARTS WITH $uri + '/'
       |DETACH DELETE b, f, w, descendant
@@ -1359,7 +1380,7 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
     // And we can't set an upper bound, because there will be an indeterminate
     // number of descendants deleted.
     count => true,
-    "Error deleting blob")
+    "Error deleting blob", includeEmail)
 
   // This will delete descendants down to the next blobs,
   // at which point the URL pattern starts again.

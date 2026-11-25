@@ -13,3 +13,27 @@ export function fetchResource(
     (res) => res.json(),
   );
 }
+
+export async function confirmDeleteChain(
+  uri: string,
+  name: string,
+  showAffectedCollections = true,
+): Promise<boolean> {
+  const query = new URLSearchParams({ uri });
+  const endpoint = `/api/admin/deletion-chain?${query}`;
+  const collections: string[] = showAffectedCollections
+    ? await authFetch(endpoint).then((res) => res.json())
+    : [];
+  const warning = collections.length
+    ? `Files in "${name}" exist in the following collections:\n\n${collections.join("\n")}\n\n`
+    : "";
+  if (
+    !window.confirm(
+      `${warning}Permanently delete "${name}"${showAffectedCollections ? " and its contents" : ""} from Giant? This deletes all copies. Do you want to continue?`,
+    )
+  ) {
+    return false;
+  }
+  await authFetch(endpoint, { method: "DELETE" });
+  return true;
+}

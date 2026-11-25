@@ -113,6 +113,28 @@ class Blobs(override val controllerComponents: AuthControllerComponents, manifes
     }
   }
 
+  def deletionChain(uri: String) = ApiAction.attempt { req =>
+    checkPermission(CanPerformAdminOperations, req) {
+      manifest.deletionChain(Uri(uri)).map { chain =>
+        Ok(Json.toJson(chain.flatMap(_._2).distinct.sorted))
+      }
+    }
+  }
+
+  def deleteChain(uri: String) = ApiAction.attempt { req =>
+    checkPermission(CanPerformAdminOperations, req) {
+      val deletion = new DeleteResource(manifest, index, previewStorage, objectStorage, postgresClient)
+      manifest.deletionChain(Uri(uri)).flatMap { chain =>
+        chain.foldLeft(Attempt.Right(())) { case (previous, (resource, _)) =>
+          previous.flatMap(_ => deletion.deleteBlob(resource.value, includeEmail = true))
+        }.map { _ =>
+          logAction(req.user, s"Deleted resource chain for $uri")
+          NoContent
+        }
+      }
+    }
+  }
+
   private def deleteForNonAdmin(user: User, blobUri: String): Attempt[Unit] = {
     manifest.getCollectionsForBlob(blobUri).flatMap { collections =>
       // Here we check either of 2 followings:

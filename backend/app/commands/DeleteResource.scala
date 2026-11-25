@@ -53,7 +53,7 @@ class DeleteResource( manifest: Manifest, index: Index, previewStorage: ObjectSt
        }.map(_.flatten.toSet)
      }
 
-     private def deleteResource(uri: Uri): Attempt[Unit] = timeAsync("Total to delete resource", {
+     private def deleteResource(uri: Uri, includeEmail: Boolean = false): Attempt[Unit] = timeAsync("Total to delete resource", {
        val successAttempt = Attempt.Right(())
        for {
          // clean up observability data
@@ -64,7 +64,7 @@ class DeleteResource( manifest: Manifest, index: Index, previewStorage: ObjectSt
          pagePreviewS3Keys <- timeAsync("Get page preview S3 keys", getPagePreviewS3Keys(uri, ocrLanguages))
          _ <- timeAsync("Preview storage S3 delete", deleteFromS3Preview(uri, pagePreviewS3Keys))
          _ <- Attempt.fromEither(timeSync("Ingest storage S3 delete", objectStorage.delete(uri.toStoragePath)))
-         _ <- timeAsync("Delete blob from neo4j", manifest.deleteBlob(uri))
+         _ <- timeAsync("Delete blob from neo4j", manifest.deleteBlob(uri, includeEmail))
          // We use the index to determine what blobs are in a collection.
          // So we should delete from the index last, so that if any of the above
          // operations fails, we are still able to clear things up
@@ -90,9 +90,9 @@ class DeleteResource( manifest: Manifest, index: Index, previewStorage: ObjectSt
        deleteResult.getOrElse(Attempt.Left(DeleteFailure("Failed to fetch resource")))
      }
 
-     def deleteBlob(id: String): Attempt[Unit] = {
+     def deleteBlob(id: String, includeEmail: Boolean = false): Attempt[Unit] = {
        val uri = Uri(id)
-       deleteResource(uri)
+       deleteResource(uri, includeEmail)
      }
 
    }
