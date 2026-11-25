@@ -12,9 +12,9 @@ import services.index.HitReaders.{PageHitReader, RichFieldMap}
 import utils.Logging
 import utils.attempt.{Attempt, ElasticSearchQueryFailure, MultipleFailures, NotFoundFailure}
 
-import scala.concurrent.ExecutionContext
+import scala.concurrent.{ExecutionContext, Future}
 
-class ElasticsearchPages(val client: ElasticClient, indexNamePrefix: String)(implicit val ex: ExecutionContext) extends Pages with ElasticsearchSyntax with Logging {
+class ElasticsearchPages(val client: ElasticClient[Future], indexNamePrefix: String)(implicit val ex: ExecutionContext) extends Pages with ElasticsearchSyntax with Logging {
   val textIndexName = s"$indexNamePrefix-text"
 
   override def setup(): Attempt[Pages] = {

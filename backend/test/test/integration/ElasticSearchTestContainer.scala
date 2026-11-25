@@ -12,7 +12,7 @@ trait ElasticSearchTestContainer extends AttemptValues{
   implicit def patience: PatienceConfig = PatienceConfig(Span(30, Seconds), Span(250, Millis))
 
   private val elasticContainerDef = ElasticsearchContainer.Def(
-    dockerImageName = DockerImageName.parse("docker.elastic.co/elasticsearch/elasticsearch:8.11.2")
+    dockerImageName = DockerImageName.parse("docker.elastic.co/elasticsearch/elasticsearch:9.5.7")
   )
 
   def getElasticSearchContainer(): ElasticsearchContainer = {
@@ -27,7 +27,12 @@ trait ElasticSearchTestContainer extends AttemptValues{
     elasticContainer.container.setHostAccessible(true)
     val exposedPort = elasticContainer.container.getExposedPorts.get(0)
     elasticContainer.container.withEnv(
-      Map("discovery.type" -> "single-node", "http.publish_port" -> s"${exposedPort}", "xpack.security.enabled" -> "false").asJava
+      Map(
+        "discovery.type" -> "single-node",
+        "http.publish_port" -> s"${exposedPort}",
+        "xpack.security.enabled" -> "false",
+        "ES_JAVA_OPTS" -> "-Xms512m -Xmx512m"
+      ).asJava
     )
 
     elasticContainer

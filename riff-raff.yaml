@@ -30,7 +30,7 @@ deployments:
     parameters:
       amiEncrypted: true
       amiTags:
-        Recipe: investigations-elasticsearch-8-arm64
+        Recipe: investigations-elasticsearch-9-arm64
         AmigoStage: PROD
 
   pfi:

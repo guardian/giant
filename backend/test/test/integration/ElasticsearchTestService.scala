@@ -4,7 +4,7 @@ import com.sksamuel.elastic4s.ElasticClient
 import com.sksamuel.elastic4s.ElasticDsl._
 import com.sksamuel.elastic4s.requests.common.RefreshPolicy
 
-import scala.concurrent.ExecutionContext
+import scala.concurrent.{ExecutionContext, Future}
 import org.scalatest.concurrent.Eventually
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.time.{Millis, Seconds, Span}
@@ -25,7 +25,7 @@ class ElasticsearchTestService(val url: String)(implicit ec: ExecutionContext)
 
   implicit def patience: PatienceConfig = PatienceConfig(Span(30, Seconds), Span(250, Millis))
 
-  val elasticClient: ElasticClient = ElasticsearchClient(List(url), disableSniffing = true).successValue
+  val elasticClient: ElasticClient[Future] = ElasticsearchClient(List(url), disableSniffing = true).successValue
 
   val elasticResources = new ElasticsearchResources(elasticClient, "pfi") {
     // ES calls will not return until the result is visible when searching.
@@ -67,4 +67,3 @@ class ElasticsearchTestService(val url: String)(implicit ec: ExecutionContext)
     elasticPages.setup().await()
   }
 }
-

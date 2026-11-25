@@ -31,7 +31,7 @@ services:
       - 7687:7687
 
   elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.2
+    image: docker.elastic.co/elasticsearch/elasticsearch:9.5.7
     container_name: pfi-elasticsearch
     environment:
       - discovery.type=single-node
@@ -49,7 +49,7 @@ services:
       - 9200:9200
 
   cerebro:
-    image: lmenezes/cerebro:0.9.3
+    image: lmenezes/cerebro:0.9.4 # last version ever released
     container_name: pfi-cerebro
     ports:
       - 9092:9000

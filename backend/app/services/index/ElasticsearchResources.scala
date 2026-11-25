@@ -22,10 +22,10 @@ import services.index.HitReaders._
 import utils._
 import utils.attempt._
 
-import scala.concurrent.ExecutionContext
+import scala.concurrent.{ExecutionContext, Future}
 import scala.jdk.CollectionConverters._
 
-class ElasticsearchResources(override val client: ElasticClient, indexName: String)(implicit executionContext: ExecutionContext) extends Index with Logging with ElasticsearchSyntax {
+class ElasticsearchResources(override val client: ElasticClient[Future], indexName: String)(implicit executionContext: ExecutionContext) extends Index with Logging with ElasticsearchSyntax {
   override def setup(): Attempt[Index] = {
     createIndexIfNotAlreadyExists(indexName,
       properties(

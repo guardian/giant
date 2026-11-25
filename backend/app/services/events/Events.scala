@@ -12,7 +12,7 @@ import services.ElasticsearchSyntax.NestedField
 import utils.Logging
 import utils.attempt.Attempt
 
-import scala.concurrent.ExecutionContext
+import scala.concurrent.{ExecutionContext, Future}
 
 sealed trait EventType
 case object ActionStarted extends EventType
@@ -70,7 +70,7 @@ trait Events {
 }
 
 
-class ElasticsearchEvents(override val client: ElasticClient, eventIndexName: String)(implicit ec: ExecutionContext) extends Events with Logging with ElasticsearchSyntax {
+class ElasticsearchEvents(override val client: ElasticClient[Future], eventIndexName: String)(implicit ec: ExecutionContext) extends Events with Logging with ElasticsearchSyntax {
   import services.index.HitReaders.EventHitReader
 
   override def setup(): Attempt[Events] = {

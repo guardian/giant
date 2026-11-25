@@ -9,14 +9,14 @@ import services.ElasticsearchSyntax
 import utils.Logging
 import utils.attempt.Attempt
 
-import scala.concurrent.ExecutionContext
+import scala.concurrent.{ExecutionContext, Future}
 
 trait Tables {
   def setup(): Attempt[Tables]
   def addDocumentRows(uri: Uri, rows: Seq[TableRow]): Attempt[Unit]
 }
 
-class ElasticsearchTable(override val client: ElasticClient, tableIndexName: String)(implicit ec: ExecutionContext) extends Tables with Logging with ElasticsearchSyntax {
+class ElasticsearchTable(override val client: ElasticClient[Future], tableIndexName: String)(implicit ec: ExecutionContext) extends Tables with Logging with ElasticsearchSyntax {
 
   override def setup(): Attempt[Tables] =
     createIndexIfNotAlreadyExists(tableIndexName,
