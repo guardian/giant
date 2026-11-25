@@ -13,3 +13,11 @@ export function fetchResource(
     (res) => res.json(),
   );
 }
+
+export function deleteResourceOccurrence(uri: string, parent: string) {
+  const params = new URLSearchParams({
+    uri: decodeURIComponent(uri),
+    parent: decodeURIComponent(parent),
+  });
+  return authFetch(`/api/resource-occurrence?${params}`, { method: "DELETE" });
+}

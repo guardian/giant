@@ -30,6 +30,8 @@ object Manifest {
   case class InsertEmail(email: Email, parent: Uri) extends Insertion
 
   case class WorkCounts(inProgress: Int, outstanding: Int)
+  case class RemainingLocations(uri: Uri, collections: List[String], ingestions: List[String],
+                                files: List[String], parentBlobs: List[String], inWorkspace: Boolean)
 }
 
 trait WorkerManifest {
@@ -109,6 +111,10 @@ trait Manifest extends WorkerManifest {
   def getLanguagesProcessedByOcrMyPdf(uri: Uri): Attempt[List[Language]]
 
   def deleteBlob(uri: Uri): Attempt[Unit]
+
+  def planOccurrenceRemoval(occurrence: Uri, parent: Uri, username: String, isAdmin: Boolean): Attempt[List[Manifest.RemainingLocations]]
+
+  def removeOccurrence(occurrence: Uri, parent: Uri): Attempt[Unit]
 
   def deleteResourceAndDescendants(uri: Uri): Attempt[Unit]
 

@@ -1331,6 +1331,72 @@ class Neo4jManifest(driver: Driver, executionContext: ExecutionContext, queryLog
     }
   }
 
+  override def planOccurrenceRemoval(occurrence: Uri, parent: Uri, username: String, isAdmin: Boolean): Attempt[List[Manifest.RemainingLocations]] =
+    attemptTransaction { tx =>
+      tx.run(
+        """
+          |MATCH (item:Resource {uri: $occurrence})-[removed:PARENT]->(parent:Resource {uri: $parent})
+          |WHERE item:File OR item:Email
+          |MATCH path = (parent)-[:PARENT*0..]->(collection:Collection)
+          |WITH item, removed, collect(path) AS paths, collect(DISTINCT collection) AS collections
+          |WHERE size(paths) = 1 AND ( $isAdmin OR EXISTS {
+          |  MATCH (:User {username: $username})-[:CAN_SEE]->(allowed:Collection)
+          |  WHERE allowed IN collections
+          |})
+          |AND none(location IN nodes(head(paths)) WHERE EXISTS {
+          |  MATCH (:WorkspaceNode {uri: location.uri})-[:PART_OF]->(:Workspace)
+          |})
+          |MATCH (candidate:Resource)-[:PARENT*0..]->(item)
+          |WHERE candidate:Blob OR candidate:Email
+          |WITH DISTINCT candidate, removed
+          |OPTIONAL MATCH surviving = (candidate)-[:PARENT*0..]->(location:Resource)
+          |WHERE none(edge IN relationships(surviving) WHERE edge = removed)
+          |  AND (location:Collection OR EXISTS {
+          |    MATCH (:WorkspaceNode {uri: location.uri})-[:PART_OF]->(:Workspace)
+          |  })
+          |WITH candidate, collect(surviving) AS paths, collect(DISTINCT location) AS locations
+          |RETURN candidate.uri AS uri,
+          |  any(location IN locations WHERE NOT location:Collection OR EXISTS {
+          |    MATCH (:WorkspaceNode {uri: location.uri})-[:PART_OF]->(:Workspace)
+          |  }) AS inWorkspace,
+          |  reduce(allNodes = [], path IN paths | allNodes + nodes(path)) AS nodes
+        """.stripMargin,
+        parameters("occurrence", occurrence.value, "parent", parent.value, "username", username, "isAdmin", Boolean.box(isAdmin))
+      ).flatMap { result =>
+        val records = result.list().asScala.toList
+        if (records.isEmpty) Attempt.Left(utils.attempt.DeleteNotAllowed("Item has no single deletable collection location"))
+        else Attempt.Right(records.map { record =>
+          val uri = record.get("uri").asString()
+          val nodes = record.get("nodes").asList((value: Value) => value.asNode()).asScala.toList
+          def uris(label: String) = nodes.filter(_.hasLabel(label)).map(_.get("uri").asString()).filterNot(_ == uri).distinct
+          Manifest.RemainingLocations(Uri(uri), uris("Collection"), uris("Ingestion"), uris("File"), uris("Blob"),
+            record.get("inWorkspace").asBoolean())
+        })
+      }
+    }
+
+  override def removeOccurrence(occurrence: Uri, parent: Uri): Attempt[Unit] = attemptTransaction { tx =>
+    tx.run(
+      """
+        |MATCH (occurrence:Resource {uri: $occurrence})-[removed:PARENT]->(:Resource {uri: $parent})
+        |MATCH (candidate:Resource)-[:PARENT*0..]->(occurrence)
+        |WITH removed, collect(DISTINCT candidate) AS candidates
+        |DELETE removed
+        |WITH candidates
+        |UNWIND candidates AS candidate
+        |WITH candidate
+        |WHERE NOT EXISTS {
+        |  MATCH (candidate)-[:PARENT*0..]->(location:Resource)
+        |  WHERE location:Collection OR EXISTS {
+        |    MATCH (:WorkspaceNode {uri: location.uri})-[:PART_OF]->(:Workspace)
+        |  }
+        |}
+        |DETACH DELETE candidate
+      """.stripMargin,
+      parameters("occurrence", occurrence.value, "parent", parent.value)
+    ).map(result => { result.consume(); () })
+  }
+
   // If this blob has children, the neo4j structure beneath it (down to
   // the next :Blob descendant) will be deleted. This leaves orphaned blobs
   // in neo4j, elasticsearch and S3, but it is expected that it will be called either:

@@ -14,29 +14,32 @@ export function DeleteModal({
   setModalOpen,
   deleteStatus,
   entry,
+  workspaceOnly = false,
 }: {
   deleteItemHandler: () => void;
   isOpen: boolean;
   setModalOpen: (value: boolean) => void;
   deleteStatus: ModalStatus;
   entry: null | TreeEntry<WorkspaceEntry>;
+  workspaceOnly?: boolean;
 }) {
   if (entry !== null) {
     const isRemoteIngest = entry.id.startsWith("RemoteIngest");
+    const location = workspaceOnly ? "this workspace" : "Giant";
     const modalTitle: Record<ModalStatus, string> = {
-      unconfirmed: `${isRemoteIngest ? "Dismiss" : "Delete"} item from Giant?`,
-      doing: `${isRemoteIngest ? "Dismissing" : "Deleting"} item from Giant`,
-      done: `Item ${isRemoteIngest ? "dismissed" : "deleted"} from Giant`,
-      failed: `Failed to ${isRemoteIngest ? "dismiss" : "delete"} item from Giant`,
+      unconfirmed: `${isRemoteIngest ? "Dismiss" : "Delete"} item from ${location}?`,
+      doing: `${isRemoteIngest ? "Dismissing" : "Deleting"} item from ${location}`,
+      done: `Item ${isRemoteIngest ? "dismissed" : "deleted"} from ${location}`,
+      failed: `Failed to ${isRemoteIngest ? "dismiss" : "delete"} item from ${location}`,
     };
 
     const modalMessage: Record<ModalStatus, string> = {
       unconfirmed: `This will ${
         isRemoteIngest ? "dismiss the failed capture" : "delete the file"
-      } [${entry.name}] from Giant. It cannot be undone. Are you sure you want to proceed?`,
+      } [${entry.name}] from ${location}. ${workspaceOnly ? "Copies elsewhere will remain available." : "It cannot be undone."} Are you sure you want to proceed?`,
       doing: "",
-      done: `This item has been successfully ${isRemoteIngest ? "dismissed" : "deleted"} from Giant.`,
-      failed: `Failed to ${isRemoteIngest ? "dismiss" : "delete"} item from Giant. Please contact the administrator to ${isRemoteIngest ? "dismiss" : "delete"} this item.`,
+      done: `This item has been successfully ${isRemoteIngest ? "dismissed" : "deleted"} from ${location}.`,
+      failed: `Failed to ${isRemoteIngest ? "dismiss" : "delete"} item from ${location}. Please contact the administrator to ${isRemoteIngest ? "dismiss" : "delete"} this item.`,
     };
 
     return (

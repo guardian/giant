@@ -6,6 +6,7 @@ import model.frontend.email.EmailMetadata
 import model.index.{IndexedBlob, IndexedResource, TranslationData, SearchParameters}
 import model.ingestion.WorkspaceItemContext
 import model.{Email, Language, TranscriptionResult, Uri}
+import services.manifest.Manifest.RemainingLocations
 import utils.attempt.Attempt
 
 trait Index {
@@ -40,6 +41,8 @@ trait Index {
   def countBlobs(collection: String, ingestion: Option[String], inMultiple: Boolean): Attempt[Long]
 
   def delete(id: String): Attempt[Unit]
+
+  def updateLocations(locations: List[RemainingLocations]): Attempt[Unit]
 
   def anyWorkspaceOrCollectionContainsAnyResource(collectionUris: Set[String], workspaceIds: Set[String], resourceUris: Set[String]): Attempt[Boolean]
 

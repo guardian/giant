@@ -45,16 +45,17 @@ class Neo4JManifestITest extends AnyFreeSpec
   val ingestionServices: IngestionServices = stub[IngestionServices]
 
   var manifest: Manifest = _
+  private var neo4j: Neo4jTestService = _
 
   override type Containers = Neo4jContainer
 
   override def startContainers(): Containers = {
     val neo4jContainer = getNeo4jContainer()
 
-    val neo4jDriver = new Neo4jTestService(neo4jContainer.container.getBoltUrl).neo4jDriver
+    neo4j = new Neo4jTestService(neo4jContainer.container.getBoltUrl)
 
     manifest = {
-      Neo4jManifest.setupManifest(neo4jDriver, global, new Neo4jQueryLoggingConfig(1.second, logAllQueries = false)).toOption.get
+      Neo4jManifest.setupManifest(neo4j.neo4jDriver, global, new Neo4jQueryLoggingConfig(1.second, logAllQueries = false)).toOption.get
     }
 
     neo4jContainer
@@ -130,6 +131,42 @@ class Neo4JManifestITest extends AnyFreeSpec
         manifest.getBlobsForFiles(List("boundary_test/batch2/b.txt")).toOption.get.keySet shouldBe Set("boundary_test/batch2/b.txt")
       }
 
+      "removing an archive occurrence would orphan only the archive and its unique entry" in {
+        val collection = Uri("archive_removal")
+        val ingestion = collection.chain("batch")
+        val archive = ingestion.chain("archive.zip")
+        manifest.insertCollection(collection.value, "Archive removal", "test").successValue
+        insertIngestion(collection, Some(ingestion)).successValue
+        manifest.insert(List(
+          fileBlob(archive.value, "removal-archive", ingestion.value),
+          fileBlob("removal-archive/unique.txt", "removal-unique", ingestion.value),
+          fileBlob("removal-archive/shared.txt", "removal-shared", ingestion.value),
+          fileBlob("removal-archive/workspace.txt", "removal-workspace-blob", ingestion.value),
+          fileBlob(ingestion.chain("shared.txt").value, "removal-shared", ingestion.value)
+        ), ingestion).isRight shouldBe true
+        neo4j.neo4jHelper.transaction { tx =>
+          tx.run("""
+            |MATCH (collection:Collection {uri: 'archive_removal'})
+            |CREATE (:User {username: 'archive-remover'})-[:CAN_SEE]->(collection)
+            |CREATE (:WorkspaceNode {id: 'removal-workspace-node', uri: 'removal-workspace-blob'})
+            |  -[:PART_OF]->(:Workspace {id: 'removal-workspace'})
+            |""".stripMargin).consume()
+          Right(())
+        }.isRight shouldBe true
+
+        val locations = manifest.planOccurrenceRemoval(archive, ingestion, "archive-remover", isAdmin = false).successValue
+        locations.filter(location => location.collections.isEmpty && !location.inWorkspace).map(_.uri).toSet shouldBe
+          Set(Uri("removal-archive"), Uri("removal-unique"))
+        locations.filter(_.inWorkspace).map(_.uri) shouldBe List(Uri("removal-workspace-blob"))
+
+        manifest.removeOccurrence(archive, ingestion).successValue
+        manifest.getResource(archive).isLeft shouldBe true
+        manifest.getResource(Uri("removal-unique")).isLeft shouldBe true
+        manifest.getResource(Uri("removal-workspace-blob")).isRight shouldBe true
+        manifest.getResource(Uri("removal-shared")).toOption.get.parents.map(_.uri) shouldBe
+          List(ingestion.chain("shared.txt").value)
+      }
+
       "deleting a collection does not delete a sibling sharing its name prefix" in {
         manifest.insertCollection("boundco", "boundco", "test").eitherValue.isRight shouldBe true
         manifest.insertCollection("boundco2", "boundco2", "test").eitherValue.isRight shouldBe true
@@ -166,6 +203,29 @@ class Neo4JManifestITest extends AnyFreeSpec
         Manifest.InsertEmail(email("c", sentAt(11, 40), person3, List(person1), "Hey! Friend!", List("b"), List("a")), Uri("test-collection/test-ingestion")),
         Manifest.InsertEmail(email("d", sentAt(15, 40), person3, List(person2), "Hey! Friend!"), Uri("test-collection/test-ingestion"))
       )
+
+      "removing an email occurrence preserves another copy and its reply" in {
+        val collection = Uri("email_removal")
+        val first = collection.chain("first")
+        val second = collection.chain("second")
+        val original = email("removal-message", sentAt(10, 40), person1, List(person2), "Original")
+        val reply = email("removal-reply", sentAt(10, 50), person2, List(person1), "Reply", List(original.uri.value))
+        manifest.insertCollection(collection.value, "Email removal", "test").successValue
+        insertIngestion(collection, Some(first)).successValue
+        insertIngestion(collection, Some(second)).successValue
+        manifest.insert(List(Manifest.InsertEmail(original, first)), first).isRight shouldBe true
+        manifest.insert(List(Manifest.InsertEmail(original, second), Manifest.InsertEmail(reply, second)), second).isRight shouldBe true
+
+        manifest.planOccurrenceRemoval(original.uri, first, "other-user", isAdmin = false).eitherValue.isLeft shouldBe true
+        val locations = manifest.planOccurrenceRemoval(original.uri, first, "test", isAdmin = true).successValue
+        locations.map(location => location.uri -> location.ingestions) shouldBe List(original.uri -> List(second.value))
+
+        manifest.removeOccurrence(original.uri, first).successValue
+        manifest.getResource(original.uri).toOption.get.parents.map(_.uri) shouldBe List(second.value)
+        manifest.removeOccurrence(original.uri, second).successValue
+        manifest.getResource(original.uri).isLeft shouldBe true
+        manifest.getResource(reply.uri).isRight shouldBe true
+      }
 
       "Can insert emails" in {
         val result = manifest.insert(emails, Uri("test-collection/test-ingestion"))

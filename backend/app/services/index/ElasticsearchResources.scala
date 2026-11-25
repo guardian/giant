@@ -697,6 +697,43 @@ class ElasticsearchResources(override val client: ElasticClient, indexName: Stri
     }
   }
 
+  override def updateLocations(locations: List[services.manifest.Manifest.RemainingLocations]): Attempt[Unit] = {
+    locations.grouped(200).foldLeft(Attempt.Right(())) { (previous, batch) =>
+      previous.flatMap { _ =>
+        val byUri = batch.map { location =>
+          location.uri.value -> Map(
+            "collections" -> location.collections.asJava,
+            "inWorkspace" -> Boolean.box(location.inWorkspace),
+            "ingestions" -> location.ingestions.asJava,
+            "parentBlobs" -> location.parentBlobs.asJava,
+            "files" -> location.files.asJava
+          ).asJava
+        }.toMap
+        executeUpdateByQueryImmediateRefresh {
+          updateByQuerySync(indexName, idsQuery(batch.map(_.uri.value))).script(
+            Script(
+              s"""
+                 |def location = params.byUri[ctx._id];
+                 |if (location.collections.isEmpty() && !location.inWorkspace) {
+                 |  ctx.op = 'delete';
+                 |  return;
+                 |}
+                 |ctx._source.${IndexFields.collection} = location.collections;
+                 |ctx._source.${IndexFields.ingestion} = location.ingestions;
+                 |ctx._source.${IndexFields.parentBlobs} = location.parentBlobs;
+                 |if (ctx._source.metadata != null && ctx._source.metadata.${IndexFields.metadata.fileUris} != null) {
+                 |  ctx._source.metadata.${IndexFields.metadata.fileUris}.removeIf(file ->
+                 |    file.values().stream().noneMatch(uri -> location.files.contains(uri))
+                 |  );
+                 |}
+                 |""".stripMargin
+            ).lang("painless").params(Map("byUri" -> byUri.asJava))
+          )
+        }
+      }
+    }
+  }
+
   override def getPageCount(uri: Uri): Attempt[Option[Long]] = {
     execute {
       get(indexName, uri.value)

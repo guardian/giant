@@ -708,14 +708,35 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
         this.setState({
           deleteModalContext: { ...deleteContext, status: "doing" },
         });
-        this.props.deleteResourceFromWorkspace(
-          workspaceId,
-          entry.data.uri,
-          this.onDeleteCompleteHandler,
-        );
+        if (this.isWorkspaceScopedDelete(entry)) {
+          this.props.deleteItem(
+            workspaceId,
+            entry.id,
+            this.onDeleteCompleteHandler,
+          );
+        } else {
+          this.props.deleteResourceFromWorkspace(
+            workspaceId,
+            entry.data.uri,
+            this.onDeleteCompleteHandler,
+          );
+        }
         this.props.resetFocusedAndSelectedEntries();
       }
     };
+
+  isWorkspaceScopedDelete = (entry: TreeEntry<WorkspaceEntry> | null) =>
+    entry !== null &&
+    isWorkspaceLeaf(entry.data) &&
+    [
+      "application/zip",
+      "application/x-zip-compressed",
+      "message/rfc822",
+      "application/mbox",
+      "application/vnd.ms-outlook",
+      "application/vnd.ms-outlook-pst",
+      "application/vnd.ms-outlook-olm",
+    ].includes(entry.data.mimeType);
 
   onRemoveFromWorkspace =
     (workspaceId: string, entry: TreeEntry<WorkspaceEntry> | null) => () => {
@@ -1379,6 +1400,9 @@ class WorkspacesUnconnected extends React.Component<Props, State> {
           setModalOpen={this.onDeleteModalOpen}
           deleteStatus={this.state.deleteModalContext.status}
           entry={this.state.deleteModalContext.entry}
+          workspaceOnly={this.isWorkspaceScopedDelete(
+            this.state.deleteModalContext.entry,
+          )}
         />
         <RemoveFromWorkspaceModal
           removeHandler={this.onRemoveFromWorkspace(

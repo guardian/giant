@@ -113,6 +113,21 @@ class Blobs(override val controllerComponents: AuthControllerComponents, manifes
     }
   }
 
+  def deleteOccurrence(uri: String, parent: String): Action[AnyContent] = ApiAction.attempt { req =>
+    val occurrence = Uri(uri)
+    val parentUri = Uri(parent)
+    for {
+      isAdmin <- controllerComponents.users.hasPermission(req.user.username, CanPerformAdminOperations)
+      locations <- manifest.planOccurrenceRemoval(occurrence, parentUri, req.user.username, isAdmin)
+      // Keep the occurrence available for retry if indexing fails partway through.
+      _ <- index.updateLocations(locations)
+      _ <- manifest.removeOccurrence(occurrence, parentUri)
+    } yield {
+      logAction(req.user, s"Deleted occurrence $uri from $parent")
+      NoContent
+    }
+  }
+
   private def deleteForNonAdmin(user: User, blobUri: String): Attempt[Unit] = {
     manifest.getCollectionsForBlob(blobUri).flatMap { collections =>
       // Here we check either of 2 followings:

@@ -13,6 +13,7 @@ export type BasicResource = {
   processingStage: ProcessingStage;
   display?: string;
   children?: BasicResource[];
+  childrenParentUri?: string;
   parents?: BasicResource[];
 };
 

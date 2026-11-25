@@ -14,6 +14,7 @@ function handleResourceResponse(dispatch, res) {
         receiveResource({
           ...res,
           children: child.children,
+          childrenParentUri: child.uri,
         }),
       );
       dispatch(setIsResourceLoading(false));
@@ -62,6 +63,7 @@ export function getChildResource(uri) {
                   ...res,
                   // Skip a generation by joining a parent to its grandchildren!
                   children: expandableBlobChild.children,
+                  childrenParentUri: expandableBlobChild.uri,
                 }),
               );
             },

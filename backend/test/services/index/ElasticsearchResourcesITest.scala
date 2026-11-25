@@ -18,6 +18,7 @@ import test.{TestAnnotations, TestUserManagement, TestUserRegistration}
 import utils.IndexTestHelpers
 import utils.attempt.AttemptAwait._
 import services.{NoOpMetricsService}
+import services.manifest.Manifest.RemainingLocations
 
 import scala.concurrent.ExecutionContext
 
@@ -83,6 +84,24 @@ class ElasticsearchResourcesITest extends AnyFreeSpec with Matchers with BeforeA
   }
 
   "Elasticsearch Resources" - {
+    "occurrence removal updates shared search locations and deletes orphaned results" in {
+      val index = elasticsearchTestService.elasticResources
+      val uri = indexTestHelpers.addTestDocument(catCollection, "removal").successValue
+      val survivingIngestion = dogCollection.uri.chain("surviving")
+      val survivingFile = survivingIngestion.chain("shared.txt")
+      index.ingestDocument(uri, 0, IngestionData(None, None, Set(model.manifest.MimeType("application/text")),
+        Set(survivingFile), Nil, survivingIngestion.value, None), List(English)).successValue
+
+      index.updateLocations(List(RemainingLocations(uri, List(dogCollection.uri.value), List(survivingIngestion.value),
+        List(survivingFile.value), Nil, inWorkspace = false))).successValue
+      index.getResource(uri, None).successValue.asInstanceOf[Document].fileUris shouldBe Set(survivingFile.value)
+      index.anyWorkspaceOrCollectionContainsAnyResource(Set(catCollection.uri.value), Set.empty, Set(uri.value)).successValue shouldBe false
+      index.anyWorkspaceOrCollectionContainsAnyResource(Set(dogCollection.uri.value), Set.empty, Set(uri.value)).successValue shouldBe true
+
+      index.updateLocations(List(RemainingLocations(uri, Nil, Nil, Nil, Nil, inWorkspace = false))).successValue
+      index.getResource(uri, None).eitherValue.isLeft shouldBe true
+    }
+
     "Return nothing to a user who has no access to any datasets or workspaces" in {
       TestSetup(users, cantSeeCollectionsUser, usersToWorkspaces = Map.empty) { controller =>
         val request = FakeRequest("GET", "/query?q=[\"*\"]")

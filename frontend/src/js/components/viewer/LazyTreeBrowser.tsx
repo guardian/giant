@@ -8,7 +8,10 @@ import TreeBrowser from "../UtilComponents/TreeBrowser";
 import { ResourceBreadcrumbs } from "../ResourceBreadcrumbs";
 import DetectClickOutside from "../UtilComponents/DetectClickOutside";
 import AddToWorkspaceModal from "./AddToWorkspaceModal";
-import { fetchResource } from "../../services/ResourceApi";
+import {
+  deleteResourceOccurrence,
+  fetchResource,
+} from "../../services/ResourceApi";
 import { hasSingleBlobChild } from "../../util/resourceUtils";
 import sortBy from "lodash/sortBy";
 import {
@@ -20,6 +23,8 @@ import {
 } from "../../types/Tree";
 import { getChildResource } from "../../actions/resources/getResource";
 
+type LocatedResource = BasicResource & { parentUri: string };
+
 type PropTypes = {
   rootResource: Resource;
   descendantResources: { [uri: string]: BasicResource };
@@ -29,7 +34,8 @@ type PropTypes = {
 function resourceToTreeEntry(
   rootResource: BasicResource,
   descendantResources: { [uri: string]: BasicResource },
-): TreeEntry<BasicResource> {
+  parentUri: string,
+): TreeEntry<LocatedResource> {
   const resource =
     (descendantResources && descendantResources[rootResource.uri]) ||
     rootResource;
@@ -46,9 +52,13 @@ function resourceToTreeEntry(
     return {
       id: resource.uri,
       name,
-      data: resource,
+      data: { ...resource, parentUri },
       children: childrenFoldersOnTop.map((child) =>
-        resourceToTreeEntry(child, descendantResources),
+        resourceToTreeEntry(
+          child,
+          descendantResources,
+          resource.childrenParentUri ?? resource.uri,
+        ),
       ),
     };
   } else {
@@ -56,7 +66,7 @@ function resourceToTreeEntry(
       id: resource.uri,
       name,
       isExpandable: resource.isExpandable,
-      data: resource,
+      data: { ...resource, parentUri },
     };
   }
 }
@@ -64,14 +74,18 @@ function resourceToTreeEntry(
 function treeFromResource(
   rootResource: BasicResource,
   descendantResources: { [uri: string]: BasicResource },
-): Tree<BasicResource> {
+): Tree<LocatedResource> {
   if (rootResource.children && rootResource.children.length) {
     const childrenFoldersOnTop = sortBy(
       rootResource.children,
       (child) => !child.isExpandable,
     );
     return childrenFoldersOnTop.map((child) =>
-      resourceToTreeEntry(child, descendantResources),
+      resourceToTreeEntry(
+        child,
+        descendantResources,
+        rootResource.childrenParentUri ?? rootResource.uri,
+      ),
     );
   } else {
     return [];
@@ -99,22 +113,19 @@ export default function LazyTreeBrowser({
   descendantResources,
   getChildResource,
 }: PropTypes) {
-  // You can't currently perform any actions after selecting a resource but we
-  // highlight it anyway to avoid the UI feeling broken
-
   const [focusedEntry, setFocusedEntry] =
-    useState<TreeEntry<BasicResource> | null>(null);
+    useState<TreeEntry<LocatedResource> | null>(null);
 
   const [expandedEntries, setExpandedEntries] = useState<
-    TreeEntry<BasicResource>[]
+    TreeEntry<LocatedResource>[]
   >([]);
   const [selectedEntries, setSelectedEntries] = useState<
-    TreeEntry<BasicResource>[]
+    TreeEntry<LocatedResource>[]
   >([]);
 
   const [contextMenu, setContextMenu] = useState<{
     isOpen: boolean;
-    entry: TreeEntry<BasicResource> | null;
+    entry: TreeEntry<LocatedResource> | null;
     positionX: number;
     positionY: number;
   }>({ isOpen: false, entry: null, positionX: 0, positionY: 0 });
@@ -124,15 +135,15 @@ export default function LazyTreeBrowser({
     resource: Resource | BasicResource | null;
   }>({ isOpen: false, resource: null });
 
-  function onExpandNode(node: TreeNode<BasicResource>) {
+  function onExpandNode(node: TreeNode<LocatedResource>) {
     setExpandedEntries([...expandedEntries, node]);
   }
 
-  function onCollapseNode(node: TreeNode<BasicResource>) {
+  function onCollapseNode(node: TreeNode<LocatedResource>) {
     setExpandedEntries(expandedEntries.filter(({ id }) => id !== node.id));
   }
 
-  function onExpandLeaf(leaf: TreeLeaf<BasicResource>) {
+  function onExpandLeaf(leaf: TreeLeaf<LocatedResource>) {
     getChildResource(leaf.id);
     // The leaf will become a node (à la the ugly duckling)
     // once its resource has been fetched, since it will have children.
@@ -140,15 +151,18 @@ export default function LazyTreeBrowser({
     setExpandedEntries([...expandedEntries, leaf]);
   }
 
-  function onContextMenu(e: React.MouseEvent, entry: TreeEntry<BasicResource>) {
+  function onContextMenu(
+    e: React.MouseEvent,
+    entry: TreeEntry<LocatedResource>,
+  ) {
     if (e.metaKey && e.shiftKey) {
       // override for devs to do "inspect element"
       return;
     }
     e.preventDefault();
 
-    // Only show context menu for files, not expandable folders
-    if (isTreeLeaf(entry) && !entry.isExpandable) {
+    if (canDelete(entry) || (isTreeLeaf(entry) && !entry.isExpandable)) {
+      e.stopPropagation();
       setSelectedEntries([entry]);
       setFocusedEntry(entry);
       setContextMenu({
@@ -164,7 +178,28 @@ export default function LazyTreeBrowser({
     setContextMenu({ isOpen: false, entry: null, positionX: 0, positionY: 0 });
   }
 
-  function onAddToWorkspace(entry: TreeEntry<BasicResource>) {
+  function canDelete(entry: TreeEntry<LocatedResource>) {
+    return entry.data.type === "file" || entry.data.type === "email";
+  }
+
+  async function onDelete(entry: TreeEntry<LocatedResource>) {
+    closeContextMenu();
+    if (
+      !window.confirm(
+        `Delete "${entry.name}" from this location? Copies elsewhere will remain available.`,
+      )
+    ) {
+      return;
+    }
+    try {
+      await deleteResourceOccurrence(entry.data.uri, entry.data.parentUri);
+      window.location.reload();
+    } catch {
+      window.alert(`Could not delete "${entry.name}" from this location.`);
+    }
+  }
+
+  function onAddToWorkspace(entry: TreeEntry<LocatedResource>) {
     closeContextMenu();
     // Fetch the resource, then resolve file → blob if needed.
     // Workspaces store references to blobs, not their parent file nodes.
@@ -205,7 +240,7 @@ export default function LazyTreeBrowser({
         selectedEntries={selectedEntries}
         focusedEntry={focusedEntry}
         onMoveItems={() => {}}
-        onSelectLeaf={(leaf: TreeLeaf<BasicResource>) => {
+        onSelectLeaf={(leaf: TreeLeaf<LocatedResource>) => {
           const resource = leaf.data;
           if (resource.isExpandable) {
             onExpandLeaf(leaf);
@@ -220,7 +255,7 @@ export default function LazyTreeBrowser({
               name: "files",
               align: "left",
               style: { width: "100%" },
-              render: (n: TreeEntry<BasicResource>) => {
+              render: (n: TreeEntry<LocatedResource>) => {
                 const name = n.name || "--";
                 const resource = n.data;
                 return (
@@ -260,20 +295,26 @@ export default function LazyTreeBrowser({
               left: contextMenu.positionX,
               top: contextMenu.positionY,
             }}
-            items={[
-              {
-                key: "addToWorkspace",
-                content: "Add to workspace",
-                icon: "plus",
-              },
-            ]}
             vertical
-            onItemClick={() => {
-              if (contextMenu.entry) {
-                onAddToWorkspace(contextMenu.entry);
-              }
-            }}
-          />
+          >
+            {isTreeLeaf(contextMenu.entry) &&
+              !contextMenu.entry.isExpandable && (
+                <Menu.Item
+                  icon="plus"
+                  content="Add to workspace"
+                  onClick={() =>
+                    contextMenu.entry && onAddToWorkspace(contextMenu.entry)
+                  }
+                />
+              )}
+            {canDelete(contextMenu.entry) && (
+              <Menu.Item
+                icon="trash"
+                content="Delete"
+                onClick={() => contextMenu.entry && onDelete(contextMenu.entry)}
+              />
+            )}
+          </Menu>
         </DetectClickOutside>
       )}
       {addToWorkspaceModal.isOpen && addToWorkspaceModal.resource && (
