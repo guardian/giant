@@ -32,10 +32,10 @@ trait Annotations {
   // node in the partial tree in a single round-trip. Empty when the node is the root.
   def getWorkspaceAncestors(currentUser: String, workspaceId: String, nodeId: String): Attempt[List[TreeEntry[WorkspaceEntry]]]
 
-  // Workspace-wide totals from one aggregate query (see WorkspaceAggregate): the summary header and
+  // Workspace-wide totals from one aggregate query (see WorkspaceAggregateStats): the summary header and
   // the polling "is anything processing?" decision, neither of which the client can derive from a
   // partially-loaded tree.
-  def getWorkspaceAggregate(currentUser: String, workspaceId: String): Attempt[WorkspaceAggregate]
+  def getWorkspaceAggregate(currentUser: String, workspaceId: String): Attempt[WorkspaceAggregateStats]
 
   def insertWorkspace(username: String, id: String, name: String, isPublic: Boolean, tagColor: String): Attempt[Unit]
   def updateWorkspaceName(currentUser: String, id: String, name: String): Attempt[Unit]

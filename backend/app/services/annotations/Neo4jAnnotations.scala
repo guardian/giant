@@ -387,7 +387,7 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
     }
   }
 
-  override def getWorkspaceAggregate(currentUser: String, workspaceId: String): Attempt[WorkspaceAggregate] = attemptTransaction { tx =>
+  override def getWorkspaceAggregate(currentUser: String, workspaceId: String): Attempt[WorkspaceAggregateStats] = attemptTransaction { tx =>
     tx.run(
       List(
         matchAuthorisedWorkspace,
@@ -400,7 +400,8 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
           |       count(CASE WHEN nodeType = 'file' THEN node END) AS fileCount,
           |       count(CASE WHEN nodeType = 'folder' THEN node END) AS folderCount,
           |       sum(CASE WHEN nodeType = 'file' AND hasFailures THEN 1 ELSE 0 END) AS failedCount,
-          |       sum(CASE WHEN nodeType = 'file' AND NOT hasFailures THEN numberOfTodos ELSE 0 END) AS processingTaskCount""".stripMargin
+          |       sum(CASE WHEN nodeType = 'file' AND NOT hasFailures THEN numberOfTodos ELSE 0 END) AS processingTaskCount,
+          |       sum(CASE WHEN nodeType = 'file' AND NOT hasFailures AND numberOfTodos > 0 THEN 1 ELSE 0 END) AS processingFileCount""".stripMargin
       ).mkString("\n"),
       parameters(
         "currentUser", currentUser,
@@ -415,10 +416,11 @@ class Neo4jAnnotations(driver: Driver, executionContext: ExecutionContext, query
           // The query counts the root folder among the folders; the eager tree's rollup
           // (descendantsNodeCount) excludes it, so subtract it here to keep the two in parity.
           val folderCountExcludingRoot = math.max(row.get("folderCount").asLong() - 1L, 0L)
-          Attempt.Right(WorkspaceAggregate(
+          Attempt.Right(WorkspaceAggregateStats(
             fileCount = row.get("fileCount").asLong(),
             folderCount = folderCountExcludingRoot,
             processingTaskCount = row.get("processingTaskCount").asLong(),
+            processingFileCount = row.get("processingFileCount").asLong(),
             failedCount = row.get("failedCount").asLong()
           ))
       }

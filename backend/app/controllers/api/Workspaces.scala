@@ -182,6 +182,14 @@ class Workspaces(
 
   // Lazy-loading read endpoints (issue #744). Additive — nothing in the frontend consumes them yet.
 
+  // A single workspace's metadata without its tree. `get` above returns the metadata plus the whole
+  // tree, which is the slow path for a large workspace; the lazy-loading size gate needs nodeCount
+  // before deciding whether to fetch that tree at all.
+  def getMetadata(workspaceId: String) = ApiAction.attempt { req: UserIdentityRequest[_] =>
+    annotation.getWorkspaceMetadata(req.user.username, workspaceId)
+      .map(metadata => Ok(Json.toJson(metadata)))
+  }
+
   // The workspace root node and its direct children only (the initial depth-1 load).
   def getRootChildren(workspaceId: String) = ApiAction.attempt { req: UserIdentityRequest[_] =>
     annotation.getWorkspaceChildren(req.user.username, workspaceId, None)

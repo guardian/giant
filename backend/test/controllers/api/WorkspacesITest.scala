@@ -634,6 +634,26 @@ class WorkspacesITest extends AnyFunSuite
     }
   }
 
+  test("single-workspace metadata returns nodeCount without the tree") {
+    asUser("paul") { implicit controllers =>
+      val metadata = getWorkspaceMetadata(paulWorkspace.id)
+
+      metadata.id should be(paulWorkspace.id)
+      metadata.name should be(paulWorkspace.name)
+      // the same count the workspace list reports: 9 items plus the root node
+      metadata.nodeCount should contain(10L)
+    }
+  }
+
+  test("single-workspace metadata respects workspace access") {
+    asUser("barry") { implicit controllers =>
+      status(controllers.workspace.getMetadata(paulWorkspace.id).apply(FakeRequest())) should be(404)
+    }
+    asUser("paul") { implicit controllers =>
+      status(controllers.workspace.getMetadata("does-not-exist").apply(FakeRequest())) should be(404)
+    }
+  }
+
   // === Lazy-loading read primitives (issue #744) ===
   // These verify the new endpoints against the same paulWorkspace fixture the eager tests use, so
   // the lazy path is checked for parity with the eager full-tree path.
@@ -744,6 +764,7 @@ class WorkspacesITest extends AnyFunSuite
           aggregate.fileCount should be(root.descendantsLeafCount)
           aggregate.folderCount should be(root.descendantsNodeCount)
           aggregate.processingTaskCount should be(root.descendantsProcessingTaskCount)
+          aggregate.processingFileCount should be(root.descendantsProcessingLeafCount)
           aggregate.failedCount should be(root.descendantsFailedCount)
       }
     }
@@ -765,6 +786,11 @@ class WorkspacesITest extends AnyFunSuite
       aggregate.failedCount should be(1)
       // 2 (f-1.txt) + 1 (f-2.txt); f-g-1.txt's task is excluded because its extraction failed
       aggregate.processingTaskCount should be(3)
+      // f-1.txt and f-2.txt are processing; f-g-1.txt counts as failed, not as processing.
+      // Asserted as an absolute value rather than against the eager root rollup: the eager
+      // descendantsProcessingLeafCount sums task counts for sub-folders, so the two disagree on
+      // nested data until that rollup is corrected.
+      aggregate.processingFileCount should be(2)
 
       // the two independent implementations now agree on non-zero data (a real cross-check)
       inside(getWorkspace(paulWorkspace.id).rootNode) {

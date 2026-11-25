@@ -1,7 +1,7 @@
 package test
 
 import model.Uri
-import model.annotations.{Comment, CommentAnchor, WorkspaceAggregate, WorkspaceEntry, WorkspaceMetadata}
+import model.annotations.{Comment, CommentAnchor, WorkspaceAggregateStats, WorkspaceEntry, WorkspaceMetadata}
 import model.frontend.TreeEntry
 import model.ingestion.RemoteIngest
 import services.annotations.Annotations
@@ -38,7 +38,7 @@ class TestAnnotations(usersToWorkspaces: Map[String, List[String]] = Map.empty) 
   override def getBlobUrisInWorkspaceFolder(currentUser: String, workspaceId: String, folderId: String): Attempt[List[String]] = Attempt.Left(UnsupportedOperationFailure(""))
   override def getWorkspaceChildren(currentUser: String, workspaceId: String, maybeNodeId: Option[String]): Attempt[TreeEntry[WorkspaceEntry]] = Attempt.Left(UnsupportedOperationFailure(""))
   override def getWorkspaceAncestors(currentUser: String, workspaceId: String, nodeId: String): Attempt[List[TreeEntry[WorkspaceEntry]]] = Attempt.Left(UnsupportedOperationFailure(""))
-  override def getWorkspaceAggregate(currentUser: String, workspaceId: String): Attempt[WorkspaceAggregate] = Attempt.Left(UnsupportedOperationFailure(""))
+  override def getWorkspaceAggregate(currentUser: String, workspaceId: String): Attempt[WorkspaceAggregateStats] = Attempt.Left(UnsupportedOperationFailure(""))
   override def getWorkspaceMetadata(currentUser: String, id: String): Attempt[WorkspaceMetadata] = Attempt.Left(UnsupportedOperationFailure(""))
   override def getBlobOwners(blobUri: String): Attempt[Set[String]] = Attempt.Left(UnsupportedOperationFailure(""))
 }
