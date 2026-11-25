@@ -3,9 +3,10 @@ package controllers.api
 import com.dimafeng.testcontainers.lifecycle.and
 import com.dimafeng.testcontainers.scalatest.TestContainersForAll
 import com.dimafeng.testcontainers.{ElasticsearchContainer, Neo4jContainer}
-import model.annotations.{Workspace, WorkspaceEntry, WorkspaceMetadata}
+import model.annotations.{Workspace, WorkspaceEntry, WorkspaceMetadata, WorkspaceNode}
 import model.frontend.{TreeEntry, TreeLeaf, TreeNode}
 import org.apache.pekko.util.Timeout
+import org.neo4j.driver.Values.parameters
 import org.scalatest._
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.time.{Millis, Seconds, Span}
@@ -149,6 +150,52 @@ class WorkspacesITest extends AnyFunSuite
         children.exists(_.name == "g") should be(true)
       }
     }
+  }
+
+  test("processing rollups count files and tasks separately at every level") {
+    asUser("paul") { implicit controllers =>
+      // The fixture's files are all fully processed, so attach outstanding extractor tasks directly:
+      // two tasks on one nested file (f/g/1.txt) and one task on a file directly inside f.
+      attachOutstandingTasks(itemIds.`f/g/1.txt`.nodeId, count = 2)
+      attachOutstandingTasks(itemIds.`f/1.txt`.nodeId, count = 1)
+
+      insideNode(getWorkspace(paulWorkspace.id).rootNode) { root =>
+        // two files are processing, with three tasks between them
+        processingCounts(root) should be((2L, 3L))
+
+        insideNode(root.children.find(_.id == itemIds.f).value) { f =>
+          processingCounts(f) should be((2L, 3L))
+
+          insideNode(f.children.find(_.id == itemIds.`f/g`).value) { g =>
+            processingCounts(g) should be((1L, 2L))
+          }
+          insideNode(f.children.find(_.id == itemIds.`f/h`).value) { h =>
+            processingCounts(h) should be((0L, 0L))
+          }
+        }
+      }
+    }
+  }
+
+  // (files still processing, outstanding tasks) as rolled up onto a folder
+  private def processingCounts(node: TreeNode[WorkspaceEntry]): (Long, Long) = node.data match {
+    case folder: WorkspaceNode => (folder.descendantsProcessingLeafCount, folder.descendantsProcessingTaskCount)
+    case other => fail(s"expected a folder but got $other")
+  }
+
+  private def attachOutstandingTasks(nodeId: String, count: Int): Unit = {
+    val session = neo4jTestService.neo4jDriver.session()
+    try {
+      (1 to count).foreach { _ =>
+        session.run(
+          """MATCH (n:WorkspaceNode {id: $nodeId})
+            |MATCH (r:Resource {uri: n.uri})
+            |MERGE (e:Extractor {name: 'itest-extractor'})
+            |CREATE (r)<-[:TODO]-(e)""".stripMargin,
+          parameters("nodeId", nodeId)
+        ).consume()
+      }
+    } finally session.close()
   }
 
   test("we're back to the initial state after adding folder g") {
