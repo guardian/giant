@@ -64,6 +64,12 @@ install the worker dependencies and models, skipping its dev-nginx and Docker se
 This requires read only Janus credentials. If the folder exists it is left unchanged; run
 `./scripts/setup.sh --worker-only` from transcription-service if it still needs setup.
 
+Setup downloads the pinned PDF.js viewer and verifies its checksum. Backend startup
+also runs this step, so existing checkouts can pick up viewer upgrades without
+rerunning full setup. The verified ZIP is cached under
+`${XDG_CACHE_HOME:-$HOME/.cache}/giant`. To refresh the staged viewer on its own,
+run `./scripts/setup-pdfjs-viewer.sh`.
+
 Run the Scala backend:
 
 ```

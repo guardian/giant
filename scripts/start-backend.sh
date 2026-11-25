@@ -31,6 +31,7 @@ if [[ $AVAILABLE_MEMORY -lt 5 ]]; then
     exit 1
 fi
 
+./scripts/setup-pdfjs-viewer.sh
 ./scripts/start-containers.sh
 echo "setting useExternalExtractors to ${EXTERNAL}"
 SBT_ARGS=()

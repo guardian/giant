@@ -7,6 +7,7 @@ timing-*.csv
 node_modules/
 logs/
 backend/public/build
+/backend/public/third-party/pdfjs-*-dist/
 npm-debug.log
 .DS_Store
 backend/conf/site.conf

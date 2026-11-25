@@ -119,6 +119,7 @@ let servicesStarted = false;
 try {
   await checkPorts();
   console.log("Building the E2E backend...");
+  await run`./scripts/setup-pdfjs-viewer.sh`;
   // Omit deployment JVM options (CloudWatch metrics, /var/log paths, default ports).
   await run`sbt -batch -J-Xmx2g -J-XX:ActiveProcessorCount=2 'set backend / Universal / javaOptions := Seq()' backend/stage > ${resolve(artifacts, "build.log")} 2>&1`;
 
