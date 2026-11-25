@@ -18,6 +18,8 @@ pushd frontend
 npm install
 popd
 
+./scripts/setup-pdfjs-viewer.sh
+
 echo "Starting docker containers for databases/object storage..."
 ./scripts/start-containers.sh
 

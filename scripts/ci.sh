@@ -12,6 +12,7 @@ CI=true npm run test
 
 popd
 
+./scripts/setup-pdfjs-viewer.sh
 cp -r frontend/build/* backend/public
 # Replace the symbolic link we use in dev with the actual file.
 # On Teamcity the JDeb build doesn't seem to follow the symbolic link while packaging, weirdly
