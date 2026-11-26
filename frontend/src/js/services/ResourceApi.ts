@@ -20,7 +20,7 @@ export async function confirmDeleteWithChildren(
   showAffectedCollections = true,
 ): Promise<boolean> {
   const query = new URLSearchParams({ uri });
-  const endpoint = `/api/admin/delete-with-children?${query}`;
+  const endpoint = `/api/blobs/delete-with-children?${query}`;
   const collections: string[] = showAffectedCollections
     ? await authFetch(endpoint).then((res) => res.json())
     : [];
