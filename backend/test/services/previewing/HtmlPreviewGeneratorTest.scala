@@ -1,5 +1,7 @@
 package services.previewing
 
+import java.nio.file.Paths
+
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
 import org.scalatest.freespec.AnyFreeSpec
@@ -7,6 +9,15 @@ import org.scalatest.matchers.should.Matchers
 
 class HtmlPreviewGeneratorTest extends AnyFreeSpec with Matchers {
   "HtmlPreviewGenerator" - {
+    "should disable local file access and JavaScript when rendering" in {
+      val workspace = Paths.get("preview")
+      val generator = new HtmlPreviewGenerator("wkhtmltopdf", workspace)
+
+      generator.buildCommand(workspace.toString, "input.html", "output.pdf") shouldBe Seq(
+        "wkhtmltopdf", "--disable-local-file-access", "--disable-javascript", "input.html", "output.pdf"
+      )
+    }
+
     "should scrub" - {
       "hyperlinks" in {
         check(
