@@ -1,4 +1,6 @@
 import React, { useState } from "react";
+import { useSelector } from "react-redux";
+import { GiantState } from "../../types/redux/GiantState";
 import { Menu } from "semantic-ui-react";
 import { Resource, BasicResource } from "../../types/Resource";
 import { getLastPart } from "../../util/stringUtils";
@@ -8,7 +10,10 @@ import TreeBrowser from "../UtilComponents/TreeBrowser";
 import { ResourceBreadcrumbs } from "../ResourceBreadcrumbs";
 import DetectClickOutside from "../UtilComponents/DetectClickOutside";
 import AddToWorkspaceModal from "./AddToWorkspaceModal";
-import { fetchResource } from "../../services/ResourceApi";
+import {
+  confirmDeleteWithChildren,
+  fetchResource,
+} from "../../services/ResourceApi";
 import { hasSingleBlobChild } from "../../util/resourceUtils";
 import sortBy from "lodash/sortBy";
 import {
@@ -99,8 +104,9 @@ export default function LazyTreeBrowser({
   descendantResources,
   getChildResource,
 }: PropTypes) {
-  // You can't currently perform any actions after selecting a resource but we
-  // highlight it anyway to avoid the UI feeling broken
+  const isAdmin = useSelector((state: GiantState) =>
+    state.users.myPermissions.includes("CanPerformAdminOperations"),
+  );
 
   const [focusedEntry, setFocusedEntry] =
     useState<TreeEntry<BasicResource> | null>(null);
@@ -147,8 +153,7 @@ export default function LazyTreeBrowser({
     }
     e.preventDefault();
 
-    // Only show context menu for files, not expandable folders
-    if (isTreeLeaf(entry) && !entry.isExpandable) {
+    if (canDelete(entry) || (isTreeLeaf(entry) && !entry.isExpandable)) {
       setSelectedEntries([entry]);
       setFocusedEntry(entry);
       setContextMenu({
@@ -162,6 +167,32 @@ export default function LazyTreeBrowser({
 
   function closeContextMenu() {
     setContextMenu({ isOpen: false, entry: null, positionX: 0, positionY: 0 });
+  }
+
+  function canDelete(entry: TreeEntry<BasicResource>) {
+    return (
+      isAdmin && (entry.data.type === "file" || entry.data.type === "email")
+    );
+  }
+
+  async function onDelete(entry: TreeEntry<BasicResource>) {
+    closeContextMenu();
+    const showAffectedCollections =
+      entry.data.type === "email" ||
+      entry.data.isExpandable ||
+      /\.zip$/i.test(entry.name);
+    try {
+      if (
+        await confirmDeleteWithChildren(
+          decodeURIComponent(entry.data.uri),
+          entry.name,
+          showAffectedCollections,
+        )
+      )
+        window.location.reload();
+    } catch {
+      window.alert(`Could not delete "${entry.name}".`);
+    }
   }
 
   function onAddToWorkspace(entry: TreeEntry<BasicResource>) {
@@ -260,20 +291,26 @@ export default function LazyTreeBrowser({
               left: contextMenu.positionX,
               top: contextMenu.positionY,
             }}
-            items={[
-              {
-                key: "addToWorkspace",
-                content: "Add to workspace",
-                icon: "plus",
-              },
-            ]}
             vertical
-            onItemClick={() => {
-              if (contextMenu.entry) {
-                onAddToWorkspace(contextMenu.entry);
-              }
-            }}
-          />
+          >
+            {isTreeLeaf(contextMenu.entry) &&
+              !contextMenu.entry.isExpandable && (
+                <Menu.Item
+                  icon="plus"
+                  content="Add to workspace"
+                  onClick={() =>
+                    contextMenu.entry && onAddToWorkspace(contextMenu.entry)
+                  }
+                />
+              )}
+            {canDelete(contextMenu.entry) && (
+              <Menu.Item
+                icon="trash"
+                content="Delete"
+                onClick={() => contextMenu.entry && onDelete(contextMenu.entry)}
+              />
+            )}
+          </Menu>
         </DetectClickOutside>
       )}
       {addToWorkspaceModal.isOpen && addToWorkspaceModal.resource && (

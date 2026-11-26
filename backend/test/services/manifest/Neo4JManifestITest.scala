@@ -111,6 +111,30 @@ class Neo4JManifestITest extends AnyFreeSpec
         )
       }
 
+      "deleting an archive with children includes shared entries and their collections" in {
+        val first = Uri("chain_first")
+        val second = Uri("chain_second")
+        val source = first.chain("batch")
+        val other = second.chain("batch")
+        val archive = source.chain("archive.zip")
+        manifest.insertCollection(first.value, "First collection", "test").successValue
+        manifest.insertCollection(second.value, "Second collection", "test").successValue
+        insertIngestion(first, Some(source)).successValue
+        insertIngestion(second, Some(other)).successValue
+        manifest.insert(List(
+          fileBlob(archive.value, "chain-archive", source.value),
+          fileBlob("chain-archive/shared.txt", "chain-shared", source.value),
+          fileBlob(other.chain("shared.txt").value, "chain-shared", other.value)
+        ), source).isRight shouldBe true
+
+        val resources = manifest.getChildrenCollections(archive).successValue
+        resources.map(_.uri) shouldBe List(Uri("chain-shared"), Uri("chain-archive"))
+        resources.head.collectionUris.toSet shouldBe Set(first.value, second.value)
+        resources.foreach(resource => manifest.deleteBlob(resource.uri).successValue)
+        manifest.getResource(archive).isLeft shouldBe true
+        manifest.getResource(other.chain("shared.txt")).isLeft shouldBe true
+      }
+
       "deleting an ingestion does not delete a sibling sharing its name prefix" in {
         manifest.insertCollection("boundary_test", "boundary_test", "test").eitherValue.isRight shouldBe true
         insertIngestion(Uri("boundary_test"), Some(Uri("boundary_test/batch"))).eitherValue.isRight shouldBe true
@@ -166,6 +190,21 @@ class Neo4JManifestITest extends AnyFreeSpec
         Manifest.InsertEmail(email("c", sentAt(11, 40), person3, List(person1), "Hey! Friend!", List("b"), List("a")), Uri("test-collection/test-ingestion")),
         Manifest.InsertEmail(email("d", sentAt(15, 40), person3, List(person2), "Hey! Friend!"), Uri("test-collection/test-ingestion"))
       )
+
+      "deleting an email with children leaves thread replies alone" in {
+        val collection = Uri("chain_email")
+        val ingestion = collection.chain("batch")
+        val message = email("chain-message", sentAt(10, 40), person1, List(person2), "Original")
+        val reply = email("chain-reply", sentAt(10, 50), person2, List(person1), "Reply", List(message.uri.value))
+        manifest.insertCollection(collection.value, "Email chain", "test").successValue
+        insertIngestion(collection, Some(ingestion)).successValue
+        manifest.insert(List(Manifest.InsertEmail(message, ingestion), Manifest.InsertEmail(reply, ingestion)), ingestion).isRight shouldBe true
+
+        manifest.getChildrenCollections(message.uri).successValue shouldBe List(Manifest.ResourceCollections(message.uri, List(collection.value)))
+        manifest.deleteBlob(message.uri, includeEmail = true).successValue
+        manifest.getResource(message.uri).isLeft shouldBe true
+        manifest.getResource(reply.uri).isRight shouldBe true
+      }
 
       "Can insert emails" in {
         val result = manifest.insert(emails, Uri("test-collection/test-ingestion"))

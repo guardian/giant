@@ -25,6 +25,9 @@ GET           /api/blobs/count                                              cont
 POST          /api/blobs/:id/reprocess                                      controllers.api.Blobs.reprocess(id, rerunSuccessful: Option[Boolean], rerunFailed: Option[Boolean])
 DELETE        /api/blobs/:id                                                controllers.api.Blobs.delete(id, checkChildren: Boolean, isAdminDelete: Boolean)
 
+GET           /api/blobs/delete-with-children                               controllers.api.Blobs.getAllCollectionsOfChildren(uri: String)
+DELETE        /api/blobs/delete-with-children                               controllers.api.Blobs.deleteWithChildren(uri: String)
+
 GET           /api/filters                                                  controllers.api.Filters.getFilters()
 
 GET           /api/search                                                   controllers.api.Search.search()
